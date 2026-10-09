@@ -1,0 +1,21 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Check release files
+        run: |
+          test -s dist/main.js && test -s dist/styles.css && test -s dist/manifest.json
+          node -e "const m=require('./manifest.json'),p=require('./package.json');if(m.version!==p.version){console.error('manifest and package versions differ');process.exit(1)}"

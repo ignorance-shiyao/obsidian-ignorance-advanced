@@ -1,0 +1,481 @@
+/* ==========================================================================
+ * Ignorance Blocks — functional layout only.
+ *
+ * Everything visual (diagram colors, shapes, block chrome, token colors,
+ * handle colors) lives in the Ignorance theme. This sheet holds only
+ * what the plugin's JS depends on to work: positioning, sizing, overflow,
+ * gestures and the fixed header grid.
+ * ========================================================================== */
+
+/* Interactive Mermaid canvas */
+.mermaid.ibm-mermaid-enhanced {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+  place-items: stretch !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  padding: 0 !important;
+  text-align: initial !important;
+  width: min(100%, var(--ibm-diagram-card-width, 100%)) !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin-inline: auto !important;
+  overflow: hidden !important;
+  cursor: default;
+  user-select: none;
+  touch-action: pan-y;
+}
+
+/* No pan mode: mouse drags directly, a single-finger vertical swipe stays
+   with the page (pan-y), horizontal drags and pinches go to the diagram. */
+.mermaid.ibm-mermaid-enhanced .ibm-mermaid-canvas {
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.mermaid.ibm-mermaid-enhanced.is-panning .ibm-mermaid-canvas { cursor: grabbing; }
+
+/* Live Preview wraps rendered blocks; flatten that shell's spacing. */
+.markdown-source-view.mod-cm6 .cm-embed-block:has(.mermaid.ibm-mermaid-enhanced) {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+.markdown-source-view.mod-cm6 .cm-embed-block:has(.mermaid.ibm-mermaid-enhanced) .mermaid.ibm-mermaid-enhanced {
+  margin-block: 0 !important;
+}
+
+.ibm-block-header,
+.ibm-mermaid-canvas {
+  box-sizing: border-box;
+}
+
+.ibm-mermaid-canvas {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  height: var(--ibm-mermaid-canvas-height, 200px);
+  overflow: hidden;
+}
+
+/* Anchored to the top: the drawing starts right under the header. The box
+   is sized in px by the plugin; nothing may clamp it. */
+.mermaid.ibm-mermaid-enhanced .ibm-mermaid-canvas > svg {
+  position: absolute !important;
+  top: 8px !important;
+  left: 50% !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  will-change: transform;
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+ * Block header row: a grid with fixed-width slots so no readout or label
+ * length can move a button.
+ * -------------------------------------------------------------------------- */
+
+.ibm-block-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  padding: 0 var(--ib-space-3, 12px);
+  overflow: hidden;
+}
+.mermaid.ibm-mermaid-enhanced > .ibm-block-header { align-self: stretch; width: 100%; }
+
+.ibm-block-title {
+  grid-column: 1;
+  justify-self: start;
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: var(--ib-space-2, 8px);
+  min-width: 0;
+}
+.ibm-block-icon { display: flex; align-items: center; }
+.ibm-block-label {
+  min-width: 0;
+  max-width: 100%;
+  height: 22px;
+  line-height: 22px;
+  padding: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+.ibm-block-label.is-editable { padding: 0 6px; cursor: text; }
+.ibm-block-label-input { grid-column: 1; justify-self: start; width: 9em; height: 22px; padding: 0 6px; }
+
+.ibm-block-actions {
+  grid-column: 2;
+  justify-self: end;
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: var(--ib-space-2, 8px);
+}
+.ibm-mermaid-toolbar,
+.ibm-block-header .ibm-copy-source,
+.ibm-block-header .ibm-edit-source { height: 30px; }
+
+/* 30 + 56 + 30 inside the pill. */
+.ibm-mermaid-toolbar {
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: 0;
+  width: 116px;
+  min-width: 116px;
+  max-width: 116px;
+  padding: 0;
+  overflow: hidden;
+}
+.ibm-block-header button {
+  box-sizing: border-box;
+  width: 30px;
+  min-width: 30px;
+  max-width: 30px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+.ibm-block-header .ibm-block-label { width: auto; min-width: 0; max-width: 100%; }
+.ibm-mermaid-toolbar .ibm-mermaid-percent { width: 56px; min-width: 56px; max-width: 56px; }
+.ibm-block-header :is(.ibm-copy-source, .ibm-edit-source) { display: flex; align-items: center; justify-content: center; }
+.ibm-block-header button > svg { flex: 0 0 16px; }
+
+/* Code blocks: same shell as a diagram — header row on top, body below.
+   No zoom; long lines wrap instead of scrolling sideways. */
+pre.ibc-enhanced {
+  position: relative;
+  display: flex !important;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+pre.ibc-enhanced > .ibm-block-header { flex: 0 0 auto; width: 100%; margin: 0; }
+pre.ibc-enhanced > code {
+  display: block;
+  box-sizing: border-box;
+  padding: var(--ib-space-3, 12px) var(--ib-space-4, 16px) !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  overflow: visible !important;
+  tab-size: 2;
+}
+
+/* Native controls are replaced by the header's own copy/edit buttons. */
+:is(.cm-embed-block, .cm-preview-code-block, .el-pre, .el-div):has(.ibm-block-header) .edit-block-button:not(.ibm-block-header *),
+pre.ibc-enhanced .copy-code-button:not(.ibm-block-header *) {
+  display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+ * Table sizing: widths/heights come from the #ibt-sizes sheet; density pads
+ * reading-view cells only.
+ * -------------------------------------------------------------------------- */
+
+body.ibt-density-compact { --ibt-cell-padding: 4px 8px; }
+body.ibt-density-normal { --ibt-cell-padding: 8px 10px; }
+body.ibt-density-relaxed { --ibt-cell-padding: 14px 14px; }
+.markdown-rendered:not(.cm-table-widget) table.ibt-enhanced :is(th, td) { padding: var(--ibt-cell-padding, 8px 10px); }
+
+.ibt-host { position: relative; }
+.ibt-layer { position: absolute; z-index: 3; pointer-events: none; }
+.ibt-handle { position: absolute; pointer-events: auto; touch-action: none; opacity: 0; transition: opacity 120ms ease; }
+.ibt-layer.is-visible .ibt-handle { opacity: 1; }
+.ibt-handle.is-col { top: 0; bottom: 0; width: 12px; margin-left: -6px; cursor: col-resize; }
+.ibt-handle.is-row { left: 0; right: 0; height: 12px; margin-top: -6px; cursor: row-resize; }
+.ibt-handle::after { content: ""; position: absolute; }
+.ibt-handle.is-col::after { top: 0; bottom: 0; left: 5px; width: 2px; }
+.ibt-handle.is-row::after { left: 0; right: 0; top: 5px; height: 2px; }
+.ibt-handle::before { content: ""; position: absolute; z-index: 1; }
+.ibt-handle.is-col::before { top: calc(var(--ibt-header-mid, 16px) - 10px); left: 1px; width: 10px; height: 20px; }
+.ibt-handle.is-row::before { left: calc(var(--ibt-first-mid, 16px) - 10px); top: 1px; width: 20px; height: 10px; }
+.ibt-focus { position: absolute; pointer-events: none; opacity: 0; transition: opacity 100ms ease; }
+.ibt-focus.is-visible { opacity: 1; }
+.ibt-readout {
+  position: fixed;
+  z-index: var(--layer-tooltip, 10000);
+  transform: translate(-50%, calc(-100% - 8px));
+  padding: 2px 8px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+}
+.ibt-readout.is-visible { opacity: 1; }
+
+body.ibt-dragging-col, body.ibt-dragging-col * { cursor: col-resize !important; user-select: none !important; }
+body.ibt-dragging-row, body.ibt-dragging-row * { cursor: row-resize !important; user-select: none !important; }
+
+/* While a Live Preview cell is edited its column is held at its old width. */
+.cm-table-widget.ibt-holding .table-cell-wrapper :is(.cm-content, .cm-line, .cm-line *) {
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+}
+
+/* Live Preview copy and position buttons: pinned together to the right of the opening fence line. */
+.markdown-source-view.mod-cm6 .HyperMD-codeblock-begin .ibc-live-actions {
+  position: absolute;
+  top: 50%;
+  right: var(--ib-space-3, 12px);
+  transform: translateY(-50%);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.markdown-source-view.mod-cm6 .HyperMD-codeblock-begin .ibc-live-copy {
+  position: static;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+}
+/* Only the editor's code blocks get the header row; elsewhere (source mode
+   without Live Preview) the widget stays out of the way. */
+.markdown-source-view.mod-cm6:not(.is-live-preview) .ibc-live-copy { display: none; }
+.markdown-source-view.mod-cm6 .ibc-live-ln { display: none; }
+
+
+/* Read-only HTML view: let the sandboxed document use the whole pane. */
+.ibm-html-reader-view {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.ibm-html-reader-frame {
+  display: block;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+}
+.ibm-html-reader-error {
+  padding: var(--ib-space-4, 16px);
+}
+
+/* Presentation view: Markdown stays in the source note; reveal.js is only the reader. */
+.ibp-presentation-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  padding: 0 !important;
+  overflow: hidden;
+}
+/* 操作区：舞台顶部居中的悬浮条（底部右侧是 Obsidian 的浮动状态栏）；舞台顶部留出同等高度，画幅不会被遮住。 */
+.ibp-presentation-toolbar {
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: calc(100% - 24px);
+  min-height: 40px;
+  padding: 4px 6px;
+  transform: translateX(-50%);
+  overflow-x: auto;
+}
+.ibp-presentation-action {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ib-space-1, 4px);
+  min-height: 30px;
+  cursor: pointer;
+}
+.ibp-presentation-action svg { width: 16px; height: 16px; }
+.ibp-presentation-action.is-disabled,
+.ibp-presentation-action.is-busy { pointer-events: none; }
+.ibp-presentation-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.ibp-presentation-stage > .reveal {
+  position: absolute;
+  inset: 64px 0 0 0;
+  width: 100%;
+  height: calc(100% - 64px);
+}
+.ibp-presentation-stage > .reveal:fullscreen {
+  inset: 0;
+  height: 100%;
+}
+.ibp-presentation-empty,
+.ibp-presentation-error {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  padding: 24px;
+  text-align: center;
+}
+.ibp-slide-measure {
+  position: fixed !important;
+  top: 0 !important;
+  left: -100000px !important;
+  z-index: -1 !important;
+  display: block !important;
+  min-height: 1px;
+  overflow: visible !important;
+  pointer-events: none !important;
+}
+.ibp-slide-measure > div { display: block; width: max-content; height: max-content; }
+.ibp-slide-measure .slide-surface { display: block; position: relative; transform: none !important; }
+
+
+/* Markdown fences use the normal renderer in Reading Mode. */
+.ibm-markdown-preview-block {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+.ibm-markdown-preview-block > .ibm-block-header { width: 100%; }
+.ibm-markdown-preview {
+  padding: var(--ib-space-4, 16px);
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.ibm-markdown-preview > :first-child { margin-top: 0; }
+.ibm-markdown-preview > :last-child { margin-bottom: 0; }
+.ibp-staging .ibm-markdown-preview {
+  padding: 0 !important;
+  overflow: visible !important;
+}
+.markdown-source-view.mod-cm6 .cm-embed-block:has(.ibm-markdown-preview-block) {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Mermaid edge animations, declared once: a copy inside every diagram's
+   <style> restyled the whole document each time one was inserted. */
+@keyframes edge-animation-frame { from { stroke-dashoffset: 0; } }
+@keyframes dash { to { stroke-dashoffset: 0; } }
+
+.ib-echarts-block { display:flex; flex-direction:column; padding:0; overflow:hidden; }
+.ib-echarts-block > .ibm-block-header { flex:0 0 auto; width:100%; }
+.ib-echarts-viewport { position:relative; flex:1; min-height:0; overflow:auto; }
+.ib-echarts-surface { position:relative; margin-inline:auto; }
+.ib-echarts-host { position:absolute; inset:0 auto auto 0; transform-origin:top left; }
+.ib-echarts-placeholder { position:absolute; inset:0; pointer-events:none; z-index:1; }
+.ib-echarts-placeholder > svg { width:100%; height:100%; }
+
+/* One layer policy: content stays below active controls and portal tooltips. */
+:is(.mermaid.ibm-mermaid-enhanced,.ib-echarts-block) { position:relative; isolation:isolate; z-index:0; }
+:is(.mermaid.ibm-mermaid-enhanced,.ib-echarts-block):is(:hover,:focus-within) { z-index:var(--layer-popover,30); }
+.ibm-block-header { position:relative; z-index:3; overflow:visible; }
+.ibm-block-header .ib-chart-align { display:flex; align-items:center; justify-content:center; }
+.ibm-block-header .ib-chart-align svg { width:16px; height:16px; }
+[data-ib-chart-align="left"]:is(.mermaid,.ib-echarts-block,.cm-embed-block) { margin-left:0 !important; margin-right:auto !important; }
+[data-ib-chart-align="center"]:is(.mermaid,.ib-echarts-block,.cm-embed-block) { margin-left:auto !important; margin-right:auto !important; }
+[data-ib-chart-align="right"]:is(.mermaid,.ib-echarts-block,.cm-embed-block) { margin-left:auto !important; margin-right:0 !important; }
+/* Authored width ({width=480} on the fence) and the edge handles that set it. */
+[data-ib-chart-width]:is(.mermaid,.ib-echarts-block,pre) { width:var(--ib-chart-width) !important; max-width:100% !important; box-sizing:border-box; }
+:is(pre.ibc-enhanced,.mermaid.ibm-mermaid-enhanced,.ib-echarts-block) { position:relative; }
+.ib-block-resize { position:absolute; top:0; bottom:0; width:10px; z-index:4; cursor:ew-resize; touch-action:none; opacity:0; transition:opacity 120ms ease; }
+.ib-block-resize.is-west { left:0; } .ib-block-resize.is-east { right:0; }
+.ib-block-resize::after { content:""; position:absolute; top:50%; width:4px; height:36px; max-height:60%; transform:translateY(-50%); border-radius:2px; background:var(--ib-focus, var(--interactive-accent)); }
+.ib-block-resize.is-west::after { left:2px; } .ib-block-resize.is-east::after { right:2px; }
+:is(pre.ibc-enhanced,.mermaid.ibm-mermaid-enhanced,.ib-echarts-block):is(:hover,.is-resizing) > .ib-block-resize { opacity:.55; }
+.ib-block-resize:hover, .is-resizing > .ib-block-resize { opacity:1 !important; }
+[data-ib-chart-align="left"] > .ib-block-resize.is-west, [data-ib-chart-align="right"] > .ib-block-resize.is-east { display:none; }
+@media (hover:none) { :is(pre.ibc-enhanced,.mermaid.ibm-mermaid-enhanced,.ib-echarts-block) > .ib-block-resize { opacity:.35; width:16px; } }
+.is-resizing { user-select:none; }
+@media print { :is(.mermaid.ibm-mermaid-enhanced,.ib-echarts-block) { z-index:auto !important; } }
+
+/* Language picker (Live Preview flair and reading-view header label). */
+.ib-lang-picker { position:fixed; z-index:var(--layer-popover,30); display:flex; flex-direction:column; max-height:340px; overflow:hidden; border:1px solid var(--ib-border-default, var(--background-modifier-border)); border-radius:var(--ib-radius-md, 8px); background:var(--ib-bg-primary, var(--background-primary)); box-shadow:0 8px 24px rgba(0,0,0,.14); }
+.ib-lang-input { flex:0 0 auto; margin:6px; padding:5px 8px; border:1px solid var(--ib-border-default, var(--background-modifier-border)); border-radius:6px; background:var(--ib-bg-secondary, var(--background-secondary)); color:var(--text-normal); font:inherit; font-size:13px; outline:none; }
+.ib-lang-input:focus { border-color:var(--ib-focus, var(--interactive-accent)); }
+.ib-lang-list { flex:1 1 auto; margin:0; padding:0 4px 6px; overflow-y:auto; list-style:none; }
+.ib-lang-item { display:flex; align-items:center; gap:10px; padding:5px 8px; border-radius:6px; color:var(--text-normal); font-size:13px; cursor:pointer; }
+.ib-lang-item.is-active { background:var(--ib-bg-active, var(--background-modifier-hover)); color:var(--text-accent); }
+.ib-lang-item.is-current .ib-lang-name { font-weight:600; }
+.ib-lang-name { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ib-lang-id { flex:0 0 auto; color:var(--text-faint); font-family:var(--font-monospace); font-size:11px; }
+.markdown-source-view.mod-cm6 .code-block-flair { cursor:pointer; }
+
+/* Language icons: Live Preview header, reading-view header and the picker share one size. */
+.ib-lang-icon { display:inline-flex; align-items:center; justify-content:center; flex:0 0 auto; width:18px; height:18px; color:var(--text-muted); }
+.ib-lang-icon svg { width:100%; height:100%; fill:currentColor; }
+.ibm-block-icon .ib-lang-icon { width:18px; height:18px; color:var(--text-accent); }
+.ibm-block-icon .ib-lang-icon.is-generic svg { width:16px; height:16px; }
+.markdown-source-view.mod-cm6 .HyperMD-codeblock-begin .ibc-live-lang { position:absolute; top:50%; left:var(--ib-space-3, 12px); transform:translateY(-50%); z-index:2; display:inline-flex; }
+.markdown-source-view.mod-cm6 .HyperMD-codeblock-begin .code-block-flair { margin-inline-start:26px; }
+.markdown-source-view.mod-cm6:not(.is-live-preview) .ibc-live-lang { display:none; }
+
+/* Icons with a light-background variant carry both; show the one that fits the theme. */
+.ib-li-light { display:none; }
+body.theme-light .ib-li-dark { display:none; }
+body.theme-light .ib-li-light { display:inline; }
+/* File-type icons in the file explorer replace the theme's Lucide masks once loaded. */
+.ib-file-icon { display:inline-flex; flex:0 0 auto; align-self:center; width:16px; height:16px; margin-inline-end:7px; }
+.ib-file-icon svg { width:100%; height:100%; }
+.nav-file-title:has(> .ib-file-icon) .nav-file-title-content::before { display:none; }
+.ib-file-icon.is-folder { color:var(--ib-accent-brand, var(--interactive-accent)); }
+.ib-file-icon.is-folder > span { display:inline-flex; width:100%; height:100%; }
+/* Empty folders: the closed shape drawn as a dashed outline, even while "open". */
+.nav-folder .nav-folder-title .ib-file-icon.is-empty .ib-fo-closed { display:inline-flex !important; }
+.nav-folder .nav-folder-title .ib-file-icon.is-empty .ib-fo-open { display:none !important; }
+.ib-file-icon.is-empty svg path { fill-opacity:.18; stroke:currentColor; stroke-width:.9; stroke-dasharray:2 1.3; }
+.nav-folder.is-collapsed > .nav-folder-title .ib-fo-open, .nav-folder:not(.is-collapsed) > .nav-folder-title .ib-fo-closed { display:none; }
+.nav-folder-title:has(> .ib-file-icon) > :is(.nav-folder-collapse-indicator, .collapse-icon, .tree-item-icon) { display:none !important; }
+
+/* Image cropper. */
+.ib-crop-modal .modal { width:min(92vw, 880px); }
+.ib-crop-stage { position:relative; display:inline-block; max-width:100%; line-height:0; user-select:none; touch-action:none; }
+.ib-crop-image { display:block; max-width:100%; max-height:62vh; width:auto; height:auto; }
+.ib-crop-box { position:absolute; box-sizing:border-box; border:2px solid var(--ib-focus, var(--interactive-accent)); box-shadow:0 0 0 9999px rgba(10,14,22,.55); cursor:move; }
+.ib-crop-box::before, .ib-crop-box::after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(to right, transparent calc(33.3% - .5px), rgba(255,255,255,.55) calc(33.3% - .5px) calc(33.3% + .5px), transparent calc(33.3% + .5px) calc(66.6% - .5px), rgba(255,255,255,.55) calc(66.6% - .5px) calc(66.6% + .5px), transparent calc(66.6% + .5px)); }
+.ib-crop-box::after { background:linear-gradient(to bottom, transparent calc(33.3% - .5px), rgba(255,255,255,.55) calc(33.3% - .5px) calc(33.3% + .5px), transparent calc(33.3% + .5px) calc(66.6% - .5px), rgba(255,255,255,.55) calc(66.6% - .5px) calc(66.6% + .5px), transparent calc(66.6% + .5px)); }
+.ib-crop-handle { position:absolute; width:14px; height:14px; margin:-7px; background:var(--ib-focus, var(--interactive-accent)); border:2px solid #fff; border-radius:50%; }
+.ib-crop-handle.is-nw { left:0; top:0; cursor:nwse-resize; } .ib-crop-handle.is-n { left:50%; top:0; cursor:ns-resize; } .ib-crop-handle.is-ne { left:100%; top:0; cursor:nesw-resize; }
+.ib-crop-handle.is-e { left:100%; top:50%; cursor:ew-resize; } .ib-crop-handle.is-se { left:100%; top:100%; cursor:nwse-resize; } .ib-crop-handle.is-s { left:50%; top:100%; cursor:ns-resize; }
+.ib-crop-handle.is-sw { left:0; top:100%; cursor:nesw-resize; } .ib-crop-handle.is-w { left:0; top:50%; cursor:ew-resize; }
+.ib-crop-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; flex-wrap:wrap; }
+.ib-crop-readout { color:var(--text-muted); font-variant-numeric:tabular-nums; font-size:13px; }
+.ib-crop-ratios { display:flex; gap:6px; flex-wrap:wrap; }
+.ib-crop-ratio { padding:3px 10px; border-radius:999px; font-size:12px; }
+.ib-crop-ratio.is-active { background:var(--interactive-accent); color:var(--text-on-accent); }
+.ib-crop-confirm { display:flex; gap:14px; align-items:center; margin-bottom:8px; }
+.ib-crop-thumb { max-width:160px; max-height:110px; border-radius:6px; border:1px solid var(--background-modifier-border); }
+.ib-crop-confirm-text { color:var(--text-muted); font-size:13px; }
+
+/* Touch: finger-sized crop handles and image toolbar buttons. */
+body.is-mobile .ib-crop-handle { width:28px; height:28px; margin:-14px; }
+body.is-mobile .ib-crop-box { border-width:3px; }
+body.is-mobile .image-embed:hover .ib-image-actions { opacity:.9; }
+body.is-mobile .ib-image-actions .ib-image-action { width:34px; height:34px; }
