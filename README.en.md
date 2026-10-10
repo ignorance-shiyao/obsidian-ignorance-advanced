@@ -65,6 +65,16 @@ Tab reuse, typewriter and focus modes, smart punctuation, `==🟢colored==` high
 
 Requires Obsidian 1.8.7 or later. Works on desktop and mobile; Word/PDF import and some exports need the desktop app.
 
+## Usage
+
+- **Diagrams and charts**: write a fenced block with the language `mermaid` or `echarts`. It renders in Live Preview and Reading view; hover it for zoom, copy, edit-source and alignment controls, and drag its edges to resize.
+- **Tables**: drag a column or row edge to resize; Alt drags freely, Shift steps by 10 px, double-click an edge to fit it.
+- **Images**: click an image to align, resize or crop it.
+- **Code blocks**: click the language label to search the language list; line numbers and soft wrap are in the block toolbar.
+- **Presentations**: separate slides with a line containing `---`, then use the *Presentation* button in the page toolbar at the top of the note (or run *Open presentation mode* from the command palette).
+- **Export**: use the export button in the page toolbar to produce PDF, Word, PowerPoint, images or an offline HTML reader.
+- **Settings**: Settings → Ignorance Advanced (palette, page layout, highlight colors, tab behavior).
+
 ## Privacy and network use
 
 - No telemetry, no analytics, no ads.
@@ -79,6 +89,10 @@ npm run build          # writes dist/main.js, dist/styles.css, dist/manifest.jso
 npm test
 OBSIDIAN_VAULT=/path/to/vault npm run install:vault   # build and copy into a vault
 ```
+
+## Feedback
+
+If you run into a problem or want a feature, please [open an issue](https://github.com/ignorance-shiyao/obsidian-ignorance-advanced/issues). A screenshot, your Obsidian version and the platform (desktop or mobile) help a lot.
 
 ## Support
 

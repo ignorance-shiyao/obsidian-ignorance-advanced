@@ -16,7 +16,7 @@
     "docx": "9.7.1",
     "exceljs": "4.4.0",
     "html2canvas-pro": "2.4.5",
-    "markdown-it": "14.3.0",
+    "markdown-it": "14.3.2",
     "pdfjs-dist": "6.3.289",
     "pptxgenjs": "4.0.1",
     "reveal.js": "6.0.1",
@@ -24,7 +24,8 @@
     "turndown-plugin-gfm": "1.0.2"
   },
   "overrides": {
-    "uuid": "11.1.1"
+    "uuid": "11.1.1",
+    "image-size": "2.0.4"
   },
   "version": "1.0.1",
   "license": "MIT",

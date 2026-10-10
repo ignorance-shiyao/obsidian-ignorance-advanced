@@ -13,8 +13,9 @@ function installTabOpening(plugin) {
   const originalOpenFile = leafPrototype?.openFile;
   if (typeof originalGetLeaf !== "function" || typeof originalOpenFile !== "function") return;
 
-  // A plain open (no modifier) goes to the tab that already shows the note;
-  // an explicit new tab / split / window (e.g. Cmd-click) is left alone.
+  // A plain open, or an explicit new tab (Cmd-click, "Open in new tab"), goes to the tab that already shows the
+  // note instead of making a second one; an explicit split / window is left alone, so the same note can
+  // still be shown twice on purpose.
   const getLeaf = function(newLeaf, ...args) {
     const plain = newLeaf === undefined || newLeaf === null || newLeaf === false;
     const canReuseEmpty = workspace.activeLeaf?.view?.getViewType?.() === "empty";
@@ -23,8 +24,15 @@ function installTabOpening(plugin) {
     const activeRoot = workspace.activeLeaf?.getRoot?.();
     const inSidebar = activeRoot === workspace.leftSplit || activeRoot === workspace.rightSplit;
     const useDefaultTab = plain && plugin.state.tabs.openInNewTab && !canReuseEmpty && !inSidebar;
+    const explicitTab = newLeaf === true || newLeaf === "tab";
     const leaf = originalGetLeaf.call(this, useDefaultTab ? true : newLeaf, ...args);
     if (plain && leaf) leaf._ibOpenPlain = { created: useDefaultTab, empty: canReuseEmpty };
+    else if (explicitTab && leaf) {
+      // Only an openFile that follows straight away is part of this open.
+      const mark = { created: true, empty: false };
+      leaf._ibOpenPlain = mark;
+      window.setTimeout(() => { if (leaf._ibOpenPlain === mark) delete leaf._ibOpenPlain; }, 1000);
+    }
     return leaf;
   };
   const openFile = function(file, ...args) {

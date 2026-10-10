@@ -3,6 +3,7 @@ import { setIcon, UI_ICONS } from "./modules/ui-icons.js";
 import { installChartPreload } from "./modules/chart-preload.js";
 import { installPreviewOverscan } from "./modules/preview-overscan.js";
 import { mountChartAlignment, chartAlignment } from "./modules/chart-alignment.js";
+import { markContext, clearContextMarkers } from "./modules/context-markers.js";
 import { BlockHeightMemory } from "./modules/block-height-memory.js";
 import { anchorBlockTop } from "./modules/quiet-edit.js";
 import { openLanguagePicker, withFenceLanguage } from "./modules/language-picker.js";
@@ -439,6 +440,8 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
           // filled in afterwards.
           if (!(node instanceof Element)) continue;
           // Paged books and code lines are copies/fragments with nothing to enhance.
+          // Paged books hold copies that the theme styles too.
+          if (!node.classList.contains("ib-code-line")) markContext(node);
           if (node.closest(".ibp-book") || node.classList.contains("ib-code-line")) continue;
           if (node.matches(".mermaid")) diagrams.add(node);
           node.querySelectorAll(".mermaid").forEach(element => diagrams.add(element));
@@ -454,6 +457,14 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     });
     this.observer.observe(document.body, { childList: true, subtree: true });
     this.register(() => this.observer.disconnect());
+    markContext(document.body);
+    this.register(() => clearContextMarkers());
+    // While the "title" property is being edited, Obsidian's value suggestions would cover the title field.
+    const syncTitleFocus = () => document.body.classList.toggle("ib-title-property-focus",
+      Boolean(document.activeElement?.closest('.metadata-property[data-property-key="title" i]')));
+    this.registerDomEvent(document, "focusin", syncTitleFocus);
+    this.registerDomEvent(document, "focusout", () => window.setTimeout(syncTitleFocus, 0));
+    this.register(() => document.body.classList.remove("ib-title-property-focus"));
 
     // A sweep on layout changes catches any diagram the observer missed.
     // Reading view renders a moment after the mode switch or the save, so look again a few times.
@@ -463,7 +474,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
         void syncPreviewTableAlignment(this, leaf.view).catch(() => {});
       }
     }, delay));
-    this.registerEvent(this.app.workspace.on("layout-change", () => { this.sweepBlocks(); syncTablePositions(); }));
+    this.registerEvent(this.app.workspace.on("layout-change", () => { markContext(document.body); this.sweepBlocks(); syncTablePositions(); }));
     this.registerEvent(this.app.vault.on("modify", file => syncTablePositions(file)));
     this.registerEvent(this.app.workspace.on("active-leaf-change", () => {
       this.sweepBlocks();
@@ -1287,6 +1298,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     for (const labels of svg.querySelectorAll("g.edgeLabels")) labels.parentElement?.appendChild(labels);
 
     container.classList.add("ibm-mermaid-enhanced");
+    markContext(container);
     const { header, toolbar } = this.buildBlockHeader(container, {
       label: diagramLabel(svg),
       withZoom: true
@@ -1344,8 +1356,10 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.diagramStates.set(container, state);
 
     const apply = () => {
-      state.scale = Math.min(Math.max(3, state.readableMinimum || 0), Math.max(0.001, state.scale));
-      this.sizeCanvas(container, state);
+      state.scale = Math.min(Math.max(8, state.readableMinimum || 0), Math.max(0.001, state.scale));
+      // Once the reader zooms by hand the frame stays as it is: the picture is magnified inside it and the note
+      // around it does not reflow. Fitting again (double-click, the percentage) lets the frame size itself.
+      if (!state.lockFrame) this.sizeCanvas(container, state);
       svg.style.transformOrigin = "50% 0";
       // Cancel the drawing's offset inside its own box so the ink itself is
       // centred horizontally and hangs from the top gutter.
@@ -1358,11 +1372,12 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
 
     const zoomAt = (nextScale, clientX, clientY) => {
       const rect = canvas.getBoundingClientRect();
+      if (!state.readableScroll) state.lockFrame = true;
       if (state.readableScroll) {
         const oldScale = state.scale;
         const left = canvas.scrollLeft, top = canvas.scrollTop;
         const x = clientX - rect.left, y = clientY - rect.top;
-        state.scale = Math.min(Math.max(3, state.readableMinimum || 0), Math.max(0.05, nextScale));
+        state.scale = Math.min(Math.max(8, state.readableMinimum || 0), Math.max(0.05, nextScale));
         apply();
         const ratio = state.scale / oldScale;
         canvas.scrollLeft = Math.max(0, (left + x - 8) * ratio - x + 8);
@@ -1373,12 +1388,12 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
       // The drawing hangs from the top gutter, so that is the zoom origin's y.
       const pointY = clientY - rect.top - 8;
       const previousScale = state.scale;
-      const boundedScale = Math.min(3, Math.max(0.05, nextScale));
+      const boundedScale = Math.min(8, Math.max(0.05, nextScale));
       const ratio = boundedScale / previousScale;
       state.scale = boundedScale;
       const { width } = this.getDiagramSize(svg);
       const parentWidth = this.availableWidth(container);
-      const fillsAvailableWidth = width * boundedScale + 24 >= parentWidth;
+      const fillsAvailableWidth = state.lockFrame || width * boundedScale + 24 >= parentWidth;
       if (fillsAvailableWidth) {
         state.x = pointX - (pointX - state.x) * ratio;
         state.y = pointY - (pointY - state.y) * ratio;
@@ -1684,6 +1699,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
         svg.style.setProperty("max-height", "none", "important");
       }
       // Measure the real drawing at 100%, then fit from that.
+      state.lockFrame = false;
       state.scale = 1;
       state.x = 0;
       state.y = 0;
@@ -1712,6 +1728,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
   }
 
   applyFit(state, scale) {
+    state.lockFrame = false;
     state.scale = scale;
     state.x = 0;
     state.y = 0;

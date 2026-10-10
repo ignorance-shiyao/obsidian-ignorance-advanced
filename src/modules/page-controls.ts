@@ -274,10 +274,16 @@ function installPageControls(plugin, showExportMenu) {
     const actions = host.querySelector(":scope > .view-header > .view-actions");
     if (actions) actions.before(bar);
     else host.insertBefore(bar, host.querySelector(":scope > .view-content"));
+    host.addClass("ibp-toolbar-host");
+    syncWidthFlags();
   };
 
+  // The width button is inert while the editor is not using the readable line width; the theme dims it through this flag.
+  const syncWidthFlags = () => document.querySelectorAll<HTMLElement>('.workspace-leaf-content[data-type="markdown"]').forEach(leaf =>
+    leaf.toggleClass("ibp-source-fixed-width", Boolean(leaf.querySelector(".markdown-source-view.mod-cm6:not(.is-readable-line-width)"))));
   const sweep = () => {
     for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) buildToolbar(leaf.view);
+    syncWidthFlags();
     refreshPageNumbers(plugin);
   };
   sweep();
@@ -297,6 +303,7 @@ function installPageControls(plugin, showExportMenu) {
   // workspace event; catch new sizers as they are inserted.
   let pending = 0;
   const sizerWatcher = new MutationObserver(mutations => {
+    if (mutations.some(m => m.type === "attributes" && m.target instanceof Element && m.target.matches(".markdown-source-view"))) syncWidthFlags();
     if (!plugin.state.page.paged || pending) return;
     const found = mutations.some(m => m.type === "attributes"
       ? m.target instanceof Element && m.target.matches(".markdown-source-view, .markdown-reading-view")
@@ -312,6 +319,7 @@ function installPageControls(plugin, showExportMenu) {
     closePopover();
     document.querySelectorAll(".ibp-toolbar, .ibp-book, .ibp-staging").forEach(el => el.remove());
     document.querySelectorAll(".ibp-has-book").forEach(el => el.removeClass("ibp-has-book"));
+    document.querySelectorAll(".ibp-book-host, .ibp-toolbar-host, .ibp-source-fixed-width").forEach(el => el.removeClasses(["ibp-book-host", "ibp-toolbar-host", "ibp-source-fixed-width"]));
     document.getElementById("ibp-print-page")?.remove();
     document.body.classList.remove("ibp-paged");
     for (const name of ["--ibp-scale", "--ibp-font-size", "--ib-content-max", "--file-line-width", "--ibp-page-w", "--ibp-page-h", "--ibp-page-gap", "--ibp-mt", "--ibp-mr", "--ibp-mb", "--ibp-ml"]) document.body.style.removeProperty(name);

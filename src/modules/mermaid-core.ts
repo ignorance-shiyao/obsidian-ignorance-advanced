@@ -183,6 +183,7 @@ function stashStyle(element) {
 }
 
 function adoptC4Defaults(svg) {
+  for (const rect of svg.querySelectorAll('g > rect[fill="#1168BD"]')) rect.parentElement.setAttribute("data-ibm-c4-system", "");
   for (const node of svg.querySelectorAll("g.node")) {
     const shapes = [...node.querySelectorAll(":scope > g.basic :is(rect, path, circle, ellipse)[style], :scope > :is(rect, path)[style]")];
     let role = null;
@@ -215,6 +216,8 @@ function adoptC4Defaults(svg) {
     }
     if (!role) continue; // author-styled system: leave every color alone
     node.setAttribute("data-ibm-c4", role);
+    // Person-style cards (they carry an avatar disc) use dark text; the theme selects on this instead of :has(circle).
+    if (node.querySelector("circle")) node.setAttribute("data-ibm-c4-disc", "");
 
     // Mermaid also pins the label text white; let the theme decide.
     for (const label of node.querySelectorAll("[style*='#FFFFFF' i]")) {
@@ -243,7 +246,7 @@ function adoptC4Defaults(svg) {
 }
 
 const CLUSTER_GROUPS = "g.cluster, g.statediagram-cluster, g.subgraph";
-const TAG_ATTRS = ["data-ibm-group", "data-ibm-series", "data-ibm-stroked", "data-ibm-on-mark", "data-ibm-carded", "data-ibm-c4", "data-ibm-note", "data-ibm-class-kind"];
+const TAG_ATTRS = ["data-ibm-group", "data-ibm-series", "data-ibm-stroked", "data-ibm-on-mark", "data-ibm-carded", "data-ibm-c4", "data-ibm-c4-disc", "data-ibm-c4-system", "data-ibm-members", "data-ibm-note", "data-ibm-class-kind"];
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 function diagramKind(svg) {
@@ -1362,6 +1365,7 @@ function drawClassCards(svg) {
   drawClassNotes(svg);
   for (const node of svg.querySelectorAll("g.node")) {
     if (!node.querySelector(".members-group, .methods-group")) continue;
+    if (node.querySelector(".members-group")) node.setAttribute("data-ibm-members", "");
     const outline = node.querySelector(":scope > path, :scope > g > path, :scope > rect");
     if (!outline) continue;
     const box = outline.getBBox();

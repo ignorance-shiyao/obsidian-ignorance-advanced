@@ -150,10 +150,45 @@ function renderEChartsBlock(plugin, source, element, context) {
     button.addEventListener("click", action);
     return button;
   };
-  zoomButton("缩小", UI_ICONS.zoomOut, () => { zoom = Math.max(.25, zoom / 1.1); applyZoom(); });
-  const percent = zoomButton("恢复完整显示", "100%", () => { zoom = 1; applyZoom(); viewport.scrollTo(0, 0); });
+  // Zooming only magnifies the picture; the chart's layout stays as it was. A canvas chart would turn blurry when
+  // scaled up as a bitmap, so once the zoom settles it is drawn again at a matching pixel ratio.
+  let rendererNow = "svg";
+  let crispScale = 1;
+  let crispTimer = 0;
+  const scheduleCrisp = () => {
+    window.clearTimeout(crispTimer);
+    crispTimer = window.setTimeout(() => {
+      const target = rendererNow === "canvas" ? Math.min(6, Math.max(1, zoom)) : 1;
+      if (Math.abs(target - crispScale) < .05 || !chart) return;
+      crispScale = target;
+      void draw();
+    }, 220);
+  };
+  const setZoom = (value, anchor = null) => {
+    const next = Math.min(8, Math.max(.25, value));
+    if (next === zoom) return;
+    const ratio = next / zoom;
+    // Keep the point under the pointer (or the middle of the view) where it is.
+    const box = viewport.getBoundingClientRect();
+    const ax = anchor ? anchor.x - box.left : box.width / 2, ay = anchor ? anchor.y - box.top : box.height / 2;
+    const contentX = viewport.scrollLeft + ax, contentY = viewport.scrollTop + ay;
+    zoom = next;
+    applyZoom();
+    viewport.scrollLeft = contentX * ratio - ax;
+    viewport.scrollTop = contentY * ratio - ay;
+    scheduleCrisp();
+  };
+  zoomButton("缩小", UI_ICONS.zoomOut, () => setZoom(zoom / 1.1));
+  const percent = zoomButton("恢复完整显示", "100%", () => { setZoom(1); viewport.scrollTo(0, 0); });
   percent.className = "ibm-mermaid-percent";
-  zoomButton("放大", UI_ICONS.zoomIn, () => { zoom = Math.min(4, zoom * 1.1); applyZoom(); });
+  zoomButton("放大", UI_ICONS.zoomIn, () => setZoom(zoom * 1.1));
+  // Trackpad pinch and Ctrl/⌘ + wheel zoom the chart view, as they do for diagrams.
+  viewport.addEventListener("wheel", event => {
+    if (!(event.ctrlKey || event.metaKey)) return;
+    event.preventDefault();
+    const step = Math.min(.06, Math.abs(event.deltaY) * .0016);
+    setZoom(zoom * (event.deltaY < 0 ? 1 + step : 1 - step), { x: event.clientX, y: event.clientY });
+  }, { passive: false });
 
   const component = new Component();
   component.load();
@@ -219,7 +254,9 @@ function renderEChartsBlock(plugin, source, element, context) {
       deferred = false;
       disposeChart();
       delete element.dataset.ibGraphFit;
-      chart = engine.init(chartHost, themeName, { renderer, useDirtyRect: false, width, height });
+      rendererNow = renderer;
+      chart = engine.init(chartHost, themeName, { renderer, useDirtyRect: false, width, height,
+        ...(renderer === "canvas" ? { devicePixelRatio: (window.devicePixelRatio || 1) * crispScale } : {}) });
       lastSize = `${width}x${height}`;
       const normalized = { ...normalizeEChartsOption(parseEChartsOption(source), renderer) };
       const key = `${source.length}:${source.slice(0, 200)}`;

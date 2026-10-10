@@ -10,6 +10,14 @@ import { preparePaperTableColumns } from "./paper-table-columns.js";
 import { renderMarkdownWithContainers } from "./containers.js";
 import { applyCodeFenceHighlights } from "./code-lines.js";
 import { TASK_LINE, sourceTaskLines } from "./task-lines.js";
+
+/* A paged book replaces the native reading view. The preview carries `ibp-has-book`; the reading view and the leaf
+   carry `ibp-book-host`, so the theme can style around it without `:has()`. */
+function setBookFlag(preview: HTMLElement, on: boolean) {
+  preview.toggleClass("ibp-has-book", on);
+  for (const host of [preview.closest(".markdown-reading-view"), preview.closest(".workspace-leaf-content")]) host?.toggleClass("ibp-book-host", on);
+  if (!on) preview.removeClass("ib-has-pages");
+}
 const { Component, Notice } = require("obsidian");
 
 const books = new WeakMap();
@@ -243,7 +251,7 @@ async function renderBookOnce(plugin, view) {
   component.load();
   const book = previous.book?.isConnected ? previous.book : preview.createDiv({ cls: "ibp-book" });
   installBookInteractions(plugin, view, book);
-  preview.addClass("ibp-has-book");
+  setBookFlag(preview, true);
   book.dataset.ibpProgress = previous.pages?.length ? "updating" : "initial";
   const controller = new AbortController();
   readingControllers.set(view, controller);
@@ -257,14 +265,14 @@ async function renderBookOnce(plugin, view) {
       component.unload();
       previous.component?.unload();
       book.remove();
-      preview.removeClass("ibp-has-book");
+      setBookFlag(preview, false);
       books.delete(view);
       return;
     }
     if (!done) {
       component.unload();
       book.remove();
-      preview.removeClass("ibp-has-book");
+      setBookFlag(preview, false);
       books.delete(view);
       return;
     }
@@ -279,14 +287,14 @@ async function renderBookOnce(plugin, view) {
     if (controller.signal.aborted) {
       previous.component?.unload();
       book.remove();
-      preview.removeClass("ibp-has-book");
+      setBookFlag(preview, false);
       books.delete(view);
       return;
     }
     if (previous.pages?.length) book.dataset.ibpProgress = "complete";
     if (!previous.book?.isConnected) {
       book.remove();
-      preview.removeClass("ibp-has-book");
+      setBookFlag(preview, false);
     }
     throw error;
   } finally {
@@ -667,7 +675,7 @@ function refreshBooks(plugin, force) {
         state.staging?.remove();
         books.delete(view);
       }
-      view.containerEl.querySelector(".ibp-has-book")?.removeClass("ibp-has-book");
+      { const flagged = view.containerEl.querySelector<HTMLElement>(".ibp-has-book"); if (flagged) setBookFlag(flagged, false); }
       view.containerEl.querySelectorAll(".ibp-book").forEach(book => book.remove());
       // The hidden native renderer may have cached zero-height sections.
       // Once paging is off, invalidate those measurements and rendered blocks

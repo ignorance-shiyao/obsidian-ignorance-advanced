@@ -9,24 +9,26 @@
 
 /* Interactive Mermaid canvas */
 .mermaid.ibm-mermaid-enhanced {
-  position: relative !important;
-  display: flex !important;
-  flex-direction: column !important;
-  box-sizing: border-box !important;
-  place-items: stretch !important;
-  align-items: stretch !important;
-  justify-content: flex-start !important;
-  padding: 0 !important;
-  text-align: initial !important;
-  width: min(100%, var(--ibm-diagram-card-width, 100%)) !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  margin-inline: auto !important;
-  overflow: hidden !important;
   cursor: default;
   user-select: none;
   touch-action: pan-y;
+}
+.mermaid.ibm-mermaid-enhanced:not(#_ib) {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  place-items: stretch;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 0;
+  text-align: initial;
+  width: min(100%, var(--ibm-diagram-card-width, 100%));
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  margin-inline: auto;
+  overflow: hidden;
 }
 
 /* No pan mode: mouse drags directly, a single-finger vertical swipe stays
@@ -40,12 +42,12 @@
 .mermaid.ibm-mermaid-enhanced.is-panning .ibm-mermaid-canvas { cursor: grabbing; }
 
 /* Live Preview wraps rendered blocks; flatten that shell's spacing. */
-.markdown-source-view.mod-cm6 .cm-embed-block:has(.mermaid.ibm-mermaid-enhanced) {
-  padding: 0 !important;
-  overflow: hidden !important;
+.markdown-source-view.mod-cm6 .cm-embed-block.ib-has-mermaid:not(#_ib) {
+  padding: 0;
+  overflow: hidden;
 }
-.markdown-source-view.mod-cm6 .cm-embed-block:has(.mermaid.ibm-mermaid-enhanced) .mermaid.ibm-mermaid-enhanced {
-  margin-block: 0 !important;
+.markdown-source-view.mod-cm6 .cm-embed-block.ib-has-mermaid .mermaid.ibm-mermaid-enhanced:not(#_ib) {
+  margin-block: 0;
 }
 
 .ibm-block-header,
@@ -64,14 +66,16 @@
 /* Anchored to the top: the drawing starts right under the header. The box
    is sized in px by the plugin; nothing may clamp it. */
 .mermaid.ibm-mermaid-enhanced .ibm-mermaid-canvas > svg {
-  position: absolute !important;
-  top: 8px !important;
-  left: 50% !important;
-  max-width: none !important;
-  max-height: none !important;
-  margin: 0 !important;
   will-change: transform;
   pointer-events: none;
+}
+.mermaid.ibm-mermaid-enhanced .ibm-mermaid-canvas > svg:not(#_ib) {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
 }
 
 /* --------------------------------------------------------------------------
@@ -159,29 +163,33 @@
    No zoom; long lines wrap instead of scrolling sideways. */
 pre.ibc-enhanced {
   position: relative;
-  display: flex !important;
   flex-direction: column;
   box-sizing: border-box;
   width: 100%;
-  padding: 0 !important;
-  overflow: hidden !important;
+}
+pre.ibc-enhanced:not(#_ib) {
+  display: flex;
+  padding: 0;
+  overflow: hidden;
 }
 pre.ibc-enhanced > .ibm-block-header { flex: 0 0 auto; width: 100%; margin: 0; }
 pre.ibc-enhanced > code {
   display: block;
   box-sizing: border-box;
-  padding: var(--ib-space-3, 12px) var(--ib-space-4, 16px) !important;
-  white-space: pre-wrap !important;
   overflow-wrap: anywhere;
   word-break: normal;
-  overflow: visible !important;
   tab-size: 2;
+}
+pre.ibc-enhanced > code:not(#_ib) {
+  padding: var(--ib-space-3, 12px) var(--ib-space-4, 16px);
+  white-space: pre-wrap;
+  overflow: visible;
 }
 
 /* Native controls are replaced by the header's own copy/edit buttons. */
-:is(.cm-embed-block, .cm-preview-code-block, .el-pre, .el-div):has(.ibm-block-header) .edit-block-button:not(.ibm-block-header *),
-pre.ibc-enhanced .copy-code-button:not(.ibm-block-header *) {
-  display: none !important;
+:is(.cm-embed-block, .cm-preview-code-block, .el-pre, .el-div).ib-has-block-header .edit-block-button:not(.ibm-block-header *):not(#_ib),
+pre.ibc-enhanced .copy-code-button:not(.ibm-block-header *):not(#_ib) {
+  display: none;
 }
 
 /* --------------------------------------------------------------------------
@@ -219,13 +227,15 @@ body.ibt-density-relaxed { --ibt-cell-padding: 14px 14px; }
 }
 .ibt-readout.is-visible { opacity: 1; }
 
-body.ibt-dragging-col, body.ibt-dragging-col * { cursor: col-resize !important; user-select: none !important; }
-body.ibt-dragging-row, body.ibt-dragging-row * { cursor: row-resize !important; user-select: none !important; }
+body.ibt-dragging-col:not(#_ib),
+body.ibt-dragging-col *:not(#_ib) { cursor: col-resize; user-select: none; }
+body.ibt-dragging-row:not(#_ib),
+body.ibt-dragging-row *:not(#_ib) { cursor: row-resize; user-select: none; }
 
 /* While a Live Preview cell is edited its column is held at its old width. */
-.cm-table-widget.ibt-holding .table-cell-wrapper :is(.cm-content, .cm-line, .cm-line *) {
-  overflow-wrap: anywhere !important;
-  word-break: break-word !important;
+.cm-table-widget.ibt-holding .table-cell-wrapper :is(.cm-content, .cm-line, .cm-line *):not(#_ib) {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Live Preview copy and position buttons: pinned together to the right of the opening fence line. */
@@ -285,8 +295,10 @@ body.ibt-dragging-row, body.ibt-dragging-row * { cursor: row-resize !important; 
   flex-direction: column;
   min-height: 0;
   height: 100%;
-  padding: 0 !important;
   overflow: hidden;
+}
+.ibp-presentation-content:not(#_ib) {
+  padding: 0;
 }
 /* 操作区：舞台顶部居中的悬浮条（底部右侧是 Obsidian 的浮动状态栏）；舞台顶部留出同等高度，画幅不会被遮住。 */
 .ibp-presentation-toolbar {
@@ -342,25 +354,30 @@ body.ibt-dragging-row, body.ibt-dragging-row * { cursor: row-resize !important; 
   text-align: center;
 }
 .ibp-slide-measure {
-  position: fixed !important;
-  top: 0 !important;
-  left: -100000px !important;
-  z-index: -1 !important;
-  display: block !important;
   min-height: 1px;
-  overflow: visible !important;
-  pointer-events: none !important;
+}
+.ibp-slide-measure:not(#_ib) {
+  position: fixed;
+  top: 0;
+  left: -100000px;
+  z-index: -1;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
 }
 .ibp-slide-measure > div { display: block; width: max-content; height: max-content; }
-.ibp-slide-measure .slide-surface { display: block; position: relative; transform: none !important; }
+.ibp-slide-measure .slide-surface { display: block; position: relative; }
+.ibp-slide-measure .slide-surface:not(#_ib) { transform: none; }
 
 
 /* Markdown fences use the normal renderer in Reading Mode. */
 .ibm-markdown-preview-block {
   box-sizing: border-box;
   width: 100%;
-  padding: 0 !important;
-  overflow: visible !important;
+}
+.ibm-markdown-preview-block:not(#_ib) {
+  padding: 0;
+  overflow: visible;
 }
 .ibm-markdown-preview-block > .ibm-block-header { width: 100%; }
 .ibm-markdown-preview {
@@ -371,17 +388,17 @@ body.ibt-dragging-row, body.ibt-dragging-row * { cursor: row-resize !important; 
 }
 .ibm-markdown-preview > :first-child { margin-top: 0; }
 .ibm-markdown-preview > :last-child { margin-bottom: 0; }
-.ibp-staging .ibm-markdown-preview {
-  padding: 0 !important;
-  overflow: visible !important;
+.ibp-staging .ibm-markdown-preview:not(#_ib) {
+  padding: 0;
+  overflow: visible;
 }
-.markdown-source-view.mod-cm6 .cm-embed-block:has(.ibm-markdown-preview-block) {
-  padding: 0 !important;
-  overflow: hidden !important;
+.markdown-source-view.mod-cm6 .cm-embed-block.ib-has-md-preview:not(#_ib) {
+  padding: 0;
+  overflow: hidden;
 }
 
 /* Mermaid edge animations, declared once: a copy inside every diagram's
-   <style> restyled the whole document each time one was inserted. */
+   \3c style> restyled the whole document each time one was inserted. */
 @keyframes edge-animation-frame { from { stroke-dashoffset: 0; } }
 @keyframes dash { to { stroke-dashoffset: 0; } }
 
@@ -399,22 +416,24 @@ body.ibt-dragging-row, body.ibt-dragging-row * { cursor: row-resize !important; 
 .ibm-block-header { position:relative; z-index:3; overflow:visible; }
 .ibm-block-header .ib-chart-align { display:flex; align-items:center; justify-content:center; }
 .ibm-block-header .ib-chart-align svg { width:16px; height:16px; }
-[data-ib-chart-align="left"]:is(.mermaid,.ib-echarts-block,.cm-embed-block) { margin-left:0 !important; margin-right:auto !important; }
-[data-ib-chart-align="center"]:is(.mermaid,.ib-echarts-block,.cm-embed-block) { margin-left:auto !important; margin-right:auto !important; }
+[data-ib-chart-align="left"]:is(.mermaid,.ib-echarts-block,.cm-embed-block):not(#_ib) { margin-left:0; margin-right:auto; }
+[data-ib-chart-align="center"]:is(.mermaid,.ib-echarts-block,.cm-embed-block):not(#_ib) { margin-left:auto; margin-right:auto; }
 [data-ib-chart-align="right"]:is(.mermaid,.ib-echarts-block,.cm-embed-block) { margin-left:auto !important; margin-right:0 !important; }
 /* Authored width ({width=480} on the fence) and the edge handles that set it. */
-[data-ib-chart-width]:is(.mermaid,.ib-echarts-block,pre) { width:var(--ib-chart-width) !important; max-width:100% !important; box-sizing:border-box; }
+[data-ib-chart-width]:is(.mermaid,.ib-echarts-block,pre) { box-sizing:border-box; }
+[data-ib-chart-width]:is(.mermaid,.ib-echarts-block,pre):not(#_ib) { width:var(--ib-chart-width); max-width:100%; }
 :is(pre.ibc-enhanced,.mermaid.ibm-mermaid-enhanced,.ib-echarts-block) { position:relative; }
 .ib-block-resize { position:absolute; top:0; bottom:0; width:10px; z-index:4; cursor:ew-resize; touch-action:none; opacity:0; transition:opacity 120ms ease; }
 .ib-block-resize.is-west { left:0; } .ib-block-resize.is-east { right:0; }
 .ib-block-resize::after { content:""; position:absolute; top:50%; width:4px; height:36px; max-height:60%; transform:translateY(-50%); border-radius:2px; background:var(--ib-focus, var(--interactive-accent)); }
 .ib-block-resize.is-west::after { left:2px; } .ib-block-resize.is-east::after { right:2px; }
 :is(pre.ibc-enhanced,.mermaid.ibm-mermaid-enhanced,.ib-echarts-block):is(:hover,.is-resizing) > .ib-block-resize { opacity:.55; }
-.ib-block-resize:hover, .is-resizing > .ib-block-resize { opacity:1 !important; }
+.ib-block-resize:hover:not(#_ib),
+.is-resizing > .ib-block-resize:not(#_ib) { opacity:1; }
 [data-ib-chart-align="left"] > .ib-block-resize.is-west, [data-ib-chart-align="right"] > .ib-block-resize.is-east { display:none; }
 @media (hover:none) { :is(pre.ibc-enhanced,.mermaid.ibm-mermaid-enhanced,.ib-echarts-block) > .ib-block-resize { opacity:.35; width:16px; } }
 .is-resizing { user-select:none; }
-@media print { :is(.mermaid.ibm-mermaid-enhanced,.ib-echarts-block) { z-index:auto !important; } }
+@media print { :is(.mermaid.ibm-mermaid-enhanced,.ib-echarts-block):not(#_ib) { z-index:auto; } }
 
 /* Language picker (Live Preview flair and reading-view header label). */
 .ib-lang-picker { position:fixed; z-index:var(--layer-popover,30); display:flex; flex-direction:column; max-height:340px; overflow:hidden; border:1px solid var(--ib-border-default, var(--background-modifier-border)); border-radius:var(--ib-radius-md, 8px); background:var(--ib-bg-primary, var(--background-primary)); box-shadow:0 8px 24px rgba(0,0,0,.14); }
@@ -444,15 +463,15 @@ body.theme-light .ib-li-light { display:inline; }
 /* File-type icons in the file explorer replace the theme's Lucide masks once loaded. */
 .ib-file-icon { display:inline-flex; flex:0 0 auto; align-self:center; width:16px; height:16px; margin-inline-end:7px; }
 .ib-file-icon svg { width:100%; height:100%; }
-.nav-file-title:has(> .ib-file-icon) .nav-file-title-content::before { display:none; }
+.nav-file-title.ib-has-file-icon .nav-file-title-content::before { display:none; }
 .ib-file-icon.is-folder { color:var(--ib-accent-brand, var(--interactive-accent)); }
 .ib-file-icon.is-folder > span { display:inline-flex; width:100%; height:100%; }
 /* Empty folders: the closed shape drawn as a dashed outline, even while "open". */
-.nav-folder .nav-folder-title .ib-file-icon.is-empty .ib-fo-closed { display:inline-flex !important; }
-.nav-folder .nav-folder-title .ib-file-icon.is-empty .ib-fo-open { display:none !important; }
+.nav-folder .nav-folder-title .ib-file-icon.is-empty .ib-fo-closed:not(#_ib) { display:inline-flex; }
+.nav-folder .nav-folder-title .ib-file-icon.is-empty .ib-fo-open:not(#_ib) { display:none; }
 .ib-file-icon.is-empty svg path { fill-opacity:.18; stroke:currentColor; stroke-width:.9; stroke-dasharray:2 1.3; }
 .nav-folder.is-collapsed > .nav-folder-title .ib-fo-open, .nav-folder:not(.is-collapsed) > .nav-folder-title .ib-fo-closed { display:none; }
-.nav-folder-title:has(> .ib-file-icon) > :is(.nav-folder-collapse-indicator, .collapse-icon, .tree-item-icon) { display:none !important; }
+.nav-folder-title.ib-has-file-icon > :is(.nav-folder-collapse-indicator, .collapse-icon, .tree-item-icon) { display:none !important; }
 
 /* Image cropper. */
 .ib-crop-modal .modal { width:min(92vw, 880px); }
