@@ -1,7 +1,7 @@
 {
   "id": "ignorance-advanced",
   "name": "Ignorance Advanced",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "minAppVersion": "1.8.7",
   "description": "Companion plugin for the Ignorance theme: Mermaid and ECharts blocks, paged reading, presentations, exports (PDF, Word, PPTX, HTML), image tools, code and table helpers.",
   "author": "ignorance-shiyao",
