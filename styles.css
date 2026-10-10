@@ -417,11 +417,14 @@ body.ibt-dragging-row *:not(#_ib) { cursor: row-resize; user-select: none; }
 .ibm-block-header .ib-chart-align { display:flex; align-items:center; justify-content:center; }
 .ibm-block-header .ib-chart-align svg { width:16px; height:16px; }
 [data-ib-chart-align="left"]:is(.mermaid,.ib-echarts-block,.cm-embed-block):not(#_ib) { margin-left:0; margin-right:auto; }
-[data-ib-chart-align="center"]:is(.mermaid,.ib-echarts-block,.cm-embed-block):not(#_ib) { margin-left:auto; margin-right:auto; }
-[data-ib-chart-align="right"]:is(.mermaid,.ib-echarts-block,.cm-embed-block) { margin-left:auto !important; margin-right:0 !important; }
+[data-ib-chart-align="center"]:is(.mermaid,.ib-echarts-block):not(#_ib) { margin-left:auto; margin-right:auto; }
+[data-ib-chart-align="right"]:is(.mermaid,.ib-echarts-block):not(#_ib) { margin-left:auto; margin-right:0; }
+/* Obsidian pins margin: 0 !important on everything inside the editor, so only here the margin has to be forced. */
+[data-ib-chart-align="center"].cm-embed-block { margin-left:auto !important; margin-right:auto !important; }
+[data-ib-chart-align="right"].cm-embed-block { margin-left:auto !important; margin-right:0 !important; }
 /* Authored width ({width=480} on the fence) and the edge handles that set it. */
 [data-ib-chart-width]:is(.mermaid,.ib-echarts-block,pre) { box-sizing:border-box; }
-[data-ib-chart-width]:is(.mermaid,.ib-echarts-block,pre):not(#_ib) { width:var(--ib-chart-width); max-width:100%; }
+[data-ib-chart-width]:is(.mermaid,.ib-echarts-block,pre):not(#_ib):not(#_ib2) { width:var(--ib-chart-width); max-width:100%; }
 :is(pre.ibc-enhanced,.mermaid.ibm-mermaid-enhanced,.ib-echarts-block) { position:relative; }
 .ib-block-resize { position:absolute; top:0; bottom:0; width:10px; z-index:4; cursor:ew-resize; touch-action:none; opacity:0; transition:opacity 120ms ease; }
 .ib-block-resize.is-west { left:0; } .ib-block-resize.is-east { right:0; }
@@ -471,7 +474,7 @@ body.theme-light .ib-li-light { display:inline; }
 .nav-folder .nav-folder-title .ib-file-icon.is-empty .ib-fo-open:not(#_ib) { display:none; }
 .ib-file-icon.is-empty svg path { fill-opacity:.18; stroke:currentColor; stroke-width:.9; stroke-dasharray:2 1.3; }
 .nav-folder.is-collapsed > .nav-folder-title .ib-fo-open, .nav-folder:not(.is-collapsed) > .nav-folder-title .ib-fo-closed { display:none; }
-.nav-folder-title.ib-has-file-icon > :is(.nav-folder-collapse-indicator, .collapse-icon, .tree-item-icon) { display:none !important; }
+.nav-folder-title.ib-has-file-icon > :is(.nav-folder-collapse-indicator, .collapse-icon, .tree-item-icon):not(#_ib) { display:none; }
 
 /* Image cropper. */
 .ib-crop-modal .modal { width:min(92vw, 880px); }

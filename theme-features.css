@@ -173,23 +173,23 @@
 .ibm-mermaid-punctuation:not(#_ib) { color: var(--ib-syntax-punctuation); }
 .ibm-mermaid-comment { font-style: italic; }
 .ibm-mermaid-comment:not(#_ib) { color: var(--ib-syntax-comment); }
-.mermaid.ibm-mermaid-enhanced,
-.markdown-source-view.mod-cm6 .cm-embed-block.ib-has-mermaid {
-  border: 1px solid var(--ib-card-border) !important;
-  border-radius: var(--ib-card-radius) !important;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--ib-accent-brand) var(--ib-card-tint), var(--ib-diagram-bg)) 0%, var(--ib-diagram-bg) var(--ib-card-fade)) !important;
-  box-shadow: var(--ib-card-highlight) !important;
+.mermaid.ibm-mermaid-enhanced:not(#_ib),
+.markdown-source-view.mod-cm6 .cm-embed-block.ib-has-mermaid:not(#_ib) {
+  border: 1px solid var(--ib-card-border);
+  border-radius: var(--ib-card-radius);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ib-accent-brand) var(--ib-card-tint), var(--ib-diagram-bg)) 0%, var(--ib-diagram-bg) var(--ib-card-fade));
+  box-shadow: var(--ib-card-highlight);
 }
 .mermaid.ibm-mermaid-enhanced {
   color: var(--text-normal);
   transition: color var(--ib-dur-fast) var(--ib-ease-out);
 }
 .mermaid.ibm-mermaid-enhanced:hover:not(#_ib) { border-color: var(--ib-card-border-hover); }
-.markdown-source-view.mod-cm6 .cm-embed-block.ib-has-mermaid .mermaid.ibm-mermaid-enhanced {
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
+.markdown-source-view.mod-cm6 .cm-embed-block.ib-has-mermaid .mermaid.ibm-mermaid-enhanced:not(#_ib):not(#_ib2) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 .markdown-rendered pre.ibc-enhanced {
   color: var(--ib-compat-code-text);
@@ -952,7 +952,8 @@ body.is-phone .markdown-rendered pre.ibc-enhanced > code {
   /* Keep the height used to render and paginate the SVG before printing. */
   .ib-echarts-block { height: 320px; min-height: 260px; }
 }
-.markdown-rendered pre code.ib-code-lines:not(#_ib) { display: block; white-space: normal !important; }
+/* The theme forces pre-wrap on code; code with its own line elements must stay normal so lines do not double-space. */
+.markdown-rendered pre code.ib-code-lines:not(#_ib):not(#_ib2) { display: block; white-space: normal !important; }
 .markdown-rendered pre .ib-code-line {
   position: relative;
   display: block;
@@ -2190,16 +2191,14 @@ body[data-ib-table-alignment="right"] .markdown-rendered table { margin-inline-s
 @media print { .ib-image-resize-layer:not(#_ib) { display:none; } }
 :is(.ibp-staging, .ibp-export, .ibp-book) .ib-echarts-block { height:320px; min-height:0; }
 @media print { .ib-echarts-block { height:320px; min-height:0; } }
-.mermaid.ibm-mermaid-enhanced,
-.markdown-source-view.mod-cm6 .cm-embed-block.ib-has-mermaid {
-  width: min(100%, var(--ibm-diagram-card-width, 100%)) !important;
+.mermaid.ibm-mermaid-enhanced:not(#_ib),
+.markdown-source-view.mod-cm6 .cm-embed-block.ib-has-mermaid:not(#_ib) {
+  width: min(100%, var(--ibm-diagram-card-width, 100%));
   max-width: 100%;
   margin-inline: auto;
 }
 .ib-echarts-block { width: min(100%, 720px); margin-inline: auto; }
 .markdown-source-view.mod-cm6 .cm-content > .cm-embed-block[data-ib-chart-align="left"]:not(#_ib) { margin-left: 0; margin-right: auto; }
-.markdown-source-view.mod-cm6 .cm-content > .cm-embed-block[data-ib-chart-align="center"] { margin-left: auto !important; margin-right: auto !important; }
-.markdown-source-view.mod-cm6 .cm-content > .cm-embed-block[data-ib-chart-align="right"] { margin-left: auto !important; margin-right: 0 !important; }
 body[data-ib-table-alignment="left"] .markdown-source-view.mod-cm6 .cm-table-widget .table-wrapper { margin-inline: 0 auto; }
 body[data-ib-table-alignment="center"] .markdown-source-view.mod-cm6 .cm-table-widget .table-wrapper { margin-inline: auto; }
 body[data-ib-table-alignment="right"] .markdown-source-view.mod-cm6 .cm-table-widget .table-wrapper { margin-inline: auto 0; }

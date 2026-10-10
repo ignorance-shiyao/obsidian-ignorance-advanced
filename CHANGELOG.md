@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.5
+Fewer `!important` declarations: only the rules that must beat Obsidian's own `!important` (editor margins), Mermaid's inline styles (class-diagram members) and the theme's code wrapping remain.
+
 ## 1.0.4
 The plugin now carries the styles for its own features (diagrams, charts, containers, slides, reader, paged view, export) that used to live in the theme, which keeps the theme small. Use it with Ignorance 1.0.6 or later.
 
