@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.4
+The plugin now carries the styles for its own features (diagrams, charts, containers, slides, reader, paged view, export) that used to live in the theme, which keeps the theme small. Use it with Ignorance 1.0.6 or later.
+
 ## 1.0.3
 Mermaid diagrams: the plugin now releases the colors and sizes Mermaid writes as inline styles (quadrant, architecture, treemap, venn, pie, gantt) so the theme can restyle them without `!important`.
 
