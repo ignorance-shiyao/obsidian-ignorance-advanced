@@ -116,6 +116,8 @@ function renderEChartsBlock(plugin, source, element, context) {
   const leaves = node => !node || node.collapsed || !node.children?.length ? 1 : node.children.reduce((count, child) => count + leaves(child), 0);
   const treeHeight = series.filter(item => item && item.type === "tree" && !["TB", "BT"].includes(item.orient))
     .reduce((height, item) => Math.max(height, (item.data || []).reduce((count, node) => count + leaves(node), 0) * 24 + 100), 0);
+  // Fixed-pixel parts (calendar cells, a visualMap strip) do not shrink with a narrow card, so give them a floor.
+  const contentFloor = option.calendar ? 340 : option.visualMap ? 300 : 260;
   const longTree = treeHeight + DIAGRAM_HEADER_HEIGHT > HALF_A4_HEIGHT;
   element.classList.toggle("is-long-diagram", longTree);
   const heightKey = `e\n${echartsThemeName(readThemeTokens(element))}\n${source.trim()}`;
@@ -125,7 +127,7 @@ function renderEChartsBlock(plugin, source, element, context) {
     const exportLayout = element.closest(".ibp-staging,.ibp-book,.ibp-export,.ibp-export-preview__book");
     const viewportBudget = exportLayout ? HALF_A4_HEIGHT : Math.max(220, window.innerHeight * .72);
     const width = cardWidth;
-    const ideal = longTree ? treeHeight + DIAGRAM_HEADER_HEIGHT : Math.min(HALF_A4_HEIGHT, viewportBudget, Math.max(260, width * .58 + DIAGRAM_HEADER_HEIGHT));
+    const ideal = longTree ? treeHeight + DIAGRAM_HEADER_HEIGHT : Math.min(HALF_A4_HEIGHT, viewportBudget, Math.max(contentFloor, width * .58 + DIAGRAM_HEADER_HEIGHT));
     const height = `${Math.round(ideal)}px`;
     if (width) plugin.heightMemory?.set(heightKey, Math.round(ideal));
     if (width && element.style.height !== height) { element.style.height = height; return true; }

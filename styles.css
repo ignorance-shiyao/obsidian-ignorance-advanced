@@ -479,3 +479,14 @@ body.is-mobile .ib-crop-handle { width:28px; height:28px; margin:-14px; }
 body.is-mobile .ib-crop-box { border-width:3px; }
 body.is-mobile .image-embed:hover .ib-image-actions { opacity:.9; }
 body.is-mobile .ib-image-actions .ib-image-action { width:34px; height:34px; }
+
+/* Class-diagram text must never wrap. Mermaid caps each member line at a width derived from the class name;
+   where fonts measure the name narrower (iOS) a longer member wraps onto a second line and overprints the
+   heading. The cap lives in an inline style, so override it — measurement included, which is why this is not
+   scoped to the finished diagram. */
+g.node > :is(.members-group, .methods-group) foreignObject > div {
+  display: table-cell !important;
+  white-space: nowrap !important;
+  width: auto !important;
+  max-width: none !important;
+}
