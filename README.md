@@ -2,7 +2,7 @@
 
 # Ignorance Advanced
 
-**[Ignorance 主题](https://github.com/ignorance-shiyao/obsidian-ignorance)的配套插件：** 图表、表格、图片、演示与导出，一次到位。
+**[Ignorance 主题](https://community.obsidian.md/themes/ignorance)的配套插件：** 图表、表格、图片、演示与导出，一次到位。
 
 [English](README.en.md) · [支持作者](#支持)
 
@@ -59,9 +59,9 @@ Apache ECharts 代码块直接渲染成图，同样跟随主题配色，操作�
 
 ## 安装
 
-- **社区插件**：设置 → 第三方插件 → 浏览，搜索 “Ignorance Advanced”（上架后）。
+- **社区插件**：设置 → 第三方插件 → 浏览，搜索 “Ignorance Advanced”（[插件页面](https://community.obsidian.md/plugins/ignorance-advanced)）。
 - **手动**：从[最新发布](https://github.com/ignorance-shiyao/obsidian-ignorance-advanced/releases/latest)下载 `main.js`、`manifest.json`、`styles.css`，放入 `<库>/.obsidian/plugins/ignorance-advanced/` 后启用。
-- **主题**：在 设置 → 外观 安装 [Ignorance](https://github.com/ignorance-shiyao/obsidian-ignorance) 以获得完整外观。
+- **主题**：在 设置 → 外观 安装 [Ignorance](https://community.obsidian.md/themes/ignorance) 以获得完整外观。
 
 需要 Obsidian 1.8.7 及以上，支持桌面与手机；Word/PDF 导入等部分功能仅桌面端可用。
 

@@ -2,7 +2,7 @@
 
 # Ignorance Advanced
 
-**The companion plugin for the [Ignorance theme](https://github.com/ignorance-shiyao/obsidian-ignorance):** diagrams, tables, images, presentations and exports in one place.
+**The companion plugin for the [Ignorance theme](https://community.obsidian.md/themes/ignorance):** diagrams, tables, images, presentations and exports in one place.
 
 [中文](README.md) · [Support](#support)
 
@@ -59,9 +59,9 @@ Tab reuse, typewriter and focus modes, smart punctuation, `==🟢colored==` high
 
 ## Install
 
-- **Community plugins**: Settings → Community plugins → Browse → search "Ignorance Advanced". *(after the plugin is accepted)*
+- **Community plugins**: Settings → Community plugins → Browse → search "Ignorance Advanced". ([plugin page](https://community.obsidian.md/plugins/ignorance-advanced))
 - **Manual**: download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/ignorance-shiyao/obsidian-ignorance-advanced/releases/latest) into `<vault>/.obsidian/plugins/ignorance-advanced/`, then enable it.
-- **Theme**: install [Ignorance](https://github.com/ignorance-shiyao/obsidian-ignorance) from Settings → Appearance for the full look.
+- **Theme**: install [Ignorance](https://community.obsidian.md/themes/ignorance) from Settings → Appearance for the full look.
 
 Requires Obsidian 1.8.7 or later. Works on desktop and mobile; Word/PDF import and some exports need the desktop app.
 
