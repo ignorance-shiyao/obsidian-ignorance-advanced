@@ -34,6 +34,7 @@ import { headingNumbersEditorExtension } from "./modules/heading-numbers-editor.
 import { installTableExtras } from "./modules/table-merge.js";
 import { installCaptions } from "./modules/captions.js";
 import { installReadingCover } from "./modules/reading-cover.js";
+import { installGifClick } from "./modules/gif-click.js";
 import { openLinkCheck } from "./modules/link-check.js";
 import { openNavigation } from "./modules/navigation.js";
 import { NAVIGATION_VIEW, createNavigationView, openNavigationView } from "./modules/navigation-view.js";
@@ -372,6 +373,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     installTableExtras(this);
     installCaptions(this);
     installReadingCover(this);
+    installGifClick(this);
     // Warming every diagram in the open note loads the 1 MB ECharts and 5 MB Mermaid engines in the
     // background; on a phone that competes with startup, so diagrams are drawn when they are reached.
     if (!Platform.isMobile) installChartPreload(this);

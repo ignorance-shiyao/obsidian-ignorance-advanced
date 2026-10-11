@@ -66,6 +66,7 @@ cssclasses:
 - 代码块语言写 \`mermaid\` 或 \`echarts\` 即可渲染；在围栏上可以写 \`{align=center} {width=560}\` 设置对齐和宽度。
 - 图片的 alt 里写 \`left\` 或 \`right\` 可以让图片靠左或靠右。
 - 图片滤镜写在 alt 里：\`![gray](a.png)\` 灰度、\`sepia\` 复古、\`invert\` 反色、\`dark-invert\` 只在深色模式下反色（适合黑色线稿）、\`blur\` 模糊（鼠标移上去恢复）。可以和对齐、宽度一起写，如 \`![left|gray|400](a.png)\`。
+- GIF 点击播放：alt 里写 \`click\`，如 \`![click|400](a.gif)\`。
 
 ## 表格
 
