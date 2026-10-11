@@ -202,7 +202,7 @@ export function chapterH1(inner: HTMLElement): { h1: HTMLElement | null; reserve
 export function paginateSlideSections(slides: HTMLElement): boolean {
   let changed = false
   const leaves = Array.from(slides.children).filter(
-    (s) => s instanceof HTMLElement && s.classList.contains('slide-surface'),
+    (s) => s.instanceOf(HTMLElement) && s.classList.contains('slide-surface'),
   ) as HTMLElement[]
 
   for (const sec of leaves) {

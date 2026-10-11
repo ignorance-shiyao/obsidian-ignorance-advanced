@@ -313,11 +313,11 @@ function installPageControls(plugin, showExportMenu) {
   // workspace event; catch new sizers as they are inserted.
   let pending = 0;
   const sizerWatcher = new MutationObserver(mutations => {
-    if (mutations.some(m => m.type === "attributes" && m.target instanceof Element && m.target.matches(".markdown-source-view"))) syncWidthFlags();
+    if (mutations.some(m => m.type === "attributes" && m.target.instanceOf(Element) && m.target.matches(".markdown-source-view"))) syncWidthFlags();
     if (!plugin.state.page.paged || pending) return;
     const found = mutations.some(m => m.type === "attributes"
-      ? m.target instanceof Element && m.target.matches(".markdown-source-view, .markdown-reading-view")
-      : [...m.addedNodes].some(n => n instanceof Element && (n.matches(".cm-sizer, .markdown-preview-sizer, .markdown-source-view, .markdown-reading-view") || n.querySelector?.(".cm-sizer, .markdown-preview-sizer"))));
+      ? m.target.instanceOf(Element) && m.target.matches(".markdown-source-view, .markdown-reading-view")
+      : [...m.addedNodes].some(n => n.instanceOf(Element) && (n.matches(".cm-sizer, .markdown-preview-sizer, .markdown-source-view, .markdown-reading-view") || n.querySelector?.(".cm-sizer, .markdown-preview-sizer"))));
     if (!found) return;
     pending = window.setTimeout(() => { pending = 0; refreshPageNumbers(plugin); refreshReadingPages(plugin); }, 150);
   });

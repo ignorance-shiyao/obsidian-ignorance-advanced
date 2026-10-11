@@ -74,7 +74,7 @@ function splitNodeAtNewlines(node: Node): Node[][] {
   if (node.nodeType === Node.TEXT_NODE) {
     return (node.textContent || "").split("\n").map(part => [document.createTextNode(part)]);
   }
-  if (!(node instanceof Element)) return [[node.cloneNode(true)]];
+  if (!(node.instanceOf(Element))) return [[node.cloneNode(true)]];
   const parts: Node[][] = [[]];
   for (const child of [...node.childNodes]) {
     const childLines = splitNodeAtNewlines(child);

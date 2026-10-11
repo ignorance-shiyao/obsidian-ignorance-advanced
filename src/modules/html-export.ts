@@ -250,7 +250,7 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
   if (source.nodeType === Node.TEXT_NODE) return document.createTextNode(source.nodeValue || "");
   if (!(source instanceof Element) || OMIT_FROM_HTML.has(source.tagName) || source.matches(OMIT_HTML_SELECTOR)) return null;
 
-  if (source instanceof HTMLInputElement) {
+  if (source.instanceOf(HTMLInputElement)) {
     if (source.type !== "checkbox") return null;
     // A drawn box instead of ☑/☐ glyphs: the glyphs sat on the captured
     // checkbox fill and read as a black blob.
@@ -266,7 +266,7 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
     return checkbox;
   }
 
-  if (source instanceof SVGElement) {
+  if (source.instanceOf(SVGElement)) {
     const svg = await cloneSvgNode(source, colors, checkpoint);
     svg?.setAttribute("xmlns", "http://www.w3.org/2000/svg");
     if (svg) {
@@ -284,7 +284,7 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
     }
     return svg;
   }
-  if (source instanceof HTMLCanvasElement) return imageAsPng(source, colors, "图表");
+  if (source.instanceOf(HTMLCanvasElement)) return imageAsPng(source, colors, "图表");
   // Export the chart itself, rather than the interactive zoom/scroll scaffolding.
   // Preserve the authored block position with auto margins at every reader width.
   if (source.matches(".mermaid.ibm-mermaid-enhanced,.ib-echarts-block")) {
@@ -303,7 +303,7 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
   }
 
 
-  if (source instanceof HTMLImageElement) {
+  if (source.instanceOf(HTMLImageElement)) {
     if (preview && /^https?:/i.test(source.currentSrc || source.src)) {
       const image = createEl("img");
       image.src = source.currentSrc || source.src;

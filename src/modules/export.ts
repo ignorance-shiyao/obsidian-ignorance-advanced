@@ -292,11 +292,11 @@ async function cloneForRichClipboard(source, plugin, imageIndex, target) {
   if (source.nodeType === Node.TEXT_NODE) return source.cloneNode(true);
   if (!(source instanceof Element) || OMIT_FROM_CLIPBOARD.has(source.tagName) || source.matches(OMIT_CLIPBOARD_SELECTOR)) return null;
 
-  if (source instanceof SVGElement) {
+  if (source.instanceOf(SVGElement)) {
     return renderedElementPng(source, source.getAttribute("aria-label") || source.getAttribute("title") || "");
   }
 
-  if (source instanceof HTMLCanvasElement) {
+  if (source.instanceOf(HTMLCanvasElement)) {
     return renderedElementPng(source, "图表");
   }
 
@@ -307,13 +307,13 @@ async function cloneForRichClipboard(source, plugin, imageIndex, target) {
     if (name === "src" || name === "href") continue;
     copy.setAttribute(attribute.name, attribute.value);
   }
-  if (source instanceof HTMLAnchorElement) {
+  if (source.instanceOf(HTMLAnchorElement)) {
     const href = source.href;
     if (/^(https?:|mailto:)/i.test(href)) copy.setAttribute("href", href);
   }
   inlineComputedStyles(source, copy);
 
-  if (source instanceof HTMLImageElement) {
+  if (source.instanceOf(HTMLImageElement)) {
     const src = source.currentSrc || source.getAttribute("src") || "";
     if (/\.svg(?:[?#]|$)/i.test(src) || /^data:image\/svg\+xml/i.test(src)) return renderedElementPng(source, source.alt || "");
     const rect = source.getBoundingClientRect();

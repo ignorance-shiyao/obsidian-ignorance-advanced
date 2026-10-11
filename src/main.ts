@@ -450,7 +450,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
       const removedDiagrams = new Set();
       for (const mutation of mutations) {
         for (const node of mutation.removedNodes) {
-          if (!(node instanceof Element) || node.matches(".ibp-book") || node.closest(".ibp-book")) continue;
+          if (!(node.instanceOf(Element)) || node.matches(".ibp-book") || node.closest(".ibp-book")) continue;
           if (node.matches(".mermaid.ibm-mermaid-enhanced")) removedDiagrams.add(node);
           node.querySelectorAll(".mermaid.ibm-mermaid-enhanced").forEach(element => removedDiagrams.add(element));
         }
@@ -458,7 +458,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
           // An <svg> is an SVGElement, not an HTMLElement — testing for the
           // latter dropped every diagram whose container was inserted empty and
           // filled in afterwards.
-          if (!(node instanceof Element)) continue;
+          if (!(node.instanceOf(Element))) continue;
           // Paged books and code lines are copies/fragments with nothing to enhance.
           // Paged books hold copies that the theme styles too.
           if (!node.classList.contains("ib-code-line")) markContext(node);

@@ -2,7 +2,7 @@
   "obsidianmd/prefer-create-el": 49,
   "obsidianmd/no-static-styles-assignment": 85,
   "obsidianmd/no-nodejs-modules": 34,
-  "obsidianmd/prefer-instanceof": 17,
+  "obsidianmd/prefer-instanceof": 0,
   "obsidianmd/ui/sentence-case": 9,
   "obsidianmd/rule-custom-message": 5,
   "obsidianmd/no-forbidden-elements": 2,

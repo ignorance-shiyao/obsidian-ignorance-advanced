@@ -80,7 +80,7 @@ export function installFileIcons(plugin) {
     for (const mutation of mutations) {
       if (mutation.type === "attributes") { if ((mutation.target as Element).matches?.(".nav-file-title, .nav-folder-title")) pending.add(mutation.target as Element); continue; }
       for (const node of mutation.addedNodes) {
-        if (!(node instanceof Element)) continue;
+        if (!(node.instanceOf(Element))) continue;
         if (node.matches(".nav-file-title, .nav-folder-title")) pending.add(node);
         node.querySelectorAll?.(".nav-file-title[data-path], .nav-folder-title[data-path]").forEach(title => pending.add(title));
       }

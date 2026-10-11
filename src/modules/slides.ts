@@ -240,7 +240,7 @@ export async function buildDeck(plugin, file, component, isCurrent = () => true,
         measure.appendChild(wrapper);
         await settleSlideContent(surface);
         paginateSlideSections(wrapper);
-        const queue = [...wrapper.children].filter(el => el instanceof HTMLElement);
+        const queue = [...wrapper.children].filter(el => el.instanceOf(HTMLElement));
         for (let q = 0; q < queue.length; q += 1) {
           const page = queue[q];
           const layout = (Array.from(page.classList).find(name => name.startsWith("slide-layout-")) || "slide-layout-default").slice("slide-layout-".length);
