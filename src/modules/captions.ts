@@ -70,10 +70,46 @@ export function parseCaptions(source: string): CaptionEntry[] {
   return entries;
 }
 
-function wanted(plugin, frontmatter) {
+export function wantsCaptions(plugin, frontmatter) {
   const classes = [frontmatter?.cssclasses, frontmatter?.cssclass].flat().filter(Boolean).map(String);
   if (classes.includes("ib-no-captions")) return false;
   return plugin.state?.captions === true || classes.includes("ib-captions");
+}
+
+/** Wrap an image (or its embed placeholder) in a <figure> with a numbered caption. */
+export function wrapFigure(holder: Element, entry: CaptionEntry) {
+  const figure = createEl("figure", { cls: "ib-figure" });
+  if (entry.id) figure.dataset.ibCaptionId = entry.id;
+  holder.replaceWith(figure);
+  figure.append(holder);
+  figure.createEl("figcaption", { cls: "ib-caption" }).append(createSpan({ cls: "ib-caption__label", text: entry.label }), ` ${entry.text}`);
+}
+
+/** Turn the caption line's paragraph into the numbered caption. */
+export function captionParagraph(paragraph: HTMLElement, entry: CaptionEntry) {
+  paragraph.className = `ib-caption ib-caption--${entry.kind}`;
+  if (entry.id) paragraph.dataset.ibCaptionId = entry.id;
+  paragraph.replaceChildren(createSpan({ cls: "ib-caption__label", text: entry.label }), ` ${entry.text}`);
+}
+
+export function captionPattern(kind: CaptionKind) {
+  return { fig: null, tab: TABLE_CAPTION, code: CODE_CAPTION, eq: EQUATION_CAPTION }[kind];
+}
+
+/** Fill the text of `((ref:…))` elements from a set of entries. */
+export function resolveRefs(root: ParentNode, entries: CaptionEntry[]) {
+  const lookup = new Map(entries.filter(entry => entry.id).map(entry => [entry.id, entry]));
+  for (const holder of root.querySelectorAll<HTMLElement>(".ib-inline-ref")) {
+    const target = lookup.get(holder.dataset.ibRef || "");
+    holder.textContent = target ? target.label : `?${holder.dataset.ibRef}`;
+    holder.classList.toggle("is-missing", !target);
+    if (!target) continue;
+    holder.addEventListener("click", event => {
+      event.preventDefault();
+      const scope = holder.closest(".markdown-preview-view, .markdown-rendered, .ibp-book") || document;
+      scope.querySelector(`[data-ib-caption-id="${target.id}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }
 }
 
 export function installCaptions(plugin) {
@@ -83,7 +119,7 @@ export function installCaptions(plugin) {
     const file = plugin.app.vault.getFileByPath(context.sourcePath);
     if (!info || !file) return;
     const cache = plugin.app.metadataCache.getFileCache(file);
-    if (!wanted(plugin, cache?.frontmatter)) return;
+    if (!wantsCaptions(plugin, cache?.frontmatter)) return;
     const entries = parseCaptions(info.text);
     if (!entries.length && !element.querySelector(".ib-inline-ref")) return;
 
@@ -93,17 +129,11 @@ export function installCaptions(plugin) {
         // Obsidian turns the .internal-embed placeholder into an image only after post-processors have run.
         const holder = [...element.querySelectorAll(".internal-embed, img")].find(item => !item.closest("figure.ib-figure") && !item.parentElement?.closest(".internal-embed"));
         if (!holder) continue;
-        const figure = createEl("figure", { cls: "ib-figure" });
-        if (entry.id) figure.dataset.ibCaptionId = entry.id;
-        holder.replaceWith(figure);
-        figure.append(holder);
-        figure.createEl("figcaption", { cls: "ib-caption" }).append(createSpan({ cls: "ib-caption__label", text: entry.label }), ` ${entry.text}`);
+        wrapFigure(holder, entry);
       } else {
         const paragraph = element.querySelector("p");
         if (!paragraph) continue;
-        paragraph.className = "ib-caption ib-caption--table";
-        if (entry.id) paragraph.dataset.ibCaptionId = entry.id;
-        paragraph.replaceChildren(createSpan({ cls: "ib-caption__label", text: entry.label }), ` ${entry.text}`);
+        captionParagraph(paragraph, entry);
       }
     }
 

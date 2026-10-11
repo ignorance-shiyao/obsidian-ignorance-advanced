@@ -2,6 +2,7 @@ import { waitForStableLayout } from "./layout-stability.js";
 import { createIsolatedStaging, stagingStyleSheet } from "./isolated-staging.js";
 import { PAGE_NUMBER_FORMATS } from "./page-numbers.js";
 import { addPageFooters } from "./page-footer.js";
+import { enhanceStaged } from "./staged-enhance.js";
 import { nextFrame } from "./export.js";
 import { firstScreenSource } from "./first-screen-source.js";
 import { renderBudget } from "./render-budget.js";
@@ -542,6 +543,7 @@ async function composePages(plugin, file, text, book, component, { keepStrip = f
     staging = await createIsolatedStaging(plugin, stagingParent, component, signal, sheet);
     staging.style.width = `${bodyBox.width}px`;
     await renderMarkdownWithContainers(plugin, file.path, stripFrontmatter(text), staging, component);
+    enhanceStaged(plugin, staging, stripFrontmatter(text), file);
     preparePaperTableColumns(staging);
     // Static exports must measure expanded content before assigning page windows.
     if (expandDetails) {

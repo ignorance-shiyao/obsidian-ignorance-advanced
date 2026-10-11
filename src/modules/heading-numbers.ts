@@ -40,7 +40,7 @@ export function numberHeadings(headings: HeadingEntry[], depth = 4, style: Numbe
   return result;
 }
 
-function wantsNumbers(plugin, frontmatter) {
+export function wantsNumbers(plugin, frontmatter) {
   const classes = [frontmatter?.cssclasses, frontmatter?.cssclass].flat().filter(Boolean).map(String);
   if (classes.includes("ib-unnumbered")) return false;
   return plugin.state?.headingNumbers === true || classes.includes("ib-numbered");
