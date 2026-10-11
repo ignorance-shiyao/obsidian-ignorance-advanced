@@ -2,12 +2,41 @@
    and image export): the whole note is rendered into one container, and the source decides which element
    gets which number. A kind is skipped when the document and the source disagree about how many there are. */
 import { captionParagraph, captionPattern, parseCaptions, resolveRefs, wantsCaptions, wrapFigure, type CaptionKind } from "./captions.js";
-import { numberHeadings, scanHeadings, wantsNumbers } from "./heading-numbers.js";
+import { numberHeadings, scanHeadings, unpublishedIndexes, wantsNumbers } from "./heading-numbers.js";
 
 const headingSelector = "h1, h2, h3, h4, h5, h6";
 
+const levelOf = (element: Element) => {
+  const heading = element.matches(headingSelector) ? element : element.querySelector(headingSelector);
+  return heading ? Number(heading.tagName[1]) : 0;
+};
+
+/** `## ~~draft~~`: a heading that is entirely struck through, and everything under it, stays out of paged reading
+ *  and exports. Works on the rendered document alone. */
+export function removeUnpublished(root: HTMLElement) {
+  const isStruck = (heading: Element) => {
+    const parts = [...heading.childNodes].filter(node => (node.textContent || "").trim());
+    return parts.length === 1 && /^(DEL|S)$/.test((parts[0] as Element).tagName || "");
+  };
+  for (const heading of [...root.querySelectorAll(headingSelector)]) {
+    if (!heading.isConnected || !isStruck(heading)) continue;
+    const level = Number(heading.tagName[1]);
+    let top: Element = heading;
+    while (top.parentElement && top.parentElement !== root) top = top.parentElement;
+    let node: Element | null = top;
+    while (node) {
+      const next: Element | null = node.nextElementSibling;
+      node.remove();
+      if (!next || (levelOf(next) > 0 && levelOf(next) <= level)) break;
+      node = next;
+    }
+  }
+}
+
 function applyHeadingNumbers(plugin, root: HTMLElement, source: string) {
-  const entries = scanHeadings(source.split(/\r?\n/));
+  const all = scanHeadings(source.split(/\r?\n/));
+  const hidden = unpublishedIndexes(all);
+  const entries = all.filter((_, index) => !hidden.has(index));
   const headings = [...root.querySelectorAll<HTMLElement>(headingSelector)].filter(heading => !heading.closest(".ibp-page-header"));
   if (!entries.length || entries.length !== headings.length) return;
   const style = plugin.state?.headingNumberStyle === "chinese" ? "chinese" : "decimal";
@@ -53,6 +82,7 @@ function applyCaptions(root: HTMLElement, source: string) {
 }
 
 export function enhanceStaged(plugin, root: HTMLElement, source: string, file) {
+  removeUnpublished(root);
   const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
   if (wantsNumbers(plugin, frontmatter)) applyHeadingNumbers(plugin, root, source);
   if (wantsCaptions(plugin, frontmatter)) applyCaptions(root, source);

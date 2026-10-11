@@ -1,5 +1,6 @@
 import { parseInlineSyntax } from "./inline-syntax-source.js";
 import { loadLucideIconData, makeChipElement, makeIconElement } from "./inline-syntax.js";
+import { parseCaptions, wantsCaptions } from "./captions.js";
 
 const { editorInfoField } = require("obsidian");
 const { Decoration, ViewPlugin, WidgetType } = require("@codemirror/view");
@@ -41,6 +42,14 @@ function buildInlineSyntaxDecorations(view, plugin, cached = {}) {
   const sourcePath = file.path;
   const source = view.state.doc.toString();
   const tokens = cached.source === source ? cached.tokens : parseInlineSyntax(source, null);
+  if (cached.source !== source && tokens.some(token => token.type === "ref")) {
+    // Cross references show the figure / table label in the editor as well.
+    const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
+    if (wantsCaptions(plugin, frontmatter)) {
+      const labels = new Map(parseCaptions(source).filter(entry => entry.id).map(entry => [entry.id, entry.label]));
+      for (const token of tokens) if (token.type === "ref") token.label = labels.get(token.value) || `?${token.value}`;
+    }
+  }
   const ranges = [];
   for (const token of tokens) {
     const active = view.state.selection.ranges.some(range => range.empty

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chineseNumeral, formatNumber, numberHeadings, scanHeadings } from "./heading-numbers";
+import { chineseNumeral, formatNumber, numberHeadings, scanHeadings, unpublishedIndexes } from "./heading-numbers";
 
 const at = (levels: number[]) => levels.map((level, index) => ({ level, line: index }));
 const texts = (levels: number[]) => [...numberHeadings(at(levels)).values()];
@@ -32,6 +32,12 @@ describe("标题编号", () => {
 
   it("扫描文档里的标题，跳过属性区和代码块", () => {
     const lines = ["---", "title: x", "---", "# 标题", "```md", "## 不算", "```", "## 概述", "正文", "### 细节"];
-    expect(scanHeadings(lines)).toEqual([{ level: 1, line: 3, offset: 2 }, { level: 2, line: 7, offset: 3 }, { level: 3, line: 9, offset: 4 }]);
+    expect(scanHeadings(lines)).toEqual([{ level: 1, line: 3, offset: 2, struck: false }, { level: 2, line: 7, offset: 3, struck: false }, { level: 3, line: 9, offset: 4, struck: false }]);
+  });
+
+  it("划掉的标题和它下面的小节都算未发布", () => {
+    const entries = [{ level: 2, line: 0 }, { level: 2, line: 3, struck: true }, { level: 3, line: 5 }, { level: 2, line: 8 }];
+    expect([...unpublishedIndexes(entries)]).toEqual([1, 2]);
+    expect(scanHeadings(["## ~~草稿~~", "## 正式"]).map(item => item.struck)).toEqual([true, false]);
   });
 });

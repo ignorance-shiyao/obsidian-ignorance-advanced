@@ -1,7 +1,7 @@
 /* Heading numbers in Reading view: "1", "1.1", "1.1.1". A lone H1 is treated as the note's title and left
    out, so numbering starts at the first H2. Turned on globally in settings, or per note with the `ib-numbered`
    cssclass (`ib-unnumbered` turns it off for a note). */
-export interface HeadingEntry { level: number; line: number }
+export interface HeadingEntry { level: number; line: number; struck?: boolean }
 
 const DIGITS = "零一二三四五六七八九";
 /** 1 → 一, 10 → 十, 23 → 二十三 (up to 99; larger numbers fall back to digits). */
@@ -22,6 +22,18 @@ export function formatNumber(counters: number[], style: NumberStyle = "decimal")
 }
 
 /** Map of heading line → number text. */
+/** Indexes of headings that are struck through (`## ~~draft~~`) and of everything below them: unpublished. */
+export function unpublishedIndexes(headings: HeadingEntry[]): Set<number> {
+  const hidden = new Set<number>();
+  let level = 0;
+  headings.forEach((heading, index) => {
+    if (level && heading.level <= level) level = 0;
+    if (!level && heading.struck) level = heading.level;
+    if (level) hidden.add(index);
+  });
+  return hidden;
+}
+
 export function numberHeadings(headings: HeadingEntry[], depth = 4, style: NumberStyle = "decimal"): Map<number, string> {
   const result = new Map<number, string>();
   const titleOnly = headings.filter(heading => heading.level === 1).length === 1 && headings[0]?.level === 1;
@@ -61,7 +73,7 @@ export function scanHeadings(lines: string[]) {
     if (marker) { fence = fence ? (marker[1][0] === fence ? "" : fence) : marker[1][0]; continue; }
     if (fence) continue;
     const heading = /^(#{1,6})\s+\S/.exec(line);
-    if (heading) found.push({ level: heading[1].length, line: index, offset: heading[0].length - 1 });
+    if (heading) found.push({ level: heading[1].length, line: index, offset: heading[0].length - 1, struck: /^#{1,6}\s+~~.+~~\s*$/.test(line) });
   }
   return found;
 }
@@ -70,12 +82,17 @@ export function installHeadingNumbers(plugin) {
   plugin.registerMarkdownPostProcessor((element, context) => {
     const info = context.getSectionInfo?.(element);
     if (!info) return;
+    const heading = element.querySelector(":scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6") || (/^H[1-6]$/.test(element.tagName) ? element : null);
+    if (!heading) return;
+    const all = scanHeadings(info.text.split(/\r?\n/));
+    const hidden = unpublishedIndexes(all);
+    const position = all.findIndex(entry => entry.line === info.lineStart);
+    // Struck-through headings (and what is below them) are drafts: marked here, left out of exports.
+    if (position >= 0 && hidden.has(position)) heading.classList.add("ib-unpublished");
     const file = plugin.app.vault.getFileByPath(context.sourcePath);
     const cache = file && plugin.app.metadataCache.getFileCache(file);
-    if (!cache?.headings?.length || !wantsNumbers(plugin, cache.frontmatter)) return;
-    const heading = element.querySelector(":scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6") || (/^H[1-6]$/.test(element.tagName) ? element : null);
-    if (!heading || heading.querySelector(".ib-heading-number")) return;
-    const entries = cache.headings.map(item => ({ level: item.level, line: item.position.start.line }));
+    if (!cache || !wantsNumbers(plugin, cache.frontmatter) || heading.querySelector(".ib-heading-number")) return;
+    const entries = all.filter((_, index) => !hidden.has(index));
     const text = numberHeadings(entries, 4, plugin.state?.headingNumberStyle === "chinese" ? "chinese" : "decimal").get(info.lineStart);
     if (!text) return;
     const badge = createSpan({ cls: "ib-heading-number", text });

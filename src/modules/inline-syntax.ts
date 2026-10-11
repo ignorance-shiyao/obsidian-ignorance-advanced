@@ -119,7 +119,7 @@ function makeChipElement(token, doc = document) {
     ref.className = "ib-inline-ref";
     ref.dataset.ibRef = token.value;
     ref.setAttribute("href", "#");
-    ref.textContent = token.value;
+    ref.textContent = token.label || token.value;
     return ref;
   }
   if (token.type === "spoiler") {

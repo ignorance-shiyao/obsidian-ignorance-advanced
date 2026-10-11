@@ -42,13 +42,18 @@ class IgnoranceSettingTab extends PluginSettingTab {
           state.headingNumbers = value; plugin.saveStoredState(); plugin.app.workspace.updateOptions();
           for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) leaf.view.previewMode?.rerender?.(true);
         }) },
+        { name: "表格十字高亮", desc: "阅读视图里鼠标指到单元格时，高亮它所在的行和列。也可以只在某篇笔记的 cssclasses 里写 ib-crosshair。", aliases: ["table crosshair"], add: toggle(() => state.tableCrosshair === true, value => { state.tableCrosshair = value; plugin.saveStoredState(); }) },
+        { name: "长代码块自动折叠", desc: "阅读视图里超过 40 行的代码块默认只显示前 20 行，点「展开全部」查看完整内容。", aliases: ["fold long code"], add: toggle(() => state.autoFoldCode === true, value => {
+          state.autoFoldCode = value; plugin.saveStoredState();
+          for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) leaf.view.previewMode?.rerender?.(true);
+        }) },
         { name: "标题编号风格", desc: "「1.1」是 1、1.1、1.1.1；「一、」是 一、（一）、1.、（1）。", aliases: ["heading number style"], add: setting => setting.addDropdown(dropdown => dropdown
           .addOptions({ decimal: "1.1", chinese: "一、（一）" }).setValue(state.headingNumberStyle || "decimal").onChange(value => {
             state.headingNumberStyle = value; plugin.saveStoredState(); plugin.app.workspace.updateOptions();
             for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) leaf.view.previewMode?.rerender?.(true);
           })) },
         { name: "图表题注与编号", desc: "阅读视图里给图片和表格加「图 1」「表 1」题注并支持 ((ref:标识)) 交叉引用；图片的 alt 作为图注，表格下一行写「表：说明」。也可以只在某篇笔记的 cssclasses 里写 ib-captions。", aliases: ["captions", "figure numbers"], add: toggle(() => state.captions === true, value => {
-          state.captions = value; plugin.saveStoredState();
+          state.captions = value; plugin.saveStoredState(); plugin.app.workspace.updateOptions();
           for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) leaf.view.previewMode?.rerender?.(true);
         }) },
         { name: "代码块行号", desc: "阅读视图、分页和导出中显示行号；围栏里写 {2,5} 可高亮指定行。", aliases: ["line numbers"], add: toggle(() => Boolean(state.codeLineNumbers), value => {

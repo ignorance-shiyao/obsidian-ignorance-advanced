@@ -13,6 +13,8 @@ export interface InlineSyntaxToken {
   /** badge: the right-hand half; ruby: the annotation */
   note?: string;
   parts?: string[];
+  /** ref: the resolved caption label, filled in by the editor */
+  label?: string;
 }
 
 const CHIP = /\(\(\s*([^()\n]+?)\s*\)\)/g;

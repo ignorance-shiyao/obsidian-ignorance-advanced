@@ -31,10 +31,13 @@ import { installReadingTime } from "./modules/reading-time.js";
 import { openSyntaxGuide, showFirstRunHint } from "./modules/syntax-guide.js";
 import { installHeadingNumbers } from "./modules/heading-numbers.js";
 import { headingNumbersEditorExtension } from "./modules/heading-numbers-editor.js";
+import { captionsEditorExtension } from "./modules/captions-editor.js";
 import { installTableExtras } from "./modules/table-merge.js";
 import { installCaptions } from "./modules/captions.js";
 import { installReadingCover } from "./modules/reading-cover.js";
 import { installGifClick } from "./modules/gif-click.js";
+import { installTableCrosshair } from "./modules/table-crosshair.js";
+import { installCodeFold } from "./modules/code-fold.js";
 import { openLinkCheck } from "./modules/link-check.js";
 import { openNavigation } from "./modules/navigation.js";
 import { NAVIGATION_VIEW, createNavigationView, openNavigationView } from "./modules/navigation-view.js";
@@ -358,6 +361,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.registerEditorExtension(containerEditorExtension(this));
     this.registerEditorExtension(inlineSyntaxEditorExtension(this));
     this.registerEditorExtension(headingNumbersEditorExtension(this));
+    this.registerEditorExtension(captionsEditorExtension(this));
     // Paged view in the editor: push blocks that would cross a page bottom.
     // Format Markdown tables and provide cell/row keyboard navigation.
     this.registerEditorExtension(tableEditorExtension);
@@ -374,6 +378,8 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     installCaptions(this);
     installReadingCover(this);
     installGifClick(this);
+    installTableCrosshair(this);
+    installCodeFold(this);
     // Warming every diagram in the open note loads the 1 MB ECharts and 5 MB Mermaid engines in the
     // background; on a phone that competes with startup, so diagrams are drawn when they are reached.
     if (!Platform.isMobile) installChartPreload(this);
@@ -1073,6 +1079,8 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.state.codeLineNumbers = this.state.codeLineNumbers === true;
     this.state.smartPunctuation = this.state.smartPunctuation === true;
     this.state.headingNumbers = this.state.headingNumbers === true;
+    this.state.tableCrosshair = this.state.tableCrosshair === true;
+    this.state.autoFoldCode = this.state.autoFoldCode === true;
     this.state.headingNumberStyle = this.state.headingNumberStyle === "chinese" ? "chinese" : "decimal";
     this.state.captions = this.state.captions === true;
     this.state.grayDates = typeof this.state.grayDates === "string" ? this.state.grayDates : "";

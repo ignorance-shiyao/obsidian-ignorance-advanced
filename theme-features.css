@@ -3146,3 +3146,18 @@ tr[data-ib-level="3"] > :first-child { padding-inline-start: 4em; }
   content: "▶"; position: absolute; left: 50%; top: 50%; width: 2.4em; height: 2.4em; margin: -1.2em 0 0 -1.2em;
   border-radius: 50%; background: rgba(0, 0, 0, .55); color: #fff; font-size: 1.1em; line-height: 2.4em; text-align: center; pointer-events: none;
 }
+
+/* ---- Table crosshair ---- */
+.markdown-preview-view tr.ib-xh-row > :is(td, th), .markdown-preview-view :is(td, th).ib-xh-col { background: var(--ib-accent-subtle, var(--background-modifier-hover)); }
+.markdown-preview-view tr.ib-xh-row > :is(td, th).ib-xh-col { background: color-mix(in srgb, var(--ib-accent-solid, var(--interactive-accent)) 18%, transparent); }
+
+/* ---- Long code blocks folded in Reading view ---- */
+.markdown-preview-view pre.ib-code-folded { max-height: 32em; overflow: hidden; -webkit-mask-image: linear-gradient(#000 80%, transparent); mask-image: linear-gradient(#000 80%, transparent); }
+.ib-code-expand { display: block; margin: -0.5em auto 1em; padding: .2em 1em; border-radius: 999px; font-size: var(--font-ui-smaller); cursor: pointer; }
+@media print { .markdown-preview-view pre.ib-code-folded { max-height: none; -webkit-mask-image: none; mask-image: none; } .ib-code-expand { display: none; } }
+
+/* ---- Unpublished (struck-through) headings ---- */
+.ib-unpublished { opacity: .55; }
+.ib-unpublished::after { content: "未发布"; margin-inline-start: .6em; padding: 0 .5em; border-radius: 999px; background: var(--ib-bg-tertiary, var(--background-modifier-hover)); color: var(--ib-text-muted, var(--text-muted)); font-size: .45em; font-weight: 600; vertical-align: middle; }
+.ib-caption--editor { margin: .2em 0 .6em; }
+.ib-caption__label--editor { color: var(--ib-text-secondary, var(--text-normal)); font-weight: 700; }
