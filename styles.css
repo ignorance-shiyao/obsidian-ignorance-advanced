@@ -538,3 +538,5 @@ g.node > :is(.members-group, .methods-group) foreignObject > div {
 .ib-nav-view__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ib-nav-view__row--heading .ib-nav-view__label { font-weight: 600; }
 .ib-nav-view__empty { padding: var(--size-4-3); color: var(--text-muted); }
+
+.ib-footer-input { width: 100%; }

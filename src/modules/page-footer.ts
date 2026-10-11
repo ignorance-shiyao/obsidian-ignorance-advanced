@@ -36,8 +36,7 @@ export function promptFooter(plugin, current: string, onSubmit: (value: string) 
     onOpen() {
       this.setTitle("页脚文字");
       this.contentEl.createDiv({ cls: "ib-form-hint", text: "可用 {title} 笔记标题、{page} 页码、{pages} 总页数、{date} 日期。" });
-      const input = this.contentEl.createEl("input", { attr: { type: "text", spellcheck: "false" } });
-      input.style.width = "100%";
+      const input = this.contentEl.createEl("input", { cls: "ib-footer-input", attr: { type: "text", spellcheck: "false" } });
       input.value = current;
       const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
       footer.createEl("button", { text: "取消" }).addEventListener("click", () => this.close());

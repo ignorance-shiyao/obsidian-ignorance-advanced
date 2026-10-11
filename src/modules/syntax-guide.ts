@@ -16,6 +16,8 @@ cssclasses:
 
 在笔记属性 \`cssclasses\` 里加入：\`ib-wide\`（加宽）、\`ib-narrow\`（收窄）、\`ib-compact\`（段落更紧凑）、\`ib-no-title\`（隐藏内联标题）。
 
+另外：\`ib-cover\` 在阅读视图顶部按属性生成封面；\`ib-numbered\` 给标题编号；\`ib-captions\` 给图片和表格加题注。
+
 ## 行内组件
 
 - 状态：((green:完成)) ((amber:进行中)) ((red:阻塞)) ((blue:信息)) ((gray:搁置))
