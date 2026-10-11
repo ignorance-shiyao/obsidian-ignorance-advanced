@@ -523,3 +523,8 @@ g.node > :is(.members-group, .methods-group) foreignObject > div {
 .ib-link-check__detail { color: var(--text-muted); font-size: var(--font-ui-smaller); }
 
 .ib-clip-batch__area { width: 100%; margin: var(--size-4-2) 0; font-family: var(--font-monospace); font-size: var(--font-ui-small); }
+
+.ib-nav-item { display: grid; grid-template-columns: 1.6em 1fr auto; gap: .5em; align-items: baseline; }
+.ib-nav-item__icon { color: var(--text-muted); text-align: center; }
+.ib-nav-item__label { padding-inline-start: var(--ib-nav-indent, 0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ib-nav-item__line { color: var(--text-faint); font-size: var(--font-ui-smaller); font-variant-numeric: tabular-nums; }

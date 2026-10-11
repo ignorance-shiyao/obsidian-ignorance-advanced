@@ -33,6 +33,7 @@ import { installHeadingNumbers } from "./modules/heading-numbers.js";
 import { installTableExtras } from "./modules/table-merge.js";
 import { installCaptions } from "./modules/captions.js";
 import { openLinkCheck } from "./modules/link-check.js";
+import { openNavigation } from "./modules/navigation.js";
 import { installGrayMode } from "./modules/gray-mode.js";
 import { installMoreMenuFilter } from "./modules/more-menu.js";
 import { colorSwatchExtension, colorSwatchPostProcessor } from "./modules/color-swatch.js";
@@ -598,6 +599,12 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
         }
       });
     }
+
+    this.addCommand({
+      id: "note-navigation",
+      name: "跳到标题、图表、表格或代码",
+      callback: () => openNavigation(this)
+    });
 
     this.addCommand({
       id: "check-note-links",
