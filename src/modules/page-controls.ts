@@ -2,6 +2,7 @@ import { setIcon } from "./ui-icons.js";
 import { toggleWritingMode } from "./editor-tools.js";
 import { openPresentation } from "./slides.js";
 import { PAPERS, MARGIN_PRESETS, paperSize, paperMarginsForPreset } from "./paper.js";
+import { PAGE_PRESETS, applyPagePreset } from "./page-presets.js";
 import { HEADING_FONT_OPTIONS } from "./fonts.js";
 import { applyAppearancePreferences } from "./appearance.js";
 const { Menu } = require("obsidian");
@@ -172,6 +173,9 @@ function installPageControls(plugin, showExportMenu) {
         plugin.app.setting.open();
         plugin.app.setting.openTabById("appearance");
       }));
+    });
+    submenu(menu, "版式预设", "layout-template", presets => {
+      for (const preset of PAGE_PRESETS) choice(presets, preset.label, false, () => { applyPagePreset(p, preset.id); save(); });
     });
     submenu(menu, "阅读布局", "book-open", layout => {
       for (const [value, label] of [[false, "连续阅读（与实时预览一致）"], [true, "分页阅读（纸张布局）"]]) choice(layout, label, p.paged === value, () => { p.paged = value; save(); });

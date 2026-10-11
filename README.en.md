@@ -85,6 +85,7 @@ Requires Obsidian 1.8.7 or later. Works on desktop and mobile; Word/PDF import a
 - **Batch clipping**: the "Clip web pages in bulk" command takes many links at once and skips ones already clipped; "Sort by site" in settings files clippings into one sub-folder per website.
 - **Gray mode**: list dates in settings (for example `4-4`) and the whole interface turns grayscale on those days; off by default.
 - **Reading time**: on desktop the status bar shows the estimated reading time of the current note; turn it off in settings.
+- **Layout presets**: "Layout presets" in the page settings menu fills in paper, margins and page numbers for a paper, a report, an official document or a blog post; every value can still be changed afterwards.
 - **Export**: use the export button in the page toolbar to produce PDF, Word, PowerPoint, images or an offline HTML reader.
 - **Settings**: Settings → Ignorance Advanced (palette, page layout, highlight colors, tab behavior).
 
