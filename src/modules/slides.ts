@@ -220,13 +220,13 @@ export async function buildDeck(plugin, file, component, isCurrent = () => true,
       for (const source of column) {
         await pause();
         const parsed = parseSlideLayout(source);
-        const surface = document.createElement("section");
+        const surface = createEl("section");
         surface.className = `slide-surface slide-layout-${parsed.layout}`;
         surface.style.width = `${width}px`;
         surface.style.height = `${height}px`;
         surface.dataset.directiveOffset = String(parsed.directiveOffset);
         if (parsed.tag) surface.dataset.slideTag = parsed.tag;
-        const inner = document.createElement("div");
+        const inner = createEl("div");
         inner.className = "slide-inner";
         surface.appendChild(inner);
         // Same renderer as paged reading, so ::: containers (kpi, cols, panel…) work in slides.
@@ -234,7 +234,7 @@ export async function buildDeck(plugin, file, component, isCurrent = () => true,
         await renderSlideDiagrams(inner, width);
         await applyStagedChartAlignment(plugin, inner, file.path, parsed.body);
         if (!isCurrent()) return null;
-        const wrapper = document.createElement("div");
+        const wrapper = createEl("div");
         wrapper.appendChild(surface);
         measure.appendChild(wrapper);
         await settleSlideContent(surface);
@@ -284,7 +284,7 @@ export async function buildDeck(plugin, file, component, isCurrent = () => true,
             body.lastElementChild.remove();
           }
           if (carry.length) {
-            const next = document.createElement("section");
+            const next = createEl("section");
             next.className = rawClass;
             next.style.width = `${width}px`;
             next.style.height = `${height}px`;
@@ -308,7 +308,7 @@ export async function buildDeck(plugin, file, component, isCurrent = () => true,
       rows.push({ vertical: column.length > 1, pages: row });
     }
     if (!isCurrent()) return null;
-    const reveal = document.createElement("div");
+    const reveal = createEl("div");
     reveal.className = "reveal";
     // Entrance motion and cross-fades repaint a whole slide per frame; phones drop frames on them.
     if (!Platform.isPhone && settings.animation && settings.animation !== "none") reveal.classList.add(`slide-anim-${settings.animation}`);

@@ -152,7 +152,7 @@ async function downloadImage(url) {
 
 async function toPng(buffer) {
   const bitmap = await createImageBitmap(new Blob([buffer]));
-  const canvas = document.createElement("canvas");
+  const canvas = createEl("canvas");
   canvas.width = bitmap.width;
   canvas.height = bitmap.height;
   canvas.getContext("2d").drawImage(bitmap, 0, 0);

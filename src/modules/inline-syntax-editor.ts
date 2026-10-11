@@ -22,7 +22,7 @@ class InlineSyntaxWidget extends WidgetType {
       element.classList.add("ib-inline-editor-widget");
       return element;
     }
-    const element = document.createElement("span");
+    const element = createEl("span");
     element.className = "ib-inline-icon-wrap ib-inline-editor-widget";
     element.textContent = this.token.source;
     loadLucideIconData(this.plugin).then(data => {

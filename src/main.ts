@@ -27,6 +27,7 @@ import { setChunkHost } from "./modules/chunks.js";
 import { installHeaderPath } from "./modules/header-path.js";
 import { installExternalFiles } from "./modules/external-files.js";
 import { installWebClip } from "./modules/web-clip.js";
+import { installReadingTime } from "./modules/reading-time.js";
 import { installMoreMenuFilter } from "./modules/more-menu.js";
 import { colorSwatchExtension, colorSwatchPostProcessor } from "./modules/color-swatch.js";
 import * as TocModule from "./modules/toc.js";
@@ -390,6 +391,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     installHeaderPath(this);
     installExternalFiles(this);
     installWebClip(this);
+    installReadingTime(this);
     installMoreMenuFilter(this);
     // Mobile has no title-row toolbar (phones) or no Electron exports: offer
     // slides and the exports that work there from the note's "⋯" menu.
@@ -718,7 +720,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
         onRename: label => this.editLanguage(label, pre, context, language)
       });
       mountChartAlignment(this, pre, actions);
-      const wrap = document.createElement("button");
+      const wrap = createEl("button");
       wrap.type = "button";
       wrap.className = "ibm-code-wrap";
       setIcon(wrap, UI_ICONS.wrap);
@@ -746,7 +748,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
       withZoom: false,
       withEdit: true
     });
-    const preview = document.createElement("div");
+    const preview = createEl("div");
     preview.className = "ibm-markdown-preview markdown-rendered";
     element.replaceChildren(header, preview);
 
@@ -845,18 +847,18 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
      group is present, so the slots — label, zoom, copy, edit — are always laid
      out the same way and nothing shifts between a diagram and a code block. */
   buildBlockHeader(container, options) {
-    const header = document.createElement("div");
+    const header = createEl("div");
     header.className = "ibm-block-header";
 
-    const title = document.createElement("div");
+    const title = createEl("div");
     title.className = "ibm-block-title";
-    const icon = document.createElement("span");
+    const icon = createEl("span");
     icon.className = "ibm-block-icon";
     if (options.language !== undefined) icon.appendChild(createLanguageIcon(options.language));
     else setIcon(icon, options.withZoom ? UI_ICONS.chart : UI_ICONS.code);
     title.appendChild(icon);
 
-    const label = document.createElement(options.onRename ? "button" : "span");
+    const label = createEl(options.onRename ? "button" : "span");
     label.className = "ibm-block-label";
     label.textContent = options.label;
     if (options.onRename) {
@@ -868,13 +870,13 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     title.appendChild(label);
     header.appendChild(title);
 
-    const actions = document.createElement("div");
+    const actions = createEl("div");
     actions.className = "ibm-block-actions";
     header.appendChild(actions);
 
     let toolbar = null;
     if (options.withZoom) {
-      toolbar = document.createElement("div");
+      toolbar = createEl("div");
       toolbar.className = "ibm-mermaid-toolbar";
       toolbar.setAttribute("role", "toolbar");
       toolbar.setAttribute("aria-label", t("controls"));
@@ -893,7 +895,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
      do not own and replaced on re-render — moving it around is what made the
      header lose buttons. Ours stays put and simply presses Obsidian's. */
   createEditButton(container) {
-    const button = document.createElement("button");
+    const button = createEl("button");
     button.type = "button";
     button.className = "ibm-edit-source";
     button.title = t("editSource");
@@ -947,7 +949,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
   }
 
   createCopyButton(container) {
-    const button = document.createElement("button");
+    const button = createEl("button");
     button.type = "button";
     button.className = "ibm-copy-source";
     button.title = t("copySource");
@@ -1030,6 +1032,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.state.writingModes = Object.assign(writingModeDefaults(), this.state.writingModes || {});
     this.state.fileTools = Object.assign(fileToolsDefaults(), this.state.fileTools || {});
     this.state.webClip = Object.assign({ watchClipboard: false, folder: "" }, this.state.webClip || {});
+    this.state.readingTime = Object.assign({ enabled: true }, this.state.readingTime || {});
     this.state.fileTools.apps = Array.isArray(this.state.fileTools.apps)
       ? this.state.fileTools.apps.filter(value => typeof value === "string")
       : [];
@@ -1304,7 +1307,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     container.appendChild(header);
 
     const makeButton = (label, title) => {
-      const button = document.createElement("button");
+      const button = createEl("button");
       button.type = "button";
       button.textContent = label;
       button.title = title;
@@ -1321,7 +1324,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     const zoomIn = makeButton("", t("zoomIn"));
     setIcon(zoomIn, UI_ICONS.zoomIn);
 
-    const canvas = document.createElement("div");
+    const canvas = createEl("div");
     canvas.className = "ibm-mermaid-canvas";
     // Obsidian's mobile sidebar swipe skips anything inside
     // [data-ignore-swipe] — the same marker its Canvas view uses — so a

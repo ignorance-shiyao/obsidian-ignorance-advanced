@@ -512,3 +512,5 @@ g.node > :is(.members-group, .methods-group) foreignObject > div {
   width: auto !important;
   max-width: none !important;
 }
+
+.ib-reading-time { color: var(--text-muted); }

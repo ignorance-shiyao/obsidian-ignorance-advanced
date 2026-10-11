@@ -58,7 +58,7 @@ export async function openOffscreenCapturer(width, height) {
 }
 
 function dataUrlOf(source) {
-  const canvas = document.createElement("canvas");
+  const canvas = createEl("canvas");
   canvas.width = source.naturalWidth || source.width;
   canvas.height = source.naturalHeight || source.height;
   if (!canvas.width || !canvas.height) return "";
@@ -84,7 +84,7 @@ export function stageSlide(root, section, width, height) {
   // the capture window: embed both as data URLs.
   const sourceCanvases = [...section.querySelectorAll("canvas")];
   [...copy.querySelectorAll("canvas")].forEach((canvas, index) => {
-    const img = document.createElement("img");
+    const img = createEl("img");
     img.src = dataUrlOf(sourceCanvases[index]);
     img.setAttribute("style", canvas.getAttribute("style") || "");
     img.style.width = `${sourceCanvases[index].clientWidth}px`;

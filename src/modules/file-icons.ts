@@ -28,7 +28,7 @@ export function installFileIcons(plugin) {
     let holder = title.querySelector<HTMLElement>(":scope > .ib-file-icon");
     if (!closed || !open) { holder?.remove(); return; }
     if (!holder) {
-      holder = document.createElement("span");
+      holder = createEl("span");
       holder.className = "ib-file-icon is-folder";
       holder.setAttribute("aria-hidden", "true");
       title.insertBefore(holder, title.querySelector(":scope > .nav-folder-title-content") || title.firstChild);
@@ -55,7 +55,7 @@ export function installFileIcons(plugin) {
     let holder = title.querySelector<HTMLElement>(":scope > .ib-file-icon");
     if (!markup) { holder?.remove(); return; }
     if (!holder) {
-      holder = document.createElement("span");
+      holder = createEl("span");
       holder.className = "ib-file-icon";
       holder.setAttribute("aria-hidden", "true");
       title.insertBefore(holder, title.querySelector(":scope > .nav-file-title-content") || title.firstChild);

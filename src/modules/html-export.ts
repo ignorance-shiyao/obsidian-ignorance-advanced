@@ -76,7 +76,7 @@ function snapshotThemeTokens() {
     if (value) values[name] = value;
   }
   const colors = new Map();
-  const probe = document.createElement("span");
+  const probe = createEl("span");
   probe.style.position = "fixed";
   probe.style.visibility = "hidden";
   probe.style.pointerEvents = "none";
@@ -200,7 +200,7 @@ async function cloneSvgNode(source, colors, checkpoint) {
 
 async function imageAsPng(source, colors, alt = "") {
   const rect = source.getBoundingClientRect();
-  const image = document.createElement("img");
+  const image = createEl("img");
   if (hasDesktopExports()) {
     image.src = `data:image/png;base64,${bytesToBase64(await captureElement(source))}`;
   } else if (source instanceof HTMLCanvasElement) {
@@ -254,7 +254,7 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
     if (source.type !== "checkbox") return null;
     // A drawn box instead of ☑/☐ glyphs: the glyphs sat on the captured
     // checkbox fill and read as a black blob.
-    const checkbox = document.createElement("span");
+    const checkbox = createEl("span");
     inlineStandaloneStyles(source, checkbox, colors);
     const size = Math.round(source.getBoundingClientRect().height) || 16;
     checkbox.className = "ib-task-box";
@@ -290,7 +290,7 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
   if (source.matches(".mermaid.ibm-mermaid-enhanced,.ib-echarts-block")) {
     const graphic = source.querySelector(".ibm-mermaid-canvas > svg,.ib-echarts-host svg,.ib-echarts-host canvas");
     if (graphic) {
-      const frame = document.createElement("div");
+      const frame = createEl("div");
       inlineStandaloneStyles(source, frame, colors);
       const align = source.getAttribute("data-ib-chart-align") || "center";
       frame.setAttribute("data-reader-chart", "");
@@ -305,7 +305,7 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
 
   if (source instanceof HTMLImageElement) {
     if (preview && /^https?:/i.test(source.currentSrc || source.src)) {
-      const image = document.createElement("img");
+      const image = createEl("img");
       image.src = source.currentSrc || source.src;
       image.alt = source.alt || "";
       image.loading = "lazy";
@@ -316,7 +316,7 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
     }
     const data = await imageDataUri(plugin, source, imageIndex);
     if (data) {
-      const image = document.createElement("img");
+      const image = createEl("img");
       image.src = data;
       image.alt = source.alt || "";
       inlineStandaloneStyles(source, image, colors);
@@ -329,7 +329,7 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
     // staged note, which used to abort the whole export.
     const remote = await remoteImageDataUri(source);
     if (remote) {
-      const image = document.createElement("img");
+      const image = createEl("img");
       image.src = remote;
       image.alt = source.alt || "";
       inlineStandaloneStyles(source, image, colors);
@@ -339,18 +339,18 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
     }
     if (source.complete && source.naturalWidth > 0) {
       try { return await imageAsPng(source, colors, source.alt || ""); } catch (error) { console.warn("Ignorance Advanced: image capture failed —", error); }
-      const linked = document.createElement("img");
+      const linked = createEl("img");
       linked.src = source.currentSrc || source.getAttribute("src") || "";
       linked.alt = source.alt || "";
       linked.style.maxWidth = "100%";
       return linked;
     }
-    const fallback = document.createElement("span");
+    const fallback = createEl("span");
     fallback.textContent = source.alt || "[无法嵌入的图片]";
     return fallback;
   }
 
-  const copy = document.createElement(source.tagName.toLowerCase());
+  const copy = createEl(source.tagName.toLowerCase());
   copyAttributes(source, copy, headingIds);
   inlineStandaloneStyles(source, copy, colors);
   for (const name of ["data-ib-table-align", "data-ib-chart-align"]) {
@@ -556,7 +556,7 @@ async function prepareHtmlDocument(plugin, file, { cover = true, onProgress = nu
     const sourceHeadings = [...staging.querySelectorAll("h1,h2,h3,h4,h5,h6")];
     const headingIds = new Map(sourceHeadings.filter(h => h.id).map((h, i) => [h.id, `reader-section-${i + 1}`]));
     [...staging.querySelectorAll('[id^="fn-"] , [id^="fnref-"]')].forEach((node, i) => headingIds.set(node.id, `reader-footnote-${i + 1}`));
-    const content = document.createElement("div");
+    const content = createEl("div");
     const imageIndex = vaultImageIndex(plugin);
     for (const child of staging.childNodes) {
       const cloned = await cloneHtmlNode(child, plugin, imageIndex, light.colors, headingIds, checkpoint, true);
@@ -607,7 +607,7 @@ async function prepareHtmlDocument(plugin, file, { cover = true, onProgress = nu
     const headingIds = new Map(sourceHeadings.filter(heading => heading.id).map((heading, index) => [heading.id, `reader-section-${index + 1}`]));
     [...staging.querySelectorAll('[id^="fn-"] , [id^="fnref-"]')].forEach((node, i) => headingIds.set(node.id, `reader-footnote-${i + 1}`));
     const imageIndex = vaultImageIndex(plugin);
-    const content = document.createElement("div");
+    const content = createEl("div");
     for (const child of staging.childNodes) {
       const cloned = await cloneHtmlNode(child, plugin, imageIndex, light.colors, headingIds, checkpoint);
       if (cloned) content.appendChild(cloned);

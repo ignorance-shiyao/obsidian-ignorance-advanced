@@ -155,7 +155,7 @@ function splitTableByRows(table: HTMLElement, budget: number): void {
   for (const chunk of chunks) {
     const nt = table.cloneNode(false) as HTMLElement
     if (thead) nt.appendChild(thead.cloneNode(true)) // 每段重复表头
-    const nb = document.createElement('tbody')
+    const nb = createEl('tbody')
     for (const r of chunk) nb.appendChild(r) // 移动行
     nt.appendChild(nb)
     table.before(nt)
@@ -168,7 +168,7 @@ function scaleToFit(el: HTMLElement, maxH: number): void {
   const h = el.offsetHeight
   if (maxH <= 0 || h <= maxH) return
   const scale = Math.max(0.4, maxH / h)
-  const wrapper = document.createElement('div')
+  const wrapper = createEl('div')
   wrapper.className = 'slide-scale-fit'
   wrapper.style.cssText = `height:${maxH}px;overflow:hidden;`
   el.before(wrapper)
@@ -236,7 +236,7 @@ export function paginateSlideSections(slides: HTMLElement): boolean {
 
     let anchor: HTMLElement = sec
     for (let p = 1; p < pages.length; p++) {
-      const ns = document.createElement('section')
+      const ns = createEl('section')
       ns.className = sec.className
       if (ns.classList.contains('slidev-layout-cover') || ns.classList.contains('slidev-layout-intro')) {
         ns.classList.remove('slidev-layout-cover', 'slidev-layout-intro')
@@ -249,7 +249,7 @@ export function paginateSlideSections(slides: HTMLElement): boolean {
       ns.dataset.slidevLayout = ns.classList.contains('slidev-layout-default')
         ? 'default'
         : sec.dataset.slidevLayout ?? ''
-      const ninner = document.createElement('div')
+      const ninner = createEl('div')
       ninner.className = 'slide-inner'
       const pageRoot = wrappedRoot ? wrappedRoot.cloneNode(false) as HTMLElement : ninner
       if (wrappedRoot) {

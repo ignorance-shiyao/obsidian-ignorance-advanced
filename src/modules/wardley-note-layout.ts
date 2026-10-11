@@ -50,7 +50,7 @@ export function layoutWardleyNotes(svg) {
     const original = { text: label.textContent, attrs: Object.fromEntries(['x','y','font-size','transform'].map(key => [key,label.getAttribute(key)])) };
     const x = Number(original.attrs.x), y = Number(original.attrs.y), width = Math.min(260, bounds.width);
     label.setAttribute('font-size', String(fontSize));
-    const canvas = document.createElement("canvas"), context = canvas.getContext("2d"), computed = getComputedStyle(label);
+    const canvas = createEl("canvas"), context = canvas.getContext("2d"), computed = getComputedStyle(label);
     context.font = `${computed.fontWeight} ${fontSize}px ${computed.fontFamily}`;
     const lines = wardleyNoteLines(original.text, width, (start, count) => context.measureText(original.text.slice(start, start + count)).width);
     if (!lines.length) { label.setAttribute('font-size', original.attrs['font-size']); continue; }

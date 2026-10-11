@@ -19,7 +19,7 @@ class ContainerWidget extends WidgetType {
   }
 
   toDOM() {
-    const mount = document.createElement("div");
+    const mount = createEl("div");
     mount.className = "ibc-container-editor-widget";
     const component = new Component();
     component.load();

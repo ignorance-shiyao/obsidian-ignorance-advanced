@@ -34,4 +34,20 @@ describe("行内 Markdown 方言解析", () => {
       ["chip", "自定义标签"], ["icon", "circle-check"]
     ]);
   });
+
+  it("解析两段徽章、剧透、注音和面包屑", () => {
+    const source = "((green:构建 | 通过)) ((版本 | 1.0)) ((spoiler:答案是 42)) ((ruby:汉字 | hànzì)) ((crumb:设置 > 外观 > 主题))";
+    const tokens = parseInlineSyntax(source, null);
+    expect(tokens.map(token => token.type)).toEqual(["badge", "badge", "spoiler", "ruby", "crumb"]);
+    expect(tokens[0]).toMatchObject({ value: "构建", note: "通过", color: "green" });
+    expect(tokens[1]).toMatchObject({ value: "版本", note: "1.0", color: undefined });
+    expect(tokens[2].value).toBe("答案是 42");
+    expect(tokens[3]).toMatchObject({ value: "汉字", note: "hànzì" });
+    expect(tokens[4].parts).toEqual(["设置", "外观", "主题"]);
+  });
+
+  it("只有一段的面包屑和没有竖线的内容仍是普通药丸", () => {
+    const tokens = parseInlineSyntax("((crumb:唯一)) ((green:通过))", null);
+    expect(tokens.map(token => token.type)).toEqual(["pill", "pill"]);
+  });
 });

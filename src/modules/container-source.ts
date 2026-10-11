@@ -4,7 +4,7 @@
 export const CONTAINER_KINDS = new Set([
   "note", "tip", "info", "success", "warning", "danger", "question", "caution", "important",
   "card", "chapter", "panel", "details", "notes", "cols", "col", "timeline", "steps", "kpi",
-  "gallery", "process", "matrix", "roadmap"
+  "gallery", "process", "matrix", "roadmap", "tabs", "tab"
 ]);
 
 export interface MarkdownContainer {

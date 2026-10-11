@@ -1,6 +1,6 @@
 export interface InlineSyntaxToken {
   kind: "chip" | "icon";
-  type: "pill" | "bar" | "spark" | "icon";
+  type: "pill" | "bar" | "spark" | "icon" | "badge" | "spoiler" | "ruby" | "crumb";
   value: string;
   start: number;
   end: number;
@@ -10,6 +10,9 @@ export interface InlineSyntaxToken {
   percent?: number;
   values?: number[];
   icon?: string;
+  /** badge: the right-hand half; ruby: the annotation */
+  note?: string;
+  parts?: string[];
 }
 
 const CHIP = /\(\(\s*([^()\n]+?)\s*\)\)/g;
@@ -78,10 +81,27 @@ function parseChip(inner: string, start: number, end: number, source: string): I
     }
   }
 
+  const spoiler = /^spoiler:\s*(.+)$/i.exec(value);
+  if (spoiler) return { kind: "chip", type: "spoiler", value: spoiler[1].trim(), start, end, source };
+
+  const ruby = /^ruby:\s*(.+?)\s*\|\s*(.+)$/i.exec(value);
+  if (ruby) return { kind: "chip", type: "ruby", value: ruby[1].trim(), note: ruby[2].trim(), start, end, source };
+
+  const crumb = /^crumb:\s*(.+)$/i.exec(value);
+  if (crumb) {
+    const parts = crumb[1].split(/\s*(?:>|›|→|\/)\s*/).map(part => part.trim()).filter(Boolean);
+    if (parts.length >= 2) return { kind: "chip", type: "crumb", value: crumb[1].trim(), parts, start, end, source };
+  }
+
+  // ((label | value)) and ((green: label | value)): a two-part badge whose right half carries the colour.
   const colored = /^([a-z]+):\s*(.+)$/i.exec(value);
-  if (colored && COLORS.has(colored[1].toLowerCase())) return {
-    kind: "chip", type: "pill", value: colored[2].trim(), color: colored[1].toLowerCase(), start, end, source
-  };
+  const color = colored && COLORS.has(colored[1].toLowerCase()) ? colored[1].toLowerCase() : undefined;
+  const text = color ? colored[2].trim() : value;
+  const split = text.indexOf("|");
+  if (split > 0 && split < text.length - 1) {
+    return { kind: "chip", type: "badge", value: text.slice(0, split).trim(), note: text.slice(split + 1).trim(), color, start, end, source };
+  }
+  if (color) return { kind: "chip", type: "pill", value: text, color, start, end, source };
   return { kind: "chip", type: "pill", value, start, end, source };
 }
 

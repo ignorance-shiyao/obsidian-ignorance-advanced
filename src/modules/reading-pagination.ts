@@ -360,10 +360,10 @@ function retainTableRows(block, cloneTable, start, stop, repeatHeader) {
   if (sourceCells.length) {
     let columns = cloneTable.querySelector("colgroup");
     if (!columns) {
-      columns = document.createElement("colgroup");
+      columns = createEl("colgroup");
       cloneTable.insertBefore(columns, cloneTable.firstChild);
     }
-    while (columns.children.length < sourceCells.length) columns.appendChild(document.createElement("col"));
+    while (columns.children.length < sourceCells.length) columns.appendChild(createEl("col"));
     [...columns.children].slice(sourceCells.length).forEach(column => column.remove());
     sourceCells.forEach((cell, index) => { columns.children[index].style.width = `${cell.getBoundingClientRect().width}px`; });
     cloneTable.style.width = `${block.table.getBoundingClientRect().width}px`;
@@ -373,9 +373,9 @@ function retainTableRows(block, cloneTable, start, stop, repeatHeader) {
 
 function makePage(blocks, window, index, total, page, contentHeight = window.stop - window.start) {
   const format = PAGE_NUMBER_FORMATS[page.pageNumberFormat] || PAGE_NUMBER_FORMATS.plain;
-  const sheet = document.createElement("div");
+  const sheet = createEl("div");
   sheet.className = "ibp-page";
-  const body = document.createElement("div");
+  const body = createEl("div");
   body.className = "ibp-page-body markdown-preview-view markdown-rendered";
   body.style.height = `${contentHeight}px`;
   const continuingTable = blocks.find(block => block.table && block.top < window.start - 0.5 && block.bottom > window.start + 0.5);
@@ -384,7 +384,7 @@ function makePage(blocks, window, index, total, page, contentHeight = window.sto
   for (const block of blocks) {
     const chapter = block.chapter;
     if (!chapter || cardLayers.has(chapter.element) || chapter.bottom <= window.start || chapter.top >= window.stop) continue;
-    const card = document.createElement("div");
+    const card = createEl("div");
     card.className = "ibc-container ibc-container--chapter";
     card.dataset.ibPagedChapter = "";
     card.dataset.ibcTone = chapter.tone;
@@ -402,7 +402,7 @@ function makePage(blocks, window, index, total, page, contentHeight = window.sto
     const clone = block.el.cloneNode(true);
     // Paper language labels are information, not disconnected rename buttons.
     clone.querySelectorAll('.ibm-block-label.is-editable').forEach(label => {
-      const text = document.createElement('span');
+      const text = createEl('span');
       text.className = 'ibm-block-label';
       text.textContent = label.textContent;
       label.replaceWith(text);
@@ -431,7 +431,7 @@ function makePage(blocks, window, index, total, page, contentHeight = window.sto
   }
   sheet.appendChild(body);
   if (page.pageNumber !== "none") {
-    const number = document.createElement("div");
+    const number = createEl("div");
     number.className = "ibp-page-number";
     number.textContent = format(index + 1, total);
     sheet.appendChild(number);
@@ -451,7 +451,7 @@ function addRunningHeaders(pages, page) {
     const label = opening || current;
     if (headings.length) current = headings[headings.length - 1].textContent.trim();
     if (page.runningHeader !== "chapter" || index === 0 || !label) return;
-    const header = document.createElement("div");
+    const header = createEl("div");
     header.className = "ibp-page-header";
     header.textContent = label;
     sheet.appendChild(header);

@@ -70,7 +70,7 @@ export async function rasterizeSvg(live) {
     const image = new Image();
     await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; image.src = url; });
     const scale = Math.min(3, Math.max(1, 2 * rect.width / width));
-    const canvas = document.createElement("canvas");
+    const canvas = createEl("canvas");
     canvas.width = Math.round(width * scale);
     canvas.height = Math.round(height * scale);
     canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);

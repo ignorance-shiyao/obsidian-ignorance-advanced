@@ -369,7 +369,7 @@ export async function preloadEChartsPreview(plugin, source) {
   if (previewCache.has(key)) return;
   const engine = await loadECharts(plugin);
   if (!registeredThemes.has(name)) { engine.registerTheme(name, buildEChartsTheme(tokens)); registeredThemes.add(name); }
-  const host = document.createElement("div");
+  const host = createEl("div");
   let chart;
   try {
     chart = engine.init(host, name, { renderer: "svg", width: 720, height: 416 });

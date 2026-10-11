@@ -68,7 +68,7 @@ const MIN_ROW_HEIGHT = 24;
 
 class TableSizeStyles {
   constructor() {
-    this.el = document.createElement("style");
+    this.el = createEl("style");
     this.el.id = "ibt-sizes";
     document.head.appendChild(this.el);
     this.sizes = new Map();
@@ -181,11 +181,11 @@ class TableResizeLayer {
   setup() {
     this.built = true;
     if (getComputedStyle(this.host).position === "static") this.host.classList.add("ibt-host");
-    this.layer = document.createElement("div");
+    this.layer = createEl("div");
     this.layer.className = "ibt-layer";
-    this.focus = document.createElement("div");
+    this.focus = createEl("div");
     this.focus.className = "ibt-focus";
-    this.readout = document.createElement("div");
+    this.readout = createEl("div");
     this.readout.className = "ibt-readout";
     this.layer.append(this.focus);
     document.body.appendChild(this.readout);
@@ -200,7 +200,7 @@ class TableResizeLayer {
 
   /* One button for the quick sizing actions, beside the position button. */
   mountSizeMenu() {
-    const button = document.createElement("button");
+    const button = createEl("button");
     button.type = "button";
     button.className = "ibt-size";
     button.title = "表格尺寸";
@@ -305,7 +305,7 @@ class TableResizeLayer {
   }
 
   addHandle(axis, index) {
-    const handle = document.createElement("div");
+    const handle = createEl("div");
     handle.className = `ibt-handle is-${axis}`;
     handle.title = t(axis === "col" ? "resizeColumn" : "resizeRow");
     const target = { axis, index };
@@ -343,7 +343,7 @@ class TableResizeLayer {
   /* The widest unwrapped content of a column, measured on a hidden one-column copy so it is the
      width the column needs to show every cell on one line. */
   measureFit(index) {
-    const probe = document.createElement("table");
+    const probe = createEl("table");
     probe.className = this.table.className.replace(/\bibt-[\w-]+/g, "").trim();
     probe.style.cssText = "position:absolute;left:0;top:0;visibility:hidden;pointer-events:none;width:max-content;max-width:none;table-layout:auto;white-space:nowrap;margin:0";
     const body = probe.createTBody();
@@ -565,7 +565,7 @@ function fencedSource(doc, openLine) {
 class CodeCopyWidget extends WidgetType {
   eq() { return true; }
   toDOM(view) {
-    const button = document.createElement("button");
+    const button = createEl("button");
     button.type = "button";
     button.className = "ibm-copy-source ibc-live-copy";
     button.title = t("copySource");
@@ -587,10 +587,10 @@ class CodeCopyWidget extends WidgetType {
         new Notice(t("copyFailed"));
       }
     });
-    const actions = document.createElement("span");
+    const actions = createEl("span");
     actions.className = "ibc-live-actions";
     actions.appendChild(button);
-    const align = document.createElement("button");
+    const align = createEl("button");
     align.type = "button"; align.className = "ibc-live-copy ibc-live-align";
     align.title = "代码块位置"; align.setAttribute("aria-label", "代码块位置");
     setIcon(align, UI_ICONS.alignCenter);
@@ -623,7 +623,7 @@ class CodeLanguageIconWidget extends WidgetType {
   constructor(readonly language: string) { super(); }
   eq(other) { return other.language === this.language; }
   toDOM() {
-    const holder = document.createElement("span");
+    const holder = createEl("span");
     holder.className = "ibc-live-lang";
     holder.setAttribute("contenteditable", "false");
     holder.appendChild(createLanguageIcon(this.language));
@@ -638,7 +638,7 @@ class CodeLineNumberWidget extends WidgetType {
   constructor(readonly number: number) { super(); }
   eq(other) { return other.number === this.number; }
   toDOM() {
-    const span = document.createElement("span");
+    const span = createEl("span");
     span.className = "ibc-live-ln";
     span.textContent = String(this.number);
     span.setAttribute("aria-hidden", "true");

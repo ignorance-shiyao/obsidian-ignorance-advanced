@@ -36,27 +36,29 @@ function containingNode(nodes, lineStart, lineEnd) {
 }
 
 function makeContainer(node) {
-  const element = document.createElement(node.kind === "details" ? "details" : "div");
+  const element = createEl(node.kind === "details" ? "details" : "div");
   element.className = `ibc-container ibc-container--${node.kind}`;
   element.dataset.ibcKind = node.kind;
   if (node.kind === "chapter") {
     element.dataset.ibcTone = String(node.chapterTone ?? 0);
-    const rail = document.createElement("span");
+    const rail = createEl("span");
     rail.className = "ibc-chapter__rail";
     rail.setAttribute("aria-hidden", "true");
     element.appendChild(rail);
   }
 
   if (node.kind === "details") {
-    const summary = document.createElement("summary");
+    const summary = createEl("summary");
     summary.textContent = node.title || "详情";
     element.appendChild(summary);
   } else if (node.kind === "panel" && node.title) {
-    const header = document.createElement("div");
+    const header = createEl("div");
     header.className = "ibc-container__head";
     header.textContent = node.title;
     element.appendChild(header);
   }
+
+  if (node.kind === "tab") element.dataset.ibcTitle = node.title || "标签";
 
   if (node.kind === "matrix" && node.title.includes("|")) {
     const split = node.title.indexOf("|");
@@ -75,7 +77,7 @@ function makeContainer(node) {
 function finishMatrix(container) {
   const { ibcXAxis: xAxis, ibcYAxis: yAxis } = container.dataset;
   if (!xAxis && !yAxis) return;
-  const body = document.createElement("div");
+  const body = createEl("div");
   body.className = "ibc-matrix__body";
   body.append(...container.childNodes);
   if (yAxis) {
@@ -87,21 +89,49 @@ function finishMatrix(container) {
   if (xAxis) container.createDiv({ cls: "ibc-matrix__axis ibc-matrix__axis--x", text: `${xAxis} →` });
 }
 
+/* Tabs are pure CSS (radio inputs and labels, panels picked with :checked), so they keep working in
+   exported HTML and clones where no script runs. Staged renders for export and pagination skip the
+   switcher and lay every panel out in order with its title. */
+let tabGroups = 0;
+function finishTabs(container, interactive) {
+  const panels = [...container.querySelectorAll(":scope > .ibc-container--tab")];
+  if (!panels.length) return;
+  if (!interactive || panels.length < 2) { container.classList.add("ibc-tabs--static"); return; }
+  const group = `ibc-tabs-${++tabGroups}`;
+  const before = panels[0];
+  panels.slice(0, 12).forEach((panel, index) => {
+    const input = createEl("input");
+    input.type = "radio";
+    input.name = group;
+    input.id = `${group}-${index}`;
+    input.className = "ibc-tabs__radio";
+    if (index === 0) { input.checked = true; input.setAttribute("checked", ""); }
+    const label = createEl("label");
+    label.htmlFor = input.id;
+    label.className = "ibc-tabs__label";
+    label.textContent = panel.dataset.ibcTitle || `标签 ${index + 1}`;
+    container.insertBefore(input, before);
+    container.insertBefore(label, before);
+  });
+  container.classList.add("ibc-tabs--interactive");
+}
+
 // Gallery: one figure per image, captioned by its title (or alt text);
 // the <br>s between images in the same paragraph would otherwise take grid cells.
-function finishContainer(container) {
+function finishContainer(container, interactive = false) {
+  if (container.dataset.ibcKind === "tabs") { finishTabs(container, interactive); return; }
   if (container.dataset.ibcKind === "matrix") { finishMatrix(container); return; }
   if (container.dataset.ibcKind !== "gallery") return;
   const images = [...container.querySelectorAll("img")];
   if (!images.length) return;
   const figures = images.map(img => {
-    const figure = document.createElement("figure");
+    const figure = createEl("figure");
     figure.className = "ibc-gallery__item";
     const embed = img.closest(".internal-embed") || img;
     figure.appendChild(embed);
     const caption = img.getAttribute("title") || img.getAttribute("alt") || "";
     if (caption && !/^\d+(x\d+)?$/.test(caption)) {
-      const text = document.createElement("figcaption");
+      const text = createEl("figcaption");
       text.textContent = caption;
       figure.appendChild(text);
     }
@@ -116,15 +146,15 @@ async function renderFragment(plugin, sourcePath, source, target, component) {
   await MarkdownRenderer.render(plugin.app, source, target, sourcePath, component);
 }
 
-async function renderRange(plugin, sourcePath, source, start, end, nodes, target, component) {
+async function renderRange(plugin, sourcePath, source, start, end, nodes, target, component, interactive = false) {
   let cursor = start;
   for (const node of nodes) {
     if (node.startOffset < start || node.closeEnd > end) continue;
     await renderFragment(plugin, sourcePath, source.slice(cursor, node.startOffset), target, component);
     const container = makeContainer(node);
     target.appendChild(container);
-    await renderRange(plugin, sourcePath, source, node.contentStart, node.contentEnd, node.children, container, component);
-    finishContainer(container);
+    await renderRange(plugin, sourcePath, source, node.contentStart, node.contentEnd, node.children, container, component, interactive);
+    finishContainer(container, interactive);
     cursor = node.closeEnd;
   }
   await renderFragment(plugin, sourcePath, source.slice(cursor, end), target, component);
@@ -164,8 +194,8 @@ async function renderContainer(plugin, element, context, source, node) {
   element.addClass("ibc-container-host");
   try {
     context.addChild(component);
-    await renderRange(plugin, context.sourcePath, source, node.contentStart, node.contentEnd, node.children, container, component);
-    finishContainer(container);
+    await renderRange(plugin, context.sourcePath, source, node.contentStart, node.contentEnd, node.children, container, component, true);
+    finishContainer(container, true);
   } catch (error) {
     component.unload();
     element.removeClass("ibc-container-host");

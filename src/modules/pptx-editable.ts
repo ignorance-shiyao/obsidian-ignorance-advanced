@@ -14,7 +14,7 @@ const fontCache = new Map();
 function fontDraws(name, sample) {
   const key = `${name}\u0000${sample}`;
   if (fontCache.has(key)) return fontCache.get(key);
-  const ctx = document.createElement("canvas").getContext("2d");
+  const ctx = createEl("canvas").getContext("2d");
   const width = font => { ctx.font = `40px ${font}`; return ctx.measureText(sample).width; };
   const quoted = `"${name.replace(/"/g, "")}"`;
   const result = ["monospace", "serif"].some(fallback => Math.abs(width(`${quoted}, ${fallback}`) - width(fallback)) > 0.5);
@@ -172,7 +172,7 @@ async function imageData(img) {
   const src = img.currentSrc || img.src;
   if (src.startsWith("data:")) return src;
   try {
-    const canvas = document.createElement("canvas");
+    const canvas = createEl("canvas");
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
     canvas.getContext("2d").drawImage(img, 0, 0);

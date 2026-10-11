@@ -111,7 +111,7 @@ async function encodePastedImage(file) {
   let bitmap;
   try {
     bitmap = await createImageBitmap(file);
-    const canvas = document.createElement("canvas");
+    const canvas = createEl("canvas");
     canvas.width = bitmap.width;
     canvas.height = bitmap.height;
     const context = canvas.getContext("2d");
@@ -529,7 +529,7 @@ async function convertImageToWebp(source, destination, cwebp) {
   let bitmap;
   try {
     bitmap = await createImageBitmap(new Blob([fs.readFileSync(source)]));
-    const canvas = document.createElement("canvas");
+    const canvas = createEl("canvas");
     canvas.width = bitmap.width;
     canvas.height = bitmap.height;
     const context = canvas.getContext("2d");

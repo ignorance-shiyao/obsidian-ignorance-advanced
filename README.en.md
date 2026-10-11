@@ -72,6 +72,9 @@ Requires Obsidian 1.8.7 or later. Works on desktop and mobile; Word/PDF import a
 - **Images**: click an image to align, resize or crop it.
 - **Code blocks**: click the language label to search the language list; line numbers and soft wrap are in the block toolbar.
 - **Presentations**: separate slides with a line containing `---`, then use the *Presentation* button in the page toolbar at the top of the note (or run *Open presentation mode* from the command palette).
+- **Inline components**: `((green:build | passed))` two-part badge, `((spoiler:answer))` click to reveal, `((ruby:汉字 | hànzì))` ruby annotation, `((crumb:Settings > Appearance > Themes))` breadcrumb, plus `((bar:72:progress))` and `((spark:3,5,2))`.
+- **Tabs**: wrap `::: tab Title` blocks in `::: tabs`; click a title in Reading view to switch, and print or export lays every panel out in order.
+- **Reading time**: on desktop the status bar shows the estimated reading time of the current note; turn it off in settings.
 - **Export**: use the export button in the page toolbar to produce PDF, Word, PowerPoint, images or an offline HTML reader.
 - **Settings**: Settings → Ignorance Advanced (palette, page layout, highlight colors, tab behavior).
 

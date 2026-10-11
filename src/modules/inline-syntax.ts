@@ -101,6 +101,62 @@ function makeChipElement(token, doc = document) {
     pill.textContent = token.value;
     return pill;
   }
+  if (token.type === "badge") {
+    const badge = doc.createElement("span");
+    badge.className = `ib-inline-badge ib-inline-badge--${token.color || "neutral"}`;
+    const label = doc.createElement("span");
+    label.className = "ib-inline-badge__label";
+    label.textContent = token.value;
+    const value = doc.createElement("span");
+    value.className = "ib-inline-badge__value";
+    value.textContent = token.note;
+    badge.append(label, value);
+    return badge;
+  }
+  if (token.type === "spoiler") {
+    const spoiler = doc.createElement("span");
+    spoiler.className = "ib-inline-spoiler";
+    spoiler.tabIndex = 0;
+    spoiler.setAttribute("role", "button");
+    spoiler.setAttribute("aria-label", "点击显示隐藏内容");
+    spoiler.textContent = token.value;
+    spoiler.addEventListener("click", () => spoiler.classList.toggle("is-revealed"));
+    spoiler.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); spoiler.classList.toggle("is-revealed"); }
+    });
+    return spoiler;
+  }
+  if (token.type === "ruby") {
+    const ruby = doc.createElement("ruby");
+    ruby.className = "ib-inline-ruby";
+    ruby.append(token.value);
+    const open = doc.createElement("rp");
+    open.textContent = "(";
+    const note = doc.createElement("rt");
+    note.textContent = token.note;
+    const close = doc.createElement("rp");
+    close.textContent = ")";
+    ruby.append(open, note, close);
+    return ruby;
+  }
+  if (token.type === "crumb") {
+    const crumb = doc.createElement("span");
+    crumb.className = "ib-inline-crumb";
+    token.parts.forEach((part, index) => {
+      if (index) {
+        const separator = doc.createElement("span");
+        separator.className = "ib-inline-crumb__sep";
+        separator.setAttribute("aria-hidden", "true");
+        separator.textContent = "›";
+        crumb.appendChild(separator);
+      }
+      const item = doc.createElement("span");
+      item.className = "ib-inline-crumb__item";
+      item.textContent = part;
+      crumb.appendChild(item);
+    });
+    return crumb;
+  }
   if (token.type === "bar") {
     const bar = doc.createElement("span");
     bar.className = "ib-inline-bar";

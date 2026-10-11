@@ -45,6 +45,11 @@ class IgnoranceSettingTab extends PluginSettingTab {
         { name: "智能标点", desc: "输入 -- 转为 —、... 转为 …；代码块与行内代码不转换。", add: toggle(() => Boolean(state.smartPunctuation), value => { state.smartPunctuation = value; plugin.saveStoredState(); }) },
         { name: "粘贴图片存入 assets/", desc: PASTE_IMAGE_DESC, add: toggle(() => state.fileTools.convertPastedImages !== false, value => { state.fileTools.convertPastedImages = value; plugin.saveStoredState(); }) }
       ] },
+      { heading: "状态栏", items: [
+        { name: "显示阅读时长", desc: "在状态栏显示当前笔记的预计阅读时间（仅桌面端）。", aliases: ["reading time"], add: toggle(() => state.readingTime?.enabled !== false, value => {
+          state.readingTime.enabled = value; plugin.saveStoredState(); plugin.refreshReadingTime?.();
+        }) }
+      ] },
       { heading: "剪藏", items: [
         { name: "回到 Obsidian 时检测剪贴板里的链接", desc: CLIPBOARD_DESC, add: toggle(() => Boolean(state.webClip?.watchClipboard), value => { state.webClip.watchClipboard = value; plugin.saveStoredState(); }) },
         { name: "剪藏文件夹", desc: "网页剪藏的笔记和图片保存到这里，文件夹名同时作为笔记标签。默认 Clippings。", aliases: ["clippings"], add: setting => setting.addText(text => text.setPlaceholder("Clippings")

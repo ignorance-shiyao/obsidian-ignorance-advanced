@@ -196,7 +196,7 @@ async function portableElementPng(source) {
     const image = new Image();
     await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; image.src = url; });
     const scale = 2;
-    const out = document.createElement("canvas");
+    const out = createEl("canvas");
     out.width = width * scale;
     out.height = height * scale;
     out.getContext("2d").drawImage(image, 0, 0, out.width, out.height);
@@ -210,7 +210,7 @@ async function portableElementPng(source) {
 
 async function renderedElementPng(source, alt = "") {
   const rect = source.getBoundingClientRect();
-  const image = document.createElement("img");
+  const image = createEl("img");
   let captured = null;
   if (hasDesktopExports()) {
     // Page capture fails for elements outside the window (long notes); fall
@@ -300,7 +300,7 @@ async function cloneForRichClipboard(source, plugin, imageIndex, target) {
     return renderedElementPng(source, "图表");
   }
 
-  const copy = document.createElement(source.tagName.toLowerCase());
+  const copy = createEl(source.tagName.toLowerCase());
   for (const attribute of [...source.attributes]) {
     const name = attribute.name.toLowerCase();
     if (name === "class" || name === "id" || name === "style" || name === "srcset" || name.startsWith("on") || name.startsWith("data-") || name.startsWith("aria-")) continue;
@@ -343,13 +343,13 @@ async function prepareRichCopyMarkup(plugin, file, target = "wechat", { cover = 
     holder.appendChild(staging);
     const imageIndex = vaultImageIndex(plugin);
     const columnLayouts = staging.querySelectorAll(".ibc-container--cols").length;
-    const content = document.createElement("div");
+    const content = createEl("div");
     for (const child of staging.childNodes) {
       const clone = await cloneForRichClipboard(child, plugin, imageIndex, target);
       if (clone) content.appendChild(clone);
     }
     const style = getComputedStyle(document.body);
-    const root = document.createElement("div");
+    const root = createEl("div");
     root.style.setProperty("box-sizing", "border-box");
     root.style.setProperty("width", "100%");
     root.style.setProperty("max-width", "100%");
@@ -453,7 +453,7 @@ async function captureElement(element) {
   const sliceH = Math.max(200, Math.floor(window.innerHeight - rect.top - 1));
   // Chromium caps a canvas edge at 65535px; shrink very long captures.
   const scale = Math.min(1, 60000 / (height * dpr));
-  const canvas = document.createElement("canvas");
+  const canvas = createEl("canvas");
   canvas.width = Math.round(width * dpr * scale);
   canvas.height = Math.round(height * dpr * scale);
   const ctx = canvas.getContext("2d");
@@ -540,7 +540,7 @@ function findPandoc() {
 async function toPngFile(src, dest) {
   const fs = require("fs");
   const bitmap = await createImageBitmap(new Blob([fs.readFileSync(src)]));
-  const canvas = document.createElement("canvas");
+  const canvas = createEl("canvas");
   canvas.width = bitmap.width; canvas.height = bitmap.height;
   canvas.getContext("2d").drawImage(bitmap, 0, 0);
   const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
@@ -627,7 +627,7 @@ async function mermaidToPngDataUri(source, index) {
     const image = new Image();
     await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; image.src = url; });
     const scale = 2;
-    const canvas = document.createElement("canvas");
+    const canvas = createEl("canvas");
     canvas.width = Math.max(1, Math.round((image.naturalWidth || 800) * scale));
     canvas.height = Math.max(1, Math.round((image.naturalHeight || 450) * scale));
     const context = canvas.getContext("2d");
@@ -654,7 +654,7 @@ async function vaultImageForWord(plugin, file, source) {
   try {
     const mime = extension === "svg" ? "image/svg+xml" : `image/${extension}`;
     const bitmap = await createImageBitmap(new Blob([bytes], { type: mime }));
-    const canvas = document.createElement("canvas");
+    const canvas = createEl("canvas");
     canvas.width = bitmap.width;
     canvas.height = bitmap.height;
     canvas.getContext("2d").drawImage(bitmap, 0, 0);

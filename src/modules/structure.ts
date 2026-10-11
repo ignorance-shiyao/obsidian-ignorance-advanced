@@ -30,9 +30,9 @@ function structureDefaultSlide(section: HTMLElement, opts: StructureOpts) {
     title.classList.add('slide-title')
       // 页眉条：把标题搬进 .slide-header，前置字母角标（chrome 皮肤专用）
       if (opts.chrome) {
-          const header = document.createElement('div')
+          const header = createEl('div')
           header.className = 'slide-header'
-          const badge = document.createElement('span')
+          const badge = createEl('span')
           badge.className = 'slide-header-badge'
           if (opts.badge) badge.textContent = opts.badge
           else badge.classList.add('is-cont') // 续页：占位不显字母
@@ -40,14 +40,14 @@ function structureDefaultSlide(section: HTMLElement, opts: StructureOpts) {
           header.appendChild(badge)
           header.appendChild(title) // 移动标题进页眉
           if (opts.tag) {
-              const tagEl = document.createElement('span')
+              const tagEl = createEl('span')
               tagEl.className = 'slide-header-tag'
               tagEl.textContent = opts.tag
               header.appendChild(tagEl) // 右上分类标签
           }
       }
   }
-  const body = document.createElement('div')
+  const body = createEl('div')
   body.className = 'slide-body'
   for (const child of bodyItems) body.appendChild(child)
   inner.appendChild(body)

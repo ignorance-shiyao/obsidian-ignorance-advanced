@@ -158,7 +158,7 @@ const SVG_NS_C4 = "http://www.w3.org/2000/svg";
 
 function cssColorToRgb(value) {
   if (!value) return null;
-  const probe = document.createElement("span");
+  const probe = createEl("span");
   probe.style.color = value;
   if (!probe.style.color) return null;
   document.body.appendChild(probe);
@@ -973,7 +973,7 @@ function drawRequirementCards(svg) {
       const text = p.textContent || "";
       const at = text.indexOf(":");
       if (at <= 0 || at > 24) continue;
-      const strong = document.createElement("strong");
+      const strong = createEl("strong");
       strong.textContent = text.slice(0, at + 1);
       p.textContent = text.slice(at + 1);
       p.insertBefore(strong, p.firstChild);

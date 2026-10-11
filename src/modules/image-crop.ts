@@ -68,7 +68,7 @@ export async function cropImage(plugin, file, onDone: (result: { mode: "replace"
   modal.scope.register([], "Enter", () => { done.click(); return false; });
 
   const crop = async () => {
-    const canvas = document.createElement("canvas");
+    const canvas = createEl("canvas");
     canvas.width = Math.max(1, Math.round(box.w)); canvas.height = Math.max(1, Math.round(box.h));
     canvas.getContext("2d")!.drawImage(img, Math.round(box.x), Math.round(box.y), canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
     const blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, mime, 0.92));
