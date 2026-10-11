@@ -12,9 +12,11 @@ export function numberHeadings(headings: HeadingEntry[], depth = 4): Map<number,
   const base = Math.min(...numbered.map(heading => heading.level));
   const counters: number[] = [];
   for (const heading of numbered) {
-    const depthIndex = Math.min(heading.level - base, depth - 1);
-    counters.length = depthIndex + 1;
-    for (let index = 0; index <= depthIndex; index += 1) counters[index] = (counters[index] || (index === depthIndex ? 0 : 1)) + (index === depthIndex ? 1 : 0);
+    const index = Math.min(heading.level - base, depth - 1);
+    while (counters.length <= index) counters.push(0);
+    counters.length = index + 1; // a new heading starts its own sub-numbering over
+    counters[index] += 1;
+    for (let up = 0; up < index; up += 1) if (!counters[up]) counters[up] = 1; // a skipped level counts as 1
     result.set(heading.line, counters.join("."));
   }
   return result;
