@@ -34,6 +34,7 @@ import { installTableExtras } from "./modules/table-merge.js";
 import { installCaptions } from "./modules/captions.js";
 import { openLinkCheck } from "./modules/link-check.js";
 import { openNavigation } from "./modules/navigation.js";
+import { NAVIGATION_VIEW, createNavigationView, openNavigationView } from "./modules/navigation-view.js";
 import { installGrayMode } from "./modules/gray-mode.js";
 import { installMoreMenuFilter } from "./modules/more-menu.js";
 import { colorSwatchExtension, colorSwatchPostProcessor } from "./modules/color-swatch.js";
@@ -599,6 +600,13 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
         }
       });
     }
+
+    this.registerView(NAVIGATION_VIEW, leaf => new (createNavigationView(this))(leaf));
+    this.addCommand({
+      id: "open-navigation-view",
+      name: "在侧栏打开导航",
+      callback: () => void openNavigationView(this)
+    });
 
     this.addCommand({
       id: "note-navigation",

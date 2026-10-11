@@ -2,6 +2,8 @@
    code blocks and diagrams — so a long note can be crossed without scrolling. Read-only. */
 import { parseCaptions } from "./captions.js";
 
+export const NAV_ICONS = { heading: "#", figure: "▣", table: "▦", code: "‹›", diagram: "◈" } as const;
+
 export interface NavItem { kind: "heading" | "figure" | "table" | "code" | "diagram"; label: string; line: number; level?: number }
 
 const DIAGRAM_LANGUAGES = new Set(["mermaid", "echarts", "chart", "plantuml"]);
@@ -61,7 +63,7 @@ export function openNavigation(plugin) {
   void (text !== null ? Promise.resolve(text) : app.vault.cachedRead(file)).then(source => {
     const items = buildNavItems(source, headings);
     if (!items.length) { new Notice("这篇笔记里没有可跳转的内容"); return; }
-    const ICON = { heading: "#", figure: "▣", table: "▦", code: "‹›", diagram: "◈" };
+    const ICON = NAV_ICONS;
     class NavigationModal extends SuggestModal {
       getSuggestions(query) {
         const needle = query.trim().toLowerCase();

@@ -81,6 +81,7 @@ Requires Obsidian 1.8.7 or later. Works on desktop and mobile; Word/PDF import a
 - **Captions and cross references**: turn on "Figure and table captions" in settings, or add `ib-captions` to a note's `cssclasses`. An image alone on a line, `![Architecture {#fig-arch}](a.png)`, shows as "Figure 1 Architecture"; a line `Table: Quarterly revenue {#tab-q}` under a table shows as "Table 1 …"; refer to either with `((ref:fig-arch))`, which links to it.
 - **Heading numbers**: turn on "Heading numbers" in settings, or add `ib-numbered` to a note's `cssclasses`, to show 1, 1.1, 1.1.1 before headings in Reading view.
 - **Navigation**: the "Jump to a heading, figure, table or code block" command lists headings, images, tables, code blocks and diagrams of the current note; type to filter, Enter to jump.
+- **Navigation sidebar**: the "Open navigation in the sidebar" command keeps the same list open on the right; it follows the current note, filters as you type, and jumps on click.
 - **Link check**: run "Check links and headings in the current note" from the command palette to list missing notes, missing embeds, broken heading links and duplicate headings; click a row to jump there.
 - **Batch clipping**: the "Clip web pages in bulk" command takes many links at once and skips ones already clipped; "Sort by site" in settings files clippings into one sub-folder per website.
 - **Gray mode**: list dates in settings (for example `4-4`) and the whole interface turns grayscale on those days; off by default.

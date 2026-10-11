@@ -528,3 +528,13 @@ g.node > :is(.members-group, .methods-group) foreignObject > div {
 .ib-nav-item__icon { color: var(--text-muted); text-align: center; }
 .ib-nav-item__label { padding-inline-start: var(--ib-nav-indent, 0); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ib-nav-item__line { color: var(--text-faint); font-size: var(--font-ui-smaller); font-variant-numeric: tabular-nums; }
+
+.ib-nav-view { padding: var(--size-4-2); }
+.ib-nav-view__search { width: 100%; margin-bottom: var(--size-4-2); }
+.ib-nav-view__list { display: flex; flex-direction: column; gap: 1px; }
+.ib-nav-view__row { display: grid; grid-template-columns: 1.6em 1fr; gap: .4em; align-items: baseline; padding: 3px 6px 3px calc(6px + var(--ib-nav-indent, 0)); border-radius: var(--radius-s); cursor: pointer; }
+.ib-nav-view__row:hover { background: var(--background-modifier-hover); }
+.ib-nav-view__icon { color: var(--text-muted); text-align: center; }
+.ib-nav-view__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ib-nav-view__row--heading .ib-nav-view__label { font-weight: 600; }
+.ib-nav-view__empty { padding: var(--size-4-3); color: var(--text-muted); }
