@@ -24,6 +24,10 @@ export function installNativeChapterSource(plugin) {
     if (element.closest(".ibp-staging,.ibp-book,.ibc-container,.internal-embed,.ibm-markdown-preview")) return;
     const info = context?.getSectionInfo?.(element);
     if (!info?.text || !context.sourcePath) return;
+    // Card layout is opt-in per note: add `ib-cards` to its cssclasses.
+    const file = plugin.app.vault.getFileByPath(context.sourcePath);
+    const frontmatter = file && plugin.app.metadataCache.getFileCache(file)?.frontmatter;
+    if (![frontmatter?.cssclasses, frontmatter?.cssclass].flat().filter(Boolean).map(String).includes("ib-cards")) return;
     let entry = cache.get(context.sourcePath);
     if (!entry || entry.source !== info.text) {
       const ranges = sourceChapterRanges(info.text), lines = info.text.split("\n");

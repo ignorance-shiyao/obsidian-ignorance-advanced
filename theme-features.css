@@ -3161,3 +3161,4 @@ tr[data-ib-level="3"] > :first-child { padding-inline-start: 4em; }
 .ib-unpublished::after { content: "未发布"; margin-inline-start: .6em; padding: 0 .5em; border-radius: 999px; background: var(--ib-bg-tertiary, var(--background-modifier-hover)); color: var(--ib-text-muted, var(--text-muted)); font-size: .45em; font-weight: 600; vertical-align: middle; }
 .ib-caption--editor { margin: .2em 0 .6em; }
 .ib-caption__label--editor { color: var(--ib-text-secondary, var(--text-normal)); font-weight: 700; }
+

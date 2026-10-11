@@ -37,6 +37,7 @@ import { installCaptions } from "./modules/captions.js";
 import { installReadingCover } from "./modules/reading-cover.js";
 import { installGifClick } from "./modules/gif-click.js";
 import { installTableCrosshair } from "./modules/table-crosshair.js";
+import { installNativeChapterSource } from "./modules/native-chapter-source.js";
 import { installCodeFold } from "./modules/code-fold.js";
 import { openLinkCheck } from "./modules/link-check.js";
 import { openNavigation } from "./modules/navigation.js";
@@ -379,6 +380,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     installReadingCover(this);
     installGifClick(this);
     installTableCrosshair(this);
+    installNativeChapterSource(this);
     installCodeFold(this);
     // Warming every diagram in the open note loads the 1 MB ECharts and 5 MB Mermaid engines in the
     // background; on a phone that competes with startup, so diagrams are drawn when they are reached.
