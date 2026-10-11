@@ -54,6 +54,8 @@ cssclasses:
 :::
 \`\`\`\`
 
+图片对比：把两张图片放进 \`::: compare\`，拖动中间的分隔线对比（导出时并排显示）。
+
 其他容器：\`card\`、\`panel\`、\`details\`、\`timeline\`、\`steps\`、\`kpi\`、\`gallery\`、\`process\`、\`matrix\`、\`roadmap\`。在命令面板输入「插入块模板」可以直接插入。
 
 ## 图表与图片

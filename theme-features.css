@@ -3056,3 +3056,27 @@ body[data-ib-table-alignment] .markdown-rendered table[data-ib-table-align="righ
 .markdown-rendered table.ib-table-merged :is(td, th)[rowspan], .markdown-rendered table.ib-table-merged :is(td, th)[colspan] { vertical-align: middle; }
 .ib-table-check { font-size: 1.15em; line-height: 1; color: var(--ib-text-muted, var(--text-muted)); }
 .ib-table-check.is-checked { color: var(--ib-accent-solid, var(--interactive-accent)); }
+
+/* ---- Presentation: laser pointer and spotlight ---- */
+.ibp-pointer-overlay { position: absolute; inset: 0; z-index: 30; display: none; pointer-events: none; overflow: hidden; }
+.reveal.ibp-tool-laser .ibp-pointer-overlay, .reveal.ibp-tool-spot .ibp-pointer-overlay { display: block; }
+.reveal.ibp-tool-laser, .reveal.ibp-tool-spot { cursor: none; }
+.ibp-laser { display: none; position: absolute; left: var(--ibp-px, -100px); top: var(--ibp-py, -100px); width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #ff2d2d; box-shadow: 0 0 10px 4px rgba(255, 45, 45, .55); }
+.reveal.ibp-tool-laser .ibp-laser { display: block; }
+.ibp-spot { display: none; position: absolute; inset: 0; background: radial-gradient(circle 170px at var(--ibp-px, -999px) var(--ibp-py, -999px), transparent 0, transparent 130px, rgba(0, 0, 0, .72) 170px); }
+.reveal.ibp-tool-spot .ibp-spot { display: block; }
+.ibp-presentation-action.is-active { background: var(--ib-accent-subtle, var(--background-modifier-hover)); color: var(--ib-text-accent, var(--text-accent)); }
+
+/* ---- ::: compare (before / after slider) ---- */
+.ibc-container--compare { position: relative; margin: var(--ib-space-4, 16px) 0; border-radius: var(--ib-radius-lg, 12px); overflow: hidden; }
+.ibc-container--compare img { display: block; width: 100%; height: auto; margin: 0; }
+.ibc-compare--static { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ib-space-3, 12px); overflow: visible; }
+.ibc-compare--interactive { display: grid; }
+.ibc-compare--interactive > .ibc-compare__pane { grid-area: 1 / 1; min-width: 0; }
+.ibc-compare--interactive > .ibc-compare__pane:first-of-type { z-index: 1; clip-path: inset(0 calc(100% - var(--ibc-split, 50%)) 0 0); }
+.ibc-compare--interactive > .ibc-compare__pane img { height: 100%; object-fit: cover; }
+.ibc-compare--interactive::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: var(--ibc-split, 50%); z-index: 2; width: 2px; margin-left: -1px;
+  background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .25); pointer-events: none;
+}
+.ibc-compare__range { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; }

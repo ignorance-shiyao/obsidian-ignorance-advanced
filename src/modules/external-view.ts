@@ -109,7 +109,7 @@ export class ExternalMarkdownView extends ItemView {
     const sizer = preview.createDiv({ cls: "markdown-preview-sizer markdown-preview-section" });
     const text = rewriteRelativeImages(this.text, nodePath().dirname(this.src), resourceUrl);
     // Not a vault note, so section info is missing: render ::: containers up front.
-    await renderMarkdownWithContainers(this.plugin, "", text, sizer, this);
+    await renderMarkdownWithContainers(this.plugin, "", text, sizer, this, true);
   }
 
   renderEditor() {

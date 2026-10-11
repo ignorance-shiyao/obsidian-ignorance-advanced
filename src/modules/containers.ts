@@ -116,10 +116,39 @@ function finishTabs(container, interactive) {
   container.classList.add("ibc-tabs--interactive");
 }
 
+/* ::: compare with two images: a draggable divider reveals the first image over the second. The range
+   input does the work (mouse, touch and keyboard); without script (exports) both images sit side by side. */
+function finishCompare(container, interactive) {
+  const images = [...container.querySelectorAll("img")].slice(0, 2);
+  if (images.length < 2) return;
+  const frames = images.map(img => {
+    const frame = document.createElement("div");
+    frame.className = "ibc-compare__pane";
+    frame.appendChild(img.closest(".internal-embed") || img);
+    return frame;
+  });
+  container.querySelectorAll(":scope > p").forEach(p => { if (!p.textContent.trim() && !p.querySelector("img")) p.remove(); });
+  container.append(...frames);
+  if (!interactive) { container.classList.add("ibc-compare--static"); return; }
+  const input = document.createElement("input");
+  input.type = "range";
+  input.min = "0";
+  input.max = "100";
+  input.value = "50";
+  input.className = "ibc-compare__range";
+  input.setAttribute("aria-label", "拖动对比两张图片");
+  const sync = () => container.style.setProperty("--ibc-split", `${input.value}%`);
+  input.addEventListener("input", sync);
+  sync();
+  container.appendChild(input);
+  container.classList.add("ibc-compare--interactive");
+}
+
 // Gallery: one figure per image, captioned by its title (or alt text);
 // the <br>s between images in the same paragraph would otherwise take grid cells.
 function finishContainer(container, interactive = false) {
   if (container.dataset.ibcKind === "tabs") { finishTabs(container, interactive); return; }
+  if (container.dataset.ibcKind === "compare") { finishCompare(container, interactive); return; }
   if (container.dataset.ibcKind === "matrix") { finishMatrix(container); return; }
   if (container.dataset.ibcKind !== "gallery") return;
   const images = [...container.querySelectorAll("img")];
@@ -160,7 +189,7 @@ async function renderRange(plugin, sourcePath, source, start, end, nodes, target
   await renderFragment(plugin, sourcePath, source.slice(cursor, end), target, component);
 }
 
-async function renderMarkdownWithContainers(plugin, sourcePath, source, target, component) {
+async function renderMarkdownWithContainers(plugin, sourcePath, source, target, component, interactive = false) {
   const containers = chapterContainers(source);
   if (!containers.length) {
     await renderFragment(plugin, sourcePath, source, target, component);
@@ -173,8 +202,8 @@ async function renderMarkdownWithContainers(plugin, sourcePath, source, target, 
     await renderFragment(plugin, sourcePath, source.slice(cursor, node.startOffset), target, component);
     const container = makeContainer(node);
     target.appendChild(container);
-    await renderRange(plugin, sourcePath, source, node.contentStart, node.contentEnd, node.children, container, component);
-    finishContainer(container);
+    await renderRange(plugin, sourcePath, source, node.contentStart, node.contentEnd, node.children, container, component, interactive);
+    finishContainer(container, interactive);
     cursor = node.closeEnd;
   }
   await renderFragment(plugin, sourcePath, source.slice(cursor), target, component);

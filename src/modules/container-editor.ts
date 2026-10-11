@@ -24,7 +24,7 @@ class ContainerWidget extends WidgetType {
     const component = new Component();
     component.load();
     this.mounts.set(mount, component);
-    renderMarkdownWithContainers(this.plugin, this.sourcePath, this.source, mount, component)
+    renderMarkdownWithContainers(this.plugin, this.sourcePath, this.source, mount, component, true)
       .catch(error => {
         if (!this.mounts.has(mount)) return;
         console.error("Ignorance Advanced: 编辑器容器渲染失败 —", error);

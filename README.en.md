@@ -72,10 +72,14 @@ Requires Obsidian 1.8.7 or later. Works on desktop and mobile; Word/PDF import a
 - **Images**: click an image to align, resize or crop it.
 - **Code blocks**: click the language label to search the language list; line numbers and soft wrap are in the block toolbar.
 - **Presentations**: separate slides with a line containing `---`, then use the *Presentation* button in the page toolbar at the top of the note (or run *Open presentation mode* from the command palette).
+- **Presenting aids**: the presentation toolbar and the fullscreen bar have a laser pointer (a red dot that follows the mouse) and a spotlight (only the area around the mouse stays bright); click again to turn off.
 - **Inline components**: `((green:build | passed))` two-part badge, `((spoiler:answer))` click to reveal, `((ruby:汉字 | hànzì))` ruby annotation, `((crumb:Settings > Appearance > Themes))` breadcrumb, plus `((bar:72:progress))` and `((spark:3,5,2))`.
+- **Image compare**: put two images inside `::: compare`; drag the divider in Reading view, and exports show them side by side.
 - **Tabs**: wrap `::: tab Title` blocks in `::: tabs`; click a title in Reading view to switch, and print or export lays every panel out in order.
 - **Table extras**: a cell holding only `<` joins the cell on its left, only `^` joins the cell above, and `[ ]` / `[x]` show as boxes.
 - **Heading numbers**: turn on "Heading numbers" in settings, or add `ib-numbered` to a note's `cssclasses`, to show 1, 1.1, 1.1.1 before headings in Reading view.
+- **Link check**: run "Check links and headings in the current note" from the command palette to list missing notes, missing embeds, broken heading links and duplicate headings; click a row to jump there.
+- **Batch clipping**: the "Clip web pages in bulk" command takes many links at once and skips ones already clipped.
 - **Reading time**: on desktop the status bar shows the estimated reading time of the current note; turn it off in settings.
 - **Export**: use the export button in the page toolbar to produce PDF, Word, PowerPoint, images or an offline HTML reader.
 - **Settings**: Settings → Ignorance Advanced (palette, page layout, highlight colors, tab behavior).

@@ -235,6 +235,42 @@ class ClipModal extends Modal {
   onClose() { this.contentEl.empty(); }
 }
 
+/* Several links at once: one per line (or pasted as a block of text). Links already clipped, recognised by the
+   `source` property of a note in the vault, are skipped; failures are counted and the rest carry on. */
+class BatchClipModal extends Modal {
+  constructor(plugin) { super(plugin.app); this.plugin = plugin; this.busy = false; }
+  onOpen() {
+    this.titleEl.setText("批量剪藏网页");
+    this.contentEl.createDiv({ cls: "ib-form-hint", text: `每行一个链接，已经剪藏过的会跳过。保存到 ${clipFolder(this.plugin)}/。` });
+    this.area = this.contentEl.createEl("textarea", { cls: "ib-clip-batch__area", attr: { rows: "8", placeholder: "https://…", spellcheck: "false" } });
+    this.status = this.contentEl.createDiv({ cls: "ib-form-hint" });
+    const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
+    footer.createEl("button", { text: "取消" }).addEventListener("click", () => this.close());
+    this.start = footer.createEl("button", { cls: "mod-cta", text: "开始" });
+    this.start.addEventListener("click", () => void this.run());
+    window.setTimeout(() => this.area.focus(), 50);
+  }
+  async run() {
+    if (this.busy) return;
+    const urls = [...new Set([...this.area.value.matchAll(new RegExp(URL_PATTERN.source, "g"))].map(match => match[0]))];
+    if (!urls.length) { new Notice("请粘贴至少一个网页链接", 3000); return; }
+    this.busy = true;
+    this.start.setAttr("disabled", "true");
+    const { app } = this.plugin;
+    const known = new Set(app.vault.getMarkdownFiles().map(file => app.metadataCache.getFileCache(file)?.frontmatter?.source).filter(Boolean));
+    let done = 0, skipped = 0, failed = 0;
+    for (const [index, url] of urls.entries()) {
+      this.status.setText(`第 ${index + 1} / ${urls.length} 篇`);
+      if (known.has(url)) { skipped += 1; continue; }
+      const note = await clipUrl(this.plugin, url).catch(() => null);
+      if (note) done += 1; else failed += 1;
+    }
+    new Notice(`批量剪藏完成：成功 ${done}，跳过 ${skipped}，失败 ${failed}`, 8000);
+    this.close();
+  }
+  onClose() { this.contentEl.empty(); }
+}
+
 class ConfirmClipModal extends Modal {
   constructor(plugin, message, url, action) { super(plugin.app); this.message = message; this.url = url; this.action = action; }
   onOpen() {
@@ -254,6 +290,12 @@ async function clipboardUrl() {
 
 export function installWebClip(plugin) {
   const { app } = plugin;
+  plugin.addCommand({
+    id: "clip-web-pages-batch",
+    name: "批量剪藏网页",
+    icon: "lucide-scissors",
+    callback: () => new BatchClipModal(plugin).open()
+  });
   plugin.addCommand({
     id: "clip-web-page",
     name: "剪藏网页",

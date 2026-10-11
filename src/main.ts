@@ -31,6 +31,7 @@ import { installReadingTime } from "./modules/reading-time.js";
 import { openSyntaxGuide, showFirstRunHint } from "./modules/syntax-guide.js";
 import { installHeadingNumbers } from "./modules/heading-numbers.js";
 import { installTableExtras } from "./modules/table-merge.js";
+import { openLinkCheck } from "./modules/link-check.js";
 import { installMoreMenuFilter } from "./modules/more-menu.js";
 import { colorSwatchExtension, colorSwatchPostProcessor } from "./modules/color-swatch.js";
 import * as TocModule from "./modules/toc.js";
@@ -593,6 +594,12 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
         }
       });
     }
+
+    this.addCommand({
+      id: "check-note-links",
+      name: "检查当前笔记的链接和标题",
+      callback: () => openLinkCheck(this)
+    });
 
     this.addCommand({
       id: "open-syntax-guide",

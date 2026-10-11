@@ -38,6 +38,16 @@ export const SNIPPET_TEMPLATES = [
     ].join("\n")
   },
   {
+    id: "compare",
+    name: "插入块模板：图片对比滑块",
+    body: [
+      "::: compare",
+      "![之前](⟦图片一.png⟧)",
+      "![之后](图片二.png)",
+      ":::"
+    ].join("\n")
+  },
+  {
     id: "inline-badge",
     name: "插入行内组件：两段徽章",
     body: "((green:⟦构建⟧ | 通过))"

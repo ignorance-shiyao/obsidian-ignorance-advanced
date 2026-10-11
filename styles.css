@@ -514,3 +514,12 @@ g.node > :is(.members-group, .methods-group) foreignObject > div {
 }
 
 .ib-reading-time { color: var(--text-muted); }
+
+.ib-link-check { display: flex; flex-direction: column; gap: 2px; max-height: 60vh; overflow-y: auto; }
+.ib-link-check__row { display: grid; grid-template-columns: 5.5em 1fr auto; gap: .75em; align-items: baseline; padding: .4em .5em; border-radius: var(--radius-s); cursor: pointer; }
+.ib-link-check__row:hover { background: var(--background-modifier-hover); }
+.ib-link-check__line { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.ib-link-check__text { overflow-wrap: anywhere; font-weight: 600; }
+.ib-link-check__detail { color: var(--text-muted); font-size: var(--font-ui-smaller); }
+
+.ib-clip-batch__area { width: 100%; margin: var(--size-4-2) 0; font-family: var(--font-monospace); font-size: var(--font-ui-small); }

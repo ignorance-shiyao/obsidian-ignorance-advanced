@@ -140,10 +140,11 @@ function applySkin(root, skinId) {
 
 }
 
-function addToolbarButton(parent, icon, label, action) {
+function addToolbarButton(parent, icon, label, action, data = {}) {
   const button = parent.createEl("button", { cls: "ibp-presentation-action", attr: { type: "button", "aria-label": label, "data-tooltip-position": "top" } });
   setIcon(button, icon);
   button.addEventListener("click", action);
+  Object.assign(button.dataset, data);
   return button;
 }
 
@@ -421,6 +422,10 @@ class PresentationView extends ItemView {
       });
 
     addToolbarSeparator(this.toolbar);
+    this.pointerButtons = [];
+    this.pointerButtons.push(addToolbarButton(this.toolbar, "lucide-crosshair", "激光笔（再点一次关闭）", () => this.setPointerTool("laser"), { tool: "laser" }));
+    this.pointerButtons.push(addToolbarButton(this.toolbar, "lucide-flashlight", "聚光灯（再点一次关闭）", () => this.setPointerTool("spot"), { tool: "spot" }));
+    addToolbarSeparator(this.toolbar);
     addToolbarButton(this.toolbar, "lucide-maximize", "全屏放映", () => {
       const root = this.stage.querySelector(".reveal");
       if (root?.requestFullscreen) void root.requestFullscreen();
@@ -494,6 +499,11 @@ class PresentationView extends ItemView {
     this.fullscreenPrev = addToolbarButton(nav, "lucide-chevron-left", "上一页", () => this.deck?.prev());
     this.fullscreenCounter = nav.createDiv({ cls: "ibp-presentation-counter" });
     this.fullscreenNext = addToolbarButton(nav, "lucide-chevron-right", "下一页", () => this.deck?.next());
+    addToolbarSeparator(nav);
+    this.pointerButtons = (this.pointerButtons || []).filter(button => button.isConnected && !nav.contains(button));
+    this.pointerButtons.push(addToolbarButton(nav, "lucide-crosshair", "激光笔", () => this.setPointerTool("laser"), { tool: "laser" }));
+    this.pointerButtons.push(addToolbarButton(nav, "lucide-flashlight", "聚光灯", () => this.setPointerTool("spot"), { tool: "spot" }));
+    this.buildPointerOverlay(reveal);
     let idle = 0;
     const wake = () => {
       reveal.addClass("is-pointer-active");
@@ -502,6 +512,33 @@ class PresentationView extends ItemView {
     };
     reveal.addEventListener("pointermove", wake);
     nav.addEventListener("pointerleave", wake);
+  }
+
+  /* Laser pointer and spotlight: an overlay inside the Reveal element (so it also shows in fullscreen) that
+     follows the pointer. Only one tool is active at a time; the choice survives re-renders of the deck. */
+  buildPointerOverlay(reveal) {
+    const overlay = reveal.createDiv({ cls: "ibp-pointer-overlay" });
+    overlay.setAttribute("aria-hidden", "true");
+    overlay.createDiv({ cls: "ibp-spot" });
+    overlay.createDiv({ cls: "ibp-laser" });
+    reveal.addEventListener("pointermove", event => {
+      if (!this.pointerTool) return;
+      const box = reveal.getBoundingClientRect();
+      overlay.style.setProperty("--ibp-px", `${event.clientX - box.left}px`);
+      overlay.style.setProperty("--ibp-py", `${event.clientY - box.top}px`);
+    });
+    this.applyPointerTool();
+  }
+
+  setPointerTool(tool) {
+    this.pointerTool = this.pointerTool === tool ? null : tool;
+    this.applyPointerTool();
+  }
+
+  applyPointerTool() {
+    this.root?.classList.toggle("ibp-tool-laser", this.pointerTool === "laser");
+    this.root?.classList.toggle("ibp-tool-spot", this.pointerTool === "spot");
+    for (const button of this.pointerButtons || []) button.classList.toggle("is-active", button.dataset.tool === this.pointerTool);
   }
 
   updateCounter() {
