@@ -151,6 +151,8 @@ function makeChipElement(token, doc = document) {
   if (token.type === "crumb") {
     const crumb = doc.createElement("span");
     crumb.className = "ib-inline-crumb";
+    crumb.title = "点击复制路径";
+    crumb.addEventListener("click", () => { void navigator.clipboard?.writeText(token.parts.join(" > ")).catch(() => {}); });
     token.parts.forEach((part, index) => {
       if (index) {
         const separator = doc.createElement("span");
