@@ -3083,3 +3083,12 @@ body[data-ib-table-alignment] .markdown-rendered table[data-ib-table-align="righ
 
 /* ---- Gray mode (dates chosen in settings) ---- */
 body.ib-gray-mode { filter: grayscale(1); }
+
+/* ---- Image filters (alt text: gray, sepia, invert, dark-invert, blur) ---- */
+.image-embed[data-ib-filter="gray"] img { filter: grayscale(1); }
+.image-embed[data-ib-filter="sepia"] img { filter: sepia(.85); }
+.image-embed[data-ib-filter="invert"] img { filter: invert(1); }
+.theme-dark .image-embed[data-ib-filter="dark-invert"] img { filter: invert(1) hue-rotate(180deg); }
+.image-embed[data-ib-filter="blur"] img { filter: blur(8px); transition: filter .2s ease; }
+.image-embed[data-ib-filter="blur"]:hover img { filter: none; }
+@media print { .image-embed[data-ib-filter="blur"] img { filter: none; } }

@@ -18,6 +18,10 @@ export const MARKER_RULES: MarkerRule[] = [
   // Images aligned through their alt text (`![left](…)`, `![x|right](…)`).
   { child: 'img:is([alt="left"], [alt$="|left"], [alt^="left|"])', up: ".image-embed", attr: ["data-ib-align", "left"] },
   { child: 'img:is([alt="right"], [alt$="|right"], [alt^="right|"])', up: ".image-embed", attr: ["data-ib-align", "right"] },
+  // Image filters written in the alt text: ![gray](a.png), ![x|dark-invert](a.png) …
+  ...["gray", "sepia", "invert", "dark-invert", "blur"].map(name => ({
+    child: `img:is([alt="${name}"], [alt$="|${name}"], [alt^="${name}|"])`, up: ".image-embed", attr: ["data-ib-filter", name]
+  } as MarkerRule)),
   { child: ".ib-image-actions", up: ".image-embed", cls: "ib-has-image-actions" },
   { child: ".image-embed > .ib-image-resize-layer", cls: "ib-has-resize-layer" },
   // Table cells that hold nothing but one code span stay as narrow as the code.
