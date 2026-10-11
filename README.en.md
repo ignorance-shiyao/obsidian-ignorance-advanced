@@ -80,6 +80,7 @@ Requires Obsidian 1.8.7 or later. Works on desktop and mobile; Word/PDF import a
 - **Heading numbers**: turn on "Heading numbers" in settings, or add `ib-numbered` to a note's `cssclasses`, to show 1, 1.1, 1.1.1 before headings in Reading view.
 - **Link check**: run "Check links and headings in the current note" from the command palette to list missing notes, missing embeds, broken heading links and duplicate headings; click a row to jump there.
 - **Batch clipping**: the "Clip web pages in bulk" command takes many links at once and skips ones already clipped.
+- **Gray mode**: list dates in settings (for example `4-4`) and the whole interface turns grayscale on those days; off by default.
 - **Reading time**: on desktop the status bar shows the estimated reading time of the current note; turn it off in settings.
 - **Export**: use the export button in the page toolbar to produce PDF, Word, PowerPoint, images or an offline HTML reader.
 - **Settings**: Settings → Ignorance Advanced (palette, page layout, highlight colors, tab behavior).

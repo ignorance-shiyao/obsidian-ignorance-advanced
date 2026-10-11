@@ -3080,3 +3080,6 @@ body[data-ib-table-alignment] .markdown-rendered table[data-ib-table-align="righ
   background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .25); pointer-events: none;
 }
 .ibc-compare__range { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; }
+
+/* ---- Gray mode (dates chosen in settings) ---- */
+body.ib-gray-mode { filter: grayscale(1); }

@@ -50,6 +50,12 @@ class IgnoranceSettingTab extends PluginSettingTab {
         { name: "智能标点", desc: "输入 -- 转为 —、... 转为 …；代码块与行内代码不转换。", add: toggle(() => Boolean(state.smartPunctuation), value => { state.smartPunctuation = value; plugin.saveStoredState(); }) },
         { name: "粘贴图片存入 assets/", desc: PASTE_IMAGE_DESC, add: toggle(() => state.fileTools.convertPastedImages !== false, value => { state.fileTools.convertPastedImages = value; plugin.saveStoredState(); }) }
       ] },
+      { heading: "外观", items: [
+        { name: "灰度日期", desc: "这些日期整个界面变为灰度，每行一个，写成 月-日，例如 4-4。默认不启用。", aliases: ["gray mode", "grayscale"], add: setting => setting.addTextArea(text => {
+          text.setPlaceholder("4-4\n9-18").setValue(state.grayDates || "").onChange(value => { state.grayDates = value; plugin.saveStoredState(); plugin.applyGrayMode?.(); });
+          text.inputEl.rows = 3;
+        }) }
+      ] },
       { heading: "状态栏", items: [
         { name: "显示阅读时长", desc: "在状态栏显示当前笔记的预计阅读时间（仅桌面端）。", aliases: ["reading time"], add: toggle(() => state.readingTime?.enabled !== false, value => {
           state.readingTime.enabled = value; plugin.saveStoredState(); plugin.refreshReadingTime?.();

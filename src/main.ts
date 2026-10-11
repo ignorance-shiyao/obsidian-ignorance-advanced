@@ -32,6 +32,7 @@ import { openSyntaxGuide, showFirstRunHint } from "./modules/syntax-guide.js";
 import { installHeadingNumbers } from "./modules/heading-numbers.js";
 import { installTableExtras } from "./modules/table-merge.js";
 import { openLinkCheck } from "./modules/link-check.js";
+import { installGrayMode } from "./modules/gray-mode.js";
 import { installMoreMenuFilter } from "./modules/more-menu.js";
 import { colorSwatchExtension, colorSwatchPostProcessor } from "./modules/color-swatch.js";
 import * as TocModule from "./modules/toc.js";
@@ -398,6 +399,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     installExternalFiles(this);
     installWebClip(this);
     installReadingTime(this);
+    installGrayMode(this);
     installMoreMenuFilter(this);
     // Mobile has no title-row toolbar (phones) or no Electron exports: offer
     // slides and the exports that work there from the note's "⋯" menu.
@@ -1048,6 +1050,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.state.codeLineNumbers = this.state.codeLineNumbers === true;
     this.state.smartPunctuation = this.state.smartPunctuation === true;
     this.state.headingNumbers = this.state.headingNumbers === true;
+    this.state.grayDates = typeof this.state.grayDates === "string" ? this.state.grayDates : "";
     this.state.writingModes = Object.assign(writingModeDefaults(), this.state.writingModes || {});
     this.state.fileTools = Object.assign(fileToolsDefaults(), this.state.fileTools || {});
     this.state.webClip = Object.assign({ watchClipboard: false, folder: "" }, this.state.webClip || {});
