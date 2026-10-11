@@ -1,5 +1,6 @@
 import { applyStagedChartAlignment } from "./chart-alignment.js";
 import { CONTAINER_KINDS, parseMarkdownContainers } from "./container-source.js";
+import { setMarkup } from "./dom-markup.js";
 
 const { Component, MarkdownRenderer } = require("obsidian");
 const parsedSources = new Map();
@@ -168,7 +169,7 @@ async function renderContainer(plugin, element, context, source, node) {
   } catch (error) {
     component.unload();
     element.removeClass("ibc-container-host");
-    element.innerHTML = originalHtml;
+    setMarkup(element, originalHtml);
     console.error("Ignorance Advanced: ::: 容器渲染失败 —", error);
   }
 }

@@ -18,7 +18,7 @@ function setBookFlag(preview: HTMLElement, on: boolean) {
   for (const host of [preview.closest(".markdown-reading-view"), preview.closest(".workspace-leaf-content")]) host?.toggleClass("ibp-book-host", on);
   if (!on) preview.removeClass("ib-has-pages");
 }
-const { Component, Notice } = require("obsidian");
+const { Component, Notice, MarkdownView } = require("obsidian");
 
 const books = new WeakMap();
 const interactiveBooks = new WeakSet();
@@ -88,7 +88,7 @@ function installBookInteractions(plugin, view, book) {
       await workspace.openLinkText(target, file.path, modifiedClick);
       if (modifiedClick) return;
       const destination = plugin.app.metadataCache.getFirstLinkpathDest(target, file.path);
-      if (!destination || workspace.activeLeaf?.view?.file?.path === destination.path) return;
+      if (!destination || workspace.getActiveViewOfType(MarkdownView)?.file?.path === destination.path) return;
       const leaves = workspace.getLeavesOfType("markdown");
       const opened = leaves.find(leaf => !existingLeaves.has(leaf) && leaf.view.file?.path === destination.path)
         || leaves.find(leaf => leaf.view.file?.path === destination.path);
@@ -459,14 +459,14 @@ function addRunningHeaders(pages, page) {
 }
 
 async function settleRenderRegion(root, height, signal = null) {
-  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+  const wait = ms => new Promise(resolve => window.setTimeout(resolve, ms));
   const top = root.getBoundingClientRect().top;
   const inside = element => element.getBoundingClientRect().top < top + height;
   const images = [...root.querySelectorAll("img")].filter(inside);
   await Promise.all(images.map(img => img.complete ? null : new Promise(resolve => {
-    const timer = setTimeout(resolve, 2500);
-    img.addEventListener("load", () => { clearTimeout(timer); resolve(); }, { once: true });
-    img.addEventListener("error", () => { clearTimeout(timer); resolve(); }, { once: true });
+    const timer = window.setTimeout(resolve, 2500);
+    img.addEventListener("load", () => { window.clearTimeout(timer); resolve(); }, { once: true });
+    img.addEventListener("error", () => { window.clearTimeout(timer); resolve(); }, { once: true });
   })));
   for (let i = 0; i < 20; i += 1) {
     const pending = [...root.querySelectorAll(".mermaid, pre.language-mermaid")].some(element => inside(element) && !element.querySelector("svg") && !/Error/.test(element.textContent));
@@ -622,12 +622,12 @@ async function settleRender(root, signal = null) {
   signal?.throwIfAborted();
   const wait = async ms => {
     signal?.throwIfAborted();
-    await new Promise(r => setTimeout(r, ms));
+    await new Promise(r => window.setTimeout(r, ms));
     signal?.throwIfAborted();
   };
   await Promise.all([...root.querySelectorAll("img")].map(img => img.complete ? null : new Promise(resolve => {
-    const done = () => { clearTimeout(timer); img.removeEventListener("load", done); img.removeEventListener("error", done); signal?.removeEventListener("abort", done); resolve(); };
-    const timer = setTimeout(done, 2500);
+    const done = () => { window.clearTimeout(timer); img.removeEventListener("load", done); img.removeEventListener("error", done); signal?.removeEventListener("abort", done); resolve(); };
+    const timer = window.setTimeout(done, 2500);
     img.addEventListener("load", done, { once: true });
     img.addEventListener("error", done, { once: true });
     signal?.addEventListener("abort", done, { once: true });

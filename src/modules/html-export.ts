@@ -1,4 +1,5 @@
 import { loadLanguageIcons } from "./language-icons.js";
+import { setMarkup } from "./dom-markup.js";
 import { snapshotSvgPaints, svgPaintTokens } from "./svg-export-paints.js";
 import { renderBudget } from "./render-budget.js";
 import { readerPreferenceId } from "./reader-preferences.js";
@@ -43,7 +44,7 @@ async function setBodyThemeMode(plugin, mode, root, signal) {
   const started = performance.now();
   while (root.querySelector('.ib-echarts-block[data-ib-echarts-state="loading"]') && performance.now() - started < 5000) {
     signal?.throwIfAborted();
-    await new Promise(resolve => setTimeout(resolve, 20));
+    await new Promise(resolve => window.setTimeout(resolve, 20));
   }
 }
 
@@ -261,7 +262,7 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
     checkbox.setAttribute("aria-label", source.checked ? "已完成" : "未完成");
     if (source.checked) checkbox.dataset.checked = "";
     Object.assign(checkbox.style, { display: "inline-flex", alignItems: "center", justifyContent: "center", width: `${size}px`, height: `${size}px`, verticalAlign: "-0.15em", fontSize: "0", lineHeight: "0" });
-    if (source.checked) checkbox.innerHTML = '<svg viewBox="0 0 16 16" width="72%" height="72%" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    if (source.checked) setMarkup(checkbox, '<svg viewBox="0 0 16 16" width="72%" height="72%" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>');
     return checkbox;
   }
 

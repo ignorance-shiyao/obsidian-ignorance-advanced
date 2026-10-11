@@ -31,7 +31,7 @@ const TOKEN_PATTERNS = [
   ["property", /\b(?:fill|stroke|stroke-width|color|background|font-size|font-weight|opacity)\b(?=\s*:)/gi],
   ["node", /\b[A-Za-z_][\w-]*(?=\s*[\[({])/g],
   ["keyword", /\b(?:flowchart|graph|subgraph|end|direction|classDef|class|style|linkStyle|click|sequenceDiagram|stateDiagram-v2|stateDiagram|erDiagram|journey|gantt|pie|mindmap|timeline|quadrantChart|requirementDiagram|gitGraph|C4Context|C4Container|C4Component|TB|TD|BT|RL|LR)\b/gi],
-  ["label", /(?<=[\[({])[^\[\]{}()\r\n]+(?=[\])}])/g],
+  ["label", /([\[({])([^\[\]{}()\r\n]+)(?=[\])}])/g], // the opening bracket is group 1 and is not part of the label (no lookbehind: iOS before 16.4 lacks it)
   ["string", /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g],
   ["number", /#[0-9a-fA-F]{3,8}\b/g],
   ["comment", /%%.*$/g]
@@ -47,8 +47,8 @@ function tokenRuns(text) {
         pattern.lastIndex += 1;
         continue;
       }
-      const start = match.index;
-      const end = start + match[0].length;
+      const start = match.index + (match.length > 2 ? match[1].length : 0);
+      const end = match.index + match[0].length;
       for (let index = start; index < end; index += 1) classes[index] = tokenClass;
     }
   }
@@ -1916,7 +1916,7 @@ function registerElkLayouts(plugin, mermaid) {
   // Graph wrapping folds a long layered chain into rows until the drawing
   // approaches the aspect ratio. ELK only wraps flat graphs; with compound
   // nodes it is a no-op, which is why only flat flowcharts request it.
-  globalThis.__ibmElkTune = graph => {
+  window.__ibmElkTune = graph => {
     if (!elkWrapRequested) return graph;
     graph.layoutOptions = {
       ...(graph.layoutOptions || {}),
@@ -2216,9 +2216,9 @@ async function loadBundledMermaid(plugin, { publish = true } = {}) {
   const source = await readAsset(plugin, MERMAID_FILE);
 
   const previous = {
-    mermaid: globalThis.mermaid,
-    descriptor: Object.getOwnPropertyDescriptor(globalThis, "mermaid"),
-    esbuild: globalThis.__esbuild_esm_mermaid_nm
+    mermaid: window.mermaid,
+    descriptor: Object.getOwnPropertyDescriptor(window, "mermaid"),
+    esbuild: window.__esbuild_esm_mermaid_nm
   };
 
   // The bundle declares `var __esbuild_esm_mermaid_nm` — inside new Function
@@ -2298,7 +2298,7 @@ async function loadBundledMermaid(plugin, { publish = true } = {}) {
      accessor: reads always get the router, later writes are remembered but
      ignored, and unload puts the original property back. */
   const overwrites = [];
-  if (publish) Object.defineProperty(globalThis, "mermaid", {
+  if (publish) Object.defineProperty(window, "mermaid", {
     configurable: true,
     enumerable: true,
     get: () => router,

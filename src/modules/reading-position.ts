@@ -79,7 +79,7 @@ async function whenSettled(view, restore) {
     const reading = view.getMode?.() === "preview";
     const pending = reading && view.containerEl.querySelector(".ibp-has-book .ibp-book:not([data-ibp-progress='complete'])");
     if (!pending) break;
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => window.setTimeout(resolve, 100));
   }
   restore();
 }

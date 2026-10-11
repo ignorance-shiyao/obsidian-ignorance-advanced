@@ -1,6 +1,7 @@
 // File-type icons in the file explorer, from the same Material Icon Theme set as the language
 // icons. The theme's Lucide masks stay as the fallback until the icon file has loaded.
 import { iconMarkup, loadPack, type IconPack } from "./icon-library.js";
+import { setMarkup } from "./dom-markup.js";
 
 const FILE = "file-icons.json";
 
@@ -34,7 +35,7 @@ export function installFileIcons(plugin) {
     }
     if (holder.dataset.path !== path) {
       holder.dataset.path = path;
-      holder.innerHTML = `<span class="ib-fo-closed">${closed}</span><span class="ib-fo-open">${open}</span>`;
+      setMarkup(holder, `<span class="ib-fo-closed">${closed}</span><span class="ib-fo-open">${open}</span>`);
     }
     setEmpty(holder, path);
   };
@@ -59,7 +60,7 @@ export function installFileIcons(plugin) {
       holder.setAttribute("aria-hidden", "true");
       title.insertBefore(holder, title.querySelector(":scope > .nav-file-title-content") || title.firstChild);
     }
-    if (holder.dataset.path !== path) { holder.dataset.path = path; holder.innerHTML = markup; }
+    if (holder.dataset.path !== path) { holder.dataset.path = path; setMarkup(holder, markup); }
   };
 
   const flush = () => {

@@ -4,7 +4,7 @@ export function renderBudget(signal?, milliseconds = 8) {
   return async () => {
     signal?.throwIfAborted();
     if (performance.now() - started < milliseconds) return;
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await new Promise(resolve => window.setTimeout(resolve, 0));
     signal?.throwIfAborted();
     started = performance.now();
   };

@@ -3,6 +3,7 @@
 import { LANGUAGES } from "./language-picker.js";
 import { iconMarkup, loadPack, type IconPack } from "./icon-library.js";
 import { setIcon, UI_ICONS } from "./ui-icons.js";
+import { setMarkup } from "./dom-markup.js";
 
 const FILE = "language-icons.json";
 let pack: IconPack | null = null;
@@ -45,7 +46,7 @@ export function createLanguageIcon(language: string): HTMLElement {
   span.className = "ib-lang-icon";
   span.setAttribute("aria-hidden", "true");
   const generic = () => { setIcon(span, UI_ICONS.code); span.classList.add("is-generic"); };
-  const fill = () => { const markup = languageIconSvg(language); if (markup) span.innerHTML = markup; else generic(); };
+  const fill = () => { const markup = languageIconSvg(language); if (markup) setMarkup(span, markup); else generic(); };
   if (pack) fill();
   else {
     waiting.add(fill);

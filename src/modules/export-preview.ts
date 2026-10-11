@@ -168,7 +168,7 @@ class ExportPreviewModal extends Modal {
     frame.setAttribute("sandbox", "allow-scripts allow-same-origin");
     await new Promise((resolve, reject) => {
       const signal = this.controller.signal;
-      const cleanup = () => { clearTimeout(timer); frame.onload = frame.onerror = null; signal.removeEventListener("abort", aborted); };
+      const cleanup = () => { window.clearTimeout(timer); frame.onload = frame.onerror = null; signal.removeEventListener("abort", aborted); };
       const aborted = () => { cleanup(); reject(signal.reason); };
       const timer = window.setTimeout(() => { cleanup(); reject(new Error("预览页面加载超时")); }, 10000);
       signal.addEventListener("abort", aborted, { once: true });

@@ -57,7 +57,7 @@ function handleImageTransfer(plugin, event, editor, info, kind) {
 
   const range = imageTransferRange(event, editor, kind);
   if (!range) return;
-  const randomId = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${++imageTransferSequence}`;
+  const randomId = window.crypto?.randomUUID?.() || `${Date.now()}-${++imageTransferSequence}`;
   const marker = `<!-- ignorance-advanced-image-${randomId} -->`;
   const originalText = editor.getRange(range.from, range.to);
   try {

@@ -1,3 +1,4 @@
+import { setMarkup } from "./dom-markup.js";
 /* Shared Lucide vector icons for plugin controls and the offline reader. No emoji icons. */
 export const UI_ICONS = {
   "list": "lucide-list",
@@ -75,6 +76,6 @@ export function iconMarkup(name: string, className = "ib-icon") {
 export function setIcon(element: HTMLElement, name: string) {
   if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error("UI icons must use named vector icons");
   const id = (UI_ICONS[name] || name).replace(/^lucide-/, "");
-  if (BODIES[id]) element.innerHTML = iconMarkup(id);
+  if (BODIES[id]) setMarkup(element, iconMarkup(id));
   else require("obsidian").setIcon(element, name);
 }

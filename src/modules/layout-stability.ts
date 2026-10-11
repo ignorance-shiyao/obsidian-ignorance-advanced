@@ -1,6 +1,6 @@
 /* Sample real layout on rendered frames instead of imposing a fixed delay. */
 export async function waitForStableLayout(read: () => number, {
-  frame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve())),
+  frame = () => new Promise<void>(resolve => window.requestAnimationFrame(() => resolve())),
   signal = undefined as AbortSignal | undefined,
   frames = 120,
   stableFrames = 2

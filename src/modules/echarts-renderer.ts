@@ -4,6 +4,7 @@ import { HALF_A4_HEIGHT, DIAGRAM_HEADER_HEIGHT } from "./diagram-fit.js";
 import { readAsset } from "./assets.js";
 import { buildEChartsTheme, echartsThemeName, normalizeEChartsOption, parseEChartsOption } from "./echarts-core.js";
 import { graphPixelBounds, fitDefaultGraph } from "./echarts-graph.js";
+import { setMarkup } from "./dom-markup.js";
 
 const { Component } = require("obsidian");
 const ECHARTS_FILE = "echarts.min.js";
@@ -22,7 +23,7 @@ function loadECharts(plugin) {
     echartsLoad = (async () => {
       const source = await readAsset(plugin, ECHARTS_FILE);
       let captured = null;
-      const scope = new Proxy(globalThis, {
+      const scope = new Proxy(window, {
         set(target, key, value) {
           if (key === "echarts") { captured = value; return true; }
           return Reflect.set(target, key, value, target);
@@ -105,7 +106,7 @@ function renderEChartsBlock(plugin, source, element, context) {
   element.dataset.ibEchartsPreloaded = String(Boolean(cachedPreview));
   if (cachedPreview) {
     placeholder = viewport.createDiv({ cls: "ib-echarts-placeholder" });
-    placeholder.innerHTML = cachedPreview;
+    setMarkup(placeholder, cachedPreview);
   }
   const surface = viewport.createDiv({ cls: "ib-echarts-surface" });
   const chartHost = surface.createDiv({ cls: "ib-echarts-host" });
@@ -337,7 +338,7 @@ function renderEChartsBlock(plugin, source, element, context) {
     generation += 1;
     window.cancelAnimationFrame(resizeFrame);
     nearObserver?.disconnect();
-    if (window.cancelIdleCallback) window.cancelIdleCallback(idleId); else clearTimeout(idleId);
+    if (window.cancelIdleCallback) window.cancelIdleCallback(idleId); else window.clearTimeout(idleId);
     resizeObserver.disconnect();
     try { disposeChart(); } catch (_) { /* chart may already be disposed by Obsidian */ }
     chart = null;

@@ -19,6 +19,7 @@ import { renderMarkdownWithContainers } from "./containers.js";
 import { structureSlide } from "./structure.js";
 import { addEditableSlide } from "./pptx-editable.js";
 import { openOffscreenCapturer, stageSlide } from "./offscreen-capture.js";
+import { setMarkup } from "./dom-markup.js";
 
 const { Component, ItemView, Menu, Notice, Platform } = require("obsidian");
 const VIEW_TYPE = "ignorance-presentation";
@@ -65,9 +66,9 @@ async function renderSlideDiagrams(root, width) {
     const holder = document.body.createDiv({ cls: "mermaid" });
     holder.style.cssText = `position:absolute;visibility:hidden;width:${width}px`;
     try {
-      const { svg } = await globalThis.mermaid.render(`ibs-${Date.now().toString(36)}-${slideDiagramCounter++}`, text, holder);
+      const { svg } = await window.mermaid.render(`ibs-${Date.now().toString(36)}-${slideDiagramCounter++}`, text, holder);
       const diagram = createDiv({ cls: "mermaid" });
-      diagram.innerHTML = svg;
+      setMarkup(diagram, svg);
       pre.replaceWith(diagram);
     } catch (_) {
       // Leave the source; Obsidian shows its own error if it draws it.

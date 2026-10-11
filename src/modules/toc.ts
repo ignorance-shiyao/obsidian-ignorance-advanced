@@ -1,5 +1,5 @@
 import { extractTocHeadings, isTocDirective } from "./toc-headings.js";
-const { editorInfoField } = require("obsidian");
+const { editorInfoField, MarkdownView } = require("obsidian");
 const { Decoration, ViewPlugin, WidgetType } = require("@codemirror/view");
 
 function tocHeadings(plugin, sourcePath) {
@@ -31,7 +31,7 @@ function buildTocList(plugin, sourcePath, onPick) {
 }
 
 function jumpToHeading(plugin, sourcePath, heading) {
-  const view = plugin.app.workspace.activeLeaf?.view;
+  const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
   if (view?.file?.path === sourcePath && view.getState?.().mode === "preview") {
     const target = [...view.containerEl.querySelectorAll("h1,h2,h3,h4,h5,h6")]
       .find(element => element.dataset.heading === heading.text || element.textContent.trim() === heading.text);

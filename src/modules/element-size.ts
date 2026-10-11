@@ -4,7 +4,7 @@ export function observedSize(entry) {
   return { width:Math.round(entry.contentRect.width), height:Math.round(entry.contentRect.height) };
 }
 
-export function waitForSize(element, timeout = 1800, environment = globalThis) {
+export function waitForSize(element, timeout = 1800, environment = window) {
   return new Promise(resolve => {
     let finished = false, timer = 0;
     const finish = (size = null) => {

@@ -7,7 +7,7 @@ export function createNativeChapterCards() {
   let destroyed = false;
   const schedule = () => {
     if (frame || destroyed) return;
-    frame = requestAnimationFrame(() => {
+    frame = window.requestAnimationFrame(() => {
       frame = 0;
       for (const element of pending) {
         const root = element.closest<HTMLElement>(".markdown-reading-view .markdown-preview-sizer");

@@ -78,8 +78,9 @@ Requires Obsidian 1.8.7 or later. Works on desktop and mobile; Word/PDF import a
 ## Privacy and network use
 
 - No telemetry, no analytics, no ads.
-- Nothing is downloaded or updated by the plugin itself. All libraries (Mermaid, ECharts, the export engines…) are compressed inside `main.js`, which is why it is about 8 MB, and are unpacked only when a feature needs them.
+- Nothing is downloaded or updated by the plugin itself. All libraries (Mermaid, ECharts, the export engines…) are compressed inside `main.js`, which is why it is about 7 MB, and are unpacked only when a feature needs them.
 - Network requests happen only when you ask for them: fetching a web page you clip, an image URL you export or copy, or a cover image URL you set in a note.
+- **Files outside the vault (desktop only, and only when you ask):** saving an export to a location you choose; opening a file from your notes in an external app you name; opening and editing Markdown files that live outside the vault; unpacking the Word / PDF import converters into the system temp folder; calling Pandoc for Word export if you have it installed. These features need Node.js and Electron, so they stay off on mobile; everything else works on both.
 
 ## Build from source
 

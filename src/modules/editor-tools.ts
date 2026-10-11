@@ -6,7 +6,7 @@ import { openLanguagePicker, fenceLanguage, withFenceLanguage } from "./language
 import { createLanguageIcon } from "./language-icons.js";
 
 const { buildMermaidDecorations, t } = MermaidCore;
-const { Notice, Menu } = require("obsidian");
+const { Notice, Menu, MarkdownView } = require("obsidian");
 const { Decoration, ViewPlugin, WidgetType, EditorView } = require("@codemirror/view");
 const { StateEffect } = require("@codemirror/state");
 
@@ -496,7 +496,7 @@ class TableResizeLayer {
         if (caught !== stuck) { stuck = caught; if (caught) this.pulse(handle); }
       }
       size = target;
-      if (!frame) frame = requestAnimationFrame(render);
+      if (!frame) frame = window.requestAnimationFrame(render);
     };
     const onUp = () => {
       this.cancelDrag = null;
@@ -794,7 +794,7 @@ function writingModesExtension(plugin) {
       if (this.frame) window.cancelAnimationFrame(this.frame);
       this.frame = window.requestAnimationFrame(() => {
         this.frame = 0;
-        if (!view.dom.isConnected || plugin.app.workspace.activeLeaf?.view?.editor?.cm !== view
+        if (!view.dom.isConnected || plugin.app.workspace.getActiveViewOfType(MarkdownView)?.editor?.cm !== view
           || view.state.selection.ranges.length !== 1 || !view.state.selection.main.empty
           || !plugin.state?.writingModes?.typewriterScroll) return;
         view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: "center", yMargin: 0 }) });

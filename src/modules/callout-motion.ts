@@ -16,7 +16,7 @@ export function installCalloutMotion(plugin) {
     event.preventDefault(); event.stopImmediatePropagation();
     let state = states.get(callout);
     if (!state) { state = { originalCollapsed: callout.classList.contains("is-collapsed"), originalDisplay: content.style.display }; states.set(callout, state); }
-    clearTimeout(state.timer);
+    window.clearTimeout(state.timer);
     const wasCollapsed = callout.classList.contains("is-collapsed");
     const opacity = content.checkVisibility() ? getComputedStyle(content).opacity : "0";
     clearMotion(content); content.style.removeProperty("display");
@@ -27,11 +27,11 @@ export function installCalloutMotion(plugin) {
     if (matchMedia("(prefers-reduced-motion: reduce)").matches || !Number.isFinite(duration) || duration <= 0) return;
     content.style.setProperty("--ib-callout-opacity", opacity);
     content.classList.add(wasCollapsed ? "ib-callout-opening" : "ib-callout-closing");
-    state.timer = setTimeout(() => clearMotion(content), duration);
+    state.timer = window.setTimeout(() => clearMotion(content), duration);
   }, { capture: true });
   plugin.register(() => {
     for (const [callout, state] of states) {
-      clearTimeout(state.timer);
+      window.clearTimeout(state.timer);
       const content = callout.querySelector(":scope > .callout-content") as HTMLElement;
       if (content) { clearMotion(content); content.style.display = state.originalDisplay; }
       callout.classList.toggle("is-collapsed", state.originalCollapsed);

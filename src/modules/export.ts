@@ -10,7 +10,7 @@ import { prepareMarkdownTextForPandoc } from "./pandoc-markdown.js";
 import { exportNotePptx, buildDeck } from "./slides.js";
 import { previewThenExport } from "./export-preview.js";
 import { buildImagePdf } from "./image-pdf.js";
-const { Menu, Notice, Component, Platform } = require("obsidian");
+const { Menu, Notice, Component, Platform, MarkdownView } = require("obsidian");
 
 /* --------------------------------------------------------------------------
  * Export
@@ -134,7 +134,7 @@ async function withExportStage(plugin, file, { visible = false, keepStrip = fals
   signal?.addEventListener("abort", cancel, { once: true });
   let result = null;
   try {
-    const active = plugin.app.workspace.activeLeaf?.view;
+    const active = plugin.app.workspace.getActiveViewOfType(MarkdownView);
     const text = active?.file?.path === file.path && active.getMode?.() === "source" && active.editor
       ? active.editor.getValue() : await plugin.app.vault.cachedRead(file);
     result = await composePages(plugin, file, text, stage, component, { keepStrip, expandDetails: true, onProgress, signal });
@@ -439,7 +439,7 @@ async function exportPdf(plugin, file, targetPath) {
   return choice.filePath;
 }
 
-const nextFrame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+const nextFrame = () => new Promise(r => window.requestAnimationFrame(() => window.requestAnimationFrame(r)));
 
 /* Capture an element at device resolution: slide it under a fixed viewport
    one window-height at a time and stitch the slices. */
@@ -621,7 +621,7 @@ async function saveExportToVault(plugin, name, data) {
 async function mermaidToPngDataUri(source, index) {
   // HTML labels (foreignObject) would taint the canvas and block toDataURL.
   const plain = /^\s*%%\{\s*init/.test(source) ? source : `%%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%\n${source}`;
-  const { svg } = await globalThis.mermaid.render(`ibp-word-mermaid-${Date.now()}-${index}`, plain);
+  const { svg } = await window.mermaid.render(`ibp-word-mermaid-${Date.now()}-${index}`, plain);
   const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
   try {
     const image = new Image();

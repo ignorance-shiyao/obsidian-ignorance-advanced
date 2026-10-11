@@ -42,7 +42,7 @@ export function mermaidTargetPriority(targets, document) {
 }
 
 export function createMermaidRenderQueue(draw, {
-  document = globalThis.document,
+  document = typeof window === "undefined" ? undefined : window.document,
   yieldToMain = () => new Promise(resolve => document.defaultView.setTimeout(resolve, 0)),
   targetsFor = (text, container) => mermaidRenderTargets(document, text, container),
   priorityFor = targets => mermaidTargetPriority(targets, document),

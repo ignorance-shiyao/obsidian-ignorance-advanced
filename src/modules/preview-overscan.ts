@@ -36,9 +36,9 @@ export function installPreviewOverscan(plugin) {
   // Coalesce rather than debounce: frequent layout events must not starve it.
   const schedule = () => {
     if (frame || timer) return;
-    timer = window.setTimeout(() => { timer = 0; frame = requestAnimationFrame(apply); }, 600);
+    timer = window.setTimeout(() => { timer = 0; frame = window.requestAnimationFrame(apply); }, 600);
   };
   for (const event of ["layout-change", "active-leaf-change", "file-open"]) plugin.registerEvent(plugin.app.workspace.on(event, schedule));
   plugin.app.workspace.onLayoutReady(schedule);
-  plugin.register(() => { clearTimeout(timer); cancelAnimationFrame(frame); for (const restore of installed.values()) restore(); installed.clear(); });
+  plugin.register(() => { window.clearTimeout(timer); cancelAnimationFrame(frame); for (const restore of installed.values()) restore(); installed.clear(); });
 }

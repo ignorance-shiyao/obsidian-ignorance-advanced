@@ -8,6 +8,8 @@
   },
   "devDependencies": {
     "esbuild": "0.28.2",
+    "eslint": "^9.39.5",
+    "eslint-plugin-obsidianmd": "^0.4.2",
     "jszip": "3.10.1",
     "material-icon-theme": "^5.39.0",
     "vitest": "5.0.2"

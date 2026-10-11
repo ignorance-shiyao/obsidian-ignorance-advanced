@@ -304,7 +304,7 @@ const {
   TocWidget,
   tocExtension
 } = TocModule;
-const { Notice, Plugin, MarkdownView, MarkdownRenderer, Component, Platform } = require("obsidian");
+const { Notice, Plugin, MarkdownView, MarkdownRenderer, Component, Platform, View } = require("obsidian");
 
 // Raw viewBox plus the label text identify a diagram across renders (ids and styles vary).
 function diagramHeightKey(svg, viewBox: string) {
@@ -591,8 +591,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
       id: "reset-active-mermaid-view",
       name: t("resetCommand"),
       callback: () => {
-        const activeLeaf = this.app.workspace.activeLeaf;
-        const container = activeLeaf?.view?.containerEl;
+        const container = this.app.workspace.getActiveViewOfType(View)?.containerEl;
         if (!container) return;
         container.querySelectorAll(".mermaid.ibm-mermaid-enhanced").forEach(element => {
           const state = this.diagramStates.get(element);
@@ -610,8 +609,8 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
      first time a diagram is drawn. Desktop warms it up once the app is idle. */
   installLazyMermaid() {
     const previous = {
-      mermaid: globalThis.mermaid,
-      descriptor: Object.getOwnPropertyDescriptor(globalThis, "mermaid")
+      mermaid: window.mermaid,
+      descriptor: Object.getOwnPropertyDescriptor(window, "mermaid")
     };
     const configs = [];
     const overwrites = [];
@@ -637,7 +636,6 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
         mermaid.render = createMermaidRenderQueue(draw);
         configs.forEach(config => mermaid.initialize(config));
         this.bundledMermaid = engine = mermaid;
-        console.info(`Ignorance: Mermaid ${MERMAID_VERSION} loaded`);
         return mermaid;
       })
       .catch(error => {
@@ -654,7 +652,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
       parse: async (...args) => (await ensure()).parse(...args),
       render: async (...args) => (await ensure()).render(...args)
     };
-    Object.defineProperty(globalThis, "mermaid", {
+    Object.defineProperty(window, "mermaid", {
       configurable: true,
       enumerable: true,
       get: () => engine || lazy,
@@ -664,7 +662,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.register(() => {
       const native = overwrites[overwrites.length - 1] || previous.mermaid;
       const descriptor = previous.descriptor || (native ? { value: native, writable: true, configurable: true, enumerable: true } : undefined);
-      guardedCleanup(() => restoreGlobalProperty(globalThis, "mermaid", descriptor), "恢复 Mermaid")();
+      guardedCleanup(() => restoreGlobalProperty(window, "mermaid", descriptor), "恢复 Mermaid")();
       // __esbuild_esm_mermaid_nm belongs to Obsidian's lazy loader. Our bundle
       // evaluates it locally, so unloading must not delete or clear the
       // native loader that appeared after plugin startup.

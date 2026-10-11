@@ -1,5 +1,4 @@
-/* The exported HTML reader's navigation and reading tools (inspired by VLOOK's
-   reader; written from scratch). Everything is inlined: one offline file.
+/* The exported HTML reader's navigation and reading tools. Everything is inlined: one offline file.
      - 导航中心: 目录 / 图片 / 表格 / 代码 / 图表 tabs with a filter box
      - header shows the current chapter; a progress bar under it
      - floating dock: previous / next chapter, back to top
@@ -13,6 +12,7 @@
 export { iconMarkup as icon } from "./ui-icons.js";
 import { iconMarkup as icon } from "./ui-icons.js";
 import { languageIconSvg } from "./language-icons.js";
+import { setMarkup } from "./dom-markup.js";
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[char]);
@@ -57,7 +57,7 @@ export function indexContent(content) {
   const images = [...content.querySelectorAll("img")].filter(img => !img.closest("[data-reader-chart]"));
   const doc = content.ownerDocument;
   const el = (tag, cls, text) => { const node = doc.createElement(tag); if (cls) node.className = cls; if (text) node.textContent = text; return node; };
-  const toolButton = (action, label, name) => { const button = el("button", "ib-tool"); button.type = "button"; button.dataset.tool = action; button.dataset.tip = label; button.setAttribute("aria-label", label); button.innerHTML = icon(name); return button; };
+  const toolButton = (action, label, name) => { const button = el("button", "ib-tool"); button.type = "button"; button.dataset.tool = action; button.dataset.tip = label; button.setAttribute("aria-label", label); setMarkup(button, icon(name)); return button; };
 
   // Images: numbered; a caption from meaningful alt text (Obsidian never shows alt).
   images.forEach((img, index) => {
@@ -112,7 +112,7 @@ export function indexContent(content) {
     const bar = el("div", "ib-block-bar");
     const langIcon = el("span", "ib-lang-icon");
     langIcon.setAttribute("aria-hidden", "true");
-    langIcon.innerHTML = languageIconSvg(language) || icon("code");
+    setMarkup(langIcon, languageIconSvg(language) || icon("code"));
     bar.append(langIcon, el("span", "ib-caption", language || "代码"), el("span", "ib-bar-space"));
     if (lines > 20) bar.append(toolButton("fold", "展开 / 折叠", "fold"));
     bar.append(toolButton("copy", "复制代码", "copy"));
