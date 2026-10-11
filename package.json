@@ -4,7 +4,8 @@
   "scripts": {
     "build": "node esbuild.config.mjs",
     "install:vault": "node esbuild.config.mjs --install",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check": "node scripts/check-release.mjs"
   },
   "devDependencies": {
     "esbuild": "0.28.2",

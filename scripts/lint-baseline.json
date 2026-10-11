@@ -1,0 +1,17 @@
+{
+  "obsidianmd/prefer-create-el": 124,
+  "obsidianmd/no-static-styles-assignment": 85,
+  "obsidianmd/no-nodejs-modules": 34,
+  "obsidianmd/prefer-instanceof": 17,
+  "obsidianmd/ui/sentence-case": 12,
+  "obsidianmd/rule-custom-message": 5,
+  "obsidianmd/no-forbidden-elements": 3,
+  "no-restricted-globals": 5,
+  "@typescript-eslint/no-implied-eval": 5,
+  "@microsoft/sdl/no-inner-html": 0,
+  "no-unsanitized/property": 0,
+  "obsidianmd/no-global-this": 0,
+  "obsidianmd/prefer-window-timers": 0,
+  "obsidianmd/regex-lookbehind": 0,
+  "obsidianmd/settings-tab/prefer-setting-definitions": 0
+}
