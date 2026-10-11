@@ -41,7 +41,7 @@ function makeContainer(node) {
   element.dataset.ibcKind = node.kind;
   if (node.kind === "chapter") {
     element.dataset.ibcTone = String(node.chapterTone ?? 0);
-    const rail = createEl("span");
+    const rail = createSpan();
     rail.className = "ibc-chapter__rail";
     rail.setAttribute("aria-hidden", "true");
     element.appendChild(rail);
@@ -52,7 +52,7 @@ function makeContainer(node) {
     summary.textContent = node.title || "详情";
     element.appendChild(summary);
   } else if (node.kind === "panel" && node.title) {
-    const header = createEl("div");
+    const header = createDiv();
     header.className = "ibc-container__head";
     header.textContent = node.title;
     element.appendChild(header);
@@ -77,7 +77,7 @@ function makeContainer(node) {
 function finishMatrix(container) {
   const { ibcXAxis: xAxis, ibcYAxis: yAxis } = container.dataset;
   if (!xAxis && !yAxis) return;
-  const body = createEl("div");
+  const body = createDiv();
   body.className = "ibc-matrix__body";
   body.append(...container.childNodes);
   if (yAxis) {
@@ -122,7 +122,7 @@ function finishCompare(container, interactive) {
   const images = [...container.querySelectorAll("img")].slice(0, 2);
   if (images.length < 2) return;
   const frames = images.map(img => {
-    const frame = document.createElement("div");
+    const frame = createDiv();
     frame.className = "ibc-compare__pane";
     frame.appendChild(img.closest(".internal-embed") || img);
     return frame;
@@ -130,7 +130,7 @@ function finishCompare(container, interactive) {
   container.querySelectorAll(":scope > p").forEach(p => { if (!p.textContent.trim() && !p.querySelector("img")) p.remove(); });
   container.append(...frames);
   if (!interactive) { container.classList.add("ibc-compare--static"); return; }
-  const input = document.createElement("input");
+  const input = createEl("input");
   input.type = "range";
   input.min = "0";
   input.max = "100";

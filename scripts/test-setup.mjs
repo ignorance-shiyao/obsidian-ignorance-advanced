@@ -9,3 +9,5 @@ globalThis.createEl ??= (tag, options) => {
   }
   return element;
 };
+globalThis.createDiv ??= options => globalThis.createEl("div", options);
+globalThis.createSpan ??= options => globalThis.createEl("span", options);

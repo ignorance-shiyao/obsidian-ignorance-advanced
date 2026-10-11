@@ -242,7 +242,7 @@ class BatchClipModal extends Modal {
   onOpen() {
     this.titleEl.setText("批量剪藏网页");
     this.contentEl.createDiv({ cls: "ib-form-hint", text: `每行一个链接，已经剪藏过的会跳过。保存到 ${clipFolder(this.plugin)}/。` });
-    this.area = this.contentEl.createEl("textarea", { cls: "ib-clip-batch__area", attr: { rows: "8", placeholder: "https://…", spellcheck: "false" } });
+    this.area = this.contentEl.createEl("textarea", { cls: "ib-clip-batch__area", attr: { rows: "8", placeholder: "粘贴链接，每行一个", spellcheck: "false" } });
     this.status = this.contentEl.createDiv({ cls: "ib-form-hint" });
     const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
     footer.createEl("button", { text: "取消" }).addEventListener("click", () => this.close());

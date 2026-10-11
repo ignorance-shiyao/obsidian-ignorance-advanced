@@ -343,13 +343,13 @@ async function prepareRichCopyMarkup(plugin, file, target = "wechat", { cover = 
     holder.appendChild(staging);
     const imageIndex = vaultImageIndex(plugin);
     const columnLayouts = staging.querySelectorAll(".ibc-container--cols").length;
-    const content = createEl("div");
+    const content = createDiv();
     for (const child of staging.childNodes) {
       const clone = await cloneForRichClipboard(child, plugin, imageIndex, target);
       if (clone) content.appendChild(clone);
     }
     const style = getComputedStyle(document.body);
-    const root = createEl("div");
+    const root = createDiv();
     root.style.setProperty("box-sizing", "border-box");
     root.style.setProperty("width", "100%");
     root.style.setProperty("max-width", "100%");

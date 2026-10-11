@@ -76,7 +76,7 @@ function snapshotThemeTokens() {
     if (value) values[name] = value;
   }
   const colors = new Map();
-  const probe = createEl("span");
+  const probe = createSpan();
   probe.style.position = "fixed";
   probe.style.visibility = "hidden";
   probe.style.pointerEvents = "none";
@@ -254,7 +254,7 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
     if (source.type !== "checkbox") return null;
     // A drawn box instead of ☑/☐ glyphs: the glyphs sat on the captured
     // checkbox fill and read as a black blob.
-    const checkbox = createEl("span");
+    const checkbox = createSpan();
     inlineStandaloneStyles(source, checkbox, colors);
     const size = Math.round(source.getBoundingClientRect().height) || 16;
     checkbox.className = "ib-task-box";
@@ -290,7 +290,7 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
   if (source.matches(".mermaid.ibm-mermaid-enhanced,.ib-echarts-block")) {
     const graphic = source.querySelector(".ibm-mermaid-canvas > svg,.ib-echarts-host svg,.ib-echarts-host canvas");
     if (graphic) {
-      const frame = createEl("div");
+      const frame = createDiv();
       inlineStandaloneStyles(source, frame, colors);
       const align = source.getAttribute("data-ib-chart-align") || "center";
       frame.setAttribute("data-reader-chart", "");
@@ -345,7 +345,7 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
       linked.style.maxWidth = "100%";
       return linked;
     }
-    const fallback = createEl("span");
+    const fallback = createSpan();
     fallback.textContent = source.alt || "[无法嵌入的图片]";
     return fallback;
   }
@@ -556,7 +556,7 @@ async function prepareHtmlDocument(plugin, file, { cover = true, onProgress = nu
     const sourceHeadings = [...staging.querySelectorAll("h1,h2,h3,h4,h5,h6")];
     const headingIds = new Map(sourceHeadings.filter(h => h.id).map((h, i) => [h.id, `reader-section-${i + 1}`]));
     [...staging.querySelectorAll('[id^="fn-"] , [id^="fnref-"]')].forEach((node, i) => headingIds.set(node.id, `reader-footnote-${i + 1}`));
-    const content = createEl("div");
+    const content = createDiv();
     const imageIndex = vaultImageIndex(plugin);
     for (const child of staging.childNodes) {
       const cloned = await cloneHtmlNode(child, plugin, imageIndex, light.colors, headingIds, checkpoint, true);
@@ -607,7 +607,7 @@ async function prepareHtmlDocument(plugin, file, { cover = true, onProgress = nu
     const headingIds = new Map(sourceHeadings.filter(heading => heading.id).map((heading, index) => [heading.id, `reader-section-${index + 1}`]));
     [...staging.querySelectorAll('[id^="fn-"] , [id^="fnref-"]')].forEach((node, i) => headingIds.set(node.id, `reader-footnote-${i + 1}`));
     const imageIndex = vaultImageIndex(plugin);
-    const content = createEl("div");
+    const content = createDiv();
     for (const child of staging.childNodes) {
       const cloned = await cloneHtmlNode(child, plugin, imageIndex, light.colors, headingIds, checkpoint);
       if (cloned) content.appendChild(cloned);

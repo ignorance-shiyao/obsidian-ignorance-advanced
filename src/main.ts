@@ -766,7 +766,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
       withZoom: false,
       withEdit: true
     });
-    const preview = createEl("div");
+    const preview = createDiv();
     preview.className = "ibm-markdown-preview markdown-rendered";
     element.replaceChildren(header, preview);
 
@@ -865,12 +865,12 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
      group is present, so the slots — label, zoom, copy, edit — are always laid
      out the same way and nothing shifts between a diagram and a code block. */
   buildBlockHeader(container, options) {
-    const header = createEl("div");
+    const header = createDiv();
     header.className = "ibm-block-header";
 
-    const title = createEl("div");
+    const title = createDiv();
     title.className = "ibm-block-title";
-    const icon = createEl("span");
+    const icon = createSpan();
     icon.className = "ibm-block-icon";
     if (options.language !== undefined) icon.appendChild(createLanguageIcon(options.language));
     else setIcon(icon, options.withZoom ? UI_ICONS.chart : UI_ICONS.code);
@@ -888,13 +888,13 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     title.appendChild(label);
     header.appendChild(title);
 
-    const actions = createEl("div");
+    const actions = createDiv();
     actions.className = "ibm-block-actions";
     header.appendChild(actions);
 
     let toolbar = null;
     if (options.withZoom) {
-      toolbar = createEl("div");
+      toolbar = createDiv();
       toolbar.className = "ibm-mermaid-toolbar";
       toolbar.setAttribute("role", "toolbar");
       toolbar.setAttribute("aria-label", t("controls"));
@@ -1345,7 +1345,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     const zoomIn = makeButton("", t("zoomIn"));
     setIcon(zoomIn, UI_ICONS.zoomIn);
 
-    const canvas = createEl("div");
+    const canvas = createDiv();
     canvas.className = "ibm-mermaid-canvas";
     // Obsidian's mobile sidebar swipe skips anything inside
     // [data-ignore-swipe] — the same marker its Canvas view uses — so a

@@ -158,7 +158,7 @@ const SVG_NS_C4 = "http://www.w3.org/2000/svg";
 
 function cssColorToRgb(value) {
   if (!value) return null;
-  const probe = createEl("span");
+  const probe = createSpan();
   probe.style.color = value;
   if (!probe.style.color) return null;
   document.body.appendChild(probe);

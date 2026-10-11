@@ -373,9 +373,9 @@ function retainTableRows(block, cloneTable, start, stop, repeatHeader) {
 
 function makePage(blocks, window, index, total, page, contentHeight = window.stop - window.start) {
   const format = PAGE_NUMBER_FORMATS[page.pageNumberFormat] || PAGE_NUMBER_FORMATS.plain;
-  const sheet = createEl("div");
+  const sheet = createDiv();
   sheet.className = "ibp-page";
-  const body = createEl("div");
+  const body = createDiv();
   body.className = "ibp-page-body markdown-preview-view markdown-rendered";
   body.style.height = `${contentHeight}px`;
   const continuingTable = blocks.find(block => block.table && block.top < window.start - 0.5 && block.bottom > window.start + 0.5);
@@ -384,7 +384,7 @@ function makePage(blocks, window, index, total, page, contentHeight = window.sto
   for (const block of blocks) {
     const chapter = block.chapter;
     if (!chapter || cardLayers.has(chapter.element) || chapter.bottom <= window.start || chapter.top >= window.stop) continue;
-    const card = createEl("div");
+    const card = createDiv();
     card.className = "ibc-container ibc-container--chapter";
     card.dataset.ibPagedChapter = "";
     card.dataset.ibcTone = chapter.tone;
@@ -431,7 +431,7 @@ function makePage(blocks, window, index, total, page, contentHeight = window.sto
   }
   sheet.appendChild(body);
   if (page.pageNumber !== "none") {
-    const number = createEl("div");
+    const number = createDiv();
     number.className = "ibp-page-number";
     number.textContent = format(index + 1, total);
     sheet.appendChild(number);
@@ -451,7 +451,7 @@ function addRunningHeaders(pages, page) {
     const label = opening || current;
     if (headings.length) current = headings[headings.length - 1].textContent.trim();
     if (page.runningHeader !== "chapter" || index === 0 || !label) return;
-    const header = createEl("div");
+    const header = createDiv();
     header.className = "ibp-page-header";
     header.textContent = label;
     sheet.appendChild(header);

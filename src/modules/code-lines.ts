@@ -128,7 +128,7 @@ export function wrapCodeLines(code: HTMLElement, highlighted: number[] = [], exp
   code.replaceChildren();
   const fragment = document.createDocumentFragment();
   lines.forEach((nodes, index) => {
-    const line = createEl("span");
+    const line = createSpan();
     line.className = "ib-code-line";
     line.dataset.line = String(index + 1);
     if (highlighted.includes(index + 1)) line.dataset.highlighted = "true";

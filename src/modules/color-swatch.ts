@@ -5,7 +5,7 @@ const { RangeSetBuilder } = require("@codemirror/state");
 const { syntaxTree } = require("@codemirror/language");
 
 function makeSwatch(color) {
-  const dot = createEl("span");
+  const dot = createSpan();
   dot.className = "ib-color-swatch";
   dot.style.setProperty("--swatch", color);
   dot.setAttribute("aria-hidden", "true");
@@ -38,7 +38,7 @@ export function colorSwatchPostProcessor(el) {
     for (const [at, color] of matches.reverse()) {
       const after = node.splitText(at);
       after.splitText(color.length);
-      const wrap = createEl("span");
+      const wrap = createSpan();
       wrap.className = "ib-color-value";
       after.replaceWith(wrap);
       wrap.append(makeSwatch(color), after);

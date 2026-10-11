@@ -181,11 +181,11 @@ class TableResizeLayer {
   setup() {
     this.built = true;
     if (getComputedStyle(this.host).position === "static") this.host.classList.add("ibt-host");
-    this.layer = createEl("div");
+    this.layer = createDiv();
     this.layer.className = "ibt-layer";
-    this.focus = createEl("div");
+    this.focus = createDiv();
     this.focus.className = "ibt-focus";
-    this.readout = createEl("div");
+    this.readout = createDiv();
     this.readout.className = "ibt-readout";
     this.layer.append(this.focus);
     document.body.appendChild(this.readout);
@@ -305,7 +305,7 @@ class TableResizeLayer {
   }
 
   addHandle(axis, index) {
-    const handle = createEl("div");
+    const handle = createDiv();
     handle.className = `ibt-handle is-${axis}`;
     handle.title = t(axis === "col" ? "resizeColumn" : "resizeRow");
     const target = { axis, index };
@@ -587,7 +587,7 @@ class CodeCopyWidget extends WidgetType {
         new Notice(t("copyFailed"));
       }
     });
-    const actions = createEl("span");
+    const actions = createSpan();
     actions.className = "ibc-live-actions";
     actions.appendChild(button);
     const align = createEl("button");
@@ -623,7 +623,7 @@ class CodeLanguageIconWidget extends WidgetType {
   constructor(readonly language: string) { super(); }
   eq(other) { return other.language === this.language; }
   toDOM() {
-    const holder = createEl("span");
+    const holder = createSpan();
     holder.className = "ibc-live-lang";
     holder.setAttribute("contenteditable", "false");
     holder.appendChild(createLanguageIcon(this.language));
@@ -638,7 +638,7 @@ class CodeLineNumberWidget extends WidgetType {
   constructor(readonly number: number) { super(); }
   eq(other) { return other.number === this.number; }
   toDOM() {
-    const span = createEl("span");
+    const span = createSpan();
     span.className = "ibc-live-ln";
     span.textContent = String(this.number);
     span.setAttribute("aria-hidden", "true");

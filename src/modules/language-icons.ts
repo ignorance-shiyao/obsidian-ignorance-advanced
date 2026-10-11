@@ -42,7 +42,7 @@ export function languageIconSvg(language: string): string | null {
 
 // An icon element for a language. It fills in as soon as the data arrives.
 export function createLanguageIcon(language: string): HTMLElement {
-  const span = createEl("span");
+  const span = createSpan();
   span.className = "ib-lang-icon";
   span.setAttribute("aria-hidden", "true");
   const generic = () => { setIcon(span, UI_ICONS.code); span.classList.add("is-generic"); };

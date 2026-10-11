@@ -227,7 +227,7 @@ export async function buildDeck(plugin, file, component, isCurrent = () => true,
         surface.style.height = `${height}px`;
         surface.dataset.directiveOffset = String(parsed.directiveOffset);
         if (parsed.tag) surface.dataset.slideTag = parsed.tag;
-        const inner = createEl("div");
+        const inner = createDiv();
         inner.className = "slide-inner";
         surface.appendChild(inner);
         // Same renderer as paged reading, so ::: containers (kpi, cols, panel…) work in slides.
@@ -235,7 +235,7 @@ export async function buildDeck(plugin, file, component, isCurrent = () => true,
         await renderSlideDiagrams(inner, width);
         await applyStagedChartAlignment(plugin, inner, file.path, parsed.body);
         if (!isCurrent()) return null;
-        const wrapper = createEl("div");
+        const wrapper = createDiv();
         wrapper.appendChild(surface);
         measure.appendChild(wrapper);
         await settleSlideContent(surface);
@@ -309,7 +309,7 @@ export async function buildDeck(plugin, file, component, isCurrent = () => true,
       rows.push({ vertical: column.length > 1, pages: row });
     }
     if (!isCurrent()) return null;
-    const reveal = createEl("div");
+    const reveal = createDiv();
     reveal.className = "reveal";
     // Entrance motion and cross-fades repaint a whole slide per frame; phones drop frames on them.
     if (!Platform.isPhone && settings.animation && settings.animation !== "none") reveal.classList.add(`slide-anim-${settings.animation}`);
