@@ -45,7 +45,12 @@ function markdownForStructuredWord(source) {
     const marker = line.match(/^\s*(`{3,}|~{3,})/);
     if (!fence && marker) fence = marker[1][0];
     else if (fence && marker && marker[1][0] === fence) fence = null;
-    if (!fence && /^\s*:::/u.test(line)) continue;
+    if (!fence) {
+      // Tab titles become bold lines; every other ::: marker disappears and its content stays.
+      const tab = /^\s*:::\s*tab\s+(.+?)\s*$/iu.exec(line);
+      if (tab) { result.push("", `**${tab[1]}**`, ""); continue; }
+      if (/^\s*:::/u.test(line)) continue;
+    }
     result.push(fence ? line : flattenInlineComponents(line));
   }
   return result.join("\n");
@@ -55,7 +60,11 @@ function flattenInlineComponents(source) {
   return source
     .replace(/\(\((?:green|red|amber|blue|purple|teal|gray|grey):([^()]*)\)\)/gi, "$1")
     .replace(/\(\(bar:(\d+(?:\.\d+)?)\)\)/gi, "$1%")
-    .replace(/\(\(spark:([^()]*)\)\)/gi, "趋势：$1");
+    .replace(/\(\(spark:([^()]*)\)\)/gi, "趋势：$1")
+    .replace(/\(\(spoiler:([^()]*)\)\)/gi, "$1")
+    .replace(/\(\(ruby:\s*([^()|]*?)\s*\|\s*([^()]*?)\s*\)\)/gi, "$1（$2）")
+    .replace(/\(\(crumb:\s*([^()]*?)\s*\)\)/gi, (_, path) => path.split(/\s*(?:>|›|→|\/)\s*/).join(" › "))
+    .replace(/\(\(([^()|:]+?)\s*\|\s*([^()]+?)\)\)/g, "$1：$2");
 }
 
 function imageDimensions(data, type) {
