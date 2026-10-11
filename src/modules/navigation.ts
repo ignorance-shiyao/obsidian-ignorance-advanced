@@ -33,7 +33,7 @@ export function buildNavItems(source: string, headings: Array<{ text: string; le
     if (caption) {
       const label = `${caption.label} ${caption.text}`;
       if (caption.kind === "fig") { figureCount += 1; items.push({ kind: "figure", label, line: index }); }
-      else if (lastTable) lastTable.label = label; // the caption line names the table above it
+      else if (caption.kind === "tab" && lastTable) lastTable.label = label; // the caption line names the table above it
       return;
     }
     const image = /!\[\[([^\]|]+)|!\[[^\]]*\]\(([^)]+)\)/.exec(line);

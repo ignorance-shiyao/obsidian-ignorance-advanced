@@ -26,4 +26,13 @@ describe("题注解析", () => {
     const source = ["::: compare", "![之前](a.png)", "![之后](b.png)", ":::", "", "![独立图片](c.png)"].join("\n");
     expect(parseCaptions(source).map(entry => [entry.line, entry.label])).toEqual([[5, "图 1"]]);
   });
+
+  it("代码块和公式下方的题注", () => {
+    const source = ["```python", "print(1)", "```", "代码：打印 {#code-print}", "", "$$", "E = mc^2", "$$", "公式：质能方程 {#eq-e}", "", "代码：孤立的一行"].join("\n");
+    const entries = parseCaptions(source);
+    expect(entries.map(entry => [entry.kind, entry.label, entry.id])).toEqual([["code", "代码 1", "code-print"], ["eq", "公式 1", "eq-e"]]);
+  });
+  it("单行 $$ 公式也能带题注", () => {
+    expect(parseCaptions("$$a+b$$\n\nEquation: Sum").map(entry => entry.label)).toEqual(["Equation 1"]);
+  });
 });
