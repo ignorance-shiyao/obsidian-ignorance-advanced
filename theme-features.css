@@ -3051,3 +3051,8 @@ body[data-ib-table-alignment] .markdown-rendered table[data-ib-table-align="righ
 .ib-heading-number {
   margin-inline-end: .55em; color: var(--ib-text-accent, var(--text-accent)); font-variant-numeric: tabular-nums; font-weight: 700;
 }
+
+/* ---- Table extras: merged cells, tick boxes ---- */
+.markdown-rendered table.ib-table-merged :is(td, th)[rowspan], .markdown-rendered table.ib-table-merged :is(td, th)[colspan] { vertical-align: middle; }
+.ib-table-check { font-size: 1.15em; line-height: 1; color: var(--ib-text-muted, var(--text-muted)); }
+.ib-table-check.is-checked { color: var(--ib-accent-solid, var(--interactive-accent)); }

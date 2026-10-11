@@ -30,6 +30,7 @@ import { installWebClip } from "./modules/web-clip.js";
 import { installReadingTime } from "./modules/reading-time.js";
 import { openSyntaxGuide, showFirstRunHint } from "./modules/syntax-guide.js";
 import { installHeadingNumbers } from "./modules/heading-numbers.js";
+import { installTableExtras } from "./modules/table-merge.js";
 import { installMoreMenuFilter } from "./modules/more-menu.js";
 import { colorSwatchExtension, colorSwatchPostProcessor } from "./modules/color-swatch.js";
 import * as TocModule from "./modules/toc.js";
@@ -360,6 +361,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.registerMarkdownPostProcessor(element => renderInlineSyntax(this, element));
     this.registerMarkdownPostProcessor(element => colorSwatchPostProcessor(element));
     installHeadingNumbers(this);
+    installTableExtras(this);
     // Warming every diagram in the open note loads the 1 MB ECharts and 5 MB Mermaid engines in the
     // background; on a phone that competes with startup, so diagrams are drawn when they are reached.
     if (!Platform.isMobile) installChartPreload(this);
