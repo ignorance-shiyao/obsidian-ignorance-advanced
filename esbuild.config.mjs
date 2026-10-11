@@ -1,7 +1,7 @@
 // Builds the release files: main.js (with every heavy library compressed inside it) and styles.css.
 //   node esbuild.config.mjs            production build into ./dist
 //   OBSIDIAN_VAULT=/path/to/vault node esbuild.config.mjs --install   also copy into the vault's plugin folder
-import { build } from "esbuild";
+import { build, transform } from "esbuild";
 import { execFileSync } from "node:child_process";
 import { mkdir, readFile, writeFile, copyFile } from "node:fs/promises";
 import { gzipSync } from "node:zlib";
@@ -20,7 +20,9 @@ execFileSync(process.execPath, [path.join(here, "gen-icon-library.mjs"), path.jo
 // 2. Libraries that only some features use: bundled separately, then embedded compressed.
 const bundle = async (entry, options) => (await build({ entryPoints: [entry], bundle: true, write: false, legalComments: "none", sourcemap: false, target: "es2022", ...options })).outputFiles[0].contents;
 const embedded = {};
-const add = (name, contents) => { embedded[name] = { data: gzipSync(contents, { level: 9 }).toString("base64"), size: contents.length }; };
+// The text packer lives in src/modules/base91.ts (the plugin unpacks with it); load that same file here.
+const { encode91 } = await import("data:text/javascript;base64," + Buffer.from((await transform(await readFile(path.join(here, "src/modules/base91.ts"), "utf8"), { loader: "ts", format: "esm" })).code).toString("base64"));
+const add = (name, contents) => { embedded[name] = { data: encode91(gzipSync(contents, { level: 9 })), size: contents.length }; };
 const addFile = async (name, file) => add(name, await readFile(file));
 
 for (const name of ["docx", "pptx", "reveal", "capture"]) {
@@ -37,8 +39,8 @@ for (const name of ["docx", "pptx", "reveal", "capture"]) {
   }
   add(`chunk-${name}.cjs`, contents);
 }
-add("import-converters.cjs", await bundle(path.join(here, "src/modules/import-converters.js"), { platform: "node", format: "cjs" }));
-await addFile("pdf.worker.mjs", path.join(here, "node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"));
+add("import-converters.cjs", await bundle(path.join(here, "src/modules/import-converters.js"), { platform: "node", format: "cjs", minify: true, keepNames: true }));
+add("pdf.worker.mjs", Buffer.from((await transform(await readFile(path.join(here, "node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"), "utf8"), { loader: "js", minify: true, legalComments: "none", target: "es2022" })).code));
 for (const name of ["mermaid.min.js", "mermaid-zenuml.min.js", "mermaid-layout-elk.min.js", "echarts.min.js", "lucide-icons.json"]) await addFile(name, path.join(here, "vendor", name));
 for (const name of ["language-icons.json", "file-icons.json"]) await addFile(name, path.join(generated, name));
 

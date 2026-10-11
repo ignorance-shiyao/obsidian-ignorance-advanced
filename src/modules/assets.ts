@@ -3,15 +3,14 @@
    no code is fetched from the network: Obsidian installs main.js, manifest.json and styles.css,
    so everything the plugin runs ships inside them. */
 import EMBEDDED from "embedded-assets";
+import { decode91 } from "./base91";
 
 type Embedded = Record<string, { data: string; size: number }>;
 const assets = EMBEDDED as Embedded;
 const bytesCache = new Map<string, Promise<Uint8Array>>();
 
-async function gunzip(base64: string): Promise<Uint8Array> {
-  const binary = atob(base64);
-  const packed = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) packed[i] = binary.charCodeAt(i);
+async function gunzip(packedText: string): Promise<Uint8Array> {
+  const packed = decode91(packedText);
   const stream = new Blob([packed]).stream().pipeThrough(new DecompressionStream("gzip"));
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
