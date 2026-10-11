@@ -113,6 +113,15 @@ function makeChipElement(token, doc = document) {
     badge.append(label, value);
     return badge;
   }
+  if (token.type === "ref") {
+    // Filled in with the figure or table label by the captions pass; until then it shows the reference name.
+    const ref = doc.createElement("a");
+    ref.className = "ib-inline-ref";
+    ref.dataset.ibRef = token.value;
+    ref.setAttribute("href", "#");
+    ref.textContent = token.value;
+    return ref;
+  }
   if (token.type === "spoiler") {
     const spoiler = doc.createElement("span");
     spoiler.className = "ib-inline-spoiler";

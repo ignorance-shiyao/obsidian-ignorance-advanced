@@ -1,6 +1,6 @@
 export interface InlineSyntaxToken {
   kind: "chip" | "icon";
-  type: "pill" | "bar" | "spark" | "icon" | "badge" | "spoiler" | "ruby" | "crumb";
+  type: "pill" | "bar" | "spark" | "icon" | "badge" | "spoiler" | "ruby" | "crumb" | "ref";
   value: string;
   start: number;
   end: number;
@@ -80,6 +80,9 @@ function parseChip(inner: string, start: number, end: number, source: string): I
       return { kind: "chip", type: "spark", value, start, end, source, values };
     }
   }
+
+  const ref = /^ref:\s*([\w-]+)$/i.exec(value);
+  if (ref) return { kind: "chip", type: "ref", value: ref[1], start, end, source };
 
   const spoiler = /^spoiler:\s*(.+)$/i.exec(value);
   if (spoiler) return { kind: "chip", type: "spoiler", value: spoiler[1].trim(), start, end, source };

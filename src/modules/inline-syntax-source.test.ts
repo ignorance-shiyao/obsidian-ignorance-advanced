@@ -50,4 +50,9 @@ describe("行内 Markdown 方言解析", () => {
     const tokens = parseInlineSyntax("((crumb:唯一)) ((green:通过))", null);
     expect(tokens.map(token => token.type)).toEqual(["pill", "pill"]);
   });
+
+  it("解析交叉引用", () => {
+    const tokens = parseInlineSyntax("见 ((ref:fig-arch)) 与 ((ref:tab-1))", null);
+    expect(tokens.map(token => [token.type, token.value])).toEqual([["ref", "fig-arch"], ["ref", "tab-1"]]);
+  });
 });

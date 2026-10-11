@@ -42,6 +42,10 @@ class IgnoranceSettingTab extends PluginSettingTab {
           state.headingNumbers = value; plugin.saveStoredState();
           for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) leaf.view.previewMode?.rerender?.(true);
         }) },
+        { name: "图表题注与编号", desc: "阅读视图里给图片和表格加「图 1」「表 1」题注并支持 ((ref:标识)) 交叉引用；图片的 alt 作为图注，表格下一行写「表：说明」。也可以只在某篇笔记的 cssclasses 里写 ib-captions。", aliases: ["captions", "figure numbers"], add: toggle(() => state.captions === true, value => {
+          state.captions = value; plugin.saveStoredState();
+          for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) leaf.view.previewMode?.rerender?.(true);
+        }) },
         { name: "代码块行号", desc: "阅读视图、分页和导出中显示行号；围栏里写 {2,5} 可高亮指定行。", aliases: ["line numbers"], add: toggle(() => Boolean(state.codeLineNumbers), value => {
           state.codeLineNumbers = value; plugin.applyCodeLineNumbers(); plugin.saveStoredState();
         }) }

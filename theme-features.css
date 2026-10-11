@@ -3092,3 +3092,11 @@ body.ib-gray-mode { filter: grayscale(1); }
 .image-embed[data-ib-filter="blur"] img { filter: blur(8px); transition: filter .2s ease; }
 .image-embed[data-ib-filter="blur"]:hover img { filter: none; }
 @media print { .image-embed[data-ib-filter="blur"] img { filter: none; } }
+
+/* ---- Captions and references ---- */
+.ib-figure { margin: var(--ib-space-4, 16px) 0; text-align: center; }
+.ib-figure > .image-embed, .ib-figure > img { display: inline-block; max-width: 100%; }
+.ib-caption { margin: .5em 0 var(--ib-space-4, 16px); color: var(--ib-text-muted, var(--text-muted)); font-size: .9em; text-align: center; }
+.ib-caption__label { margin-inline-end: .35em; color: var(--ib-text-secondary, var(--text-normal)); font-weight: 700; }
+.ib-inline-ref { color: var(--ib-text-accent, var(--text-accent)); text-decoration: none; font-weight: 600; cursor: pointer; }
+.ib-inline-ref.is-missing { color: var(--ib-error-text, var(--text-error)); }
