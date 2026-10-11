@@ -38,6 +38,10 @@ class IgnoranceSettingTab extends PluginSettingTab {
           dropdown.addOptions({ left: "居左", center: "居中", right: "居右" }).setValue(state.appearance.tableAlignment || "left").onChange(value => {
             state.appearance.tableAlignment = value; applyAppearancePreferences(plugin); plugin.saveStoredState();
           })) },
+        { name: "标题自动编号", desc: "阅读视图的标题前显示 1、1.1、1.1.1 这样的编号；也可以只在某篇笔记的 cssclasses 里写 ib-numbered（写 ib-unnumbered 则关闭）。", aliases: ["heading numbers"], add: toggle(() => state.headingNumbers === true, value => {
+          state.headingNumbers = value; plugin.saveStoredState();
+          for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) leaf.view.previewMode?.rerender?.(true);
+        }) },
         { name: "代码块行号", desc: "阅读视图、分页和导出中显示行号；围栏里写 {2,5} 可高亮指定行。", aliases: ["line numbers"], add: toggle(() => Boolean(state.codeLineNumbers), value => {
           state.codeLineNumbers = value; plugin.applyCodeLineNumbers(); plugin.saveStoredState();
         }) }

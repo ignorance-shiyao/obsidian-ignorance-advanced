@@ -29,6 +29,7 @@ import { installExternalFiles } from "./modules/external-files.js";
 import { installWebClip } from "./modules/web-clip.js";
 import { installReadingTime } from "./modules/reading-time.js";
 import { openSyntaxGuide, showFirstRunHint } from "./modules/syntax-guide.js";
+import { installHeadingNumbers } from "./modules/heading-numbers.js";
 import { installMoreMenuFilter } from "./modules/more-menu.js";
 import { colorSwatchExtension, colorSwatchPostProcessor } from "./modules/color-swatch.js";
 import * as TocModule from "./modules/toc.js";
@@ -358,6 +359,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.registerMarkdownPostProcessor((element, context) => renderContainerBlocks(this, element, context));
     this.registerMarkdownPostProcessor(element => renderInlineSyntax(this, element));
     this.registerMarkdownPostProcessor(element => colorSwatchPostProcessor(element));
+    installHeadingNumbers(this);
     // Warming every diagram in the open note loads the 1 MB ECharts and 5 MB Mermaid engines in the
     // background; on a phone that competes with startup, so diagrams are drawn when they are reached.
     if (!Platform.isMobile) installChartPreload(this);
@@ -1036,6 +1038,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.state.tabs = Object.assign(tabDefaults(), this.state.tabs || {});
     this.state.codeLineNumbers = this.state.codeLineNumbers === true;
     this.state.smartPunctuation = this.state.smartPunctuation === true;
+    this.state.headingNumbers = this.state.headingNumbers === true;
     this.state.writingModes = Object.assign(writingModeDefaults(), this.state.writingModes || {});
     this.state.fileTools = Object.assign(fileToolsDefaults(), this.state.fileTools || {});
     this.state.webClip = Object.assign({ watchClipboard: false, folder: "" }, this.state.webClip || {});

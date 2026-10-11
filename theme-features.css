@@ -3046,3 +3046,8 @@ body[data-ib-table-alignment] .markdown-rendered table[data-ib-table-align="righ
   .ibc-tabs--interactive > .ibc-container--tab:not(#_ib):not(#_ib2) { display: block; }
   .ibc-tabs--interactive > .ibc-container--tab::before { content: attr(data-ibc-title); display: block; margin-bottom: .4em; font-weight: 700; }
 }
+
+/* ---- Heading numbers (reading view) ---- */
+.ib-heading-number {
+  margin-inline-end: .55em; color: var(--ib-text-accent, var(--text-accent)); font-variant-numeric: tabular-nums; font-weight: 700;
+}
