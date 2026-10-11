@@ -2,7 +2,7 @@
 
 # Ignorance Advanced
 
-**The companion plugin for the [Ignorance theme](https://github.com/ignorance-shiyao/obsidian-ignorance):** diagrams, tables, images, presentations and exports in one place.
+**The companion plugin for the [Ignorance theme](https://community.obsidian.md/themes/ignorance):** diagrams, tables, images, presentations and exports in one place.
 
 [中文](README.md) · [Support](#support)
 
@@ -59,11 +59,21 @@ Tab reuse, typewriter and focus modes, smart punctuation, `==🟢colored==` high
 
 ## Install
 
-- **Community plugins**: Settings → Community plugins → Browse → search "Ignorance Advanced". *(after the plugin is accepted)*
+- **Community plugins**: Settings → Community plugins → Browse → search "Ignorance Advanced". ([plugin page](https://community.obsidian.md/plugins/ignorance-advanced))
 - **Manual**: download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/ignorance-shiyao/obsidian-ignorance-advanced/releases/latest) into `<vault>/.obsidian/plugins/ignorance-advanced/`, then enable it.
-- **Theme**: install [Ignorance](https://github.com/ignorance-shiyao/obsidian-ignorance) from Settings → Appearance for the full look.
+- **Theme**: install [Ignorance](https://community.obsidian.md/themes/ignorance) from Settings → Appearance for the full look.
 
 Requires Obsidian 1.8.7 or later. Works on desktop and mobile; Word/PDF import and some exports need the desktop app.
+
+## Usage
+
+- **Diagrams and charts**: write a fenced block with the language `mermaid` or `echarts`. It renders in Live Preview and Reading view; hover it for zoom, copy, edit-source and alignment controls, and drag its edges to resize.
+- **Tables**: drag a column or row edge to resize; Alt drags freely, Shift steps by 10 px, double-click an edge to fit it.
+- **Images**: click an image to align, resize or crop it.
+- **Code blocks**: click the language label to search the language list; line numbers and soft wrap are in the block toolbar.
+- **Presentations**: separate slides with a line containing `---`, then use the *Presentation* button in the page toolbar at the top of the note (or run *Open presentation mode* from the command palette).
+- **Export**: use the export button in the page toolbar to produce PDF, Word, PowerPoint, images or an offline HTML reader.
+- **Settings**: Settings → Ignorance Advanced (palette, page layout, highlight colors, tab behavior).
 
 ## Privacy and network use
 
@@ -79,6 +89,10 @@ npm run build          # writes dist/main.js, dist/styles.css, dist/manifest.jso
 npm test
 OBSIDIAN_VAULT=/path/to/vault npm run install:vault   # build and copy into a vault
 ```
+
+## Feedback
+
+If you run into a problem or want a feature, please [open an issue](https://github.com/ignorance-shiyao/obsidian-ignorance-advanced/issues). A screenshot, your Obsidian version and the platform (desktop or mobile) help a lot.
 
 ## Support
 

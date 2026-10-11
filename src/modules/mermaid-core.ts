@@ -183,6 +183,7 @@ function stashStyle(element) {
 }
 
 function adoptC4Defaults(svg) {
+  for (const rect of svg.querySelectorAll('g > rect[fill="#1168BD"]')) rect.parentElement.setAttribute("data-ibm-c4-system", "");
   for (const node of svg.querySelectorAll("g.node")) {
     const shapes = [...node.querySelectorAll(":scope > g.basic :is(rect, path, circle, ellipse)[style], :scope > :is(rect, path)[style]")];
     let role = null;
@@ -215,6 +216,8 @@ function adoptC4Defaults(svg) {
     }
     if (!role) continue; // author-styled system: leave every color alone
     node.setAttribute("data-ibm-c4", role);
+    // Person-style cards (they carry an avatar disc) use dark text; the theme selects on this instead of :has(circle).
+    if (node.querySelector("circle")) node.setAttribute("data-ibm-c4-disc", "");
 
     // Mermaid also pins the label text white; let the theme decide.
     for (const label of node.querySelectorAll("[style*='#FFFFFF' i]")) {
@@ -243,7 +246,7 @@ function adoptC4Defaults(svg) {
 }
 
 const CLUSTER_GROUPS = "g.cluster, g.statediagram-cluster, g.subgraph";
-const TAG_ATTRS = ["data-ibm-group", "data-ibm-series", "data-ibm-stroked", "data-ibm-on-mark", "data-ibm-carded", "data-ibm-c4", "data-ibm-note", "data-ibm-class-kind"];
+const TAG_ATTRS = ["data-ibm-group", "data-ibm-series", "data-ibm-stroked", "data-ibm-on-mark", "data-ibm-carded", "data-ibm-c4", "data-ibm-arch-group", "data-ibm-c4-disc", "data-ibm-c4-system", "data-ibm-members", "data-ibm-note", "data-ibm-class-kind"];
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 function diagramKind(svg) {
@@ -307,6 +310,10 @@ function clearPaint(svg) {
     for (const element of svg.querySelectorAll(`[${attr}]`)) element.removeAttribute(attr);
   }
   svg.querySelectorAll("rect.ibm-class-card, path.ibm-class-head, path.ibm-class-icon, rect.ibm-note-card, path.ibm-note-icon").forEach(element => element.remove());
+  for (const style of svg.querySelectorAll("style[data-ibm-style-text]")) {
+    style.textContent = style.getAttribute("data-ibm-style-text");
+    style.removeAttribute("data-ibm-style-text");
+  }
   for (const shape of svg.querySelectorAll("[data-ibm-c4-style]")) {
     shape.setAttribute("style", shape.getAttribute("data-ibm-c4-style"));
     shape.removeAttribute("data-ibm-c4-style");
@@ -324,6 +331,39 @@ function clearPaint(svg) {
   }
   svg.removeAttribute("data-ibm-theme");
 }
+/* Mermaid writes some colors and sizes as inline styles, and pins others with `!important` inside the SVG's own
+   <style>. Both beat any ordinary selector, so the theme would need `!important` to restyle them. They are released
+   here instead, and the theme uses plain selectors. The originals are stashed and put back by clearPaint. */
+const RELEASE_INLINE = {
+  quadrantChart: [["g.border line", ["stroke", "stroke-width"]]],
+  treemap: [["text.treemapSectionLabel, text.treemapSectionValue, text.treemapLabel, text.treemapValue", ["fill", "stroke"]]],
+  venn: [["text.label", ["font-size"]]],
+  pie: [["g.legend rect", ["fill", "stroke"]]]
+};
+
+function releaseInlineStyles(svg, kind) {
+  for (const [selector, properties] of RELEASE_INLINE[kind] || []) {
+    for (const element of svg.querySelectorAll(selector)) {
+      stashStyle(element);
+      for (const property of properties) element.style.removeProperty(property);
+    }
+  }
+  if (kind === "architecture") {
+    // The service-group boxes are told apart by their inline fill, which is released with it.
+    for (const rect of svg.querySelectorAll('svg rect[style*="#087ebf" i]')) {
+      rect.setAttribute("data-ibm-arch-group", "");
+      stashStyle(rect);
+      rect.style.removeProperty("fill");
+    }
+  }
+  if (kind === "gantt") {
+    for (const style of svg.querySelectorAll("style")) {
+      if (!style.hasAttribute("data-ibm-style-text")) style.setAttribute("data-ibm-style-text", style.textContent);
+      style.textContent = style.getAttribute("data-ibm-style-text").replace(/\s*!important/g, "");
+    }
+  }
+}
+
 /* Plugin-built decorations survive a repaint (they carry no colors); the
    data-ibm-*-fixed / -table markers keep them from being built twice. */
 
@@ -333,6 +373,7 @@ function paintDiagram(svg, isDark) {
   const structural = STRUCTURAL_KINDS.has(kind);
   const series = SERIES_KINDS.has(kind);
 
+  releaseInlineStyles(svg, kind);
   if (structural) tagGroups(svg);
   if (kind === "class" || kind === "classDiagram") drawClassCards(svg);
   if (series) tagSeries(svg);
@@ -1362,6 +1403,7 @@ function drawClassCards(svg) {
   drawClassNotes(svg);
   for (const node of svg.querySelectorAll("g.node")) {
     if (!node.querySelector(".members-group, .methods-group")) continue;
+    if (node.querySelector(".members-group")) node.setAttribute("data-ibm-members", "");
     const outline = node.querySelector(":scope > path, :scope > g > path, :scope > rect");
     if (!outline) continue;
     const box = outline.getBBox();

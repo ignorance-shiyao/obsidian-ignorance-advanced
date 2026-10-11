@@ -68,7 +68,7 @@ await build({
 });
 
 // 4. Styles: the plugin's functional layout rules plus the vendored Reveal.js ones.
-const styles = await Promise.all(["styles.css", "reveal.css"].map(name => readFile(path.join(here, name), "utf8")));
+const styles = await Promise.all(["styles.css", "theme-features.css", "reveal.css"].map(name => readFile(path.join(here, name), "utf8")));
 await writeFile(path.join(dist, "styles.css"), styles.join("\n\n"));
 await copyFile(path.join(here, "manifest.json"), path.join(dist, "manifest.json"));
 

@@ -67,7 +67,7 @@ Ignorance Advanced bundles the open-source software below. Each remains under it
 | html2canvas-pro | 2.4.5 | MIT |
 | https | 1.0.0 | ISC |
 | ieee754 | 1.2.1 | BSD-3-Clause |
-| image-size | 1.2.1 | MIT |
+| image-size | 2.0.4 | MIT |
 | immediate | 3.0.6 | MIT |
 | inflight | 1.0.6 | ISC |
 | inherits | 2.0.4 | ISC |
@@ -90,7 +90,7 @@ Ignorance Advanced bundles the open-source software below. Each remains under it
 | lodash.isundefined | 3.0.1 | MIT |
 | lodash.union | 4.6.0 | MIT |
 | lodash.uniq | 4.5.0 | MIT |
-| markdown-it | 14.3.0 | MIT |
+| markdown-it | 14.3.2 | MIT |
 | material-icon-theme | 5.39.0 | MIT |
 | mdurl | 2.1.0 | MIT |
 | minimalistic-assert | 1.0.1 | ISC |
@@ -107,7 +107,6 @@ Ignorance Advanced bundles the open-source software below. Each remains under it
 | pptxgenjs | 4.0.1 | MIT |
 | process-nextick-args | 2.0.1 | MIT |
 | punycode.js | 2.3.1 | MIT |
-| queue | 6.0.2 | MIT |
 | readable-stream | 2.3.8 | MIT |
 | readable-stream | 3.6.2 | MIT |
 | readdir-glob | 1.1.3 | Apache-2.0 |

@@ -10,13 +10,21 @@ function metadata(lines, start) {
   const match = marker.exec(lines[line] || "");
   return { line: match ? line : null, alignment: match?.[1] || null };
 }
+// The theme positions Live Preview tables through the wrapper Obsidian puts around them, so it carries the value too.
+function setAlignment(table: HTMLElement, value: string | null) {
+  if (value) table.dataset.ibTableAlign = value;
+  else delete table.dataset.ibTableAlign;
+  const wrapper = table.parentElement;
+  if (!wrapper?.classList.contains("table-wrapper")) return;
+  if (value) wrapper.dataset.ibTableAlign = value;
+  else delete wrapper.dataset.ibTableAlign;
+}
 export function applyTableSourceAlignment(root, source) {
   const entries = tables(source), lines = source.split("\n");
   [...root.querySelectorAll("table")].forEach((table: HTMLElement, index) => {
     if (table.closest(".markdown-embed, .internal-embed")) return;
     const value = entries[index] ? metadata(lines, entries[index].map[0]).alignment : null;
-    if (value) table.dataset.ibTableAlign = value;
-    else delete table.dataset.ibTableAlign;
+    setAlignment(table, value);
   });
 }
 // Obsidian reuses an already rendered table section when only the marker comment above it changed
@@ -40,7 +48,7 @@ export function tableAlignmentControl(plugin, table, path, ordinal) {
     const lines = source.split("\n"), start = entry.map[0];
     return { editor, file, source, lines, start, ...metadata(lines, start) };
   };
-  void locate().then(found => { if (found.alignment) table.dataset.ibTableAlign = found.alignment; }).catch(() => {});
+  void locate().then(found => { if (found.alignment) setAlignment(table, found.alignment); }).catch(() => {});
   return host => {
     const button = host.createEl("button", {cls:"ibt-align",attr:{type:"button",title:"表格位置","aria-label":"表格位置"}});
     setIcon(button, UI_ICONS.alignCenter);
@@ -53,7 +61,7 @@ export function tableAlignmentControl(plugin, table, path, ordinal) {
         // Position is pure CSS: show it at once, then persist the marker. Saving re-renders the
         // note, so the reading position is held until that settles.
         const release = holdScrollPosition(table);
-        if (id === "default") delete table.dataset.ibTableAlign; else table.dataset.ibTableAlign = id;
+        setAlignment(table, id === "default" ? null : id);
         try {
           const found = await locate();
           if (found.line !== null) {
@@ -71,7 +79,7 @@ export function tableAlignmentControl(plugin, table, path, ordinal) {
           } else await plugin.app.vault.process(found.file, () => text);
         } catch(error) {
           release();
-          if (previous === "default") delete table.dataset.ibTableAlign; else table.dataset.ibTableAlign = previous;
+          setAlignment(table, previous === "default" ? null : previous);
           new Notice(`表格位置未保存：${saveErrorMessage(error)}`);
         }
       }));
