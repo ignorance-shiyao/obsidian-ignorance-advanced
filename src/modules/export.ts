@@ -1,4 +1,4 @@
-import { electronRemote, hasDesktopExports } from "./desktop-runtime.js";
+import { electronRemote, hasDesktopExports, vaultBasePath } from "./desktop-runtime.js";
 import { prepareMarkdownTextForPandoc } from "./pandoc-markdown.js";
 import { composePages } from "./reading-pagination.js";
 import { MM, paperSize } from "./page-controls.js";
@@ -550,7 +550,7 @@ async function toPngFile(src, dest) {
 /* Rewrite Obsidian-only syntax into plain Markdown Pandoc understands. */
 async function prepareMarkdownForPandoc(plugin, file, text, tmp, diagrams, { structuredWord = false } = {}) {
   const path = require("path");
-  const base = plugin.app.vault.adapter.getBasePath();
+  const base = vaultBasePath(plugin);
   const noteDir = path.join(base, file.parent?.path || "");
   let imageIndex = 0;
   const resolveLocalImage = async target => {
@@ -580,7 +580,7 @@ async function resolveStructuredWordImage(plugin, file, tmp, source) {
   }
   if (/^(?:https?:|mailto:)/i.test(source)) return null;
 
-  const base = plugin.app.vault.adapter.getBasePath();
+  const base = vaultBasePath(plugin);
   const clean = decodeURIComponent(String(source).replace(/^<|>$/g, "").split("#")[0]);
   const linked = plugin.app.metadataCache.getFirstLinkpathDest(clean, file.path);
   let absolute = linked ? path.join(base, linked.path) : (path.isAbsolute(clean) ? clean : path.resolve(base, file.parent?.path || "", clean));
@@ -741,7 +741,7 @@ async function exportWord(plugin, file, targetPath, options = {}) {
 
     const source = path.join(tmp, "note.md");
     fs.writeFileSync(source, markdown);
-    const base = plugin.app.vault.adapter.getBasePath();
+    const base = vaultBasePath(plugin);
     await new Promise((resolve, reject) => {
       require("child_process").execFile(pandoc, [
         source, "-f", "markdown+mark+pipe_tables+tex_math_dollars+task_lists", "-t", "docx",

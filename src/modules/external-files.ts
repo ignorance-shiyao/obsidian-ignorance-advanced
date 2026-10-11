@@ -8,7 +8,7 @@
    the original as they happen, changes made to the original elsewhere are
    pulled in when the copy is focused again, and the copy is removed once no tab
    shows it. */
-import { electronRemote, hasDesktopExports } from "./desktop-runtime.js";
+import { electronRemote, hasDesktopExports, vaultBasePath } from "./desktop-runtime.js";
 import { EXTERNAL_VIEW, ExternalMarkdownView } from "./external-view.js";
 
 const { Notice, TFile, normalizePath } = require("obsidian");
@@ -20,8 +20,7 @@ function nodeFs() { return require("fs"); }
 function nodePath() { return require("path"); }
 
 function vaultRoot(plugin) {
-  const adapter = plugin.app.vault.adapter;
-  return typeof adapter?.getBasePath === "function" ? adapter.getBasePath() : "";
+  return vaultBasePath(plugin);
 }
 
 function links(plugin) {

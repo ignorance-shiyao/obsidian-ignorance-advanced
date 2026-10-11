@@ -1,5 +1,6 @@
 import { materializeConverters } from "./assets.js";
 import { findPandoc } from "./export.js";
+import { vaultFullPath } from "./desktop-runtime.js";
 const { Notice, Setting, Platform, Menu, FileView, Modal } = require("obsidian");
 
 const HTML_READONLY_VIEW = "ignorance-html-readonly";
@@ -246,7 +247,7 @@ async function runFileTool(label, task) {
 }
 
 function fullVaultPath(plugin, file) {
-  const fullPath = plugin.app.vault.adapter.getFullPath(file.path);
+  const fullPath = vaultFullPath(plugin, file.path);
   if (!fullPath) throw new Error("无法取得文件的系统路径");
   return fullPath;
 }
@@ -628,7 +629,7 @@ async function importDocxAsMarkdown(plugin, file, noteName) {
   const outputPath = path.join(tempRoot, "import.md");
   const createdFiles = [];
   try {
-    const inputPath = vault.adapter.getFullPath(file.path);
+    const inputPath = vaultFullPath(plugin, file.path);
     await execFileAsync(pandoc, [
       inputPath, "-f", "docx", "-t", "gfm", "--extract-media=media", "-o", "import.md"
     ], { cwd: tempRoot, timeout: 120000, maxBuffer: 16 * 1024 * 1024 });
