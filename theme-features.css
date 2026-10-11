@@ -3122,3 +3122,10 @@ tr[data-ib-level="3"] > :first-child { padding-inline-start: 4em; }
 .reveal.ibp-stepping .slide-body > *, .reveal.ibp-stepping .slide-inner > * { transition: opacity .25s ease, filter .25s ease; }
 .ibp-quiet .ibp-presentation-toolbar { opacity: 0; transition: opacity .2s ease; }
 .ibp-quiet .ibp-presentation-toolbar:hover, .ibp-quiet .ibp-presentation-toolbar:focus-within { opacity: 1; }
+
+/* ---- Page footer text ---- */
+.ibp-page-footer {
+  position: absolute; bottom: calc(var(--ibp-mb) / 2); left: var(--ibp-ml); right: calc(var(--ibp-mr) + 6em);
+  transform: translateY(50%); overflow: hidden; color: var(--text-faint); font-size: var(--font-ui-smaller);
+  text-overflow: ellipsis; white-space: nowrap;
+}

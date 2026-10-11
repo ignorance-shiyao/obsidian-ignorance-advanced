@@ -3,6 +3,7 @@ import { toggleWritingMode } from "./editor-tools.js";
 import { openPresentation } from "./slides.js";
 import { PAPERS, MARGIN_PRESETS, paperSize, paperMarginsForPreset } from "./paper.js";
 import { PAGE_PRESETS, applyPagePreset } from "./page-presets.js";
+import { FOOTER_CHOICES, promptFooter } from "./page-footer.js";
 import { HEADING_FONT_OPTIONS } from "./fonts.js";
 import { applyAppearancePreferences } from "./appearance.js";
 const { Menu } = require("obsidian");
@@ -24,7 +25,7 @@ function pageDefaults() {
     width: "standard", customWidth: 900, paged: false,
     paper: "A4", customPaper: { w: 210, h: 297 }, landscape: false,
     marginPreset: "normal", margins: { ...MARGIN_PRESETS.normal },
-    pageNumber: "center", pageNumberFormat: "plain", runningHeader: "none", breakMode: "whitespace"
+    pageNumber: "center", pageNumberFormat: "plain", runningHeader: "none", footerText: "", breakMode: "whitespace"
   };
 }
 
@@ -219,6 +220,11 @@ function installPageControls(plugin, showExportMenu) {
     });
     submenu(menu, "页眉", "panel-top", headers => {
       for (const [id, label] of [["none", "不显示"], ["chapter", "章节名"]]) choice(headers, label, (p.runningHeader || "none") === id, () => { p.runningHeader = id; save(); });
+    });
+    submenu(menu, "页脚", "panel-bottom", footers => {
+      for (const [template, label] of FOOTER_CHOICES) choice(footers, label, (p.footerText || "") === template, () => { p.footerText = template; save(); });
+      const custom = !FOOTER_CHOICES.some(([template]) => template === (p.footerText || ""));
+      choice(footers, custom ? `自定义：${p.footerText}` : "自定义…", custom, () => promptFooter(plugin, p.footerText || "", value => { p.footerText = value.trim(); save(); }));
     });
     const box = anchor.getBoundingClientRect();
     menu.showAtPosition({ x: box.left, y: box.bottom + 6 });

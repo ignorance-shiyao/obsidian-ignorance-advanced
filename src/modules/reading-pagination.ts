@@ -1,6 +1,7 @@
 import { waitForStableLayout } from "./layout-stability.js";
 import { createIsolatedStaging, stagingStyleSheet } from "./isolated-staging.js";
 import { PAGE_NUMBER_FORMATS } from "./page-numbers.js";
+import { addPageFooters } from "./page-footer.js";
 import { nextFrame } from "./export.js";
 import { firstScreenSource } from "./first-screen-source.js";
 import { renderBudget } from "./render-budget.js";
@@ -593,6 +594,7 @@ async function composePages(plugin, file, text, book, component, { keepStrip = f
       pages.push(makePage(blocks, windows[index], index, windows.length, page, bodyBox.height));
     }
     addRunningHeaders(pages, page);
+    addPageFooters(pages, page.footerText, file.basename);
     // Replacing an edited page removes the browser's scroll anchor. Capture
     // the current viewport at publication time, after any user scroll during
     // asynchronous rendering, and restore it in the same frame.
