@@ -30,6 +30,7 @@ import { installWebClip } from "./modules/web-clip.js";
 import { installReadingTime } from "./modules/reading-time.js";
 import { openSyntaxGuide, showFirstRunHint } from "./modules/syntax-guide.js";
 import { installHeadingNumbers } from "./modules/heading-numbers.js";
+import { headingNumbersEditorExtension } from "./modules/heading-numbers-editor.js";
 import { installTableExtras } from "./modules/table-merge.js";
 import { installCaptions } from "./modules/captions.js";
 import { installReadingCover } from "./modules/reading-cover.js";
@@ -355,6 +356,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     // Render Markdown ::: containers while the cursor is outside their source.
     this.registerEditorExtension(containerEditorExtension(this));
     this.registerEditorExtension(inlineSyntaxEditorExtension(this));
+    this.registerEditorExtension(headingNumbersEditorExtension(this));
     // Paged view in the editor: push blocks that would cross a page bottom.
     // Format Markdown tables and provide cell/row keyboard navigation.
     this.registerEditorExtension(tableEditorExtension);
@@ -1069,6 +1071,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.state.codeLineNumbers = this.state.codeLineNumbers === true;
     this.state.smartPunctuation = this.state.smartPunctuation === true;
     this.state.headingNumbers = this.state.headingNumbers === true;
+    this.state.headingNumberStyle = this.state.headingNumberStyle === "chinese" ? "chinese" : "decimal";
     this.state.captions = this.state.captions === true;
     this.state.grayDates = typeof this.state.grayDates === "string" ? this.state.grayDates : "";
     this.state.writingModes = Object.assign(writingModeDefaults(), this.state.writingModes || {});

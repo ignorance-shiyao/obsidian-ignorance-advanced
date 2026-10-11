@@ -3138,3 +3138,4 @@ tr[data-ib-level="3"] > :first-child { padding-inline-start: 4em; }
 .ib-cover-block__meta { margin-top: var(--ib-space-3, 12px); color: var(--ib-text-muted, var(--text-faint)); font-size: .9em; }
 .ib-cover-block__tags { display: flex; flex-wrap: wrap; gap: .4em; margin-top: var(--ib-space-3, 12px); }
 .ib-cover-block__tag { padding: 0 .6em; border-radius: 999px; background: var(--ib-accent-subtle, var(--background-modifier-hover)); color: var(--ib-text-accent, var(--text-accent)); font-size: .8em; font-weight: 600; }
+.ib-heading-number--editor { margin-inline-end: .45em; font-weight: 600; opacity: .85; }

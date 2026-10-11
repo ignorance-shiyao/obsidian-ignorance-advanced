@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { numberHeadings } from "./heading-numbers";
+import { chineseNumeral, formatNumber, numberHeadings, scanHeadings } from "./heading-numbers";
 
 const at = (levels: number[]) => levels.map((level, index) => ({ level, line: index }));
 const texts = (levels: number[]) => [...numberHeadings(at(levels)).values()];
@@ -19,5 +19,19 @@ describe("标题编号", () => {
   });
   it("没有标题时返回空", () => {
     expect(numberHeadings([]).size).toBe(0);
+  });
+
+  it("中文数字", () => {
+    expect([1, 9, 10, 11, 20, 23, 99, 100].map(chineseNumeral)).toEqual(["一", "九", "十", "十一", "二十", "二十三", "九十九", "100"]);
+  });
+  it("中文编号风格：一、（一）1.（1）", () => {
+    const entries = at([2, 3, 4, 5, 2]);
+    expect([...numberHeadings(entries, 4, "chinese").values()]).toEqual(["一、", "（一）", "1.", "（1）", "二、"]);
+    expect(formatNumber([3, 2], "decimal")).toBe("3.2");
+  });
+
+  it("扫描文档里的标题，跳过属性区和代码块", () => {
+    const lines = ["---", "title: x", "---", "# 标题", "```md", "## 不算", "```", "## 概述", "正文", "### 细节"];
+    expect(scanHeadings(lines)).toEqual([{ level: 1, line: 3, offset: 2 }, { level: 2, line: 7, offset: 3 }, { level: 3, line: 9, offset: 4 }]);
   });
 });

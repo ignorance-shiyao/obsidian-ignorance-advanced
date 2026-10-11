@@ -39,9 +39,14 @@ class IgnoranceSettingTab extends PluginSettingTab {
             state.appearance.tableAlignment = value; applyAppearancePreferences(plugin); plugin.saveStoredState();
           })) },
         { name: "标题自动编号", desc: "阅读视图的标题前显示 1、1.1、1.1.1 这样的编号；也可以只在某篇笔记的 cssclasses 里写 ib-numbered（写 ib-unnumbered 则关闭）。", aliases: ["heading numbers"], add: toggle(() => state.headingNumbers === true, value => {
-          state.headingNumbers = value; plugin.saveStoredState();
+          state.headingNumbers = value; plugin.saveStoredState(); plugin.app.workspace.updateOptions();
           for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) leaf.view.previewMode?.rerender?.(true);
         }) },
+        { name: "标题编号风格", desc: "「1.1」是 1、1.1、1.1.1；「一、」是 一、（一）、1.、（1）。", aliases: ["heading number style"], add: setting => setting.addDropdown(dropdown => dropdown
+          .addOptions({ decimal: "1.1", chinese: "一、（一）" }).setValue(state.headingNumberStyle || "decimal").onChange(value => {
+            state.headingNumberStyle = value; plugin.saveStoredState(); plugin.app.workspace.updateOptions();
+            for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) leaf.view.previewMode?.rerender?.(true);
+          })) },
         { name: "图表题注与编号", desc: "阅读视图里给图片和表格加「图 1」「表 1」题注并支持 ((ref:标识)) 交叉引用；图片的 alt 作为图注，表格下一行写「表：说明」。也可以只在某篇笔记的 cssclasses 里写 ib-captions。", aliases: ["captions", "figure numbers"], add: toggle(() => state.captions === true, value => {
           state.captions = value; plugin.saveStoredState();
           for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) leaf.view.previewMode?.rerender?.(true);
