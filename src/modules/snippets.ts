@@ -24,6 +24,30 @@ export const SNIPPET_TEMPLATES = [
     ].join("\n")
   },
   {
+    id: "tabs",
+    name: "插入块模板：页签",
+    body: [
+      "::: tabs",
+      "::: tab ⟦第一页⟧",
+      "第一页的内容。",
+      ":::",
+      "::: tab 第二页",
+      "第二页的内容。",
+      ":::",
+      ":::"
+    ].join("\n")
+  },
+  {
+    id: "inline-badge",
+    name: "插入行内组件：两段徽章",
+    body: "((green:⟦构建⟧ | 通过))"
+  },
+  {
+    id: "inline-spoiler",
+    name: "插入行内组件：点击显示",
+    body: "((spoiler:⟦答案⟧))"
+  },
+  {
     id: "timeline",
     name: "插入块模板：时间线",
     body: [

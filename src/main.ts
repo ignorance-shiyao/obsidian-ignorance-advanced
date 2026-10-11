@@ -28,6 +28,7 @@ import { installHeaderPath } from "./modules/header-path.js";
 import { installExternalFiles } from "./modules/external-files.js";
 import { installWebClip } from "./modules/web-clip.js";
 import { installReadingTime } from "./modules/reading-time.js";
+import { openSyntaxGuide, showFirstRunHint } from "./modules/syntax-guide.js";
 import { installMoreMenuFilter } from "./modules/more-menu.js";
 import { colorSwatchExtension, colorSwatchPostProcessor } from "./modules/color-swatch.js";
 import * as TocModule from "./modules/toc.js";
@@ -492,7 +493,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.exporters = { pdf: exportPdf, word: exportWord, images: exportImages, richCopy: prepareRichCopyMarkup, copyFormatted: copyFormattedNote, html: prepareHtmlDocument, exportHtml, pptx: exportNotePptx };
 
     // Default new-tab behavior is applied at the Workspace API boundary.
-    this.app.workspace.onLayoutReady(() => installTabOpening(this));
+    this.app.workspace.onLayoutReady(() => { installTabOpening(this); showFirstRunHint(this); });
 
     // Desktop profile controls and mobile ribbon / note-menu controls share
     // the same theme preferences and switching behavior.
@@ -588,6 +589,12 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
         }
       });
     }
+
+    this.addCommand({
+      id: "open-syntax-guide",
+      name: "打开语法速查",
+      callback: () => void openSyntaxGuide(this)
+    });
 
     this.addCommand({
       id: "reset-active-mermaid-view",
@@ -1033,6 +1040,8 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.state.fileTools = Object.assign(fileToolsDefaults(), this.state.fileTools || {});
     this.state.webClip = Object.assign({ watchClipboard: false, folder: "" }, this.state.webClip || {});
     this.state.readingTime = Object.assign({ enabled: true }, this.state.readingTime || {});
+    // Existing installs have stored data and have already found their way around; only a fresh install gets the hint.
+    if (this.state.introShown === undefined) this.state.introShown = Boolean(stored);
     this.state.fileTools.apps = Array.isArray(this.state.fileTools.apps)
       ? this.state.fileTools.apps.filter(value => typeof value === "string")
       : [];

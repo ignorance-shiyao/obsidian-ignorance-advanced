@@ -1,5 +1,6 @@
 import * as Appearance from "./appearance.js";
 import { LINE_HEIGHT_PRESETS } from "./line-height.js";
+import { openSyntaxGuide } from "./syntax-guide.js";
 const { applyAppearancePreferences } = Appearance;
 const { PluginSettingTab, Setting, Platform } = require("obsidian");
 
@@ -63,6 +64,10 @@ class IgnoranceSettingTab extends PluginSettingTab {
           add: toggle(() => Boolean(state.tabs.deduplicateTabs), value => { state.tabs.deduplicateTabs = value; plugin.saveStoredState(); }) }
       ] }
     ];
+    groups.push({ heading: "帮助", items: [
+      { name: "语法速查", desc: "在库根目录生成一页写法速查笔记并打开；已存在则直接打开。", aliases: ["syntax", "cheat sheet", "帮助"], add: setting => setting.addButton(button =>
+        button.setButtonText("打开").onClick(() => void openSyntaxGuide(plugin))) }
+    ] });
     if (Platform.isMacOS) {
       groups.push({ heading: "文件", items: [
         { name: "「用…打开」的程序", desc: "每行一个应用名称或 .app 路径，会出现在文件右键菜单中。", add: setting => setting.addTextArea(text => {
