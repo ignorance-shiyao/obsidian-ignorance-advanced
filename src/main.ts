@@ -1063,7 +1063,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.state.grayDates = typeof this.state.grayDates === "string" ? this.state.grayDates : "";
     this.state.writingModes = Object.assign(writingModeDefaults(), this.state.writingModes || {});
     this.state.fileTools = Object.assign(fileToolsDefaults(), this.state.fileTools || {});
-    this.state.webClip = Object.assign({ watchClipboard: false, folder: "" }, this.state.webClip || {});
+    this.state.webClip = Object.assign({ watchClipboard: false, folder: "", byDomain: false }, this.state.webClip || {});
     this.state.readingTime = Object.assign({ enabled: true }, this.state.readingTime || {});
     // Existing installs have stored data and have already found their way around; only a fresh install gets the hint.
     if (this.state.introShown === undefined) this.state.introShown = Boolean(stored);

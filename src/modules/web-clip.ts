@@ -156,6 +156,11 @@ function uniquePath(vault, folder, name, except) {
 
 /* Clip `url`; into `target` (an existing note, renamed after the article) or a
    new note in the clipping folder. Returns the note. */
+/** Sub-folder named after the site, for "sort clippings by site". */
+export function siteFolder(url) {
+  try { return new URL(url).hostname.replace(/^www\./, "").replace(/[\\/:*?"<>|]/g, "-"); } catch (_) { return ""; }
+}
+
 export async function clipUrl(plugin, url, target = null) {
   const vault = plugin.app.vault;
   const notice = new Notice("正在剪藏…", 0);
@@ -163,11 +168,14 @@ export async function clipUrl(plugin, url, target = null) {
     const article = await fetchArticle(url);
     const title = article.title || url;
     const name = safeNoteName(title);
-    const folder = target?.parent?.path && target.parent.path !== "/" ? target.parent.path : clipFolder(plugin);
-    if (!vault.getAbstractFileByPath(folder)) await vault.createFolder(folder).catch(() => {});
+    const base = clipFolder(plugin);
+    const inPlace = Boolean(target?.parent?.path && target.parent.path !== "/");
+    const site = !inPlace && plugin.state.webClip?.byDomain ? siteFolder(url) : "";
+    const folder = inPlace ? target.parent.path : site ? `${base}/${site}` : base;
+    for (const path of [base, folder]) if (!vault.getAbstractFileByPath(path)) await vault.createFolder(path).catch(() => {});
     await saveImages(plugin, article.body, folder, safeAssetStem(name), (i, n) => notice.setMessage(`正在剪藏：保存图片 ${i} / ${n}`));
     const markdown = tidyMarkdown(htmlToMarkdown(article.body.innerHTML));
-    const text = `${frontmatter({ ...article, title, url, tag: folder.split("/").pop() })}${markdown}\n`;
+    const text = `${frontmatter({ ...article, title, url, tag: (inPlace ? folder : base).split("/").pop() })}${markdown}\n`;
     let note = target;
     if (note) {
       await vault.process(note, () => text);

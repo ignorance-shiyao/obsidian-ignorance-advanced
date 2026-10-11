@@ -68,7 +68,8 @@ class IgnoranceSettingTab extends PluginSettingTab {
       { heading: "剪藏", items: [
         { name: "回到 Obsidian 时检测剪贴板里的链接", desc: CLIPBOARD_DESC, add: toggle(() => Boolean(state.webClip?.watchClipboard), value => { state.webClip.watchClipboard = value; plugin.saveStoredState(); }) },
         { name: "剪藏文件夹", desc: "网页剪藏的笔记和图片保存到这里，文件夹名同时作为笔记标签。默认 Clippings。", aliases: ["clippings"], add: setting => setting.addText(text => text.setPlaceholder("Clippings")
-          .setValue(state.webClip?.folder || "").onChange(value => { state.webClip.folder = value.trim(); plugin.saveStoredState(); })) }
+          .setValue(state.webClip?.folder || "").onChange(value => { state.webClip.folder = value.trim(); plugin.saveStoredState(); })) },
+        { name: "按网站分类", desc: "剪藏时在剪藏文件夹下按网站名建子文件夹，例如 Clippings/example.com/。", aliases: ["sort by site"], add: toggle(() => Boolean(state.webClip?.byDomain), value => { state.webClip.byDomain = value; plugin.saveStoredState(); }) }
       ] },
       { heading: "标签页", items: [
         { name: "在新标签页打开文件", desc: "从文件列表或内部链接打开文件时新建标签页。", add: toggle(() => Boolean(state.tabs.openInNewTab), value => {
