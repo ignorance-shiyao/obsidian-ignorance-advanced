@@ -3116,3 +3116,9 @@ tr[data-ib-level="3"] > :first-child { padding-inline-start: 4em; }
 .markdown-reading-view:not(.ibp-book-host) .el-table.ib-table-tall { max-height: min(70vh, 640px); overflow-y: auto; }
 .markdown-reading-view:not(.ibp-book-host) .el-table.ib-table-tall > table thead th:not(#_ib) { position: sticky; top: 0; z-index: 3; background: var(--ib-table-heading-bg, var(--background-secondary)); }
 @media print { .markdown-reading-view .el-table.ib-table-tall { max-height: none; overflow: visible; } }
+
+/* ---- Presentation: step-by-step reveal and quiet view ---- */
+.reveal.ibp-stepping .ibp-step-hidden { opacity: .08; filter: blur(2px); transition: opacity .25s ease, filter .25s ease; }
+.reveal.ibp-stepping .slide-body > *, .reveal.ibp-stepping .slide-inner > * { transition: opacity .25s ease, filter .25s ease; }
+.ibp-quiet .ibp-presentation-toolbar { opacity: 0; transition: opacity .2s ease; }
+.ibp-quiet .ibp-presentation-toolbar:hover, .ibp-quiet .ibp-presentation-toolbar:focus-within { opacity: 1; }

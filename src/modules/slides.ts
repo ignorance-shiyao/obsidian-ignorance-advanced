@@ -398,9 +398,9 @@ class PresentationView extends ItemView {
   buildToolbar() {
     addToolbarButton(this.toolbar, "lucide-file-text", "返回笔记", () => { void this.returnToNote(); });
     addToolbarSeparator(this.toolbar);
-    this.prevButton = addToolbarButton(this.toolbar, "lucide-chevron-left", "上一页", () => this.deck?.prev());
+    this.prevButton = addToolbarButton(this.toolbar, "lucide-chevron-left", "上一页", () => this.goPrev());
     this.counter = this.toolbar.createDiv({ cls: "ibp-presentation-counter", text: "– / –" });
-    this.nextButton = addToolbarButton(this.toolbar, "lucide-chevron-right", "下一页", () => this.deck?.next());
+    this.nextButton = addToolbarButton(this.toolbar, "lucide-chevron-right", "下一页", () => this.goNext());
     addToolbarSeparator(this.toolbar);
 
     const settings = this.plugin.state.presentation;
@@ -425,6 +425,8 @@ class PresentationView extends ItemView {
     this.pointerButtons = [];
     this.pointerButtons.push(addToolbarButton(this.toolbar, "lucide-crosshair", "激光笔（再点一次关闭）", () => this.setPointerTool("laser"), { tool: "laser" }));
     this.pointerButtons.push(addToolbarButton(this.toolbar, "lucide-flashlight", "聚光灯（再点一次关闭）", () => this.setPointerTool("spot"), { tool: "spot" }));
+    this.stepButtons = [addToolbarButton(this.toolbar, "lucide-list-start", "逐段显示：每按一次下一页先显示下一段（再点一次关闭）", () => this.setStepMode(!this.stepMode))];
+    addToolbarButton(this.toolbar, "lucide-eye-off", "安静视图：隐藏工具栏，鼠标移到顶部时显示", () => this.contentEl.classList.toggle("ibp-quiet"));
     addToolbarSeparator(this.toolbar);
     addToolbarButton(this.toolbar, "lucide-maximize", "全屏放映", () => {
       const root = this.stage.querySelector(".reveal");
@@ -476,7 +478,7 @@ class PresentationView extends ItemView {
       if (notch) {
         if (now - lastTurn < 120) return;
         lastTurn = now;
-        if (delta > 0) this.deck.next(); else this.deck.prev();
+        if (delta > 0) this.goNext(); else this.goPrev();
         return;
       }
       // Trackpad: the swipe ends when events pause.
@@ -485,7 +487,7 @@ class PresentationView extends ItemView {
       if (swipeLocked) return;
       sum += delta;
       if (Math.abs(sum) < 40) return;
-      if (sum > 0) this.deck.next(); else this.deck.prev();
+      if (sum > 0) this.goNext(); else this.goPrev();
       sum = 0;
       swipeLocked = true;
       lastTurn = now;
@@ -496,13 +498,15 @@ class PresentationView extends ItemView {
      control: shown while the pointer moves, faded out after a short idle. */
   buildFullscreenNav(reveal) {
     const nav = reveal.createDiv({ cls: "ibp-fullscreen-nav" });
-    this.fullscreenPrev = addToolbarButton(nav, "lucide-chevron-left", "上一页", () => this.deck?.prev());
+    this.fullscreenPrev = addToolbarButton(nav, "lucide-chevron-left", "上一页", () => this.goPrev());
     this.fullscreenCounter = nav.createDiv({ cls: "ibp-presentation-counter" });
-    this.fullscreenNext = addToolbarButton(nav, "lucide-chevron-right", "下一页", () => this.deck?.next());
+    this.fullscreenNext = addToolbarButton(nav, "lucide-chevron-right", "下一页", () => this.goNext());
     addToolbarSeparator(nav);
     this.pointerButtons = (this.pointerButtons || []).filter(button => button.isConnected && !nav.contains(button));
     this.pointerButtons.push(addToolbarButton(nav, "lucide-crosshair", "激光笔", () => this.setPointerTool("laser"), { tool: "laser" }));
     this.pointerButtons.push(addToolbarButton(nav, "lucide-flashlight", "聚光灯", () => this.setPointerTool("spot"), { tool: "spot" }));
+    this.stepButtons = (this.stepButtons || []).filter(button => button.isConnected && !nav.contains(button));
+    this.stepButtons.push(addToolbarButton(nav, "lucide-list-start", "逐段显示", () => this.setStepMode(!this.stepMode)));
     this.buildPointerOverlay(reveal);
     let idle = 0;
     const wake = () => {
@@ -528,6 +532,66 @@ class PresentationView extends ItemView {
       overlay.style.setProperty("--ibp-py", `${event.clientY - box.top}px`);
     });
     this.applyPointerTool();
+  }
+
+  /* Step-by-step reveal: the blocks of a slide appear one at a time (the unrevealed ones stay dimmed), so
+     "next" first shows the next block and only then moves to the next slide. */
+  slideBlocks(section) {
+    const host = section?.querySelector(".slide-body") || section?.querySelector(":scope > .slide-inner");
+    return host ? [...host.children].filter(element => element instanceof HTMLElement) : [];
+  }
+
+  showSteps(section, shown) {
+    const blocks = this.slideBlocks(section);
+    section.dataset.ibShown = String(shown);
+    blocks.forEach((block, index) => block.classList.toggle("ibp-step-hidden", index >= shown));
+  }
+
+  stepForward() {
+    const section = this.deck?.getCurrentSlide?.();
+    const blocks = this.slideBlocks(section);
+    if (blocks.length < 2) return false;
+    const shown = Number(section.dataset.ibShown || 1);
+    if (shown >= blocks.length) return false;
+    this.showSteps(section, shown + 1);
+    return true;
+  }
+
+  stepBack() {
+    const section = this.deck?.getCurrentSlide?.();
+    const shown = Number(section?.dataset.ibShown || 0);
+    if (!section || shown <= 1) return false;
+    this.showSteps(section, shown - 1);
+    return true;
+  }
+
+  goNext() { if (!(this.stepMode && this.stepForward())) this.deck?.next(); }
+  goPrev() { if (!(this.stepMode && this.stepBack())) this.deck?.prev(); }
+
+  onSlideChanged(event) {
+    const forward = (event?.indexh ?? 0) >= (this.lastSlideH ?? 0);
+    this.lastSlideH = event?.indexh ?? 0;
+    if (!this.stepMode) return;
+    const section = this.deck?.getCurrentSlide?.();
+    if (section) this.showSteps(section, forward ? 1 : this.slideBlocks(section).length);
+  }
+
+  setStepMode(on) {
+    this.stepMode = Boolean(on);
+    this.applyStepMode();
+  }
+
+  applyStepMode() {
+    this.root?.classList.toggle("ibp-stepping", Boolean(this.stepMode));
+    for (const button of this.stepButtons || []) button.classList.toggle("is-active", Boolean(this.stepMode));
+    if (!this.root) return;
+    if (this.stepMode) {
+      const section = this.deck?.getCurrentSlide?.();
+      if (section) this.showSteps(section, 1);
+    } else {
+      this.root.querySelectorAll(".ibp-step-hidden").forEach(element => element.classList.remove("ibp-step-hidden"));
+      this.root.querySelectorAll("[data-ib-shown]").forEach(element => element.removeAttribute("data-ib-shown"));
+    }
   }
 
   setPointerTool(tool) {
@@ -633,7 +697,15 @@ class PresentationView extends ItemView {
     if (token !== this.renderToken) { deck.destroy(); return; }
     deck.layout();
     deck.slide(this.preferredIndices[0], this.preferredIndices[1]);
-    deck.on("slidechanged", () => this.updateCounter());
+    deck.on("slidechanged", event => { this.onSlideChanged(event); this.updateCounter(); });
+    this.lastSlideH = deck.getIndices?.().h ?? 0;
+    // Capture phase, so a step is taken before Reveal sees the key.
+    reveal.addEventListener("keydown", event => {
+      if (!this.stepMode || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (["ArrowRight", "ArrowDown", "PageDown", " ", "Enter"].includes(event.key) && this.stepForward()) { event.preventDefault(); event.stopPropagation(); }
+      else if (["ArrowLeft", "ArrowUp", "PageUp"].includes(event.key) && this.stepBack()) { event.preventDefault(); event.stopPropagation(); }
+    }, true);
+    this.applyStepMode();
     this.updateCounter();
   }
 
@@ -649,9 +721,13 @@ class PresentationView extends ItemView {
     if (!filePath) return;
     this.exportButton?.addClass("is-busy");
     this.exportButton?.setAttr("disabled", "true");
+    // Every block must be fully visible in the export, whatever step the show is at.
+    const wasStepping = this.stepMode;
+    if (wasStepping) this.setStepMode(false);
     try {
       await exportDeckPptx({ plugin: this.plugin, reveal: this.root, entries: this.slideEntries, width: this.slideSize().width, height: this.slideSize().height }, filePath, mode);
     } finally {
+      if (wasStepping) this.setStepMode(true);
       this.exportButton?.removeClass("is-busy");
       this.exportButton?.removeAttribute("disabled");
     }

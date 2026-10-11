@@ -72,7 +72,7 @@ Requires Obsidian 1.8.7 or later. Works on desktop and mobile; Word/PDF import a
 - **Images**: click an image to align, resize or crop it.
 - **Code blocks**: click the language label to search the language list; line numbers and soft wrap are in the block toolbar.
 - **Presentations**: separate slides with a line containing `---`, then use the *Presentation* button in the page toolbar at the top of the note (or run *Open presentation mode* from the command palette).
-- **Presenting aids**: the presentation toolbar and the fullscreen bar have a laser pointer (a red dot that follows the mouse) and a spotlight (only the area around the mouse stays bright); click again to turn off.
+- **Presenting aids**: the presentation toolbar and the fullscreen bar have a laser pointer (a red dot that follows the mouse) and a spotlight (only the area around the mouse stays bright); click again to turn off. "Step by step" shows the next block of a slide before moving to the next slide, and "Quiet view" hides the toolbar until the mouse reaches the top.
 - **Inline components**: `((green:build | passed))` two-part badge, `((spoiler:answer))` click to reveal, `((ruby:汉字 | hànzì))` ruby annotation, `((crumb:Settings > Appearance > Themes))` breadcrumb, plus `((bar:72:progress))` and `((spark:3,5,2))`.
 - **Image compare**: put two images inside `::: compare`; drag the divider in Reading view, and exports show them side by side.
 - **Image filters**: write `gray`, `sepia`, `invert`, `dark-invert` (inverts only in dark mode) or `blur` (clears on hover) in the image's alt text, for example `![left|gray|400](a.png)`.
