@@ -57,9 +57,14 @@ class IgnoranceSettingTab extends PluginSettingTab {
       }));
 
     new Setting(containerEl).setName("剪藏").setHeading();
-    new Setting(containerEl).setName("回到 Obsidian 时检测剪贴板里的链接").setDesc("在其他 App 里复制文章链接后切回 Obsidian，提示一键剪藏到 00-剪藏/。iPhone 上建议先在「设置 → Obsidian → 从其他 App 粘贴」选「允许」，否则每次都会弹出粘贴确认。")
+    new Setting(containerEl).setName("回到 Obsidian 时检测剪贴板里的链接").setDesc("在其他 App 里复制文章链接后切回 Obsidian，提示一键剪藏到下面设置的文件夹。iPhone 上建议先在「设置 → Obsidian → 从其他 App 粘贴」选「允许」，否则每次都会弹出粘贴确认。")
       .addToggle(toggle => toggle.setValue(Boolean(state.webClip?.watchClipboard)).onChange(value => {
         state.webClip.watchClipboard = value; plugin.saveStoredState();
+      }));
+
+    new Setting(containerEl).setName("剪藏文件夹").setDesc("网页剪藏的笔记和图片保存到这里，文件夹名同时作为笔记标签。默认 Clippings。")
+      .addText(text => text.setPlaceholder("Clippings").setValue(state.webClip?.folder || "").onChange(value => {
+        state.webClip.folder = value.trim(); plugin.saveStoredState();
       }));
 
     new Setting(containerEl).setName("标签页").setHeading();

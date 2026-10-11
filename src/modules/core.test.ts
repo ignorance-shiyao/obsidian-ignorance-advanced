@@ -144,7 +144,7 @@ describe("Pandoc Markdown 改写", () => {
 });
 
 describe("目录与页码纯函数", () => {
-  it("识别 Typora [toc] 与 Obsidian [[toc]] 两种独占行写法", () => {
+  it("识别 [toc] 与 Obsidian [[toc]] 两种独占行写法", () => {
     expect(isTocDirective("[toc]")).toBe(true);
     expect(isTocDirective("  [[TOC]]  ")).toBe(true);
     expect(isTocDirective("[[toc]] 后续文字")).toBe(false);

@@ -1,7 +1,7 @@
 import { setIcon } from "./ui-icons.js";
-/* Clip a web page into 00-剪藏/ the way the Web Clipper template does:
+/* Clip a web page into the clipping folder the way the Web Clipper template does:
    title / source / author / published / created / description / tags, the
-   article body as Markdown, images saved to 00-剪藏/assets/ (WebP, named like
+   article body as Markdown, images saved to <folder>/assets/ (WebP, named like
    pasted images). Works on mobile: requestUrl has no CORS limits.
    Entry points:
      - 剪藏网页 command (link box, prefilled from the clipboard)
@@ -14,7 +14,13 @@ import { URL_PATTERN, day, frontmatter, isClipUrl, pad, tidyMarkdown } from "./w
 
 const { Modal, Notice, Setting, TFile, htmlToMarkdown, normalizePath, requestUrl } = require("obsidian");
 
-export const CLIP_FOLDER = "00-剪藏";
+export const CLIP_FOLDER = "Clippings";
+
+/** The folder chosen in settings (default "Clippings"); its last segment is also the note tag. */
+export function clipFolder(plugin) {
+  const value = String(plugin.state.webClip?.folder || "").trim().replace(/^\/+|\/+$/g, "");
+  return value || CLIP_FOLDER;
+}
 // A desktop browser: WeChat serves bots and unknown clients a verification page.
 const BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 const FAILED_CLIP = /环境异常|完成验证后即可继续访问|轻点两下取消赞/;
@@ -149,7 +155,7 @@ function uniquePath(vault, folder, name, except) {
 }
 
 /* Clip `url`; into `target` (an existing note, renamed after the article) or a
-   new note in 00-剪藏/. Returns the note. */
+   new note in the clipping folder. Returns the note. */
 export async function clipUrl(plugin, url, target = null) {
   const vault = plugin.app.vault;
   const notice = new Notice("正在剪藏…", 0);
@@ -157,11 +163,11 @@ export async function clipUrl(plugin, url, target = null) {
     const article = await fetchArticle(url);
     const title = article.title || url;
     const name = safeNoteName(title);
-    const folder = target?.parent?.path && target.parent.path !== "/" ? target.parent.path : CLIP_FOLDER;
+    const folder = target?.parent?.path && target.parent.path !== "/" ? target.parent.path : clipFolder(plugin);
     if (!vault.getAbstractFileByPath(folder)) await vault.createFolder(folder).catch(() => {});
     await saveImages(plugin, article.body, folder, safeAssetStem(name), (i, n) => notice.setMessage(`正在剪藏：保存图片 ${i} / ${n}`));
     const markdown = tidyMarkdown(htmlToMarkdown(article.body.innerHTML));
-    const text = `${frontmatter({ ...article, title, url })}${markdown}\n`;
+    const text = `${frontmatter({ ...article, title, url, tag: folder.split("/").pop() })}${markdown}\n`;
     let note = target;
     if (note) {
       await vault.process(note, () => text);
@@ -204,7 +210,7 @@ class ClipModal extends Modal {
       attr: { id: "ib-clip-url", type: "url", placeholder: "长按此处粘贴链接", autocapitalize: "off", autocorrect: "off", spellcheck: "false", enterkeyhint: "go" }
     });
     label.setAttribute("for", "ib-clip-url");
-    this.contentEl.createDiv({ cls: "ib-form-hint", text: "支持公众号、X 与大多数文章网页。粘贴后自动开始，正文与图片保存到 00-剪藏/。" });
+    this.contentEl.createDiv({ cls: "ib-form-hint", text: `支持公众号、X 与大多数文章网页。粘贴后自动开始，正文与图片保存到 ${clipFolder(this.plugin)}/。` });
     const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
     footer.createEl("button", { text: "取消" }).addEventListener("click", () => this.close());
     this.confirm = footer.createEl("button", { cls: "mod-cta", text: "剪藏" });
@@ -330,7 +336,7 @@ export function installWebClip(plugin) {
     lastOffered = url;
     const already = app.vault.getMarkdownFiles().some(file => app.metadataCache.getFileCache(file)?.frontmatter?.source === url);
     if (already) return;
-    new ConfirmClipModal(plugin, "剪贴板里有一个链接，剪藏到 00-剪藏/？", url,
+    new ConfirmClipModal(plugin, `剪贴板里有一个链接，剪藏到 ${clipFolder(plugin)}/？`, url,
       () => void clipUrl(plugin, url).then(note => app.workspace.getLeaf(false).openFile(note)).catch(() => {})).open();
   };
 

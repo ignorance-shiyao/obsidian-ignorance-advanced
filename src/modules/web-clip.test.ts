@@ -11,7 +11,7 @@ describe("web clip", () => {
     expect(text).toContain('source: "https://a.b/c"');
     expect(text).toContain('  - "[[清新研究]]"');
     expect(text).toContain("published: 2026-09-29");
-    expect(text).toContain('  - "00-剪藏"');
+    expect(text).toContain('  - "Clippings"');
   });
   it("recognises a lone link only", () => {
     expect(isClipUrl(" https://mp.weixin.qq.com/s/abc ")).toBe(true);

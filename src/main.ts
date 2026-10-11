@@ -340,7 +340,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.register(() => this.diagramEnhancements.clear());
     setPageRefreshHandler(refreshBooks);
     this.registerEditorExtension(mermaidHighlighter);
-    // Typora-style [toc]: a table of contents in reading view, exports and the editor.
+    // [toc]: a table of contents in reading view, exports and the editor.
     this.registerEditorExtension(tocExtension(this));
     // Render Markdown ::: containers while the cursor is outside their source.
     this.registerEditorExtension(containerEditorExtension(this));
@@ -348,7 +348,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     // Paged view in the editor: push blocks that would cross a page bottom.
     // Format Markdown tables and provide cell/row keyboard navigation.
     this.registerEditorExtension(tableEditorExtension);
-    // Typora-style marker keys wrap the current non-empty selection.
+    // Marker keys wrap the current non-empty selection.
     this.registerEditorExtension(wrapSelectionExtension);
     this.registerEditorExtension(colorSwatchExtension);
     this.registerEditorExtension(smartPunctuationExtension(this));
@@ -1031,7 +1031,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.state.smartPunctuation = this.state.smartPunctuation === true;
     this.state.writingModes = Object.assign(writingModeDefaults(), this.state.writingModes || {});
     this.state.fileTools = Object.assign(fileToolsDefaults(), this.state.fileTools || {});
-    this.state.webClip = Object.assign({ watchClipboard: false }, this.state.webClip || {});
+    this.state.webClip = Object.assign({ watchClipboard: false, folder: "" }, this.state.webClip || {});
     this.state.fileTools.apps = Array.isArray(this.state.fileTools.apps)
       ? this.state.fileTools.apps.filter(value => typeof value === "string")
       : [];
@@ -1918,8 +1918,8 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
 /* --------------------------------------------------------------------------
  * [toc]
  *
- * Typora renders a line holding only [toc] as the note's table of contents;
- * Obsidian shows the literal text. Headings come from the metadata cache, so
+ * A line holding only [toc] becomes the note's table of contents;
+ * Obsidian itself shows the literal text. Headings come from the metadata cache, so
  * the list follows edits. Reading view (and everything built on
  * MarkdownRenderer: the paged view, PDF and image export) gets it through a
  * post processor; the editor gets a widget that steps aside whenever the

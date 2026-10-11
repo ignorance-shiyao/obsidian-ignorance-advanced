@@ -1,5 +1,5 @@
 import { createLanguageIcon } from "./language-icons.js";
-// A Typora-style language picker for code fences: type to filter, arrows and Enter to choose.
+// A language picker for code fences: type to filter, arrows and Enter to choose.
 export interface LanguageEntry { id: string; label: string; aliases?: string[] }
 
 import LIST from "./language-list.json";
