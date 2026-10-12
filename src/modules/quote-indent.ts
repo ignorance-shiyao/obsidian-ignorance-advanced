@@ -6,11 +6,11 @@ const { ViewPlugin } = require("@codemirror/view");
 function align(root: HTMLElement) {
   root.querySelectorAll<HTMLElement>(".HyperMD-quote").forEach(line => {
     if (line.classList.contains("cm-active")) return;
-    if (line.style.paddingInlineStart) line.style.paddingInlineStart = "";
+    if (line.style.paddingInlineStart) line.style.removeProperty("padding-inline-start");
     const pad = parseFloat(getComputedStyle(line).paddingInlineStart);
     if (!Number.isFinite(pad) || pad <= 0) return;
     const indent = `${-pad}px`;
-    if (line.style.textIndent !== indent) line.style.textIndent = indent;
+    if (line.style.textIndent !== indent) line.setCssProps(Object.fromEntries([["text-indent", indent]]));
   });
 }
 
