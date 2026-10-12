@@ -478,7 +478,7 @@ body.theme-light .ib-li-light { display:inline; }
 
 /* Image cropper. */
 .ib-crop-modal .modal { width:min(92vw, 880px); }
-.ib-crop-stage { position:relative; display:inline-block; max-width:100%; line-height:0; user-select:none; touch-action:none; }
+.ib-crop-stage { position:relative; clip-path:inset(-10px); display:inline-block; max-width:100%; line-height:0; user-select:none; touch-action:none; }
 .ib-crop-image { display:block; max-width:100%; max-height:62vh; width:auto; height:auto; }
 .ib-crop-box { position:absolute; box-sizing:border-box; border:2px solid var(--ib-focus, var(--interactive-accent)); box-shadow:0 0 0 9999px rgba(10,14,22,.55); cursor:move; }
 .ib-crop-box::before, .ib-crop-box::after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(to right, transparent calc(33.3% - .5px), rgba(255,255,255,.55) calc(33.3% - .5px) calc(33.3% + .5px), transparent calc(33.3% + .5px) calc(66.6% - .5px), rgba(255,255,255,.55) calc(66.6% - .5px) calc(66.6% + .5px), transparent calc(66.6% + .5px)); }

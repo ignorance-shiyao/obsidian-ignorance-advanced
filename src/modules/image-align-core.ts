@@ -69,3 +69,38 @@ export function withImageTarget(link, target: string) {
   const inner = [...head, ...kept].join("|");
   return link.kind === "wiki" ? `![[${inner}]]` : `![${inner}](${encodeURI(target)})`;
 }
+
+/* Style keywords in the same slot as alignment: ![gray|left|400](a.png), ![[a.gif|click]]. */
+export const IMAGE_FILTERS = ["gray", "sepia", "invert", "dark-invert", "blur"] as const;
+
+const wordsOf = (link) => (link.kind === "wiki" ? link.inner.split("|").slice(1) : link.inner.split("|")).map(segment => segment.trim());
+
+// The filter keyword written in the link, or null.
+export function imageFilter(link) {
+  return wordsOf(link).find(word => (IMAGE_FILTERS as readonly string[]).includes(word.toLowerCase()))?.toLowerCase() || null;
+}
+
+export function hasImageKeyword(link, keyword: string) {
+  return wordsOf(link).some(word => word.toLowerCase() === keyword);
+}
+
+// Swap the keywords in `group` for `keyword` (or none), keeping the width last.
+function withKeyword(link, group: readonly string[], keyword: string | null) {
+  const parts = link.inner.split("|");
+  const head = link.kind === "wiki" ? [parts.shift()] : [];
+  const kept = parts.filter(segment => segment.trim() && !group.includes(segment.trim().toLowerCase()));
+  if (keyword) {
+    const widthAt = kept.findIndex(segment => /^\d+(x\d+)?$/.test(segment.trim()));
+    kept.splice(widthAt === -1 ? kept.length : widthAt, 0, keyword);
+  }
+  const inner = [...head, ...kept].join("|");
+  return link.kind === "wiki" ? `![[${inner}]]` : `![${inner}](${link.url})`;
+}
+
+export function withImageFilter(link, filter: string | null) {
+  return withKeyword(link, IMAGE_FILTERS, filter);
+}
+
+export function withImageKeyword(link, keyword: string, on: boolean) {
+  return withKeyword(link, [keyword], on ? keyword : null);
+}

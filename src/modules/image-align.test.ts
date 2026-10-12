@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { imageAlignment, imageLinkAt, withImageAlignment } from "./image-align-core";
+import { hasImageKeyword, imageAlignment, imageFilter, imageLinkAt, withImageAlignment, withImageFilter, withImageKeyword } from "./image-align-core";
 
 const apply = (text, align) => withImageAlignment(imageLinkAt(text, 0), align);
 
@@ -54,5 +54,20 @@ describe("图片八方向缩放", () => {
   it("尺寸写回保留说明、对齐与地址且替换旧尺寸", () => {
     const link = imageLinkAt("![说明|right|300](assets/a.png)", 0);
     expect(withImageSize(link, 410, 180)).toBe("![说明|right|410x180](assets/a.png)");
+  });
+});
+
+describe("图片滤镜与点击播放", () => {
+  const link = text => imageLinkAt(text, 0);
+  it("读取与替换滤镜，宽度保持在最后", () => {
+    expect(imageFilter(link("![left|gray|400](a.png)"))).toBe("gray");
+    expect(withImageFilter(link("![说明|400](a.png)"), "sepia")).toBe("![说明|sepia|400](a.png)");
+    expect(withImageFilter(link("![left|gray|400](a.png)"), "blur")).toBe("![left|blur|400](a.png)");
+    expect(withImageFilter(link("![[a.png|gray|400]]"), null)).toBe("![[a.png|400]]");
+  });
+  it("点击播放开关", () => {
+    expect(withImageKeyword(link("![[a.gif|400]]"), "click", true)).toBe("![[a.gif|click|400]]");
+    expect(hasImageKeyword(link("![[a.gif|click]]"), "click")).toBe(true);
+    expect(withImageKeyword(link("![[a.gif|click]]"), "click", false)).toBe("![[a.gif]]");
   });
 });

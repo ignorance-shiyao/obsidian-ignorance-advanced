@@ -1,5 +1,5 @@
 import { setIcon } from "./ui-icons.js";
-import { imageAlignment, imageLinkAt, withImageAlignment, withoutImageWidth, withImageSize, withImageTarget, resizedImageBox } from "./image-align-core.js";
+import { IMAGE_FILTERS, hasImageKeyword, imageAlignment, imageFilter, imageLinkAt, withImageAlignment, withImageFilter, withImageKeyword, withoutImageWidth, withImageSize, withImageTarget, resizedImageBox } from "./image-align-core.js";
 import { cropImage, canCrop } from "./image-crop.js";
 import { keepViewport } from "./reading-position.js";
 
@@ -7,6 +7,7 @@ const { MarkdownView, Menu, Modal, Notice, TFile, requestUrl, setTooltip } = req
 const { EditorState, Transaction } = require("@codemirror/state");
 
 const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif"]);
+const FILTER_LABELS = { gray: "灰度", sepia: "复古", invert: "反色", "dark-invert": "深色模式下反色", blur: "模糊（鼠标移上去恢复）" };
 const LABELS = [["left", "左对齐", "lucide-align-left"], ["center", "居中", "lucide-align-center"], ["right", "右对齐", "lucide-align-right"]];
 
 // Obsidian's image context menu is a file-menu without the clicked element,
@@ -187,7 +188,7 @@ function addButton(bar, icon, label, run, extraClass = "") {
   button.addEventListener("click", event => {
     event.preventDefault();
     event.stopPropagation();
-    run();
+    run(event);
   });
   return button;
 }
@@ -212,6 +213,23 @@ function decorate(plugin, embed) {
     if (!found) { new Notice(`无法定位图片链接，未${label}`); return; }
     keepViewport(view, () => found.apply(make(found.link)));
   };
+  // Filters and click-to-play are written into the link; this menu is the way to set them without the source.
+  addButton(bar, "lucide-sparkles", "图片样式：滤镜、点击播放", event => {
+    const found = linkFor(viewFor(plugin, embed), embed);
+    if (!found) { new Notice("无法定位图片链接"); return; }
+    const now = imageFilter(found.link);
+    const menu = new Menu();
+    menu.addItem(item => item.setTitle("无滤镜").setChecked(!now).onClick(change(link => withImageFilter(link, null), "设置滤镜")));
+    for (const filter of IMAGE_FILTERS) {
+      menu.addItem(item => item.setTitle(FILTER_LABELS[filter]).setChecked(now === filter).onClick(change(link => withImageFilter(link, filter), "设置滤镜")));
+    }
+    if (/\.gif(?:$|[?#])/i.test(embed.getAttribute("src") || "")) {
+      menu.addSeparator();
+      const playing = hasImageKeyword(found.link, "click");
+      menu.addItem(item => item.setTitle("GIF 点击后才播放").setChecked(playing).onClick(change(link => withImageKeyword(link, "click", !playing), "设置播放方式")));
+    }
+    menu.showAtMouseEvent(event);
+  });
   addButton(bar, "lucide-rotate-ccw", "重置大小", change(withoutImageWidth, "重置大小"));
   const remove = change(() => "", "删除");
   addButton(bar, "lucide-trash-2", "删除图片", () => confirmRemoval(plugin, remove));
