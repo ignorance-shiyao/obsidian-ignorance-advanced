@@ -3284,3 +3284,15 @@ tr[data-ib-level="3"] > :first-child { padding-inline-start: 4em; }
 .ib-caption--editor { margin: .2em 0 .6em; }
 .ib-caption__label--editor { color: var(--ib-text-secondary, var(--text-normal)); font-weight: 700; }
 
+
+/* Page zoom: the page sheet is magnified as a whole, so its inner layout never changes. CSS zoom makes
+   percentages resolve against the zoomed-out parent, so the width is the window share times the zoom,
+   capped at the window minus its margin, both in unzoomed terms. */
+.workspace-leaf-content[data-type="markdown"] :is(.markdown-reading-view .markdown-preview-sizer, .markdown-source-view.mod-cm6 .cm-sizer):not(#_ib):not(#_ib2):not(#_ib3) {
+  zoom: var(--ibp-zoom, 1);
+  width: min(calc(100% * var(--ibp-share, 0.7) * var(--ibp-zoom, 1)), calc(100% * var(--ibp-zoom, 1) - 48px));
+  max-width: none;
+  flex: none;
+}
+.workspace-leaf-content[data-type="markdown"] .markdown-source-view.mod-cm6 .cm-contentContainer:not(#_ib):not(#_ib2):not(#_ib3) { max-width: none; }
+.workspace-leaf-content[data-type="markdown"] .markdown-reading-view:not(#_ib), .workspace-leaf-content[data-type="markdown"] .markdown-source-view.mod-cm6 .cm-scroller:not(#_ib) { overflow-x: auto; }

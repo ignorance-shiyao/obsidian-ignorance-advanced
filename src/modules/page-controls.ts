@@ -16,13 +16,14 @@ export function setPageRefreshHandler(handler) {
 
 const MM = 96 / 25.4;
 // Full width is Obsidian's own "Readable line length" switched off; these
-// presets are the width used while it is on.
-const WIDTH_PRESETS = [["narrow", "窄", 680], ["standard", "标准", 820], ["wide", "宽", 1080]];
+// presets are the share of the window the page takes while it is on.
+const WIDTH_PRESETS = [["narrow", "窄", 55], ["standard", "标准", 70], ["wide", "宽", 88]];
+const ZOOM_MIN = 0.5, ZOOM_MAX = 3;
 const PAGE_GAP = 24;
 
 function pageDefaults() {
   return {
-    width: "standard", customWidth: 900, paged: false,
+    width: "standard", customWidth: 80, zoom: 1, paged: false,
     paper: "A4", customPaper: { w: 210, h: 297 }, landscape: false,
     marginPreset: "normal", margins: { ...MARGIN_PRESETS.normal },
     pageNumber: "center", pageNumberFormat: "plain", runningHeader: "none", footerText: "", breakMode: "whitespace"
@@ -32,17 +33,16 @@ function pageDefaults() {
 function applyPageSettings(plugin) {
   const page = plugin.state.page;
   const body = document.body;
-  // Text size is Obsidian's own (Appearance → font size, Ctrl + scroll). The
-  // page follows it as a whole: the text column, paper and margins are sized
-  // for 16px text and scale by the same ratio, so zooming enlarges the page
-  // proportionally instead of reflowing the text inside a fixed width.
-  const textSize = parseFloat(getComputedStyle(body).getPropertyValue("--font-text-size"));
-  const scale = Number.isFinite(textSize) && textSize > 0 ? Math.min(3, Math.max(0.5, textSize / 16)) : 1;
-  body.style.setProperty("--ibp-scale", String(scale));
-  const width = page.width === "custom" ? page.customWidth : (WIDTH_PRESETS.find(([id]) => id === page.width)?.[2] ?? 820);
-  // The theme reads --ib-content-max (and Obsidian --file-line-width).
-  body.style.setProperty("--ib-content-max", `${Math.round(width * scale)}px`);
-  body.style.setProperty("--file-line-width", `${Math.round(width * scale)}px`);
+  // The page width is a share of the window. Zoom (Ctrl + wheel) magnifies the
+  // whole page like a picture: the layout inside it is the same at every level,
+  // it just gets bigger or smaller, and a page larger than the window scrolls.
+  const share = page.width === "custom" ? page.customWidth : (WIDTH_PRESETS.find(([id]) => id === page.width)?.[2] ?? 70);
+  const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(page.zoom) || 1));
+  body.style.setProperty("--ib-content-max", `${share}%`);
+  body.style.setProperty("--file-line-width", `${share}%`);
+  body.style.setProperty("--ibp-zoom", String(zoom));
+  body.style.setProperty("--ibp-share", String(share / 100));
+  const scale = 1;
   body.classList.toggle("ibp-paged", page.paged);
   const size = paperSize(page);
   const m = page.margins;
@@ -83,7 +83,9 @@ export function initPageState(plugin) {
   const local = plugin.app.loadLocalStorage?.("ibp-page");
   plugin.state.page = Object.assign(pageDefaults(), local || plugin.state.page || {});
   plugin.state.page.margins = Object.assign({ ...MARGIN_PRESETS.normal }, plugin.state.page.margins || {});
-  delete plugin.state.page.zoom;
+  // Widths used to be pixels; a custom width above 100 is one of those.
+  if (!(plugin.state.page.customWidth >= 30 && plugin.state.page.customWidth <= 100)) plugin.state.page.customWidth = 80;
+  plugin.state.page.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(plugin.state.page.zoom) || 1));
   // The old "full width" preset is now Obsidian's readable-line-length switch.
   if (plugin.state.page.width === "full") {
     plugin.state.page.width = "standard";
@@ -106,9 +108,9 @@ function installPageControls(plugin, showExportMenu) {
   const openWidthMenu = event => {
     const menu = new Menu();
     for (const [id, label, px] of WIDTH_PRESETS) {
-      menu.addItem(item => item.setTitle(px ? `${label}（${px}px）` : label).setChecked(page().width === id).onClick(() => { page().width = id; save(); }));
+      menu.addItem(item => item.setTitle(px ? `${label}（窗口的 ${px}%）` : label).setChecked(page().width === id).onClick(() => { page().width = id; save(); }));
     }
-    menu.addItem(item => item.setTitle(`自定义…${page().width === "custom" ? `（${page().customWidth}px）` : ""}`).setChecked(page().width === "custom").onClick(() => openWidthInput(event)));
+    menu.addItem(item => item.setTitle(`自定义…${page().width === "custom" ? `（${page().customWidth}%）` : ""}`).setChecked(page().width === "custom").onClick(() => openWidthInput(event)));
     menu.showAtMouseEvent(event);
   };
 
@@ -116,11 +118,11 @@ function installPageControls(plugin, showExportMenu) {
     closePopover();
     popover = document.body.createDiv({ cls: "ibp-popover" });
     const row = popover.createDiv({ cls: "ibp-row" });
-    row.createSpan({ text: "正文宽度" });
-    const input = row.createEl("input", { attr: { type: "number", min: "400", max: "2400", step: "20" } });
+    row.createSpan({ text: "页面宽度" });
+    const input = row.createEl("input", { attr: { type: "number", min: "30", max: "100", step: "5" } });
     input.value = String(page().customWidth);
-    row.createSpan({ cls: "ibp-unit", text: "px" });
-    const commit = () => { const v = Math.min(2400, Math.max(400, Number(input.value) || 900)); page().width = "custom"; page().customWidth = v; save(); closePopover(); };
+    row.createSpan({ cls: "ibp-unit", text: "% 窗口宽度" });
+    const commit = () => { const v = Math.min(100, Math.max(30, Number(input.value) || 80)); page().width = "custom"; page().customWidth = v; save(); closePopover(); };
     input.addEventListener("keydown", e => { if (e.key === "Enter") commit(); if (e.key === "Escape") closePopover(); });
     popover.createEl("button", { cls: "mod-cta", text: "应用" }).addEventListener("click", commit);
     placePopover(event.target instanceof Element ? event.target : document.body);
@@ -273,7 +275,7 @@ function installPageControls(plugin, showExportMenu) {
     const refresh = () => {
       const p = page();
       const preset = WIDTH_PRESETS.find(([id]) => id === p.width);
-      width.setText(p.width === "custom" ? `宽 ${p.customWidth}` : `宽度 · ${preset ? preset[1] : "标准"}`);
+      width.setText(p.width === "custom" ? `宽 ${p.customWidth}%` : `宽度 · ${preset ? preset[1] : "标准"}`);
       typewriter.toggleClass("is-active", Boolean(plugin.state.writingModes?.typewriterScroll));
       typewriter.setAttr("aria-pressed", String(Boolean(plugin.state.writingModes?.typewriterScroll)));
       focus.toggleClass("is-active", Boolean(plugin.state.writingModes?.focusMode));
@@ -327,8 +329,20 @@ function installPageControls(plugin, showExportMenu) {
   });
   sizerWatcher.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style"] });
   plugin.register(() => sizerWatcher.disconnect());
-  // Font size changes (Appearance, Ctrl + scroll) re-derive the page size.
   plugin.registerEvent(plugin.app.workspace.on("css-change", () => applyPageSettings(plugin)));
+  // Ctrl / Cmd + wheel (and trackpad pinch) zooms the page itself instead of changing Obsidian's font size.
+  // Diagrams and charts keep their own zoom.
+  plugin.registerDomEvent(document, "wheel", event => {
+    if (!(event.ctrlKey || event.metaKey) || !(event.target instanceof Element)) return;
+    if (!event.target.closest(".workspace-leaf-content[data-type='markdown']")) return;
+    if (event.target.closest(".ibm-mermaid-enhanced, .ibm-chart-enhanced, .ib-crop-stage, .ibp-popover, .modal-container")) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const step = Math.min(0.08, Math.abs(event.deltaY) * 0.002);
+    page().zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round((page().zoom || 1) * (event.deltaY < 0 ? 1 + step : 1 - step) * 1000) / 1000));
+    save();
+  }, { capture: true, passive: false });
+  plugin.addCommand({ id: "reset-page-zoom", name: "重置页面缩放", callback: () => { page().zoom = 1; save(); } });
   plugin.register(() => {
     closePopover();
     document.querySelectorAll(".ibp-toolbar, .ibp-book, .ibp-staging").forEach(el => el.remove());
@@ -336,7 +350,7 @@ function installPageControls(plugin, showExportMenu) {
     document.querySelectorAll(".ibp-book-host, .ibp-toolbar-host, .ibp-source-fixed-width").forEach(el => el.removeClasses(["ibp-book-host", "ibp-toolbar-host", "ibp-source-fixed-width"]));
     document.getElementById("ibp-print-page")?.remove();
     document.body.classList.remove("ibp-paged");
-    for (const name of ["--ibp-scale", "--ibp-font-size", "--ib-content-max", "--file-line-width", "--ibp-page-w", "--ibp-page-h", "--ibp-page-gap", "--ibp-mt", "--ibp-mr", "--ibp-mb", "--ibp-ml"]) document.body.style.removeProperty(name);
+    for (const name of ["--ibp-zoom", "--ibp-share", "--ibp-scale", "--ibp-font-size", "--ib-content-max", "--file-line-width", "--ibp-page-w", "--ibp-page-h", "--ibp-page-gap", "--ibp-mt", "--ibp-mr", "--ibp-mb", "--ibp-ml"]) document.body.style.removeProperty(name);
   });
 }
 
