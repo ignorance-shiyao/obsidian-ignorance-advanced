@@ -1793,6 +1793,128 @@ body.ib-show-code-line-numbers .markdown-source-view.mod-cm6.is-live-preview .ib
 .reveal[class*="slide-anim-"]:not(.slide-anim-none) .slides section.present .slide-inner {
   animation: ib-ppt-page-in var(--ib-dur-slow) var(--ib-ease-out);
 }
+.reveal.slide-anim-fade .slides section.present .slide-inner { animation: ib-slide-fade 0.45s ease-out; }
+.reveal.slide-anim-slide .slides section.present .slide-inner { animation: ib-slide-from-right 0.42s var(--ib-ease-out); }
+.reveal.slide-anim-zoom .slides section.present .slide-inner { animation: ib-slide-zoom 0.42s var(--ib-ease-out); }
+.reveal.slide-anim-blur .slides section.present .slide-inner { animation: ib-slide-blur 0.5s ease-out; }
+.reveal.slide-anim-pop .slides section.present .slide-inner { animation: ib-slide-pop 0.5s cubic-bezier(0.34, 1.4, 0.64, 1); }
+.reveal.slide-anim-cascade .slides section.present .slide-inner { animation: none; }
+.reveal.slide-anim-cascade .slides section.present .slide-inner > * {
+  animation: ib-ppt-page-in 0.45s var(--ib-ease-out) backwards;
+  animation-delay: calc(var(--ib-cascade-step, 0) * 70ms);
+}
+.reveal.slide-anim-cascade .slides section.present .slide-inner > :nth-child(1) { --ib-cascade-step: 0; }
+.reveal.slide-anim-cascade .slides section.present .slide-inner > :nth-child(2) { --ib-cascade-step: 1; }
+.reveal.slide-anim-cascade .slides section.present .slide-inner > :nth-child(3) { --ib-cascade-step: 2; }
+.reveal.slide-anim-cascade .slides section.present .slide-inner > :nth-child(4) { --ib-cascade-step: 3; }
+.reveal.slide-anim-cascade .slides section.present .slide-inner > :nth-child(5) { --ib-cascade-step: 4; }
+.reveal.slide-anim-cascade .slides section.present .slide-inner > :nth-child(n+6) { --ib-cascade-step: 5; }
+@keyframes ib-slide-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ib-slide-from-right { from { opacity: 0; transform: translateX(48px); } to { opacity: 1; transform: none; } }
+@keyframes ib-slide-zoom { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: none; } }
+@keyframes ib-slide-blur { from { opacity: 0; filter: blur(14px); } to { opacity: 1; filter: blur(0); } }
+@keyframes ib-slide-pop { 0% { opacity: 0; transform: scale(0.85); } 100% { opacity: 1; transform: none; } }
+@keyframes ib-anim-demo-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes ib-anim-demo-right { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+@keyframes ib-anim-demo-zoom { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: none; } }
+@keyframes ib-anim-demo-blur { from { opacity: 0; filter: blur(4px); } to { opacity: 1; filter: blur(0); } }
+@keyframes ib-anim-demo-pop { 0% { opacity: 0; transform: scale(0.7); } 100% { opacity: 1; transform: none; } }
+
+/* Popovers under the presentation toolbar: theme cards and animation previews. */
+.ibp-popover {
+  position: fixed;
+  z-index: 1000;
+  padding: var(--ib-space-3);
+  border: var(--ib-border-1) solid var(--ib-border-default);
+  border-radius: var(--ib-radius-lg);
+  background-color: var(--ib-bg-primary);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  animation: ib-slide-fade var(--ib-dur-base) ease-out;
+}
+.ibp-theme-popover { width: 340px; }
+.ibp-theme-follow {
+  width: 100%;
+  height: 30px;
+  margin-bottom: var(--ib-space-3);
+  border: var(--ib-border-1) solid var(--ib-border-default);
+  border-radius: var(--ib-radius-md);
+  background-color: var(--ib-bg-secondary);
+  color: var(--ib-text-secondary);
+  font-size: var(--font-ui-small);
+  cursor: pointer;
+}
+.ibp-theme-follow:hover { color: var(--ib-text-accent); }
+.ibp-theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ib-space-3); }
+.ibp-theme-name { margin-bottom: 4px; color: var(--ib-text-secondary); font-size: var(--font-ui-smaller); }
+.ibp-theme-halves { display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; border: var(--ib-border-1) solid var(--ib-border-default); border-radius: var(--ib-radius-md); }
+.ibp-theme-halves .ibp-theme-half {
+  position: relative;
+  display: block;
+  height: 58px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--p-paper);
+  box-shadow: none;
+  color: var(--p-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: transform var(--ib-dur-fast) var(--ib-ease-out);
+}
+.ibp-theme-halves .ibp-theme-half:hover {
+  background: var(--p-paper); transform: scale(1.05); z-index: 1; }
+.ibp-theme-halves .ibp-theme-half.is-current { outline: 2px solid var(--p-accent); outline-offset: -2px; }
+.ibp-theme-title { position: absolute; left: 9px; top: 6px; font-size: 14px; font-weight: 700; line-height: 1; }
+.ibp-theme-bar { position: absolute; left: 9px; top: 26px; width: 22px; height: 3px; border-radius: 2px; background-color: var(--p-accent); }
+.ibp-theme-line { position: absolute; left: 9px; top: 36px; right: 14px; height: 3px; border-radius: 2px; background-color: var(--p-ink); opacity: 0.35; }
+.ibp-theme-line.is-short { top: 44px; right: 32px; }
+.ibp-anim-popover { display: flex; flex-direction: column; gap: 2px; width: 250px; padding: var(--ib-space-2); }
+.ibp-anim-popover .ibp-anim-row {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  align-items: center;
+  gap: var(--ib-space-3);
+  height: auto;
+  padding: 6px var(--ib-space-2);
+  border: 0;
+  border-radius: var(--ib-radius-md);
+  background-color: transparent;
+  box-shadow: none;
+  text-align: left;
+  cursor: pointer;
+}
+.ibp-anim-popover .ibp-anim-row:hover, .ibp-anim-popover .ibp-anim-row.is-current { background-color: var(--ib-bg-hover); }
+.ibp-anim-row.is-current .ibp-anim-title { color: var(--ib-text-accent); }
+.ibp-anim-demo {
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 36px;
+  overflow: hidden;
+  border: var(--ib-border-1) solid var(--ib-border-default);
+  border-radius: var(--ib-radius-sm);
+  background-color: var(--ib-bg-secondary);
+}
+.ibp-anim-bar { position: absolute; left: 7px; top: 7px; width: 14px; height: 3px; border-radius: 2px; background-color: var(--ib-accent-brand); }
+.ibp-anim-line { position: absolute; left: 7px; top: 15px; right: 9px; height: 3px; border-radius: 2px; background-color: var(--ib-text-muted); opacity: 0.6; }
+.ibp-anim-line.is-short { top: 23px; right: 22px; }
+.ibp-anim-demo.is-playing { animation: ib-anim-demo-up 0.45s var(--ib-ease-out); }
+.ibp-anim-demo-fade.is-playing { animation-name: ib-slide-fade; }
+.ibp-anim-demo-slide.is-playing { animation-name: ib-anim-demo-right; }
+.ibp-anim-demo-zoom.is-playing { animation-name: ib-anim-demo-zoom; }
+.ibp-anim-demo-blur.is-playing { animation-name: ib-anim-demo-blur; }
+.ibp-anim-demo-pop.is-playing { animation-name: ib-anim-demo-pop; animation-timing-function: cubic-bezier(0.34, 1.4, 0.64, 1); }
+.ibp-anim-demo-none.is-playing { animation: none; }
+.ibp-anim-demo-cascade.is-playing { animation: none; }
+.ibp-anim-demo-cascade.is-playing > * { animation: ib-anim-demo-up 0.4s var(--ib-ease-out) backwards; }
+.ibp-anim-demo-cascade.is-playing > .ibp-anim-line { animation-delay: 0.12s; }
+.ibp-anim-demo-cascade.is-playing > .ibp-anim-line.is-short { animation-delay: 0.24s; }
+.ibp-anim-title { color: var(--ib-text-primary); font-size: var(--font-ui-small); }
+.ibp-anim-hint { color: var(--ib-text-muted); font-size: var(--font-ui-smaller); }
+@media (prefers-reduced-motion: reduce) {
+  .ibp-popover, .ibp-anim-demo, .ibp-anim-demo > * { animation: none !important; }
+}
 .reveal.ibp-pptx-exporting .slides section:not(#_ib),
 .reveal.ibp-pptx-exporting .slides section *:not(#_ib) {
   animation: none;

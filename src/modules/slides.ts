@@ -39,7 +39,16 @@ function canvasEntry(settings) {
   const id = canvasId(settings);
   return CANVASES.find(([entry]) => entry === id) || CANVASES[0];
 }
-const ANIMATIONS = [["none", "无"], ["smooth", "淡入上移"]];
+const ANIMATIONS = [
+  ["none", "无", "不加动效"],
+  ["smooth", "淡入上移", "整页轻轻升起"],
+  ["fade", "淡入", "整页渐显"],
+  ["slide", "右侧滑入", "整页从右侧滑入"],
+  ["zoom", "缩放", "由小放大"],
+  ["blur", "模糊聚焦", "由模糊变清晰"],
+  ["pop", "弹出", "略带回弹的放大"],
+  ["cascade", "逐块依次", "每个内容块依次升起"]
+];
 
 function presentationDefaults() {
   return { skin: "none", animation: "none", canvas: "16:9" };
@@ -120,10 +129,6 @@ function setDefaultSkinVariables(root) {
 /* The eight theme palettes as slide skins, each in light and dark: the same
    tokens the note and the exports use, so a deck matches its document. */
 const PALETTE_SKIN = /^palette-([a-z]+)-(light|dark)$/;
-const PALETTE_SKIN_OPTIONS = THEME_PRESETS.flatMap(preset => [
-  [`palette-${preset.id}-light`, `${preset.label} · 浅色`],
-  [`palette-${preset.id}-dark`, `${preset.label} · 深色`]
-]);
 
 function applySkin(root, skinId) {
   [...root.classList].filter(name => name.startsWith("skin-")).forEach(name => root.classList.remove(name));
@@ -145,6 +150,99 @@ function addToolbarButton(parent, icon, label, action, data = {}) {
   setIcon(button, icon);
   button.addEventListener("click", action);
   Object.assign(button.dataset, data);
+  return button;
+}
+
+let openToolbarPopover = null;
+function closeToolbarPopover() {
+  openToolbarPopover?.();
+  openToolbarPopover = null;
+}
+
+// A card panel under a toolbar button, for choices that read better with a
+// preview than as a text menu. `fill` draws the content; `pick` closes it.
+function openPopoverUnder(button, cls, fill) {
+  closeToolbarPopover();
+  const doc = button.ownerDocument;
+  const panel = doc.body.createDiv({ cls: `ibp-popover ${cls}` });
+  fill(panel, closeToolbarPopover);
+  const box = button.getBoundingClientRect();
+  const width = panel.offsetWidth;
+  panel.style.left = `${Math.max(8, Math.min(box.left, doc.defaultView.innerWidth - width - 8))}px`;
+  panel.style.top = `${box.bottom + 6}px`;
+  const onDown = event => { if (!panel.contains(event.target) && !button.contains(event.target)) closeToolbarPopover(); };
+  const onKey = event => { if (event.key === "Escape") closeToolbarPopover(); };
+  doc.addEventListener("pointerdown", onDown, true);
+  doc.addEventListener("keydown", onKey, true);
+  openToolbarPopover = () => {
+    doc.removeEventListener("pointerdown", onDown, true);
+    doc.removeEventListener("keydown", onKey, true);
+    panel.remove();
+  };
+}
+
+// Theme picker: one card per palette showing its paper, ink and accent in
+// light and dark; picking a half applies that palette in that mode.
+function addThemePicker(parent, plugin, onFollow, onPalette) {
+  const button = parent.createEl("button", { cls: "ibp-presentation-picker", attr: { type: "button", "aria-label": "主题（所有视图）", "aria-haspopup": "dialog", "data-tooltip-position": "top" } });
+  const text = button.createSpan({ cls: "ibp-presentation-picker-label" });
+  setIcon(button.createSpan({ cls: "ibp-presentation-picker-chevron" }), "lucide-chevron-down");
+  const dark = () => button.ownerDocument.body.classList.contains("theme-dark");
+  const refresh = () => {
+    const preset = THEME_PRESETS.find(entry => entry.id === plugin.state.accent);
+    text.setText(preset ? `${preset.label} · ${dark() ? "深色" : "浅色"}` : "跟随主题");
+  };
+  button.addEventListener("click", () => openPopoverUnder(button, "ibp-theme-popover", (panel, close) => {
+    const follow = panel.createEl("button", { cls: "ibp-theme-follow", attr: { type: "button" }, text: "跟随主题" });
+    follow.addEventListener("click", () => { onFollow(); close(); refresh(); });
+    const grid = panel.createDiv({ cls: "ibp-theme-grid" });
+    for (const preset of THEME_PRESETS) {
+      const card = grid.createDiv({ cls: "ibp-theme-card" });
+      card.createDiv({ cls: "ibp-theme-name", text: preset.label });
+      const halves = card.createDiv({ cls: "ibp-theme-halves" });
+      for (const mode of ["light", "dark"]) {
+        const half = halves.createEl("button", { cls: "ibp-theme-half", attr: { type: "button", "aria-label": `${preset.label} · ${mode === "light" ? "浅色" : "深色"}` } });
+        const paper = mode === "light" ? preset.lightPaper : preset.darkPaper;
+        const ink = mode === "light" ? preset.lightInk : preset.darkInk;
+        half.style.setProperty("--p-paper", paper);
+        half.style.setProperty("--p-ink", ink);
+        half.style.setProperty("--p-accent", preset.accent);
+        half.createSpan({ cls: "ibp-theme-title", text: "Aa" });
+        half.createSpan({ cls: "ibp-theme-bar" });
+        half.createSpan({ cls: "ibp-theme-line" });
+        half.createSpan({ cls: "ibp-theme-line is-short" });
+        if (plugin.state.accent === preset.id && (mode === "dark") === dark()) half.addClass("is-current");
+        half.addEventListener("click", () => { onPalette(preset.id, mode); close(); window.setTimeout(refresh, 80); });
+      }
+    }
+  }));
+  refresh();
+  return button;
+}
+
+// Animation picker: every row replays its motion on a small page while hovered.
+function addAnimationPicker(parent, options, current, onPick) {
+  const button = parent.createEl("button", { cls: "ibp-presentation-picker", attr: { type: "button", "aria-label": "进入动效", "aria-haspopup": "dialog", "data-tooltip-position": "top" } });
+  const text = button.createSpan({ cls: "ibp-presentation-picker-label" });
+  setIcon(button.createSpan({ cls: "ibp-presentation-picker-chevron" }), "lucide-chevron-down");
+  const refresh = () => text.setText(options.find(([value]) => value === current())?.[1] || options[0][1]);
+  button.addEventListener("click", () => openPopoverUnder(button, "ibp-anim-popover", (panel, close) => {
+    for (const [value, title, hint] of options) {
+      const row = panel.createEl("button", { cls: "ibp-anim-row", attr: { type: "button" } });
+      if (value === current()) row.addClass("is-current");
+      const demo = row.createDiv({ cls: `ibp-anim-demo ibp-anim-demo-${value}` });
+      demo.createSpan({ cls: "ibp-anim-bar" });
+      demo.createSpan({ cls: "ibp-anim-line" });
+      demo.createSpan({ cls: "ibp-anim-line is-short" });
+      const label = row.createDiv({ cls: "ibp-anim-label" });
+      label.createDiv({ cls: "ibp-anim-title", text: title });
+      label.createDiv({ cls: "ibp-anim-hint", text: hint });
+      const replay = () => { demo.removeClass("is-playing"); void demo.offsetWidth; demo.addClass("is-playing"); };
+      row.addEventListener("pointerenter", replay);
+      row.addEventListener("click", () => { onPick(value); close(); refresh(); });
+    }
+  }));
+  refresh();
   return button;
 }
 
@@ -405,17 +503,13 @@ class PresentationView extends ItemView {
 
     const settings = this.plugin.state.presentation;
     const choose = (key, value) => { settings[key] = value; this.plugin.saveStoredState(); };
-    addToolbarPicker(this.toolbar, "主题（所有视图）", [["none", "跟随主题"], ...PALETTE_SKIN_OPTIONS],
-      () => settings.skin || "none", value => {
-        const palette = PALETTE_SKIN.exec(value);
-        choose("skin", "none");
-        if (palette) { applyAccent(this.plugin, palette[1]); setThemeMode(this.plugin.app, palette[2]); }
-        else void this.renderSlides();
-      });
+    addThemePicker(this.toolbar, this.plugin,
+      () => { choose("skin", "none"); void this.renderSlides(); },
+      (id, mode) => { choose("skin", "none"); applyAccent(this.plugin, id); setThemeMode(this.plugin.app, mode); });
     addToolbarPicker(this.toolbar, "演示画幅", CANVASES.filter(([id]) => Platform.isPhone || id !== "9:16").map(([id]) => [id, id]),
       () => canvasId(settings), value => { choose(Platform.isPhone ? "phoneCanvas" : "canvas", value); void this.renderSlides(); });
-    addToolbarPicker(this.toolbar, "进入动效", ANIMATIONS,
-      () => settings.animation && settings.animation !== "none" ? "smooth" : "none", value => {
+    addAnimationPicker(this.toolbar, ANIMATIONS,
+      () => settings.animation || "none", value => {
         choose("animation", value);
         this.root?.classList.forEach(name => { if (name.startsWith("slide-anim-")) this.root.classList.remove(name); });
         if (value !== "none" && !Platform.isPhone) this.root?.classList.add(`slide-anim-${value}`);
