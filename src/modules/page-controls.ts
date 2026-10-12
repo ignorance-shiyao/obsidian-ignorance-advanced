@@ -39,7 +39,8 @@ function applyPageSettings(plugin) {
   const share = page.width === "custom" ? page.customWidth : (WIDTH_PRESETS.find(([id]) => id === page.width)?.[2] ?? 70);
   const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(page.zoom) || 1));
   body.style.setProperty("--ib-content-max", `${share}%`);
-  body.style.setProperty("--file-line-width", `${share}%`);
+  // Obsidian caps embeds (images, tables) at --file-line-width inside the page, so it must not be the share again.
+  body.style.setProperty("--file-line-width", "100%");
   body.style.setProperty("--ibp-zoom", String(zoom));
   body.style.setProperty("--ibp-share", String(share / 100));
   const scale = 1;
