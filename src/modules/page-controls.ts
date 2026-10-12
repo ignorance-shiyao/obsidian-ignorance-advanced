@@ -338,8 +338,27 @@ function installPageControls(plugin, showExportMenu) {
     event.preventDefault();
     event.stopPropagation();
     const step = Math.min(0.08, Math.abs(event.deltaY) * 0.002);
-    page().zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round((page().zoom || 1) * (event.deltaY < 0 ? 1 + step : 1 - step) * 1000) / 1000));
+    const next = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round((page().zoom || 1) * (event.deltaY < 0 ? 1 + step : 1 - step) * 1000) / 1000));
+    if (next === page().zoom) return;
+    // Keep the spot under the pointer where it is: remember where in the element under it the pointer sits,
+    // zoom, then scroll by however far that point moved.
+    const anchor = event.target;
+    const scroller = anchor.closest(".markdown-preview-view, .cm-scroller");
+    const before = anchor.getBoundingClientRect();
+    const fx = before.width ? (event.clientX - before.left) / before.width : 0;
+    const fy = before.height ? (event.clientY - before.top) / before.height : 0;
+    page().zoom = next;
     save();
+    if (!scroller) return;
+    const adjust = () => {
+      if (!anchor.isConnected) return;
+      const after = anchor.getBoundingClientRect();
+      scroller.scrollTop += after.top + fy * after.height - event.clientY;
+      scroller.scrollLeft += after.left + fx * after.width - event.clientX;
+    };
+    adjust();
+    // The editor measures its lines again after a zoom and may move the scroll; correct once that has settled.
+    window.requestAnimationFrame(() => { adjust(); window.setTimeout(adjust, 120); });
   }, { capture: true, passive: false });
   plugin.addCommand({ id: "reset-page-zoom", name: "重置页面缩放", callback: () => { page().zoom = 1; save(); } });
   plugin.register(() => {

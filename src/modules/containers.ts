@@ -3,6 +3,7 @@ import { CONTAINER_KINDS, parseMarkdownContainers } from "./container-source.js"
 import { setMarkup } from "./dom-markup.js";
 
 const { Component, MarkdownRenderer } = require("obsidian");
+import { wantsLenient, withBlankLines } from "./missing-blank-lines-core.js";
 const parsedSources = new Map();
 const processing = new WeakSet();
 
@@ -190,6 +191,8 @@ async function renderRange(plugin, sourcePath, source, start, end, nodes, target
 }
 
 async function renderMarkdownWithContainers(plugin, sourcePath, source, target, component, interactive = false) {
+  // A table typed right under a paragraph still counts as a table in pages, slides and exports.
+  if (wantsLenient(plugin)) source = withBlankLines(source);
   const containers = chapterContainers(source);
   if (!containers.length) {
     await renderFragment(plugin, sourcePath, source, target, component);

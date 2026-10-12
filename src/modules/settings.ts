@@ -38,6 +38,10 @@ class IgnoranceSettingTab extends PluginSettingTab {
           dropdown.addOptions({ left: "居左", center: "居中", right: "居右" }).setValue(state.appearance.tableAlignment || "left").onChange(value => {
             state.appearance.tableAlignment = value; applyAppearancePreferences(plugin); plugin.saveStoredState();
           })) },
+        { name: "漏打空行时仍识别表格", desc: "表格紧贴在段落下面（中间没空行）时，阅读视图、分页和导出仍按表格显示；编辑时停笔后会自动补上空行。已有笔记可用命令「补全缺失的空行」一次补齐。", aliases: ["lenient blocks", "missing blank line"], add: toggle(() => state.lenientBlocks !== false, value => {
+          state.lenientBlocks = value; plugin.saveStoredState();
+          for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) leaf.view.previewMode?.rerender?.(true);
+        }) },
         { name: "标题自动编号", desc: "阅读视图的标题前显示 1、1.1、1.1.1 这样的编号；也可以只在某篇笔记的 cssclasses 里写 ib-numbered（写 ib-unnumbered 则关闭）。", aliases: ["heading numbers"], add: toggle(() => state.headingNumbers === true, value => {
           state.headingNumbers = value; plugin.saveStoredState(); plugin.app.workspace.updateOptions();
           for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) leaf.view.previewMode?.rerender?.(true);

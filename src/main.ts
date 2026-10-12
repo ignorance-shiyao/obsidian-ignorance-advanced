@@ -30,6 +30,7 @@ import { installWebClip } from "./modules/web-clip.js";
 import { installReadingTime } from "./modules/reading-time.js";
 import { openSyntaxGuide, showFirstRunHint } from "./modules/syntax-guide.js";
 import { installHeadingNumbers } from "./modules/heading-numbers.js";
+import { addLenientCommand, installLenientBlocks, lenientBlocksEditorExtension } from "./modules/missing-blank-lines.js";
 import { headingNumbersEditorExtension } from "./modules/heading-numbers-editor.js";
 import { captionsEditorExtension } from "./modules/captions-editor.js";
 import { quoteIndentExtension } from "./modules/quote-indent.js";
@@ -363,6 +364,8 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.registerEditorExtension(containerEditorExtension(this));
     this.registerEditorExtension(inlineSyntaxEditorExtension(this));
     this.registerEditorExtension(headingNumbersEditorExtension(this));
+    this.registerEditorExtension(lenientBlocksEditorExtension(this));
+    addLenientCommand(this);
     this.registerEditorExtension(captionsEditorExtension(this));
     this.registerEditorExtension(quoteIndentExtension);
     // Paged view in the editor: push blocks that would cross a page bottom.
@@ -377,6 +380,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.registerMarkdownPostProcessor(element => renderInlineSyntax(this, element));
     this.registerMarkdownPostProcessor(element => colorSwatchPostProcessor(element));
     installHeadingNumbers(this);
+    installLenientBlocks(this);
     installTableExtras(this);
     installCaptions(this);
     installReadingCover(this);
@@ -1083,6 +1087,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.state.codeLineNumbers = this.state.codeLineNumbers === true;
     this.state.smartPunctuation = this.state.smartPunctuation === true;
     this.state.headingNumbers = this.state.headingNumbers === true;
+    this.state.lenientBlocks = this.state.lenientBlocks !== false;
     this.state.tableCrosshair = this.state.tableCrosshair === true;
     this.state.autoFoldCode = this.state.autoFoldCode === true;
     this.state.headingNumberStyle = this.state.headingNumberStyle === "chinese" ? "chinese" : "decimal";
