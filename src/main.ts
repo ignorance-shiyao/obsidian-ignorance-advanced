@@ -32,6 +32,7 @@ import { openSyntaxGuide, showFirstRunHint } from "./modules/syntax-guide.js";
 import { installHeadingNumbers } from "./modules/heading-numbers.js";
 import { headingNumbersEditorExtension } from "./modules/heading-numbers-editor.js";
 import { captionsEditorExtension } from "./modules/captions-editor.js";
+import { quoteIndentExtension } from "./modules/quote-indent.js";
 import { installTableExtras } from "./modules/table-merge.js";
 import { installCaptions } from "./modules/captions.js";
 import { installReadingCover } from "./modules/reading-cover.js";
@@ -363,6 +364,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.registerEditorExtension(inlineSyntaxEditorExtension(this));
     this.registerEditorExtension(headingNumbersEditorExtension(this));
     this.registerEditorExtension(captionsEditorExtension(this));
+    this.registerEditorExtension(quoteIndentExtension);
     // Paged view in the editor: push blocks that would cross a page bottom.
     // Format Markdown tables and provide cell/row keyboard navigation.
     this.registerEditorExtension(tableEditorExtension);
