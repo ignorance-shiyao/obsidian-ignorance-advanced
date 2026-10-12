@@ -20,8 +20,8 @@ export function buildNavItems(source: string, headings: Array<{ text: string; le
   lines.forEach((line, index) => {
     const marker = /^\s*(`{3,}|~{3,})\s*([\w+-]*)/.exec(line);
     if (marker) {
-      if (!fence) { fence = marker[1][0]; fenceLanguage = (marker[2] || "").toLowerCase(); fenceStart = index; }
-      else if (marker[1][0] === fence) {
+      if (!fence) { fence = marker[1]; fenceLanguage = (marker[2] || "").toLowerCase(); fenceStart = index; }
+      else if (marker[1][0] === fence[0] && marker[1].length >= fence.length && !line.replace(marker[1], "").trim()) {
         const diagram = DIAGRAM_LANGUAGES.has(fenceLanguage);
         items.push({ kind: diagram ? "diagram" : "code", label: diagram ? `图表 ${fenceLanguage}` : `代码 ${fenceLanguage || "text"}`, line: fenceStart });
         fence = "";

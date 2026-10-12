@@ -1086,6 +1086,8 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.state.tableCrosshair = this.state.tableCrosshair === true;
     this.state.autoFoldCode = this.state.autoFoldCode === true;
     this.state.headingNumberStyle = this.state.headingNumberStyle === "chinese" ? "chinese" : "decimal";
+    this.state.headingNumberStart = this.state.headingNumberStart === "h1" || this.state.headingNumberStart === "h2" ? this.state.headingNumberStart : "auto";
+    this.state.headingNumberDepth = Math.min(6, Math.max(1, Math.round(Number(this.state.headingNumberDepth)) || 4));
     this.state.captions = this.state.captions === true;
     this.state.grayDates = typeof this.state.grayDates === "string" ? this.state.grayDates : "";
     this.state.writingModes = Object.assign(writingModeDefaults(), this.state.writingModes || {});

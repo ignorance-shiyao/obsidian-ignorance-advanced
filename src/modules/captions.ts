@@ -30,10 +30,11 @@ export function parseCaptions(source: string): CaptionEntry[] {
   let fence = "", fenceEnd = -1, mathOpen = false, mathEnd = -1;
   const previousContent = (index: number) => { for (let at = index - 1; at >= 0; at -= 1) if (lines[at].trim()) return at; return -1; };
   lines.forEach((line, index) => {
-    const marker = /^\s*(`{3,}|~{3,})/.exec(line);
+    const marker = /^\s*(`{3,}|~{3,})(.*)$/.exec(line);
     if (marker) {
-      if (!fence) fence = marker[1][0];
-      else if (marker[1][0] === fence) { fence = ""; fenceEnd = index; }
+      // Closes only on a bare line of the same character and at least the same length.
+      if (!fence) fence = marker[1];
+      else if (marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) { fence = ""; fenceEnd = index; }
       return;
     }
     if (fence) return;

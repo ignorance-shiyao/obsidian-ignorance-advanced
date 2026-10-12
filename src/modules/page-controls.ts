@@ -32,9 +32,13 @@ function pageDefaults() {
 function applyPageSettings(plugin) {
   const page = plugin.state.page;
   const body = document.body;
-  // Text size is Obsidian's own (Appearance → font size, Ctrl + scroll);
-  // pages are drawn at their real size.
-  const scale = 1;
+  // Text size is Obsidian's own (Appearance → font size, Ctrl + scroll). The
+  // page follows it as a whole: the text column, paper and margins are sized
+  // for 16px text and scale by the same ratio, so zooming enlarges the page
+  // proportionally instead of reflowing the text inside a fixed width.
+  const textSize = parseFloat(getComputedStyle(body).getPropertyValue("--font-text-size"));
+  const scale = Number.isFinite(textSize) && textSize > 0 ? Math.min(3, Math.max(0.5, textSize / 16)) : 1;
+  body.style.setProperty("--ibp-scale", String(scale));
   const width = page.width === "custom" ? page.customWidth : (WIDTH_PRESETS.find(([id]) => id === page.width)?.[2] ?? 820);
   // The theme reads --ib-content-max (and Obsidian --file-line-width).
   body.style.setProperty("--ib-content-max", `${Math.round(width * scale)}px`);
@@ -323,7 +327,7 @@ function installPageControls(plugin, showExportMenu) {
   });
   sizerWatcher.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "style"] });
   plugin.register(() => sizerWatcher.disconnect());
-  // Appearance font size changes re-derive the zoomed size.
+  // Font size changes (Appearance, Ctrl + scroll) re-derive the page size.
   plugin.registerEvent(plugin.app.workspace.on("css-change", () => applyPageSettings(plugin)));
   plugin.register(() => {
     closePopover();

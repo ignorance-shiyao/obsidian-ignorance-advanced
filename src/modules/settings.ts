@@ -52,6 +52,16 @@ class IgnoranceSettingTab extends PluginSettingTab {
             state.headingNumberStyle = value; plugin.saveStoredState(); plugin.app.workspace.updateOptions();
             for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) leaf.view.previewMode?.rerender?.(true);
           })) },
+        { name: "标题编号起始级别", desc: "「自动」：只有一个 H1 时把它当作笔记标题，从 H2 开始编号；「从 H1」：所有标题都编号；「从 H2」：H1 一律不编号。", aliases: ["heading number start"], add: setting => setting.addDropdown(dropdown => dropdown
+          .addOptions({ auto: "自动", h1: "从 H1", h2: "从 H2" }).setValue(state.headingNumberStart || "auto").onChange(value => {
+            state.headingNumberStart = value; plugin.saveStoredState(); plugin.app.workspace.updateOptions();
+            for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) leaf.view.previewMode?.rerender?.(true);
+          })) },
+        { name: "标题编号层级", desc: "最多编到第几层，更深的标题不编号。", aliases: ["heading number depth"], add: setting => setting.addDropdown(dropdown => dropdown
+          .addOptions({ 1: "1 层", 2: "2 层", 3: "3 层", 4: "4 层", 5: "5 层", 6: "6 层" }).setValue(String(state.headingNumberDepth || 4)).onChange(value => {
+            state.headingNumberDepth = Number(value); plugin.saveStoredState(); plugin.app.workspace.updateOptions();
+            for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) leaf.view.previewMode?.rerender?.(true);
+          })) },
         { name: "图表题注与编号", desc: "阅读视图里给图片和表格加「图 1」「表 1」题注并支持 ((ref:标识)) 交叉引用；图片的 alt 作为图注，表格下一行写「表：说明」。也可以只在某篇笔记的 cssclasses 里写 ib-captions。", aliases: ["captions", "figure numbers"], add: toggle(() => state.captions === true, value => {
           state.captions = value; plugin.saveStoredState(); plugin.app.workspace.updateOptions();
           for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) leaf.view.previewMode?.rerender?.(true);

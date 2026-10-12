@@ -34,15 +34,33 @@ export function unpublishedIndexes(headings: HeadingEntry[]): Set<number> {
   return hidden;
 }
 
-export function numberHeadings(headings: HeadingEntry[], depth = 4, style: NumberStyle = "decimal"): Map<number, string> {
+/** Where numbering begins: "auto" leaves out a lone H1 (the note's title), "h1" numbers every heading, "h2" leaves H1s out. */
+export type NumberStart = "auto" | "h1" | "h2";
+
+export interface NumberOptions { depth: number; style: NumberStyle; start: NumberStart }
+
+export function numberingOptions(plugin): NumberOptions {
+  const state = plugin?.state || {};
+  const depth = Math.round(Number(state.headingNumberDepth));
+  return {
+    depth: depth >= 1 && depth <= 6 ? depth : 4,
+    style: state.headingNumberStyle === "chinese" ? "chinese" : "decimal",
+    start: state.headingNumberStart === "h1" || state.headingNumberStart === "h2" ? state.headingNumberStart : "auto"
+  };
+}
+
+export function numberHeadings(headings: HeadingEntry[], depth = 4, style: NumberStyle = "decimal", start: NumberStart = "auto"): Map<number, string> {
   const result = new Map<number, string>();
-  const titleOnly = headings.filter(heading => heading.level === 1).length === 1 && headings[0]?.level === 1;
-  const numbered = titleOnly ? headings.slice(1) : headings;
+  let numbered = headings;
+  if (start === "h2") numbered = headings.filter(heading => heading.level >= 2);
+  else if (start === "auto" && headings.filter(heading => heading.level === 1).length === 1 && headings[0]?.level === 1) numbered = headings.slice(1);
   if (!numbered.length) return result;
   const base = Math.min(...numbered.map(heading => heading.level));
   const counters: number[] = [];
   for (const heading of numbered) {
-    const index = Math.min(heading.level - base, depth - 1);
+    const index = heading.level - base;
+    // Headings below the chosen depth stay unnumbered and do not disturb the counters above them.
+    if (index >= depth) continue;
     while (counters.length <= index) counters.push(0);
     counters.length = index + 1; // a new heading starts its own sub-numbering over
     counters[index] += 1;
@@ -52,13 +70,18 @@ export function numberHeadings(headings: HeadingEntry[], depth = 4, style: Numbe
   return result;
 }
 
+/** Number a document's headings the way the settings ask. */
+export function numberWithOptions(headings: HeadingEntry[], options: NumberOptions) {
+  return numberHeadings(headings, options.depth, options.style, options.start);
+}
+
 export function wantsNumbers(plugin, frontmatter) {
   const classes = [frontmatter?.cssclasses, frontmatter?.cssclass].flat().filter(Boolean).map(String);
   if (classes.includes("ib-unnumbered")) return false;
   return plugin.state?.headingNumbers === true || classes.includes("ib-numbered");
 }
 
-/** Heading lines of a document (skipping front matter and fenced code): [{ level, line, offset }] with the offset of the text after "## ". */
+/** Heading lines of a document (skipping front matter and fenced code): [{ level, line, offset }] with the offset of the text after "## ". Setext headings (underlined with === or ---) count too. */
 export function scanHeadings(lines: string[]) {
   const found: Array<HeadingEntry & { offset: number }> = [];
   let fence = "";
@@ -67,22 +90,76 @@ export function scanHeadings(lines: string[]) {
     const end = lines.indexOf("---", 1);
     if (end > 0) start = end + 1;
   }
+  let math = false;
   for (let index = start; index < lines.length; index += 1) {
     const line = lines[index];
-    const marker = /^\s*(`{3,}|~{3,})/.exec(line);
-    if (marker) { fence = fence ? (marker[1][0] === fence ? "" : fence) : marker[1][0]; continue; }
-    if (fence) continue;
-    const heading = /^(#{1,6})\s+\S/.exec(line);
-    if (heading) found.push({ level: heading[1].length, line: index, offset: heading[0].length - 1, struck: /^#{1,6}\s+~~.+~~\s*$/.test(line) });
+    // A fence closes only on a bare line of the same character and at least the same length, so a
+    // four-backtick block can carry three-backtick fences (and their headings) inside it.
+    const marker = /^\s*(`{3,}|~{3,})(.*)$/.exec(line);
+    if (fence) {
+      if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) fence = "";
+      continue;
+    }
+    if (marker) { fence = marker[1]; continue; }
+    if (/^\s*\$\$/.test(line) && !/^\s*\$\$.+\$\$\s*$/.test(line)) { math = !math; continue; }
+    if (math) continue;
+    const heading = /^ {0,3}(#{1,6})[ \t]+\S/.exec(line);
+    if (heading) {
+      found.push({ level: heading[1].length, line: index, offset: heading[0].length - 1, struck: /^ {0,3}#{1,6}[ \t]+~~.+~~[ \t]*#*[ \t]*$/.test(line) });
+      continue;
+    }
+    // A single text line right under a blank line and over === or --- is a heading too.
+    const underline = /^ {0,3}(=+|-+)[ \t]*$/.exec(lines[index + 1] ?? "");
+    const plain = /^\S/.test(line) && !/^(?:[>|#*+-]|\d+[.)]|<|!\[\[|\[\^|:::)/.test(line);
+    if (underline && plain && (index === start || !lines[index - 1].trim())) {
+      found.push({ level: underline[1][0] === "=" ? 1 : 2, line: index, offset: 0, struck: /^~~.+~~\s*$/.test(line) });
+      index += 1;
+    }
   }
   return found;
 }
 
+/* Reading view keeps the sections that did not change when a note is edited, so a number written into one of
+   them goes stale as soon as a heading is added or removed above it. Every heading remembers where it came from
+   and is renumbered from the current text after each render pass. */
+const origins = new WeakMap<Element, { element: Element; context: any }>();
+
+function headingOf(element: Element) {
+  return element.querySelector(":scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6") || (/^H[1-6]$/.test(element.tagName) ? element : null);
+}
+
+function renumber(plugin) {
+  const options = numberingOptions(plugin);
+  const cache = new Map<string, Map<number, string>>();
+  for (const badge of document.querySelectorAll<HTMLElement>(".markdown-preview-view .ib-heading-number:not(.ib-heading-number--editor)")) {
+    const heading = badge.parentElement;
+    const origin = heading && origins.get(heading);
+    const info = origin?.context.getSectionInfo?.(origin.element);
+    if (!heading || !info) continue;
+    let numbers = cache.get(info.text);
+    if (!numbers) {
+      const all = scanHeadings(info.text.split(/\r?\n/));
+      const hidden = unpublishedIndexes(all);
+      numbers = numberWithOptions(all.filter((_, index) => !hidden.has(index)), options);
+      cache.set(info.text, numbers);
+    }
+    const text = numbers.get(info.lineStart);
+    if (text === undefined) badge.remove();
+    else if (badge.textContent !== text) badge.textContent = text;
+  }
+}
+
 export function installHeadingNumbers(plugin) {
+  let timer = 0;
+  const schedule = () => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(() => renumber(plugin), 150);
+  };
+  plugin.register(() => window.clearTimeout(timer));
   plugin.registerMarkdownPostProcessor((element, context) => {
     const info = context.getSectionInfo?.(element);
     if (!info) return;
-    const heading = element.querySelector(":scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6") || (/^H[1-6]$/.test(element.tagName) ? element : null);
+    const heading = headingOf(element);
     if (!heading) return;
     const all = scanHeadings(info.text.split(/\r?\n/));
     const hidden = unpublishedIndexes(all);
@@ -91,9 +168,12 @@ export function installHeadingNumbers(plugin) {
     if (position >= 0 && hidden.has(position)) heading.classList.add("ib-unpublished");
     const file = plugin.app.vault.getFileByPath(context.sourcePath);
     const cache = file && plugin.app.metadataCache.getFileCache(file);
-    if (!cache || !wantsNumbers(plugin, cache.frontmatter) || heading.querySelector(".ib-heading-number")) return;
+    if (!cache || !wantsNumbers(plugin, cache.frontmatter)) return;
+    origins.set(heading, { element, context });
+    schedule();
+    if (heading.querySelector(".ib-heading-number")) return;
     const entries = all.filter((_, index) => !hidden.has(index));
-    const text = numberHeadings(entries, 4, plugin.state?.headingNumberStyle === "chinese" ? "chinese" : "decimal").get(info.lineStart);
+    const text = numberWithOptions(entries, numberingOptions(plugin)).get(info.lineStart);
     if (!text) return;
     const badge = createSpan({ cls: "ib-heading-number", text });
     badge.setAttribute("aria-hidden", "true");

@@ -1,6 +1,6 @@
 /* The same heading numbers in Live Preview: a small widget in front of each heading's text. The numbers come
    from the document itself, so they stay right while the note is edited. */
-import { numberHeadings, scanHeadings, unpublishedIndexes, type NumberStyle } from "./heading-numbers.js";
+import { numberWithOptions, numberingOptions, scanHeadings, unpublishedIndexes } from "./heading-numbers.js";
 
 const { editorInfoField } = require("obsidian");
 const { Decoration, ViewPlugin, WidgetType } = require("@codemirror/view");
@@ -32,8 +32,7 @@ function build(view, plugin) {
   const all = scanHeadings(lines);
   const hidden = unpublishedIndexes(all);
   const headings = all.filter((_, index) => !hidden.has(index));
-  const style: NumberStyle = plugin.state?.headingNumberStyle === "chinese" ? "chinese" : "decimal";
-  const numbers = numberHeadings(headings, 4, style);
+  const numbers = numberWithOptions(headings, numberingOptions(plugin));
   const ranges = [];
   for (const heading of headings) {
     const text = numbers.get(heading.line);

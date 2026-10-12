@@ -17,6 +17,16 @@ describe("标题编号", () => {
   it("跳级时用 1 补齐，回到上一级会重置下级", () => {
     expect(texts([2, 4, 2, 3])).toEqual(["1", "1.1.1", "2", "2.1"]);
   });
+  it("超过层级上限的标题不编号，也不打乱上层计数", () => {
+    const numbers = numberHeadings(at([2, 3, 4, 5, 4, 3]), 3);
+    expect([...numbers.values()]).toEqual(["1", "1.1", "1.1.1", "1.1.2", "1.2"]);
+    expect(numbers.has(3)).toBe(false);
+  });
+  it("起始级别：从 H1、从 H2、自动", () => {
+    expect([...numberHeadings(at([1, 2, 3]), 4, "decimal", "h1").values()]).toEqual(["1", "1.1", "1.1.1"]);
+    expect([...numberHeadings(at([1, 2, 3, 1, 2]), 4, "decimal", "h2").values()]).toEqual(["1", "1.1", "2"]);
+    expect([...numberHeadings(at([1, 2, 3]), 4, "decimal", "auto").values()]).toEqual(["1", "1.1"]);
+  });
   it("没有标题时返回空", () => {
     expect(numberHeadings([]).size).toBe(0);
   });
@@ -33,6 +43,15 @@ describe("标题编号", () => {
   it("扫描文档里的标题，跳过属性区和代码块", () => {
     const lines = ["---", "title: x", "---", "# 标题", "```md", "## 不算", "```", "## 概述", "正文", "### 细节"];
     expect(scanHeadings(lines)).toEqual([{ level: 1, line: 3, offset: 2, struck: false }, { level: 2, line: 7, offset: 3, struck: false }, { level: 3, line: 9, offset: 4, struck: false }]);
+  });
+
+  it("长围栏里嵌套的短围栏和标题都不算", () => {
+    const lines = ["## 前", "````markdown", "# 示例", "```js", "## 不算", "```", "## 也不算", "````", "## 后"];
+    expect(scanHeadings(lines).map(item => item.line)).toEqual([0, 8]);
+  });
+  it("缩进不超过三格的标题、带结尾井号的标题和下划线标题都算", () => {
+    const lines = ["  ## 缩进", "", "### 收尾 ###", "", "下划线标题", "====", "", "二级下划线", "---", "", "表格", "|a|b|", "|---|---|", "", "$$", "# 公式里", "$$", "", "- 列表项", "---"];
+    expect(scanHeadings(lines).map(item => [item.level, item.line])).toEqual([[2, 0], [3, 2], [1, 4], [2, 7]]);
   });
 
   it("划掉的标题和它下面的小节都算未发布", () => {

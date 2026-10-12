@@ -2,7 +2,7 @@
    and image export): the whole note is rendered into one container, and the source decides which element
    gets which number. A kind is skipped when the document and the source disagree about how many there are. */
 import { captionParagraph, captionPattern, parseCaptions, resolveRefs, wantsCaptions, wrapFigure, type CaptionKind } from "./captions.js";
-import { numberHeadings, scanHeadings, unpublishedIndexes, wantsNumbers } from "./heading-numbers.js";
+import { numberWithOptions, numberingOptions, scanHeadings, unpublishedIndexes, wantsNumbers } from "./heading-numbers.js";
 
 const headingSelector = "h1, h2, h3, h4, h5, h6";
 
@@ -39,8 +39,7 @@ function applyHeadingNumbers(plugin, root: HTMLElement, source: string) {
   const entries = all.filter((_, index) => !hidden.has(index));
   const headings = [...root.querySelectorAll<HTMLElement>(headingSelector)].filter(heading => !heading.closest(".ibp-page-header"));
   if (!entries.length || entries.length !== headings.length) return;
-  const style = plugin.state?.headingNumberStyle === "chinese" ? "chinese" : "decimal";
-  const numbers = numberHeadings(entries, 4, style);
+  const numbers = numberWithOptions(entries, numberingOptions(plugin));
   entries.forEach((entry, index) => {
     const text = numbers.get(entry.line);
     const heading = headings[index];
