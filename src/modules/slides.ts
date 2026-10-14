@@ -275,7 +275,7 @@ function addToolbarPicker(parent: HTMLElement, label: string, options, current, 
 
 // Whether an element between target and boundary can still scroll that way.
 function canScrollInside(target: HTMLElement, boundary, delta) {
-  for (let el = target instanceof Element ? target : null; el && el !== boundary; el = el.parentElement) {
+  for (let el = (target as Node | null)?.instanceOf(Element) ? target : null; el && el !== boundary; el = el.parentElement) {
     if (el.scrollHeight <= el.clientHeight + 1) continue;
     const overflow = getComputedStyle(el).overflowY;
     if (overflow !== "auto" && overflow !== "scroll") continue;

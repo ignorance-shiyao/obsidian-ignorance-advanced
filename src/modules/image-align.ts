@@ -254,11 +254,11 @@ function installImageToolbar(plugin: IgnorancePlugin) {
     if (handle?.__ibResizeStart) handle.__ibResizeStart(event);
   }, true);
   const decorateWithin = (root: HTMLElement) => {
-    if (!(root instanceof Element)) return;
+    if (!(root as Node | null)?.instanceOf(Element)) return;
     if (root.matches(".image-embed")) decorate(plugin, root);
     root.querySelectorAll?.(".image-embed").forEach(embed => decorate(plugin, embed));
   };
-  const inMarkdown = (node: HTMLElement) => node instanceof Element && node.closest(".workspace-leaf-content[data-type='markdown']");
+  const inMarkdown = (node: HTMLElement) => node.instanceOf(Element) && node.closest(".workspace-leaf-content[data-type='markdown']");
   // Only look at what was added, not the whole workspace on every change.
   let pending = [];
   let scheduled = false;

@@ -96,9 +96,9 @@ export function textRuns(block, points) {
       if (child.nodeType === Node.TEXT_NODE) {
         const text = collapseWhitespace(child.textContent);
         if (text) runs.push({ text, options: runOptions(child.parentElement, points, text) });
-      } else if (child instanceof HTMLBRElement) {
+      } else if (child.instanceOf(HTMLBRElement)) {
         runs.push({ text: "", options: { breakLine: true } });
-      } else if (child instanceof HTMLElement && isInline(child) && !child.matches("svg, img")) {
+      } else if (child.instanceOf(HTMLElement) && isInline(child) && !child.matches("svg, img")) {
         walk(child);
       }
     }
