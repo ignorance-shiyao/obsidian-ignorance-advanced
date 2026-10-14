@@ -1,14 +1,16 @@
+import type { WorkspaceLeaf } from "obsidian";
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { ItemView, MarkdownView, setIcon } from "obsidian";
 /* The same jump list as the navigation command, kept open in a sidebar: it follows the note you are reading,
    filters as you type, and jumps on click. */
 import { buildNavItems, NAV_ICONS } from "./navigation.js";
 
 export const NAVIGATION_VIEW = "ignorance-navigation";
 
-export function createNavigationView(plugin) {
-  const { ItemView, MarkdownView, setIcon } = require("obsidian");
+export function createNavigationView(plugin: IgnorancePlugin) {
 
   return class NavigationView extends ItemView {
-    constructor(leaf) { super(leaf); this.target = null; this.timer = 0; this.query = ""; }
+    constructor(leaf: WorkspaceLeaf) { super(leaf); this.target = null; this.timer = 0; this.query = ""; }
     getViewType() { return NAVIGATION_VIEW; }
     getDisplayText() { return "导航"; }
     getIcon() { return "lucide-list-tree"; }
@@ -66,7 +68,7 @@ export function createNavigationView(plugin) {
   };
 }
 
-export async function openNavigationView(plugin) {
+export async function openNavigationView(plugin: IgnorancePlugin) {
   const { workspace } = plugin.app;
   let leaf = workspace.getLeavesOfType(NAVIGATION_VIEW)[0];
   if (!leaf) {

@@ -1,3 +1,5 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Modal, Notice, MarkdownView } from "obsidian";
 /* "检查当前笔记的链接": lists links and embeds that point nowhere, links to headings that do not exist, and
    headings that share a title (which makes `[[#标题]]` ambiguous). Read-only; nothing in the note changes. */
 export interface LinkRef { link: string; line: number; kind: "link" | "embed" }
@@ -34,8 +36,7 @@ export function analyzeNote(refs: LinkRef[], headings: Array<{ text: string; lev
   return problems.sort((a, b) => a.line - b.line);
 }
 
-export function openLinkCheck(plugin) {
-  const { Modal, Notice, MarkdownView } = require("obsidian");
+export function openLinkCheck(plugin: IgnorancePlugin) {
   const { app } = plugin;
   const view = app.workspace.getActiveViewOfType(MarkdownView);
   const file = view?.file;

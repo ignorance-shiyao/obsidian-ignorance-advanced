@@ -8,7 +8,7 @@ export function guardedCleanup(callback, label = "清理") {
 // Obsidian declares its Mermaid loader with a non-configurable window var.
 // When it did not exist before load, clearing its writable value is the
 // closest possible restoration; strict-mode delete would abort unloading.
-export function restoreGlobalProperty(target, key, previous) {
+export function restoreGlobalProperty(target: HTMLElement, key, previous) {
   const current = Object.getOwnPropertyDescriptor(target, key);
   if (!current || current.configurable) {
     if (previous) Object.defineProperty(target, key, previous);

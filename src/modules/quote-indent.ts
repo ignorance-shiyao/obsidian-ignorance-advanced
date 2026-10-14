@@ -1,7 +1,7 @@
+import { ViewPlugin } from "@codemirror/view";
 /* Live Preview quotes: CodeMirror hangs each quote line with an inline padding and a negative text-indent measured
    from its own gutter. The theme gives quotes a wider inset, so the first line and its wraps would start in
    different places. Reset the inline padding to the stylesheet's and hang by exactly that inset. */
-const { ViewPlugin } = require("@codemirror/view");
 
 function align(root: HTMLElement) {
   root.querySelectorAll<HTMLElement>(".HyperMD-quote").forEach(line => {

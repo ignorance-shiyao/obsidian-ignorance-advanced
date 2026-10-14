@@ -1,3 +1,5 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Platform } from "obsidian";
 /* The note's "⋯" menu keeps only what the title-row toolbar does not offer.
    Items are matched by icon (and section where an icon is shared), not by
    their localized titles. Other plugins add items after this handler runs, so
@@ -23,10 +25,9 @@ export function shouldHideMoreMenuItem(icon, section) {
   return DUPLICATED_BY_TOOLBAR.some(rule => rule.icon === icon && (!rule.section || rule.section === section));
 }
 
-export function installMoreMenuFilter(plugin) {
+export function installMoreMenuFilter(plugin: IgnorancePlugin) {
   // Phones get no title-row toolbar, so only Obsidian's PDF is duplicated there
   // (by the plugin's paged PDF in the same menu).
-  const { Platform } = require("obsidian");
   const phone = Platform.isPhone;
   plugin.registerEvent(plugin.app.workspace.on("file-menu", (menu, file, source) => {
     if (source !== "more-options" || file?.extension !== "md") return;

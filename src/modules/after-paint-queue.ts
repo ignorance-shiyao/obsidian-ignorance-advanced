@@ -1,7 +1,7 @@
 // Defer DOM measurement until Chromium has painted the inserted content.
 export function createAfterPaintQueue(run, win = window, onError = error => console.warn("Ignorance Advanced: deferred enhancement", error)) {
   const pending = new Map();
-  const enqueue = element => {
+  const enqueue = (element: HTMLElement) => {
     if (pending.has(element)) return;
     const job = { frame: 0, timer: 0 };
     pending.set(element, job);
@@ -21,5 +21,5 @@ export function createAfterPaintQueue(run, win = window, onError = error => cons
     }
     pending.clear();
   };
-  return { enqueue, has: element => pending.has(element), clear };
+  return { enqueue, has: (element: HTMLElement) => pending.has(element), clear };
 }

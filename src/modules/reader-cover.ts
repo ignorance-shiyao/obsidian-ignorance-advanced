@@ -1,17 +1,18 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { requestUrl, TFile } from "obsidian";
 /* The exported reader's cover block and colophon, from the note's properties:
    title, description, author, published / created, source, tags, cover image,
    plus word count and reading time. Layout only — the look comes from the
    --rd-* tokens in reader-app.ts, so a designed skin can restyle it. */
 import { bytesToBase64 } from "./bytes.js";
 
-const { requestUrl, TFile } = require("obsidian");
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[char]);
 }
 
 const list = value => (Array.isArray(value) ? value : value == null || value === "" ? [] : [value]).map(item => String(item).trim()).filter(Boolean);
-const unlink = value => value.replace(/^\[\[([^\]|]+)(?:\|([^\]]+))?\]\]$/, (_, target, alias) => alias || target);
+const unlink = value => value.replace(/^\[\[([^\]|]+)(?:\|([^\]]+))?\]\]$/, (_, target: HTMLElement, alias) => alias || target);
 
 function formatDate(value) {
   if (!value) return "";
@@ -21,14 +22,14 @@ function formatDate(value) {
 }
 
 // CJK characters count one each; other text by words.
-export function readingStats(text) {
+export function readingStats(text: string) {
   const cjk = (text.match(/[㐀-鿿豈-﫿]/g) || []).length;
   const words = (text.replace(/[㐀-鿿豈-﫿]/g, " ").match(/[A-Za-z0-9][\w'’-]*/g) || []).length;
   const minutes = Math.max(1, Math.round(cjk / 400 + words / 220));
   return { count: cjk + words, minutes };
 }
 
-async function coverImage(plugin, file, value) {
+async function coverImage(plugin: IgnorancePlugin, file: TFile, value) {
   const raw = list(value)[0];
   if (!raw) return "";
   const target = unlink(raw.replace(/^!\[\[|\]\]$/g, "").replace(/^!?\[[^\]]*\]\(([^)]+)\)$/, "$1"));
@@ -49,7 +50,7 @@ async function coverImage(plugin, file, value) {
 
 /* Returns { cover, colophon } HTML. Drops the note's own first H1 when it only
    repeats the title shown in the cover. */
-export async function buildCover(plugin, file, content) {
+export async function buildCover(plugin: IgnorancePlugin, file: TFile, content) {
   const fm = plugin.app.metadataCache.getFileCache(file)?.frontmatter || {};
   const title = String(fm.title || file.basename).trim();
   const firstHeading = content.querySelector("h1");

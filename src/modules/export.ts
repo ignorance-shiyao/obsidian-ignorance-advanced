@@ -1,3 +1,6 @@
+import type { TFile } from "obsidian";
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Menu, Notice, Component, Platform, MarkdownView } from "obsidian";
 import { setDocSheet, removeDocSheet } from "./doc-sheets.js";
 import { electronRemote, hasDesktopExports, vaultBasePath } from "./desktop-runtime.js";
 import { prepareMarkdownTextForPandoc } from "./pandoc-markdown.js";
@@ -11,7 +14,6 @@ import { prepareMarkdownTextForPandoc } from "./pandoc-markdown.js";
 import { exportNotePptx, buildDeck } from "./slides.js";
 import { previewThenExport } from "./export-preview.js";
 import { buildImagePdf } from "./image-pdf.js";
-const { Menu, Notice, Component, Platform, MarkdownView } = require("obsidian");
 
 /* --------------------------------------------------------------------------
  * Export
@@ -32,7 +34,7 @@ const { Menu, Notice, Component, Platform, MarkdownView } = require("obsidian");
 
 /* Every export first opens a preview window; the export itself runs only
    when it is confirmed there. */
-function exportActions(plugin, file) {
+function exportActions(plugin: IgnorancePlugin, file: TFile) {
   const deps = { prepareHtmlDocument: plugin.exporters.html, prepareRichCopyMarkup, pageVarsAtFullScale, buildDeck };
   const preview = (kind, run) => () => previewThenExport(plugin, file, kind, deps, run);
   return {
@@ -49,7 +51,7 @@ function exportActions(plugin, file) {
   };
 }
 
-function openExportMenu(plugin, view, event) {
+function openExportMenu(plugin: IgnorancePlugin, view, event) {
   const file = view.file;
   if (!file) return;
   const menu = new Menu();
@@ -68,14 +70,14 @@ function openExportMenu(plugin, view, event) {
 }
 
 // Exports that work without Electron (mobile): saved into the vault's 导出/ folder.
-function addPortableExportItems(plugin, menu, file) {
+function addPortableExportItems(plugin: IgnorancePlugin, menu: Menu, file: TFile) {
   const actions = exportActions(plugin, file);
   for (const key of ["pdf", "word", "html", "pptxEditable", "pptxImage", "pages", "long", "wechat", "zhihu"]) {
     menu.addItem(item => item.setTitle(actions[key].title).setIcon(actions[key].icon).setSection("ibp-export").onClick(actions[key].run));
   }
 }
 
-async function runExport(label, task) {
+async function runExport(label: string, task) {
   const notice = new Notice(`正在导出${label}…`, 0);
   try {
     const result = await task();
@@ -88,7 +90,7 @@ async function runExport(label, task) {
   }
 }
 
-async function runCopy(label, task) {
+async function runCopy(label: string, task) {
   const notice = new Notice(`正在整理${label}格式…`, 0);
   try {
     await task();
@@ -110,7 +112,7 @@ function pageVarsAtFullScale(page) {
 }
 
 /* Capture the current appearance and isolate temporary export theme changes. */
-async function withExportStage(plugin, file, { visible = false, keepStrip = false, onProgress = null, signal = null } = {}, task) {
+async function withExportStage(plugin: IgnorancePlugin, file: TFile, { visible = false, keepStrip = false, onProgress = null, signal = null } = {}, task) {
   signal?.throwIfAborted();
   const body = document.body;
   const wasDark = body.hasClass("theme-dark");
@@ -165,7 +167,7 @@ const CLIPBOARD_STYLE_PROPERTIES = [
   "stroke-dasharray", "fill-opacity", "stroke-opacity", "filter"
 ];
 
-function inlineComputedStyles(source, target, properties = CLIPBOARD_STYLE_PROPERTIES) {
+function inlineComputedStyles(source, target: HTMLElement, properties = CLIPBOARD_STYLE_PROPERTIES) {
   const computed = getComputedStyle(source);
   for (const name of properties) {
     const value = computed.getPropertyValue(name);
@@ -237,7 +239,7 @@ async function renderedElementPng(source, alt = "") {
   return image;
 }
 
-function clipboardImageMime(path) {
+function clipboardImageMime(path: string) {
   const extension = path.split(/[?#]/)[0].split(".").pop()?.toLowerCase();
   return ({ png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", avif: "image/avif", svg: "image/svg+xml", bmp: "image/bmp", tif: "image/tiff", tiff: "image/tiff" })[extension] || "application/octet-stream";
 }
@@ -251,7 +253,7 @@ function resourcePathKey(value) {
   }
 }
 
-function vaultImageIndex(plugin) {
+function vaultImageIndex(plugin: IgnorancePlugin) {
   const byResource = new Map();
   for (const file of plugin.app.vault.getFiles()) {
     const resource = plugin.app.vault.getResourcePath(file);
@@ -261,7 +263,7 @@ function vaultImageIndex(plugin) {
   return byResource;
 }
 
-async function localImageData(plugin, src, index, width = 800, height = 600) {
+async function localImageData(plugin: IgnorancePlugin, src, index: number, width = 800, height = 600) {
   if (!src || src.startsWith("data:")) return src;
   if (/^https?:\/\//i.test(src)) return src;
   const file = index.get(src) || index.get(resourcePathKey(src));
@@ -289,7 +291,7 @@ async function localImageData(plugin, src, index, width = 800, height = 600) {
 const OMIT_FROM_CLIPBOARD = new Set(["SCRIPT", "STYLE", "BUTTON", "INPUT", "TEXTAREA", "SELECT", "IFRAME", "OBJECT", "EMBED", "SOURCE"]);
 const OMIT_CLIPBOARD_SELECTOR = ".ibm-block-header, .ibm-mermaid-toolbar, .ibp-page-number, .ib-table-resize-layer, .copy-button";
 
-async function cloneForRichClipboard(source, plugin, imageIndex, target) {
+async function cloneForRichClipboard(source, plugin: IgnorancePlugin, imageIndex, target: HTMLElement) {
   if (source.nodeType === Node.TEXT_NODE) return source.cloneNode(true);
   if (!(source instanceof Element) || OMIT_FROM_CLIPBOARD.has(source.tagName) || source.matches(OMIT_CLIPBOARD_SELECTOR)) return null;
 
@@ -336,7 +338,7 @@ async function cloneForRichClipboard(source, plugin, imageIndex, target) {
   return copy;
 }
 
-async function prepareRichCopyMarkup(plugin, file, target = "wechat", { cover = true } = {}) {
+async function prepareRichCopyMarkup(plugin: IgnorancePlugin, file: TFile, target = "wechat", { cover = true } = {}) {
   return withExportStage(plugin, file, { keepStrip: true, visible: cover }, async (stage, { pages, staging }) => {
     pages.forEach(page => page.remove());
     staging.removeClass("ibp-staging");
@@ -368,7 +370,7 @@ async function prepareRichCopyMarkup(plugin, file, target = "wechat", { cover = 
   });
 }
 
-async function copyFormattedNote(plugin, file, target = "wechat") {
+async function copyFormattedNote(plugin: IgnorancePlugin, file: TFile, target = "wechat") {
   const clipboard = hasDesktopExports() ? electronRemote()?.clipboard : null;
   const payload = await prepareRichCopyMarkup(plugin, file, target);
   if (clipboard?.write) {
@@ -386,7 +388,7 @@ async function copyFormattedNote(plugin, file, target = "wechat") {
 }
 
 // Mobile: no print-to-pdf, so each page becomes a JPEG in an image-only PDF.
-async function exportPdfToVault(plugin, file) {
+async function exportPdfToVault(plugin: IgnorancePlugin, file: TFile) {
   const size = paperSize(plugin.state.page);
   return withExportStage(plugin, file, { visible: true }, async (stage, { pages }) => {
     pages.forEach(p => p.setCssStyles({ display: "none" }));
@@ -401,7 +403,7 @@ async function exportPdfToVault(plugin, file) {
   });
 }
 
-async function exportPdf(plugin, file, targetPath) {
+async function exportPdf(plugin: IgnorancePlugin, file: TFile, targetPath) {
   if (!hasDesktopExports() && !targetPath) return exportPdfToVault(plugin, file);
   const remote = electronRemote();
   const choice = targetPath ? { filePath: targetPath } : await remote.dialog.showSaveDialog({
@@ -444,7 +446,7 @@ const nextFrame = () => new Promise(r => window.requestAnimationFrame(() => wind
 
 /* Capture an element at device resolution: slide it under a fixed viewport
    one window-height at a time and stitch the slices. */
-async function captureElement(element) {
+async function captureElement(element: HTMLElement) {
   const contents = electronRemote().getCurrentWebContents();
   const dpr = window.devicePixelRatio || 1;
   element.setCssStyles({ transform: "" });
@@ -472,7 +474,7 @@ async function captureElement(element) {
 }
 
 // Mobile: paint the same staged pages in-page and write the PNGs into 导出/.
-async function exportImagesToVault(plugin, file, kind) {
+async function exportImagesToVault(plugin: IgnorancePlugin, file: TFile, kind) {
   return withExportStage(plugin, file, { visible: true, keepStrip: kind === "long" }, async (stage, { pages, staging }) => {
     if (kind === "pages") {
       pages.forEach(p => p.setCssStyles({ display: "none" }));
@@ -496,7 +498,7 @@ async function exportImagesToVault(plugin, file, kind) {
   });
 }
 
-async function exportImages(plugin, file, kind, targetPath) {
+async function exportImages(plugin: IgnorancePlugin, file: TFile, kind, targetPath) {
   if (!hasDesktopExports() && !targetPath) return exportImagesToVault(plugin, file, kind);
   const remote = electronRemote();
   const fs = require("fs"), path = require("path");
@@ -549,12 +551,12 @@ async function toPngFile(src, dest) {
 }
 
 /* Rewrite Obsidian-only syntax into plain Markdown Pandoc understands. */
-async function prepareMarkdownForPandoc(plugin, file, text, tmp, diagrams, { structuredWord = false } = {}) {
+async function prepareMarkdownForPandoc(plugin: IgnorancePlugin, file: TFile, text: string, tmp, diagrams, { structuredWord = false } = {}) {
   const path = require("path");
   const base = vaultBasePath(plugin);
   const noteDir = path.join(base, file.parent?.path || "");
   let imageIndex = 0;
-  const resolveLocalImage = async target => {
+  const resolveLocalImage = async (target: HTMLElement) => {
     const clean = decodeURIComponent(target.split("#")[0].split("|")[0]);
     const linked = plugin.app.metadataCache.getFirstLinkpathDest(clean, file.path);
     const abs = linked ? path.join(base, linked.path) : path.resolve(noteDir, clean);
@@ -572,7 +574,7 @@ function wordFontFromToken(value, fallback) {
   return first || fallback;
 }
 
-async function resolveStructuredWordImage(plugin, file, tmp, source) {
+async function resolveStructuredWordImage(plugin: IgnorancePlugin, file: TFile, tmp, source) {
   const fs = require("fs"), path = require("path");
   const dataUri = String(source).match(/^data:image\/(png|jpe?g|gif|bmp);base64,([\s\S]+)$/i);
   if (dataUri) {
@@ -606,7 +608,7 @@ async function resolveStructuredWordImage(plugin, file, tmp, source) {
    the vault's 导出/ folder, from where the system share sheet takes over. */
 const EXPORT_FOLDER = "导出";
 
-async function saveExportToVault(plugin, name, data) {
+async function saveExportToVault(plugin: IgnorancePlugin, name: string, data) {
   const vault = plugin.app.vault;
   if (!vault.getAbstractFileByPath(EXPORT_FOLDER)) await vault.createFolder(EXPORT_FOLDER).catch(() => {});
   const dot = name.lastIndexOf(".");
@@ -619,7 +621,7 @@ async function saveExportToVault(plugin, name, data) {
 }
 
 // A Mermaid diagram drawn by the (bundled) engine, as a PNG data URI.
-async function mermaidToPngDataUri(source, index) {
+async function mermaidToPngDataUri(source, index: number) {
   // HTML labels (foreignObject) would taint the canvas and block toDataURL.
   const plain = /^\s*%%\{\s*init/.test(source) ? source : `%%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%\n${source}`;
   const { svg } = await window.mermaid.render(`ibp-word-mermaid-${Date.now()}-${index}`, plain);
@@ -641,7 +643,7 @@ async function mermaidToPngDataUri(source, index) {
   }
 }
 
-async function vaultImageForWord(plugin, file, source) {
+async function vaultImageForWord(plugin: IgnorancePlugin, file: TFile, source) {
   const dataUri = String(source).match(/^data:image\/(png|jpe?g|gif|bmp);base64,([\s\S]+)$/i);
   if (dataUri) return { type: dataUri[1].toLowerCase().replace("jpeg", "jpg"), data: base64ToBytes(dataUri[2]) };
   if (/^(?:https?:|mailto:)/i.test(source)) return null;
@@ -666,7 +668,7 @@ async function vaultImageForWord(plugin, file, source) {
   }
 }
 
-async function exportWordToVault(plugin, file) {
+async function exportWordToVault(plugin: IgnorancePlugin, file: TFile) {
   const text = await plugin.app.vault.cachedRead(file);
   const diagrams = [];
   // Same fences, in the same order, as prepareMarkdownTextForPandoc replaces.
@@ -692,7 +694,7 @@ async function exportWordToVault(plugin, file) {
   return saveExportToVault(plugin, `${file.basename}.docx`, bytes);
 }
 
-async function exportWord(plugin, file, targetPath, options = {}) {
+async function exportWord(plugin: IgnorancePlugin, file: TFile, targetPath, options = {}) {
   if (!hasDesktopExports()) return exportWordToVault(plugin, file);
   const pandoc = Object.prototype.hasOwnProperty.call(options, "pandocPath") ? options.pandocPath : findPandoc();
   const remote = electronRemote();

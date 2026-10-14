@@ -1,3 +1,4 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 /* Long code blocks in Reading view start folded to their first lines, with a button to show everything.
    Off by default (setting "fold long code blocks"). Paged reading and exports always show the whole block. */
 export const FOLD_ABOVE = 40;
@@ -6,7 +7,7 @@ export function codeLineCount(text: string): number {
   return String(text || "").replace(/\n$/, "").split("\n").length;
 }
 
-export function installCodeFold(plugin) {
+export function installCodeFold(plugin: IgnorancePlugin) {
   plugin.registerMarkdownPostProcessor((element, context) => {
     if (plugin.state?.autoFoldCode !== true || !context.getSectionInfo?.(element)) return;
     for (const pre of element.querySelectorAll("pre")) {

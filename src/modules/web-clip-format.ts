@@ -5,7 +5,7 @@ export const URL_PATTERN = /https?:\/\/[^\s<>"'）)\]]+/;
 export const pad = value => String(value).padStart(2, "0");
 export const day = date => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
-export function isClipUrl(text) {
+export function isClipUrl(text: string) {
   const value = String(text || "").trim();
   return /^https?:\/\/\S+$/.test(value) && URL_PATTERN.test(value);
 }
@@ -29,7 +29,7 @@ export function tidyMarkdown(markdown) {
   return markdown
     .replace(/\u00a0/g, " ")
     .replace(/^(#{1,6}) +\*\*(.+?)\*\* *$/gm, "$1 $2")
-    .split("\n").map(line => line.replace(/[ \t]+$/, "").replace(/^ +(?=\S)(?![-*+] |\d+\. )/, "")).join("\n")
+    .split("\n").map((line: number) => line.replace(/[ \t]+$/, "").replace(/^ +(?=\S)(?![-*+] |\d+\. )/, "")).join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }

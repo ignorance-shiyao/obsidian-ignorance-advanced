@@ -1,3 +1,4 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 /* SVG styles added during native Markdown rendering must not invalidate every
    diagram in the workspace. Keep measurement in its own CSS tree; pages remain
    ordinary DOM clones with the same theme and inherited preferences. */
@@ -31,7 +32,7 @@ export async function stagingStyleSheet(doc: Document, fetchSource = (url: strin
   return sheet;
 }
 
-export async function createIsolatedStaging(plugin, parent: HTMLElement, component, signal?: AbortSignal, sharedSheet?: CSSStyleSheet) {
+export async function createIsolatedStaging(plugin: IgnorancePlugin, parent: HTMLElement, component, signal?: AbortSignal, sharedSheet?: CSSStyleSheet) {
   const doc = parent.ownerDocument;
   const sheet = sharedSheet || await stagingStyleSheet(doc);
   signal?.throwIfAborted();

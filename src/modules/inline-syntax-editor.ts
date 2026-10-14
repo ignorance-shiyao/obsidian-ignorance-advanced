@@ -1,12 +1,13 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { editorInfoField } from "obsidian";
+import { Decoration, ViewPlugin, WidgetType } from "@codemirror/view";
 import { parseInlineSyntax } from "./inline-syntax-source.js";
 import { loadLucideIconData, makeChipElement, makeIconElement } from "./inline-syntax.js";
 import { parseCaptions, wantsCaptions } from "./captions.js";
 
-const { editorInfoField } = require("obsidian");
-const { Decoration, ViewPlugin, WidgetType } = require("@codemirror/view");
 
 class InlineSyntaxWidget extends WidgetType {
-  constructor(plugin, sourcePath, token) {
+  constructor(plugin: IgnorancePlugin, sourcePath: string, token) {
     super();
     this.plugin = plugin;
     this.sourcePath = sourcePath;
@@ -36,7 +37,7 @@ class InlineSyntaxWidget extends WidgetType {
   ignoreEvent() { return true; }
 }
 
-function buildInlineSyntaxDecorations(view, plugin, cached = {}) {
+function buildInlineSyntaxDecorations(view, plugin: IgnorancePlugin, cached = {}) {
   const file = view.state.field(editorInfoField, false)?.file;
   if (!file) return { source: null, sourcePath: null, tokens: [], decorations: Decoration.none };
   const sourcePath = file.path;
@@ -61,7 +62,7 @@ function buildInlineSyntaxDecorations(view, plugin, cached = {}) {
   return { source, sourcePath, tokens, decorations: ranges.length ? Decoration.set(ranges, true) : Decoration.none };
 }
 
-function inlineSyntaxEditorExtension(plugin) {
+function inlineSyntaxEditorExtension(plugin: IgnorancePlugin) {
   return ViewPlugin.fromClass(class {
     constructor(view) { this.value = buildInlineSyntaxDecorations(view, plugin); }
     update(update) {

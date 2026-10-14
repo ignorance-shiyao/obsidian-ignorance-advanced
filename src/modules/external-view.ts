@@ -1,3 +1,6 @@
+import type { WorkspaceLeaf } from "obsidian";
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { ItemView, Notice, Platform } from "obsidian";
 import { setIcon } from "./ui-icons.js";
 /* The light view for a Markdown file outside the vault: nothing is copied, the
    original is read and written by path. 阅读 renders it with Obsidian's
@@ -10,7 +13,6 @@ import { EditorState } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { renderMarkdownWithContainers } from "./containers.js";
 
-const { ItemView, Notice, Platform } = require("obsidian");
 
 export const EXTERNAL_VIEW = "ib-external-markdown";
 
@@ -26,20 +28,20 @@ function resourceUrl(absolute) {
 const REMOTE = /^(?:[a-z][a-z0-9+.-]*:|#|\/\/)/i;
 
 // Relative image links point next to the original, not into the vault.
-export function rewriteRelativeImages(text, directory, toUrl) {
-  const resolve = target => {
+export function rewriteRelativeImages(text: string, directory, toUrl) {
+  const resolve = (target: HTMLElement) => {
     const clean = decodeURI(target.trim().replace(/^<|>$/g, ""));
     return toUrl(nodePath().resolve(directory, clean));
   };
   return text
-    .replace(/!\[([^\]]*)\]\(\s*(<[^>]+>|[^)\s]+)((?:\s+"[^"]*")?)\s*\)/g, (whole, alt, target, title) =>
+    .replace(/!\[([^\]]*)\]\(\s*(<[^>]+>|[^)\s]+)((?:\s+"[^"]*")?)\s*\)/g, (whole, alt, target: HTMLElement, title) =>
       REMOTE.test(target.replace(/^</, "")) ? whole : `![${alt}](${resolve(target)}${title})`)
-    .replace(/!\[\[([^\]|#]+)(?:\|([^\]]*))?\]\]/g, (whole, target, size) =>
+    .replace(/!\[\[([^\]|#]+)(?:\|([^\]]*))?\]\]/g, (whole, target: HTMLElement, size) =>
       /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i.test(target) ? `![${size || ""}](${resolve(target)})` : whole);
 }
 
 export class ExternalMarkdownView extends ItemView {
-  constructor(leaf, plugin, importFile) {
+  constructor(leaf: WorkspaceLeaf, plugin: IgnorancePlugin, importFile) {
     super(leaf);
     this.plugin = plugin;
     this.importFile = importFile;

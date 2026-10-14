@@ -1,6 +1,7 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Notice, normalizePath } from "obsidian";
 /* A one-page reference of everything the plugin and theme add to Markdown. It is written into the vault only
    when the user runs the command (never automatically), and opened if it already exists. */
-const { Notice, normalizePath } = require("obsidian");
 
 export const GUIDE_PATH = "Ignorance 语法速查.md";
 
@@ -91,7 +92,7 @@ cssclasses:
 - 页面工具栏的导出按钮可生成 PDF、Word、PPT、图片和离线 HTML 阅读器。
 `;
 
-export async function openSyntaxGuide(plugin) {
+export async function openSyntaxGuide(plugin: IgnorancePlugin) {
   const { vault, workspace } = plugin.app;
   const path = normalizePath(GUIDE_PATH);
   let file = vault.getFileByPath(path);
@@ -102,7 +103,7 @@ export async function openSyntaxGuide(plugin) {
   await workspace.getLeaf("tab").openFile(file);
 }
 
-export function showFirstRunHint(plugin) {
+export function showFirstRunHint(plugin: IgnorancePlugin) {
   if (plugin.state.introShown) return;
   plugin.state.introShown = true;
   plugin.saveStoredState();

@@ -1,3 +1,4 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 /* Table extras in Reading view and exports (plain Markdown tables, nothing changes in the file):
      - a cell holding only `<` joins the cell on its left, one holding only `^` joins the cell above
      - a cell holding only `[ ]` / `[x]` shows an empty or ticked box
@@ -136,7 +137,7 @@ function enhanceGroups(table: HTMLTableElement) {
   });
 }
 
-export function installTableExtras(plugin) {
+export function installTableExtras(plugin: IgnorancePlugin) {
   plugin.registerMarkdownPostProcessor(element => {
     element.querySelectorAll("table").forEach(table => enhanceTable(table as HTMLTableElement));
   });

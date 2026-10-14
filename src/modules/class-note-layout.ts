@@ -5,7 +5,7 @@ export function compactClassNotes(data, defaultWidth = 240) {
   const authored = Number(data.config?.class?.wrappingWidth);
   const width = authored > 0 ? authored : defaultWidth;
   let changed = false;
-  const nodes = data.nodes.map(node => {
+  const nodes = data.nodes.map((node: HTMLElement) => {
     if (node.shape !== "note" || node.wrappingWidth > 0 || typeof node.label !== "string" || /<br\b|\n/i.test(node.label)) return node;
     changed = true;
     return { ...node, wrappingWidth: width,
@@ -18,7 +18,7 @@ export function compactClassNotes(data, defaultWidth = 240) {
 // Applying the member font after layout clips HTML labels measured in sans.
 export function measureClassMembers(data, font) {
   if (!font || !Array.isArray(data?.nodes)) return data;
-  return { ...data, nodes: data.nodes.map(node => {
+  return { ...data, nodes: data.nodes.map((node: HTMLElement) => {
     if (node.shape !== "classBox" || [...(node.styles || []), ...(node.cssStyles || [])].some(style => /font-family\s*:/i.test(style))) return node;
     return { ...node, ...Object.fromEntries(["members", "methods"].map(key => [key, (node[key] || []).map(member => {
       if (typeof member?.parseClassifier !== "function") return member;

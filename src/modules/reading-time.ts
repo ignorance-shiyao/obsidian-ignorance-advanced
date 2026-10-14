@@ -1,3 +1,5 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { MarkdownView } from "obsidian";
 /* Reading time in the status bar: "约 3 分钟". CJK text is counted by character (400 per minute), other text by
    word (230 per minute). Front matter, code blocks and HTML comments are left out. */
 export function estimateReading(markdown: string) {
@@ -13,8 +15,7 @@ export function estimateReading(markdown: string) {
   return { cjk, words, minutes: cjk + words === 0 ? 0 : Math.max(1, Math.round(minutes)) };
 }
 
-export function installReadingTime(plugin) {
-  const { MarkdownView } = require("obsidian");
+export function installReadingTime(plugin: IgnorancePlugin) {
   if (!plugin.addStatusBarItem || plugin.app.isMobile) return;
   const item = plugin.addStatusBarItem();
   item.addClass("ib-reading-time");

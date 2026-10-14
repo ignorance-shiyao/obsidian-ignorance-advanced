@@ -1,3 +1,5 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Modal } from "obsidian";
 /* Page footer text for the paged reading view and its exports: a template with {title}, {page}, {pages} and
    {date}, shown at the bottom left of every page. */
 export const FOOTER_CHOICES: Array<[string, string]> = [
@@ -30,8 +32,7 @@ export function addPageFooters(sheets: HTMLElement[], template: string, title: s
   });
 }
 
-export function promptFooter(plugin, current: string, onSubmit: (value: string) => void) {
-  const { Modal } = require("obsidian");
+export function promptFooter(plugin: IgnorancePlugin, current: string, onSubmit: (value: string) => void) {
   class FooterModal extends Modal {
     onOpen() {
       this.setTitle("页脚文字");

@@ -5,7 +5,7 @@ export function readableDiagramScale(fit: number, minimumFontPx: number | null, 
     ? Math.max(fit, target / minimumFontPx) : fit;
 }
 
-export function measureDiagramFont(svg, currentScale = 1): number | null {
+export function measureDiagramFont(svg: SVGSVGElement, currentScale = 1): number | null {
   const sizes: number[] = [];
   for (const element of svg.querySelectorAll("text, tspan, foreignObject *")) {
     // Only elements with their own text; wrapper boxes contain padding and

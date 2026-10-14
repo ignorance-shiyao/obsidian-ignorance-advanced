@@ -1,3 +1,4 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 import { withClassElkSpacing } from "./class-elk-spacing.js";
 import { withClassBoxMeasurement } from "./class-box-measurement.js";
 import { withMermaidConfigIsolation } from "./mermaid-config-isolation.js";
@@ -37,7 +38,7 @@ const TOKEN_PATTERNS = [
   ["comment", /%%.*$/g]
 ];
 
-function tokenRuns(text) {
+function tokenRuns(text: string) {
   const classes = new Array(text.length).fill(null);
   for (const [tokenClass, pattern] of TOKEN_PATTERNS) {
     pattern.lastIndex = 0;
@@ -178,11 +179,11 @@ function authorPersonColor(shapes) {
   return candidates[1] || candidates[0] || null;
 }
 
-function stashStyle(element) {
+function stashStyle(element: HTMLElement) {
   if (!element.hasAttribute("data-ibm-c4-style")) element.setAttribute("data-ibm-c4-style", element.getAttribute("style") || "");
 }
 
-function adoptC4Defaults(svg) {
+function adoptC4Defaults(svg: SVGSVGElement) {
   for (const rect of svg.querySelectorAll('g > rect[fill="#1168BD"]')) rect.parentElement.setAttribute("data-ibm-c4-system", "");
   for (const node of svg.querySelectorAll("g.node")) {
     const shapes = [...node.querySelectorAll(":scope > g.basic :is(rect, path, circle, ellipse)[style], :scope > :is(rect, path)[style]")];
@@ -249,13 +250,13 @@ const CLUSTER_GROUPS = "g.cluster, g.statediagram-cluster, g.subgraph";
 const TAG_ATTRS = ["data-ibm-group", "data-ibm-series", "data-ibm-stroked", "data-ibm-on-mark", "data-ibm-carded", "data-ibm-c4", "data-ibm-arch-group", "data-ibm-c4-disc", "data-ibm-c4-system", "data-ibm-members", "data-ibm-note", "data-ibm-class-kind"];
 const SVG_NS = "http://www.w3.org/2000/svg";
 
-function diagramKind(svg) {
+function diagramKind(svg: SVGSVGElement) {
   return svg.getAttribute("aria-roledescription") || "";
 }
 
 /* Mermaid tags mindmap/timeline branches with section-N; honor that grouping so
    sibling nodes share a color instead of cycling per shape. */
-function seriesIndex(element, fallback) {
+function seriesIndex(element: HTMLElement, fallback) {
   const owner = element.closest("[class*='section-']") || element;
   const match = /(?:^|\s)section-{0,2}(-?\d+)/.exec(owner.getAttribute("class") || "");
   if (!match) return fallback;
@@ -263,11 +264,11 @@ function seriesIndex(element, fallback) {
   return value < 0 ? 0 : value;
 }
 
-function slot(index) {
+function slot(index: number) {
   return String((index % 8) + 1);
 }
 
-function applyPaint(element, props) {
+function applyPaint(element: HTMLElement, props) {
   const applied = [];
   for (const [property, value] of Object.entries(props)) {
     if (!value) continue;
@@ -277,7 +278,7 @@ function applyPaint(element, props) {
   if (applied.length) element.setAttribute("data-ibm-painted", applied.join(" "));
 }
 
-function clearPaint(svg) {
+function clearPaint(svg: SVGSVGElement) {
   restoreWardleyNotes(svg);
   for (const label of svg.querySelectorAll("[data-ibm-note-label-transform]")) {
     const transform = label.getAttribute("data-ibm-note-label-transform");
@@ -309,7 +310,7 @@ function clearPaint(svg) {
   for (const attr of TAG_ATTRS) {
     for (const element of svg.querySelectorAll(`[${attr}]`)) element.removeAttribute(attr);
   }
-  svg.querySelectorAll("rect.ibm-class-card, path.ibm-class-head, path.ibm-class-icon, rect.ibm-note-card, path.ibm-note-icon").forEach(element => element.remove());
+  svg.querySelectorAll("rect.ibm-class-card, path.ibm-class-head, path.ibm-class-icon, rect.ibm-note-card, path.ibm-note-icon").forEach((element: HTMLElement) => element.remove());
   for (const style of svg.querySelectorAll("style[data-ibm-style-text]")) {
     style.textContent = style.getAttribute("data-ibm-style-text");
     style.removeAttribute("data-ibm-style-text");
@@ -324,7 +325,7 @@ function clearPaint(svg) {
     circle.setAttribute("r", r);
     circle.removeAttribute("data-ibm-c4-geom");
   }
-  svg.querySelectorAll("path.ibm-c4-avatar").forEach(element => element.remove());
+  svg.querySelectorAll("path.ibm-c4-avatar").forEach((element: HTMLElement) => element.remove());
   for (const node of svg.querySelectorAll("[data-ibm-c4-custom]")) {
     node.style.removeProperty("--c4-person");
     node.removeAttribute("data-ibm-c4-custom");
@@ -341,7 +342,7 @@ const RELEASE_INLINE = {
   pie: [["g.legend rect", ["fill", "stroke"]]]
 };
 
-function releaseInlineStyles(svg, kind) {
+function releaseInlineStyles(svg: SVGSVGElement, kind) {
   for (const [selector, properties] of RELEASE_INLINE[kind] || []) {
     for (const element of svg.querySelectorAll(selector)) {
       stashStyle(element);
@@ -367,7 +368,7 @@ function releaseInlineStyles(svg, kind) {
 /* Plugin-built decorations survive a repaint (they carry no colors); the
    data-ibm-*-fixed / -table markers keep them from being built twice. */
 
-function paintDiagram(svg, isDark) {
+function paintDiagram(svg: SVGSVGElement, isDark) {
   const kind = diagramKind(svg);
   clearPaint(svg);
   const structural = STRUCTURAL_KINDS.has(kind);
@@ -409,7 +410,7 @@ function paintDiagram(svg, isDark) {
  * Layout repairs CSS cannot make
  * -------------------------------------------------------------------------- */
 
-function parseTranslate(element) {
+function parseTranslate(element: HTMLElement) {
   const m = /translate\(\s*(-?[\d.e+-]+)[,\s]+(-?[\d.e+-]+)\s*\)/.exec(element.getAttribute("transform") || "");
   return m ? { x: Number(m[1]), y: Number(m[2]) } : null;
 }
@@ -420,11 +421,11 @@ function parseTranslate(element) {
    push overlapping services apart inside their group, grow each group to
    hold its members, push overlapping groups apart, then re-point every edge
    end that moved. Services only ever move down, so titles stay put. */
-function spreadArchitectureServices(svg) {
+function spreadArchitectureServices(svg: SVGSVGElement) {
   if (svg.hasAttribute("data-ibm-arch-fixed")) return;
   svg.setAttribute("data-ibm-arch-fixed", "");
   const SIZE = 80, LABEL = 48, GAP = 24;
-  const num = (el, attr) => Number(el.getAttribute(attr));
+  const num = (el: HTMLElement, attr) => Number(el.getAttribute(attr));
 
   const services = [...svg.querySelectorAll("g.architecture-service")]
     .map(node => ({ node, name: (node.id || "").replace(/^.*-service-/, ""), pos: parseTranslate(node), dy: 0 }))
@@ -504,7 +505,7 @@ function spreadArchitectureServices(svg) {
   }
 }
 
-function shiftEdgeEnds(svg, name, dy) {
+function shiftEdgeEnds(svg: SVGSVGElement, name: string, dy) {
   for (const path of svg.querySelectorAll("path.edge")) {
     const id = (path.id || "").replace(/^.*?-L_/, "L_");
     const m = /^L_(.+)_(.+)_\d+$/.exec(id);
@@ -525,7 +526,7 @@ function shiftEdgeEnds(svg, name, dy) {
 /* Measure immediately when the SVG already has geometry (also covers staged
    export and early rendering); otherwise wait until it becomes visible. Run
    once more after fonts load because label widths may change. */
-function whenMeasurable(svg, fix) {
+function whenMeasurable(svg: SVGSVGElement, fix) {
   const run = () => {
     let width = 0;
     try { width = svg.getBBox().width; } catch (_) { /* detached */ }
@@ -547,7 +548,7 @@ function whenMeasurable(svg, fix) {
 
 /* SVG text cannot receive a CSS background. Size an opaque theme-painted
    plate in the text's own coordinate space, preserving the author's ink. */
-function addTextBackplates(svg, selector) {
+function addTextBackplates(svg: SVGSVGElement, selector) {
   // Read every label before any insertion/attribute write to avoid one
   // forced SVG layout per label in a long sequence diagram.
   const measured = [...svg.querySelectorAll(selector)].flatMap(label => {
@@ -571,7 +572,7 @@ function addTextBackplates(svg, selector) {
   }
 }
 
-function compactC4Title(svg) {
+function compactC4Title(svg: SVGSVGElement) {
   const titles = [...svg.querySelectorAll(":scope > text")];
   if (titles.length !== 1) return;
   const title = titles[0], matrix = svg.getCTM();
@@ -590,10 +591,10 @@ function compactC4Title(svg) {
   svg.dispatchEvent(new Event("ibm-geometry-change"));
 }
 
-function separateC4Labels(svg) {
+function separateC4Labels(svg: SVGSVGElement) {
   const rootMatrix = svg.getCTM();
   if (!rootMatrix) return;
-  const boxInSvg = element => {
+  const boxInSvg = (element: HTMLElement) => {
     const matrix = element.getCTM();
     if (!matrix) return null;
     const box = element.getBBox();
@@ -627,7 +628,7 @@ function separateC4Labels(svg) {
 
 /* Venn (beta) sizes its viewBox from the circles only, so a title wider
    than the circles is clipped on the left. Grow the viewBox to include it. */
-function fitVennTitle(svg) {
+function fitVennTitle(svg: SVGSVGElement) {
   if (svg.hasAttribute("data-ibm-venn-title-fixed")) return;
   const title = svg.querySelector("text.venn-title");
   const areas = [...svg.querySelectorAll("g.venn-area")];
@@ -654,7 +655,7 @@ function fitVennTitle(svg) {
   svg.dispatchEvent(new CustomEvent("ibm-geometry-change"));
 }
 
-function separateVennLabels(svg) {
+function separateVennLabels(svg: SVGSVGElement) {
   const labels = [...svg.querySelectorAll("text.label")];
   let boxes;
   try { boxes = labels.map(label => ({ label, box: label.getBBox(), dx: 0, dy: 0 })); } catch (_) { return; }
@@ -703,7 +704,7 @@ function separateVennLabels(svg) {
 /* Mermaid keeps each Sankey label at its node centre, even when labels in
    neighbouring columns share that row. Keep every label near its node and
    choose the smallest vertical displacement that clears earlier labels. */
-function separateSankeyLabels(svg) {
+function separateSankeyLabels(svg: SVGSVGElement) {
   const labels = [...svg.querySelectorAll("g.node-labels text[y]")];
   if (labels.length < 2) return;
   const view = svg.viewBox.baseVal;
@@ -744,7 +745,7 @@ function separateSankeyLabels(svg) {
    (cy = 300 + (5 - score) * 30). Read the score back, tag the mood for the
    theme, and line all faces up in one row under the axis, as a mood strip.
    The dashed task lines are shortened to meet the row. */
-function arrangeJourneyFaces(svg) {
+function arrangeJourneyFaces(svg: SVGSVGElement) {
   if (svg.hasAttribute("data-ibm-journey-fixed")) return;
   svg.setAttribute("data-ibm-journey-fixed", "");
   const axis = [...svg.querySelectorAll("line[marker-end]")][0];
@@ -772,7 +773,7 @@ function arrangeJourneyFaces(svg) {
 }
 
 /* Gantt: a colored dot ahead of each section title, as in a legend. */
-function markGanttSections(svg) {
+function markGanttSections(svg: SVGSVGElement) {
   if (svg.hasAttribute("data-ibm-gantt-fixed")) return;
   svg.setAttribute("data-ibm-gantt-fixed", "");
   for (const title of svg.querySelectorAll("text.sectionTitle")) {
@@ -795,7 +796,7 @@ function markGanttSections(svg) {
    ratio bar. Values come from showData ("Label [34]"); without them the
    slice percentages are used. Everything here is plain SVG tagged with
    classes and data-ibm-series; the theme paints it. */
-function buildPieTable(svg) {
+function buildPieTable(svg: SVGSVGElement) {
   if (svg.hasAttribute("data-ibm-pie-table")) {
     // Repainting clears transient series tags; the table itself survives.
     for (const [index, row] of [...svg.querySelectorAll("g.ibm-pie-row")].entries()) {
@@ -823,14 +824,14 @@ function buildPieTable(svg) {
   rows.forEach(row => {
     row.pct = hasValues && total ? (row.value / total) * 100 : (percents[row.index] || 0);
   });
-  const el = (tag, attrs, parent, text) => {
+  const el = (tag, attrs, parent: HTMLElement, text: string) => {
     const node = document.createElementNS(SVG_NS, tag);
     for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
     if (text !== undefined) node.textContent = text;
     parent.appendChild(node);
     return node;
   };
-  const series = index => slot(index);
+  const series = (index: number) => slot(index);
 
   // Donut hole with the total.
   const hole = el("g", { class: "ibm-pie-center" }, center);
@@ -917,7 +918,7 @@ function requirementIcon(stereotype, body) {
   return "doc";
 }
 
-function drawRequirementCards(svg) {
+function drawRequirementCards(svg: SVGSVGElement) {
   if (svg.hasAttribute("data-ibm-req-fixed")) return;
   svg.setAttribute("data-ibm-req-fixed", "");
   for (const node of svg.querySelectorAll("g.node")) {
@@ -997,7 +998,7 @@ function drawRequirementCards(svg) {
 /* Use case: actors sit on cards with an avatar disc behind the figure, the
    system boundary gets a header band with an icon and a left-aligned title,
    and association lines start from a dot. Shapes only; the theme colors. */
-function decorateUsecase(svg) {
+function decorateUsecase(svg: SVGSVGElement) {
   if (svg.hasAttribute("data-ibm-usecase-fixed")) return;
   svg.setAttribute("data-ibm-usecase-fixed", "");
   const el = (tag, attrs) => {
@@ -1070,17 +1071,17 @@ const CLUSTER_KEYWORDS = [
   [/数据|履约|分析|报表|data|analytics|report|fulfil/i, "chart"]
 ];
 
-function flowIcon(text) {
+function flowIcon(text: string) {
   for (const [re, icon, tone] of FLOW_KEYWORDS) if (re.test(text)) return { icon, tone };
   return null;
 }
 
-function decorateFlowchart(svg) {
+function decorateFlowchart(svg: SVGSVGElement) {
   if (svg.hasAttribute("data-ibm-flow-fixed")) return;
   svg.setAttribute("data-ibm-flow-fixed", "");
   let shapes = {};
   try { shapes = JSON.parse(svg.getAttribute("data-ibm-shapes") || "{}"); } catch (_) {}
-  const iconPath = name => FLOW_ICONS[name] || REQ_ICONS[name];
+  const iconPath = (name: string) => FLOW_ICONS[name] || REQ_ICONS[name];
   const el = (tag, attrs) => {
     const node = document.createElementNS(SVG_NS, tag);
     for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
@@ -1132,7 +1133,7 @@ const LANE_KEYWORDS = [
   [/财务|支付|结算|finance|payment|billing/i, "card"]
 ];
 
-function decorateSwimlanes(svg) {
+function decorateSwimlanes(svg: SVGSVGElement) {
   if (svg.hasAttribute("data-ibm-lanes-fixed")) return;
   svg.setAttribute("data-ibm-lanes-fixed", "");
   // Slots follow the lanes as drawn, top to bottom (or left to right), not
@@ -1192,7 +1193,7 @@ const PARTICIPANT_KEYWORDS = [
 ];
 const FRAME_TYPES = ["alt", "opt", "loop", "par", "critical", "break", "rect"];
 
-function decorateSequence(svg) {
+function decorateSequence(svg: SVGSVGElement) {
   // Measure every label before changing the SVG. Reading after inserting
   // each preceding pill forces a full document layout per sequence frame.
   const labelWidths = new Map();
@@ -1245,7 +1246,7 @@ function decorateSequence(svg) {
       lines.slice(0, 4).forEach(line => line.classList.add("ibm-seq-frame-edge"));
     }
     const pts = (box.getAttribute("points") || "").trim().split(/[\s,]+/).map(Number);
-    const px = pts.filter((_, i) => i % 2 === 0), py = pts.filter((_, i) => i % 2 === 1);
+    const px = pts.filter((_, i: number) => i % 2 === 0), py = pts.filter((_, i: number) => i % 2 === 1);
     const bx = Math.min(...px), by = Math.min(...py);
     const pill = el("rect", { class: "ibm-seq-pill", x: bx + 6, y: by + 5, width: Math.max(38, (labelWidths.get(box) || 24) + 20), height: 20, rx: 10, ry: 10 });
     box.after(pill);
@@ -1258,7 +1259,7 @@ function decorateSequence(svg) {
   }
 }
 
-function tagGroups(svg) {
+function tagGroups(svg: SVGSVGElement) {
   const clusters = [...svg.querySelectorAll(CLUSTER_GROUPS)].map(cluster => {
     const shape = cluster.querySelector(":scope > rect, :scope > polygon, :scope > path") || cluster;
     const box = shape.getBoundingClientRect();
@@ -1284,7 +1285,7 @@ function tagGroups(svg) {
 
 /* Treemap leaves carry no class naming their section; take the series of the
    innermost section that contains them so a tile matches its group. */
-function tagTreemapLeaves(svg) {
+function tagTreemapLeaves(svg: SVGSVGElement) {
   const sections = [...svg.querySelectorAll("rect.treemapSection")]
     .filter(rect => rect.style.display !== "none")
     .map(rect => ({ rect, box: rect.getBoundingClientRect(), n: Number(/section(\d+)/.exec(rect.getAttribute("class") || "")?.[1] || 0) }))
@@ -1302,7 +1303,7 @@ function tagTreemapLeaves(svg) {
   }
 }
 
-function tagSeries(svg) {
+function tagSeries(svg: SVGSVGElement) {
   const swatches = [...svg.querySelectorAll(SERIES_SWATCHES)];
   const marks = [...svg.querySelectorAll(SERIES_MARKS)];
   // Snapshot all label geometry before assigning color attributes. Otherwise
@@ -1327,14 +1328,14 @@ function tagSeries(svg) {
 function labelsOverMark(mark, cache = new Map(), groups = new Map()) {
   const group = mark.closest("g");
   if (!group) return [];
-  const boundsOf = element => {
+  const boundsOf = (element: HTMLElement) => {
     if (!cache.has(element)) cache.set(element, element.getBoundingClientRect());
     return cache.get(element);
   };
   const bounds = boundsOf(mark);
   if (!bounds.width || !bounds.height) return [];
   if (!groups.has(group)) groups.set(group, [...group.querySelectorAll("text, tspan, foreignObject div, foreignObject span, foreignObject p")]);
-  return groups.get(group).filter(element => {
+  return groups.get(group).filter((element: HTMLElement) => {
     const rect = boundsOf(element);
     if (!rect.width || !rect.height) return false;
     const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
@@ -1367,7 +1368,7 @@ const CLASS_ICONS = [
 
 /* Class notes: Mermaid pins them yellow with inline !important; strip that
    default and lay a card plus an info glyph behind the text. */
-function drawClassNotes(svg) {
+function drawClassNotes(svg: SVGSVGElement) {
   for (const note of svg.querySelectorAll("g.node[id^='note'], g.node[id*='-note'], g.node.note")) {
     if (note.hasAttribute("data-ibm-note")) continue;
     const shapes = [...note.querySelectorAll(":scope > g.basic > path, :scope > rect, :scope > path")];
@@ -1399,7 +1400,7 @@ function drawClassNotes(svg) {
   }
 }
 
-function drawClassCards(svg) {
+function drawClassCards(svg: SVGSVGElement) {
   drawClassNotes(svg);
   for (const node of svg.querySelectorAll("g.node")) {
     if (!node.querySelector(".members-group, .methods-group")) continue;
@@ -1462,7 +1463,7 @@ function drawClassCards(svg) {
 
 function themeTokens() {
   const css = getComputedStyle(document.body);
-  const read = (name, fallback) => css.getPropertyValue(name).trim() || fallback;
+  const read = (name: string, fallback) => css.getPropertyValue(name).trim() || fallback;
   const canvas = read("--ib-mm-canvas", "#0F172A");
   return {
     text: read("--ib-mm-text", "#F9FAFB"),
@@ -1473,7 +1474,7 @@ function themeTokens() {
 
 const TEXT_TAGS = new Set(["text", "tspan"]);
 
-function isTextElement(element) {
+function isTextElement(element: HTMLElement) {
   return TEXT_TAGS.has(element.tagName.toLowerCase());
 }
 
@@ -1525,7 +1526,7 @@ function contrastRatio(a, b) {
   return first > second ? first / second : second / first;
 }
 
-function toneMapForDark(svg, tokens) {
+function toneMapForDark(svg: SVGSVGElement, tokens) {
   for (const element of svg.querySelectorAll("*")) {
     // Author styling (classDef/style) is written with !important; leave it.
     if (/!important/.test(element.getAttribute("style") || "")) continue;
@@ -1578,7 +1579,7 @@ const NON_RENDERED = "defs, marker, clipPath, mask, pattern, symbol";
 // No tspan: its <text> is measured and already spans it.
 const MEASURABLE = "path, rect, circle, ellipse, polygon, polyline, line, text, image, foreignObject, use";
 
-function measureRenderedContent(svg) {
+function measureRenderedContent(svg: SVGSVGElement) {
   const ctm = svg.getScreenCTM();
   if (!ctm) return null;
   const inverse = ctm.inverse();
@@ -1620,7 +1621,7 @@ function measureRenderedContent(svg) {
    drawing then sits shrunk and centred inside a larger box — the empty bands.
    (An earlier version scanned painted elements instead; it disagreed with the
    viewBox measurement and pushed a Gantt chart ~1000px sideways.) */
-function measureDrawnSize(svg) {
+function measureDrawnSize(svg: SVGSVGElement) {
   const scale = Number(/scale\(([\d.]+)\)/.exec(svg.style.transform)?.[1]) || 1;
   const box = svg.getBoundingClientRect();
   if (!box.width || !box.height) return null;
@@ -1641,7 +1642,7 @@ function measureDrawnSize(svg) {
 
 /* Screen-space union of everything that paints, with the same exclusions as
    measureRenderedContent. */
-function inkClientRect(svg) {
+function inkClientRect(svg: SVGSVGElement) {
   let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
   for (const element of svg.querySelectorAll(MEASURABLE)) {
     if (element.closest(NON_RENDERED)) continue;
@@ -1659,7 +1660,7 @@ function inkClientRect(svg) {
   return { left, top, right, bottom, width: right - left, height: bottom - top };
 }
 
-function measureDrawnSizeFromViewBox(svg, box, scale) {
+function measureDrawnSizeFromViewBox(svg: SVGSVGElement, box, scale) {
   const viewBox = svg.viewBox?.baseVal;
   if (!viewBox?.width || !viewBox?.height) return null;
   const boxWidth = box.width / scale;
@@ -1682,7 +1683,7 @@ function measureDrawnSizeFromViewBox(svg, box, scale) {
   };
 }
 
-function toUserSpace(svg, inverse, clientX, clientY) {
+function toUserSpace(svg: SVGSVGElement, inverse, clientX, clientY) {
   const point = svg.createSVGPoint();
   point.x = clientX;
   point.y = clientY;
@@ -1705,7 +1706,7 @@ const DIAGRAM_LABELS = {
   wardley: "Wardley", treeView: "Tree", eventmodeling: "Event Model"
 };
 
-function diagramLabel(svg) {
+function diagramLabel(svg: SVGSVGElement) {
   const kind = svg.getAttribute("aria-roledescription") || "";
   return DIAGRAM_LABELS[kind] || (kind ? kind : "Mermaid");
 }
@@ -1845,7 +1846,7 @@ const MERMAID_VERSION = "12.0.0";
    type renders, so the multi-MB bundles cost nothing on startup. */
 const EXTERNAL_DIAGRAMS = [
   // @mermaid-js/mermaid-zenuml 1.0.1
-  { id: "zenuml", file: "mermaid-zenuml.min.js", global: "mermaid-zenuml", detector: text => /^\s*zenuml/.test(text) }
+  { id: "zenuml", file: "mermaid-zenuml.min.js", global: "mermaid-zenuml", detector: (text: string) => /^\s*zenuml/.test(text) }
 ];
 
 /* The bundles end by publishing themselves from the GLOBAL
@@ -1896,7 +1897,7 @@ const ELK_FILE = "mermaid-layout-elk.min.js";
 const ELK_ALGORITHMS = ["elk.layered", "elk.stress", "elk.force", "elk.mrtree", "elk.sporeOverlap", "elk.box", "elk.rectpacking"];
 let elkWrapRequested = false;
 
-function registerElkLayouts(plugin, mermaid) {
+function registerElkLayouts(plugin: IgnorancePlugin, mermaid) {
   if (typeof mermaid.registerLayoutLoaders !== "function") return;
   let pending = null;
   const load = async () => {
@@ -1929,7 +1930,7 @@ function registerElkLayouts(plugin, mermaid) {
 
 const TARGET_ASPECT = 1.6;
 
-function withLayoutDirective(text, layout) {
+function withLayoutDirective(text: string, layout) {
   const directive = `%%{init: {"layout": "${layout}"}}%%\n`;
   const frontmatter = /^\s*---[\s\S]*?\n---[ \t]*\n/.exec(text);
   return frontmatter
@@ -1940,7 +1941,7 @@ function withLayoutDirective(text, layout) {
 function installBalancedLayout(mermaid) {
   const render = mermaid.render.bind(mermaid);
   let counter = 0;
-  const attempt = async (id, text, rest, wrap = false) => {
+  const attempt = async (id: string, text: string, rest, wrap = false) => {
     elkWrapRequested = wrap;
     try {
       const result = await render(`${id}-ibm-alt${counter++}`, text, ...rest);
@@ -1953,7 +1954,7 @@ function installBalancedLayout(mermaid) {
     }
   };
 
-  mermaid.render = async (id, text, ...rest) => {
+  mermaid.render = async (id: string, text: string, ...rest) => {
     const result = await render(id, text, ...rest);
     try {
       if (typeof text !== "string" || /%%\s*ibm:keep-layout/.test(text)) return result;
@@ -2018,33 +2019,33 @@ function countCrossings(edges, positions) {
   return crossings;
 }
 
-function reorderUsecaseSource(text, positions) {
+function reorderUsecaseSource(text: string, positions) {
   const lines = text.split("\n");
   const edges = [];
-  lines.forEach(line => { const m = USECASE_EDGE.exec(line); if (m) edges.push([m[1], m[2]]); });
-  const neighbours = name => edges.flatMap(([a, b]) => (a === name ? [b] : b === name ? [a] : []));
+  lines.forEach((line: number) => { const m = USECASE_EDGE.exec(line); if (m) edges.push([m[1], m[2]]); });
+  const neighbours = (name: string) => edges.flatMap(([a, b]) => (a === name ? [b] : b === name ? [a] : []));
   const meanY = names => {
     const ys = names.map(n => positions.get(n)?.y).filter(v => v !== undefined);
     return ys.length ? ys.reduce((x, y) => x + y, 0) / ys.length : Infinity;
   };
-  const declName = line => /^\s*(?:actor\s+)?([A-Za-z_][\w-]*)\s*[(\[]/.exec(line)?.[1];
+  const declName = (line: number) => /^\s*(?:actor\s+)?([A-Za-z_][\w-]*)\s*[(\[]/.exec(line)?.[1];
 
   // Actors by the mean height of their use cases.
-  const actorIdx = lines.map((l, i) => (/^\s*actor\b/.test(l) ? i : -1)).filter(i => i >= 0);
-  const actorOrder = actorIdx.map(i => lines[i]).sort((a, b) => meanY(neighbours(declName(a))) - meanY(neighbours(declName(b))));
+  const actorIdx = lines.map((l, i: number) => (/^\s*actor\b/.test(l) ? i : -1)).filter((i: number) => i >= 0);
+  const actorOrder = actorIdx.map((i: number) => lines[i]).sort((a, b) => meanY(neighbours(declName(a))) - meanY(neighbours(declName(b))));
   const actorRank = new Map(actorOrder.map((l, r) => [declName(l), r]));
-  actorIdx.forEach((i, k) => { lines[i] = actorOrder[k]; });
+  actorIdx.forEach((i: number, k) => { lines[i] = actorOrder[k]; });
 
   // Use cases (declared inside a boundary) by the mean rank of their actors,
   // falling back to their current height for ties and actor-less ones.
   let inBoundary = false;
   const caseIdx = [];
-  lines.forEach((line, i) => {
+  lines.forEach((line: number, i: number) => {
     if (/^\s*systemBoundary\b/.test(line)) { inBoundary = true; return; }
     if (inBoundary && /^\s*end\s*$/.test(line)) { inBoundary = false; return; }
     if (inBoundary && declName(line)) caseIdx.push(i);
   });
-  const caseKey = line => {
+  const caseKey = (line: number) => {
     const name = declName(line);
     const ranks = neighbours(name).map(n => actorRank.get(n)).filter(r => r !== undefined);
     const rank = ranks.length ? ranks.reduce((x, y) => x + y, 0) / ranks.length : Infinity;
@@ -2068,7 +2069,7 @@ const SWIMLANE_HEADER = /^\s*(?:---[\s\S]*?\n---\s*\n)?(?:%%[^\n]*\n\s*)*swimlan
 
 function installFlowchartShapes(mermaid) {
   const render = mermaid.render.bind(mermaid);
-  mermaid.render = async (id, text, ...rest) => {
+  mermaid.render = async (id: string, text: string, ...rest) => {
     const result = await render(id, text, ...rest);
     try {
       if (typeof text !== "string" || !(FLOWCHART_HEADER.test(text) || SWIMLANE_HEADER.test(text))) return result;
@@ -2088,7 +2089,7 @@ function installFlowchartShapes(mermaid) {
 function installUsecaseOrdering(mermaid) {
   const render = mermaid.render.bind(mermaid);
   let counter = 0;
-  mermaid.render = async (id, text, ...rest) => {
+  mermaid.render = async (id: string, text: string, ...rest) => {
     const result = await render(id, text, ...rest);
     try {
       if (typeof text !== "string" || !USECASE_HEADER.test(text) || /%%\s*ibm:keep-layout/.test(text)) return result;
@@ -2105,7 +2106,7 @@ function installUsecaseOrdering(mermaid) {
   };
 }
 
-async function registerExternalDiagrams(plugin, mermaid) {
+async function registerExternalDiagrams(plugin: IgnorancePlugin, mermaid) {
   if (typeof mermaid.registerExternalDiagrams !== "function") return;
   const definitions = EXTERNAL_DIAGRAMS.map(entry => ({
     id: entry.id,
@@ -2211,7 +2212,7 @@ async function loadObsidianMermaid() {
   }
 }
 
-async function loadBundledMermaid(plugin, { publish = true } = {}) {
+async function loadBundledMermaid(plugin: IgnorancePlugin, { publish = true } = {}) {
   const path = `${plugin.manifest.dir}/${MERMAID_FILE}`;
   const source = await readAsset(plugin, MERMAID_FILE);
 
@@ -2261,7 +2262,7 @@ async function loadBundledMermaid(plugin, { publish = true } = {}) {
     // was checked against 11's DOM — go to 11. Everything else (C4, gantt,
     // pie, journey, the beta families, …) stays on 12, whose DOM the theme
     // and decorations were built for.
-    async pick(text) {
+    async pick(text: string) {
       if (!classic || typeof text !== "string" || !CLASSIC_FAMILIES.test(text)) return loaded;
       try {
         return (await classic.parse(text, { suppressErrors: true })) ? classic : loaded;
@@ -2269,7 +2270,7 @@ async function loadBundledMermaid(plugin, { publish = true } = {}) {
         return loaded;
       }
     },
-    async render(id, text, ...rest) {
+    async render(id: string, text: string, ...rest) {
       text = mapArchitectureIcons(text);
       const engine = await router.pick(text);
       return withMermaidConfigIsolation(engine, async () => {

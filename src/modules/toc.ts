@@ -1,14 +1,16 @@
+import type { TFile } from "obsidian";
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { editorInfoField, MarkdownView } from "obsidian";
+import { Decoration, ViewPlugin, WidgetType } from "@codemirror/view";
 import { extractTocHeadings, isTocDirective } from "./toc-headings.js";
-const { editorInfoField, MarkdownView } = require("obsidian");
-const { Decoration, ViewPlugin, WidgetType } = require("@codemirror/view");
 
-function tocHeadings(plugin, sourcePath) {
+function tocHeadings(plugin: IgnorancePlugin, sourcePath: string) {
   const file = plugin.app.vault.getAbstractFileByPath(sourcePath);
   const headings = (file && plugin.app.metadataCache.getFileCache(file)?.headings) || [];
   return extractTocHeadings(headings);
 }
 
-function buildTocList(plugin, sourcePath, onPick) {
+function buildTocList(plugin: IgnorancePlugin, sourcePath: string, onPick) {
   const headings = tocHeadings(plugin, sourcePath);
   const nav = createDiv({ cls: "ibm-toc" });
   nav.createDiv({ cls: "ibm-toc-title", text: "目录" });
@@ -30,7 +32,7 @@ function buildTocList(plugin, sourcePath, onPick) {
   return nav;
 }
 
-function jumpToHeading(plugin, sourcePath, heading) {
+function jumpToHeading(plugin: IgnorancePlugin, sourcePath: string, heading) {
   const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
   if (view?.file?.path === sourcePath && view.getState?.().mode === "preview") {
     const target = [...view.containerEl.querySelectorAll("h1,h2,h3,h4,h5,h6")]
@@ -43,7 +45,7 @@ function jumpToHeading(plugin, sourcePath, heading) {
   plugin.app.workspace.openLinkText(`#${heading.text}`, sourcePath, false);
 }
 
-function renderTocBlocks(plugin, element, sourcePath) {
+function renderTocBlocks(plugin: IgnorancePlugin, element: HTMLElement, sourcePath: string) {
   for (const p of element.querySelectorAll("p")) {
     const link = p.children.length === 1 ? p.firstElementChild : null;
     const isWikiToc = link?.matches("a.internal-link")
@@ -55,7 +57,7 @@ function renderTocBlocks(plugin, element, sourcePath) {
 }
 
 class TocWidget extends WidgetType {
-  constructor(plugin, sourcePath, signature) {
+  constructor(plugin: IgnorancePlugin, sourcePath: string, signature) {
     super();
     this.plugin = plugin;
     this.sourcePath = sourcePath;
@@ -74,7 +76,7 @@ class TocWidget extends WidgetType {
   ignoreEvent() { return true; }
 }
 
-function tocExtension(plugin) {
+function tocExtension(plugin: IgnorancePlugin) {
   const build = view => {
     const file = view.state.field(editorInfoField, false)?.file;
     if (!file) return Decoration.none;
@@ -96,7 +98,7 @@ function tocExtension(plugin) {
     constructor(view) {
       this.decorations = build(view);
       // Headings change after the metadata cache catches up with an edit.
-      this.onMeta = file => {
+      this.onMeta = (file: TFile) => {
         if (view.state.field(editorInfoField, false)?.file === file) {
           this.decorations = build(view);
           try { view.dispatch({}); } catch (_) { /* view already gone */ }

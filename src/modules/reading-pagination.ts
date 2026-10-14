@@ -1,3 +1,6 @@
+import type { TFile } from "obsidian";
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Component, Notice, MarkdownView } from "obsidian";
 import { waitForStableLayout } from "./layout-stability.js";
 import { createIsolatedStaging, stagingStyleSheet } from "./isolated-staging.js";
 import { PAGE_NUMBER_FORMATS } from "./page-numbers.js";
@@ -20,16 +23,15 @@ function setBookFlag(preview: HTMLElement, on: boolean) {
   for (const host of [preview.closest(".markdown-reading-view"), preview.closest(".workspace-leaf-content")]) host?.toggleClass("ibp-book-host", on);
   if (!on) preview.removeClass("ib-has-pages");
 }
-const { Component, Notice, MarkdownView } = require("obsidian");
 
 const books = new WeakMap();
 const interactiveBooks = new WeakSet();
 
-function stripFrontmatter(text) {
+function stripFrontmatter(text: string) {
   return text.replace(/^---\n[\s\S]*?\n---\n?/, "");
 }
 
-function annotateTaskCheckboxes(staging, text) {
+function annotateTaskCheckboxes(staging, text: string) {
   const checkboxes = [...staging.querySelectorAll("input.task-list-item-checkbox")];
   const tasks = sourceTaskLines(text);
   if (checkboxes.length !== tasks.length) {
@@ -55,7 +57,7 @@ function setTaskCloneState(inputs, checked) {
   }
 }
 
-function findBookAnchor(book, target) {
+function findBookAnchor(book, target: HTMLElement) {
   if (!target.startsWith("#")) return null;
   let fragment = target.slice(1);
   try { fragment = decodeURIComponent(fragment); } catch (_) {}
@@ -66,7 +68,7 @@ function findBookAnchor(book, target) {
     || null;
 }
 
-function installBookInteractions(plugin, view, book) {
+function installBookInteractions(plugin: IgnorancePlugin, view, book) {
   if (interactiveBooks.has(book)) return;
   interactiveBooks.add(book);
   const pendingTasks = new Set();
@@ -222,7 +224,7 @@ function paginateStrip(strip, contentHeight, mode) {
 const rendering = new WeakSet();
 const readingControllers = new WeakMap();
 
-async function renderBook(plugin, view) {
+async function renderBook(plugin: IgnorancePlugin, view) {
   // One render per view at a time; a request arriving mid-render re-runs once
   // it finishes, so the latest settings and text always win.
   if (rendering.has(view)) { view.ibpRerender = true; return; }
@@ -238,7 +240,7 @@ async function renderBook(plugin, view) {
   }
 }
 
-async function renderBookOnce(plugin, view) {
+async function renderBookOnce(plugin: IgnorancePlugin, view) {
   if (!plugin.state.page.paged || !view.containerEl.isConnected) return;
   const page = plugin.state.page;
   const preview = view.containerEl.querySelector(".markdown-reading-view .markdown-preview-view");
@@ -352,7 +354,7 @@ function tableForClone(clone) {
 
 function retainTableRows(block, cloneTable, start, stop, repeatHeader) {
   const clonedRows = [...cloneTable.querySelectorAll("tr")];
-  block.tableRows.forEach((row, index) => {
+  block.tableRows.forEach((row, index: number) => {
     if (repeatHeader && row.header) return;
     if (row.bottom <= start + 0.5 || row.top >= stop - 0.5) clonedRows[index]?.remove();
   });
@@ -373,7 +375,7 @@ function retainTableRows(block, cloneTable, start, stop, repeatHeader) {
   }
 }
 
-function makePage(blocks, window, index, total, page, contentHeight = window.stop - window.start) {
+function makePage(blocks, window, index: number, total, page, contentHeight = window.stop - window.start) {
   const format = PAGE_NUMBER_FORMATS[page.pageNumberFormat] || PAGE_NUMBER_FORMATS.plain;
   const sheet = createDiv();
   sheet.className = "ibp-page";
@@ -403,7 +405,7 @@ function makePage(blocks, window, index, total, page, contentHeight = window.sto
     if (block.bottom <= window.start + 0.5 || block.top >= window.stop - 0.5) continue;
     const clone = block.el.cloneNode(true);
     // Paper language labels are information, not disconnected rename buttons.
-    clone.querySelectorAll('.ibm-block-label.is-editable').forEach(label => {
+    clone.querySelectorAll('.ibm-block-label.is-editable').forEach((label: string) => {
       const text = createEl('span');
       text.className = 'ibm-block-label';
       text.textContent = label.textContent;
@@ -445,7 +447,7 @@ function makePage(blocks, window, index, total, page, contentHeight = window.sto
    last one before it. None on the first page, which usually carries the title. */
 function addRunningHeaders(pages, page) {
   let current = "";
-  pages.forEach((sheet, index) => {
+  pages.forEach((sheet, index: number) => {
     sheet.querySelector(":scope > .ibp-page-header")?.remove();
     const headings = [...sheet.querySelectorAll(".ibp-page-body :is(h1, h2)")];
     const top = heading => parseFloat(heading.closest(".ibp-placed")?.style.top || "0");
@@ -460,10 +462,10 @@ function addRunningHeaders(pages, page) {
   });
 }
 
-async function settleRenderRegion(root, height, signal = null) {
+async function settleRenderRegion(root: HTMLElement, height, signal = null) {
   const wait = ms => new Promise(resolve => window.setTimeout(resolve, ms));
   const top = root.getBoundingClientRect().top;
-  const inside = element => element.getBoundingClientRect().top < top + height;
+  const inside = (element: HTMLElement) => element.getBoundingClientRect().top < top + height;
   const images = [...root.querySelectorAll("img")].filter(inside);
   await Promise.all(images.map(img => img.complete ? null : new Promise(resolve => {
     const timer = window.setTimeout(resolve, 2500);
@@ -484,7 +486,7 @@ async function settleRenderRegion(root, height, signal = null) {
   await waitForStableLayout(() => [...root.children].filter(inside).reduce((max, element) => Math.max(max, element.getBoundingClientRect().bottom - top), 0), { signal });
 }
 
-async function composePages(plugin, file, text, book, component, { keepStrip = false, previous = {}, showProgress = false, expandDetails = false, onProgress = null, signal = null } = {}) {
+async function composePages(plugin: IgnorancePlugin, file: TFile, text: string, book, component, { keepStrip = false, previous = {}, showProgress = false, expandDetails = false, onProgress = null, signal = null } = {}) {
   signal?.throwIfAborted();
   const page = plugin.state.page;
   // Measure in the same view context as the final pages so inherited note
@@ -612,7 +614,7 @@ async function composePages(plugin, file, text, book, component, { keepStrip = f
   }
 }
 
-function hashText(text) {
+function hashText(text: string) {
   let h = 0;
   for (let i = 0; i < text.length; i += 1) h = (h * 31 + text.charCodeAt(i)) | 0;
   return h;
@@ -620,7 +622,7 @@ function hashText(text) {
 
 /* Mermaid and images finish after MarkdownRenderer resolves; wait for them
    so block heights are final before cutting pages. */
-async function settleRender(root, signal = null) {
+async function settleRender(root: HTMLElement, signal = null) {
   signal?.throwIfAborted();
   const wait = async ms => {
     signal?.throwIfAborted();
@@ -656,7 +658,7 @@ async function settleRender(root, signal = null) {
   }
 }
 
-function refreshBooks(plugin, force) {
+function refreshBooks(plugin: IgnorancePlugin, force) {
   for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) {
     const view = leaf.view;
     const state = books.get(view);

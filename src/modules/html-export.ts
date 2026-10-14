@@ -1,3 +1,6 @@
+import type { TFile } from "obsidian";
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { requestUrl } from "obsidian";
 import { loadLanguageIcons } from "./language-icons.js";
 import { setMarkup } from "./dom-markup.js";
 import { snapshotSvgPaints, svgPaintTokens } from "./svg-export-paints.js";
@@ -35,7 +38,7 @@ const HTML_STYLE_PROPERTIES = [
 ];
 const SVG_STYLE_PROPERTIES = [...HTML_STYLE_PROPERTIES, "rx", "ry"];
 
-async function setBodyThemeMode(plugin, mode, root, signal) {
+async function setBodyThemeMode(plugin: IgnorancePlugin, mode, root: HTMLElement, signal) {
   const body = document.body;
   body.toggleClass("theme-dark", mode === "dark");
   body.toggleClass("theme-light", mode === "light");
@@ -113,7 +116,7 @@ const UA_DECORATED = new Set(["A", "INS", "U", "S", "DEL", "STRIKE"]);
 const UA_BACKGROUND = new Set(["MARK", "TH", "TD", "TR", "THEAD", "TBODY", "TABLE", "CODE", "PRE", "KBD"]);
 const UA_VERTICAL_ALIGN = new Set(["TD", "TH", "TR", "THEAD", "TBODY", "TFOOT", "SUB", "SUP", "IMG", "svg"]);
 
-function isDefaultValue(name, value, source, computed) {
+function isDefaultValue(name: string, value, source, computed) {
   if (DEFAULT_VALUES[name] === value) return true;
   const tag = source.tagName;
   switch (name) {
@@ -128,7 +131,7 @@ function isDefaultValue(name, value, source, computed) {
   }
 }
 
-function inlineStandaloneStyles(source, target, colors) {
+function inlineStandaloneStyles(source, target: HTMLElement, colors) {
   const computed = getComputedStyle(source);
   const sized = SIZED_ELEMENTS.has(source.tagName);
   const diagramPaints = colors.diagramPaints?.get(source);
@@ -151,7 +154,7 @@ function inlineStandaloneStyles(source, target, colors) {
   }
 }
 
-function safeAttribute(name, value) {
+function safeAttribute(name: string, value) {
   if (/^on/i.test(name) || name === "style" || name === "srcset" || name.startsWith("data-") || name.startsWith("aria-")) return false;
   if (name === "href" || name === "xlink:href") return /^(?:#|https?:\/\/|mailto:)/i.test(value);
   if (name === "src") return /^data:image\//i.test(value);
@@ -162,7 +165,7 @@ function decodeHash(value) {
   try { return decodeURIComponent(value); } catch (_) { return value; }
 }
 
-function copyAttributes(source, target, headingIds) {
+function copyAttributes(source, target: HTMLElement, headingIds) {
   for (const attribute of [...source.attributes]) {
     const name = attribute.name.toLowerCase();
     if (name === "class" || name === "style" || name === "src" || name === "id" || !safeAttribute(name, attribute.value)) continue;
@@ -223,7 +226,6 @@ async function remoteImageDataUri(source) {
   const src = source.currentSrc || source.getAttribute("src") || "";
   if (!/^https?:/i.test(src)) return null;
   try {
-    const { requestUrl } = require("obsidian");
     const response = await requestUrl({ url: src });
     const type = String(response.headers?.["content-type"] || "").split(";")[0];
     if (!type.startsWith("image/")) return null;
@@ -233,7 +235,7 @@ async function remoteImageDataUri(source) {
   }
 }
 
-async function imageDataUri(plugin, source, imageIndex) {
+async function imageDataUri(plugin: IgnorancePlugin, source, imageIndex) {
   const src = source.currentSrc || source.getAttribute("src") || "";
   if (/^data:image\//i.test(src)) return src;
   const file = imageIndex.get(src) || imageIndex.get(resourcePathKey(src));
@@ -245,7 +247,7 @@ async function imageDataUri(plugin, source, imageIndex) {
   return null;
 }
 
-async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, checkpoint, preview = false) {
+async function cloneHtmlNode(source, plugin: IgnorancePlugin, imageIndex, colors, headingIds, checkpoint, preview = false) {
   await checkpoint();
   if (source.nodeType === Node.TEXT_NODE) return document.createTextNode(source.nodeValue || "");
   if (!(source instanceof Element) || OMIT_FROM_HTML.has(source.tagName) || source.matches(OMIT_HTML_SELECTOR)) return null;
@@ -417,9 +419,9 @@ const INHERITED_PROPERTIES = [
 const KEEP_FULL_STYLE = new Set(["TABLE", "PRE", "IMG", "FIGURE", "svg", "SVG"]);
 
 
-async function dropInheritedDuplicates(root, checkpoint) {
+async function dropInheritedDuplicates(root: HTMLElement, checkpoint) {
   // Children first, while each parent still holds the values they compare to.
-  const visit = async element => {
+  const visit = async (element: HTMLElement) => {
     await checkpoint();
     // Diagram styles have been removed during cloning; identical inherited
     // SVG values can safely come from their parent just like HTML text.
@@ -513,7 +515,7 @@ function buildReaderCss(light, dark) {
   `;
 }
 
-async function buildHtmlReader(plugin, file, content, sourceHeadings, headingIds, light, dark, initialMode, checkpoint, preferenceId) {
+async function buildHtmlReader(plugin: IgnorancePlugin, file: TFile, content, sourceHeadings, headingIds, light, dark, initialMode, checkpoint, preferenceId) {
     await dropInheritedDuplicates(content, checkpoint);
     // The cover shows the title; a first H1 that only repeats it is hidden and left out of the navigation.
     const { cover, colophon, title } = await buildCover(plugin, file, content);
@@ -544,7 +546,7 @@ async function buildHtmlReader(plugin, file, content, sourceHeadings, headingIds
 /* `cover` hides the window behind the stage while the theme is switched to
    read both palettes; the preview window covers it itself, and a full-screen
    stage over it made the preview look like a frozen white screen. */
-async function prepareHtmlDocument(plugin, file, { cover = true, onProgress = null, signal = null } = {}) {
+async function prepareHtmlDocument(plugin: IgnorancePlugin, file: TFile, { cover = true, onProgress = null, signal = null } = {}) {
   // The reader inlines language icons into each code header, so they must be loaded first.
   await loadLanguageIcons(plugin).catch(() => {});
   const checkpoint = renderBudget(signal);
@@ -616,7 +618,7 @@ async function prepareHtmlDocument(plugin, file, { cover = true, onProgress = nu
   });
 }
 
-async function exportHtml(plugin, file, targetPath) {
+async function exportHtml(plugin: IgnorancePlugin, file: TFile, targetPath) {
   if (!hasDesktopExports()) {
     return saveExportToVault(plugin, `${file.basename}.html`, await prepareHtmlDocument(plugin, file));
   }

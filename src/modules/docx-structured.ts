@@ -63,7 +63,7 @@ function flattenInlineComponents(source) {
     .replace(/\(\(spark:([^()]*)\)\)/gi, "趋势：$1")
     .replace(/\(\(spoiler:([^()]*)\)\)/gi, "$1")
     .replace(/\(\(ruby:\s*([^()|]*?)\s*\|\s*([^()]*?)\s*\)\)/gi, "$1（$2）")
-    .replace(/\(\(crumb:\s*([^()]*?)\s*\)\)/gi, (_, path) => path.split(/\s*(?:>|›|→|\/)\s*/).join(" › "))
+    .replace(/\(\(crumb:\s*([^()]*?)\s*\)\)/gi, (_, path: string) => path.split(/\s*(?:>|›|→|\/)\s*/).join(" › "))
     .replace(/\(\(([^()|:]+?)\s*\|\s*([^()]+?)\)\)/g, "$1：$2");
 }
 
@@ -255,7 +255,7 @@ async function listToDocx(tokens, start, context, depth = 0) {
 
 function codeBlockParagraphs(source, context, indent = 0) {
   const lines = source.replace(/\n$/, "").split("\n");
-  return (lines.length ? lines : [""]).map(line => paragraphFromRuns([
+  return (lines.length ? lines : [""]).map((line: number) => paragraphFromRuns([
     new TextRun({ text: line || " ", font: context.style.codeFamily, size: 18 })
   ], context, { code: true, indent }));
 }

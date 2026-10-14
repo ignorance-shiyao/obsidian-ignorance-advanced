@@ -1,4 +1,4 @@
-const { Decoration, ViewPlugin } = require("@codemirror/view");
+import { Decoration, ViewPlugin } from "@codemirror/view";
 
 // ECharts fences contain JSON, but Obsidian does not recognize this language
 // name as JSON. Decorate its source without changing the stored fence name.

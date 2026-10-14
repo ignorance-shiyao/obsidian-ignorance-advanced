@@ -1,3 +1,6 @@
+import type { TFile, WorkspaceLeaf } from "obsidian";
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Menu, Platform, setTooltip } from "obsidian";
 import { setIcon } from "./ui-icons.js";
 /* The note header shows the folder path (Obsidian's breadcrumb) only when the
    whole "folder / … / name" fits; otherwise just the file name. Each tab is
@@ -6,14 +9,13 @@ import { setIcon } from "./ui-icons.js";
    the path as a small tree (mobile) — each folder from the vault root down,
    and picking one reveals it in the file explorer.
    Hiding the breadcrumb itself is the theme's job (.ib-path-shown). */
-const { Menu, Platform, setTooltip } = require("obsidian");
 
 const BUTTON = "ib-path-toggle";
 const SHOWN = "ib-path-shown";
 const observed = new WeakMap();
 
 // Show the path when it fits, unless the user toggled this note by hand.
-function fit(leaf) {
+function fit(leaf: WorkspaceLeaf) {
   const view = leaf.view;
   const root = view?.containerEl;
   const container = root?.querySelector(".view-header-title-container");
@@ -32,13 +34,13 @@ function fit(leaf) {
   if (!fits) root.removeClass(SHOWN);
 }
 
-function ancestors(file) {
+function ancestors(file: TFile) {
   const chain = [];
   for (let folder = file?.parent; folder && !folder.isRoot(); folder = folder.parent) chain.unshift(folder);
   return chain;
 }
 
-async function revealFolder(plugin, folder) {
+async function revealFolder(plugin: IgnorancePlugin, folder) {
   const { workspace } = plugin.app;
   let leaf = workspace.getLeavesOfType("file-explorer")[0];
   if (!leaf) return;
@@ -46,7 +48,7 @@ async function revealFolder(plugin, folder) {
   leaf.view?.revealInFolder?.(folder);
 }
 
-function showTree(plugin, file, event) {
+function showTree(plugin: IgnorancePlugin, file: TFile, event) {
   const menu = new Menu();
   const chain = ancestors(file);
   // Indent whole rows (icon included) so the path reads as a tree.
@@ -65,7 +67,7 @@ function showTree(plugin, file, event) {
   menu.showAtMouseEvent(event);
 }
 
-function decorate(plugin, leaf) {
+function decorate(plugin: IgnorancePlugin, leaf: WorkspaceLeaf) {
   const view = leaf.view;
   const container = view?.containerEl?.querySelector(".view-header-title-container");
   if (!container) return;
@@ -106,12 +108,12 @@ function decorate(plugin, leaf) {
   setTooltip(button, tooltip(leaf, file), { placement: "bottom" });
 }
 
-function tooltip(leaf, file) {
+function tooltip(leaf: WorkspaceLeaf, file: TFile) {
   if (Platform.isMobile) return "所在目录";
   return leaf.view?.containerEl?.hasClass(SHOWN) ? "收起路径" : `展开路径：${file.parent.path}`;
 }
 
-export function installHeaderPath(plugin) {
+export function installHeaderPath(plugin: IgnorancePlugin) {
   const sweep = () => plugin.app.workspace.iterateAllLeaves(leaf => decorate(plugin, leaf));
   plugin.registerEvent(plugin.app.workspace.on("layout-change", sweep));
   plugin.registerEvent(plugin.app.workspace.on("file-open", () => window.setTimeout(sweep, 0)));

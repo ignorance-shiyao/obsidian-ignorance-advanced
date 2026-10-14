@@ -1,3 +1,6 @@
+import type { TFile, WorkspaceLeaf } from "obsidian";
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Component, ItemView, Menu, Notice, Platform } from "obsidian";
 import { setIcon } from "./ui-icons.js";
 import { applyStagedChartAlignment } from "./chart-alignment.js";
 import { applyAccent, setThemeMode } from "./appearance.js";
@@ -21,7 +24,6 @@ import { addEditableSlide } from "./pptx-editable.js";
 import { openOffscreenCapturer, stageSlide } from "./offscreen-capture.js";
 import { setMarkup } from "./dom-markup.js";
 
-const { Component, ItemView, Menu, Notice, Platform } = require("obsidian");
 const VIEW_TYPE = "ignorance-presentation";
 const CANVASES = [
   ["16:9", 1280, 720],
@@ -67,7 +69,7 @@ function delay(ms) {
    had the diagram's source split across pages as plain code, and the drawing
    that arrived later went to a detached element. */
 let slideDiagramCounter = 0;
-async function renderSlideDiagrams(root, width) {
+async function renderSlideDiagrams(root: HTMLElement, width: number) {
   const blocks = [...root.querySelectorAll("pre > code.language-mermaid")].filter(code => !code.closest(".mermaid"));
   await Promise.all(blocks.map(async code => {
     const pre = code.parentElement;
@@ -87,7 +89,7 @@ async function renderSlideDiagrams(root, width) {
   }));
 }
 
-async function settleSlideContent(root) {
+async function settleSlideContent(root: HTMLElement) {
   await Promise.all([...root.querySelectorAll("img")].map(img => img.complete ? null : new Promise(resolve => {
     const timer = window.setTimeout(resolve, 2500);
     img.addEventListener("load", () => { window.clearTimeout(timer); resolve(); }, { once: true });
@@ -111,7 +113,7 @@ async function settleSlideContent(root) {
   }
 }
 
-function setDefaultSkinVariables(root) {
+function setDefaultSkinVariables(root: HTMLElement) {
   for (const [name, value] of Object.entries({
     "--bg": "var(--ib-bg-primary, var(--background-primary))",
     "--fg": "var(--ib-text-primary, var(--text-normal))",
@@ -130,7 +132,7 @@ function setDefaultSkinVariables(root) {
    tokens the note and the exports use, so a deck matches its document. */
 const PALETTE_SKIN = /^palette-([a-z]+)-(light|dark)$/;
 
-function applySkin(root, skinId) {
+function applySkin(root: HTMLElement, skinId) {
   [...root.classList].filter(name => name.startsWith("skin-")).forEach(name => root.classList.remove(name));
   for (const name of THEME_TOKEN_NAMES) root.style.removeProperty(name);
   delete root.dataset.ibMode;
@@ -145,7 +147,7 @@ function applySkin(root, skinId) {
 
 }
 
-function addToolbarButton(parent, icon, label, action, data = {}) {
+function addToolbarButton(parent: HTMLElement, icon, label: string, action, data = {}) {
   const button = parent.createEl("button", { cls: "ibp-presentation-action", attr: { type: "button", "aria-label": label, "data-tooltip-position": "top" } });
   setIcon(button, icon);
   button.addEventListener("click", action);
@@ -183,7 +185,7 @@ function openPopoverUnder(button, cls, fill) {
 
 // Theme picker: one card per palette showing its paper, ink and accent in
 // light and dark; picking a half applies that palette in that mode.
-function addThemePicker(parent, plugin, onFollow, onPalette) {
+function addThemePicker(parent: HTMLElement, plugin: IgnorancePlugin, onFollow, onPalette) {
   const button = parent.createEl("button", { cls: "ibp-presentation-picker", attr: { type: "button", "aria-label": "主题（所有视图）", "aria-haspopup": "dialog", "data-tooltip-position": "top" } });
   const text = button.createSpan({ cls: "ibp-presentation-picker-label" });
   setIcon(button.createSpan({ cls: "ibp-presentation-picker-chevron" }), "lucide-chevron-down");
@@ -221,7 +223,7 @@ function addThemePicker(parent, plugin, onFollow, onPalette) {
 }
 
 // Animation picker: every row replays its motion on a small page while hovered.
-function addAnimationPicker(parent, options, current, onPick) {
+function addAnimationPicker(parent: HTMLElement, options, current, onPick) {
   const button = parent.createEl("button", { cls: "ibp-presentation-picker", attr: { type: "button", "aria-label": "进入动效", "aria-haspopup": "dialog", "data-tooltip-position": "top" } });
   const text = button.createSpan({ cls: "ibp-presentation-picker-label" });
   setIcon(button.createSpan({ cls: "ibp-presentation-picker-chevron" }), "lucide-chevron-down");
@@ -248,7 +250,7 @@ function addAnimationPicker(parent, options, current, onPick) {
 
 // A button that opens Obsidian's own menu (styled by the theme) instead of a
 // <select>, whose popup is drawn by the operating system.
-function addToolbarPicker(parent, label, options, current, onPick) {
+function addToolbarPicker(parent: HTMLElement, label: string, options, current, onPick) {
   const button = parent.createEl("button", { cls: "ibp-presentation-picker", attr: { type: "button", "aria-label": label, "aria-haspopup": "menu", "data-tooltip-position": "top" } });
   const text = button.createSpan({ cls: "ibp-presentation-picker-label" });
   setIcon(button.createSpan({ cls: "ibp-presentation-picker-chevron" }), "lucide-chevron-down");
@@ -272,7 +274,7 @@ function addToolbarPicker(parent, label, options, current, onPick) {
 }
 
 // Whether an element between target and boundary can still scroll that way.
-function canScrollInside(target, boundary, delta) {
+function canScrollInside(target: HTMLElement, boundary, delta) {
   for (let el = target instanceof Element ? target : null; el && el !== boundary; el = el.parentElement) {
     if (el.scrollHeight <= el.clientHeight + 1) continue;
     const overflow = getComputedStyle(el).overflowY;
@@ -282,11 +284,11 @@ function canScrollInside(target, boundary, delta) {
   return false;
 }
 
-function addToolbarSeparator(parent) {
+function addToolbarSeparator(parent: HTMLElement) {
   parent.createDiv({ cls: "ibp-presentation-sep" });
 }
 
-function makeDataUri(svg) {
+function makeDataUri(svg: SVGSVGElement) {
   const clone = svg.cloneNode(true);
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
   const xml = new XMLSerializer().serializeToString(clone);
@@ -297,7 +299,7 @@ function makeDataUri(svg) {
    canvas size, long pages split automatically, then structured. Shared by the
    presentation view and PPTX export straight from a note. Returns null when
    `isCurrent()` turns false (a newer render started). */
-export async function buildDeck(plugin, file, component, isCurrent = () => true, { limit = Infinity } = {}) {
+export async function buildDeck(plugin: IgnorancePlugin, file: TFile, component, isCurrent = () => true, { limit = Infinity } = {}) {
   const markdown = await plugin.app.vault.cachedRead(file);
   if (!isCurrent()) return null;
   const settings = plugin.state.presentation || {};
@@ -438,7 +440,7 @@ export async function buildDeck(plugin, file, component, isCurrent = () => true,
 }
 
 class PresentationView extends ItemView {
-  constructor(leaf, plugin) {
+  constructor(leaf: WorkspaceLeaf, plugin: IgnorancePlugin) {
     super(leaf);
     this.plugin = plugin;
     this.filePath = "";
@@ -505,13 +507,13 @@ class PresentationView extends ItemView {
     const choose = (key, value) => { settings[key] = value; this.plugin.saveStoredState(); };
     addThemePicker(this.toolbar, this.plugin,
       () => { choose("skin", "none"); void this.renderSlides(); },
-      (id, mode) => { choose("skin", "none"); applyAccent(this.plugin, id); setThemeMode(this.plugin.app, mode); });
+      (id: string, mode) => { choose("skin", "none"); applyAccent(this.plugin, id); setThemeMode(this.plugin.app, mode); });
     addToolbarPicker(this.toolbar, "演示画幅", CANVASES.filter(([id]) => Platform.isPhone || id !== "9:16").map(([id]) => [id, id]),
       () => canvasId(settings), value => { choose(Platform.isPhone ? "phoneCanvas" : "canvas", value); void this.renderSlides(); });
     addAnimationPicker(this.toolbar, ANIMATIONS,
       () => settings.animation || "none", value => {
         choose("animation", value);
-        this.root?.classList.forEach(name => { if (name.startsWith("slide-anim-")) this.root.classList.remove(name); });
+        this.root?.classList.forEach((name: string) => { if (name.startsWith("slide-anim-")) this.root.classList.remove(name); });
         if (value !== "none" && !Platform.isPhone) this.root?.classList.add(`slide-anim-${value}`);
       });
 
@@ -683,8 +685,8 @@ class PresentationView extends ItemView {
       const section = this.deck?.getCurrentSlide?.();
       if (section) this.showSteps(section, 1);
     } else {
-      this.root.querySelectorAll(".ibp-step-hidden").forEach(element => element.classList.remove("ibp-step-hidden"));
-      this.root.querySelectorAll("[data-ib-shown]").forEach(element => element.removeAttribute("data-ib-shown"));
+      this.root.querySelectorAll(".ibp-step-hidden").forEach((element: HTMLElement) => element.classList.remove("ibp-step-hidden"));
+      this.root.querySelectorAll("[data-ib-shown]").forEach((element: HTMLElement) => element.removeAttribute("data-ib-shown"));
     }
   }
 
@@ -864,7 +866,7 @@ async function addImageSlide(pptx, surface, slideWidth, slideHeight, capture) {
 // Mobile has no save dialog: the deck goes to the vault's 导出/ folder.
 const VAULT_TARGET = "vault:";
 
-async function choosePptxPath(file, targetPath = "") {
+async function choosePptxPath(file: TFile, targetPath = "") {
   if (targetPath) return targetPath;
   if (!hasDesktopExports()) return `${VAULT_TARGET}${file?.basename || "演示"}.pptx`;
   const remote = electronRemote();
@@ -952,7 +954,7 @@ async function exportDeckPptx(deck, filePath, mode = "editable") {
 
 /* Export straight from a note: build the deck off-screen with the current
    presentation settings, without opening the presentation view. */
-export async function exportNotePptx(plugin, file, mode = "editable", targetPath = "") {
+export async function exportNotePptx(plugin: IgnorancePlugin, file: TFile, mode = "editable", targetPath = "") {
   if (file?.extension !== "md") return;
   const filePath = await choosePptxPath(file, targetPath);
   if (!filePath) return;
@@ -974,7 +976,7 @@ export async function exportNotePptx(plugin, file, mode = "editable", targetPath
 /* Presenting is a view switch, not a new document: the note's own tab turns
    into the presentation (recorded in the tab's history, so Back works too),
    and 返回笔记 switches it back in the mode it was left in. */
-export async function openPresentation(plugin, file, leaf = plugin.app.workspace.getLeaf(false)) {
+export async function openPresentation(plugin: IgnorancePlugin, file: TFile, leaf = plugin.app.workspace.getLeaf(false)) {
   if (!file || file.extension !== "md") {
     new Notice("请先打开一篇 Markdown 笔记。", 5000);
     return;
@@ -983,7 +985,7 @@ export async function openPresentation(plugin, file, leaf = plugin.app.workspace
   await leaf.setViewState({ type: VIEW_TYPE, active: true, state: { filePath: file.path, returnMode } }, { focus: true });
 }
 
-export function installPresentationMode(plugin) {
+export function installPresentationMode(plugin: IgnorancePlugin) {
   plugin.state.presentation = Object.assign(presentationDefaults(), plugin.state.presentation || {});
   plugin.registerView(VIEW_TYPE, leaf => new PresentationView(leaf, plugin));
   plugin.addCommand({

@@ -54,7 +54,7 @@ export async function rasterizeSvg(live) {
     object.replaceWith(text);
   });
   const styles = getComputedStyle(live);
-  const resolve = value => value.replace(/var\((--[\w-]+)(?:,\s*([^()]*))?\)/g, (whole, name, fallback) => styles.getPropertyValue(name).trim() || fallback || whole);
+  const resolve = value => value.replace(/var\((--[\w-]+)(?:,\s*([^()]*))?\)/g, (whole, name: string, fallback) => styles.getPropertyValue(name).trim() || fallback || whole);
   copy.querySelectorAll("style").forEach(tag => { tag.textContent = resolve(tag.textContent || ""); });
   [copy, ...copy.querySelectorAll("*")].forEach(node => {
     for (const attribute of [...node.attributes]) if (attribute.value.includes("var(")) node.setAttribute(attribute.name, resolve(attribute.value));
@@ -82,7 +82,7 @@ export async function rasterizeSvg(live) {
   }
 }
 
-export async function capturePortable(element, { scale = 2, background = null, type = "image/png", quality = 0.92 } = {}) {
+export async function capturePortable(element: HTMLElement, { scale = 2, background = null, type = "image/png", quality = 0.92 } = {}) {
   const { html2canvas } = await loadChunk("chunk-capture.cjs");
   const liveSvgs = [...element.querySelectorAll("svg")].filter(svg => !svg.parentElement?.closest("svg"));
   const rasters = await Promise.all(liveSvgs.map(svg => rasterizeSvg(svg)));

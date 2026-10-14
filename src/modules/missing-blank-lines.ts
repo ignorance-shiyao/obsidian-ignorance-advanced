@@ -1,11 +1,12 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { MarkdownRenderChild, MarkdownRenderer, Notice } from "obsidian";
+import { EditorView, ViewPlugin } from "@codemirror/view";
 import { missingBlankLines, wantsLenient, withBlankLines } from "./missing-blank-lines-core.js";
 
-const { MarkdownRenderChild, MarkdownRenderer, Notice } = require("obsidian");
-const { EditorView, ViewPlugin } = require("@codemirror/view");
 
 /* Reading view: a section whose lines hold a table typed straight under a paragraph is rendered again from the
    text with the blank line added, so the table shows as a table. The file itself is not touched. */
-export function installLenientBlocks(plugin) {
+export function installLenientBlocks(plugin: IgnorancePlugin) {
   plugin.registerMarkdownPostProcessor(async (element, context) => {
     if (!wantsLenient(plugin)) return;
     const info = context.getSectionInfo?.(element);
@@ -35,7 +36,7 @@ function fixDocument(view): number {
 
 /* Editing: once typing pauses, a table that sits right under a paragraph gets its blank line. Existing notes are
    left alone until the command below is run, so opening a note never changes it. */
-export function lenientBlocksEditorExtension(plugin) {
+export function lenientBlocksEditorExtension(plugin: IgnorancePlugin) {
   return ViewPlugin.fromClass(class {
     timer = 0;
     update(update) {
@@ -58,7 +59,7 @@ export function lenientBlocksEditorExtension(plugin) {
   });
 }
 
-export function addLenientCommand(plugin) {
+export function addLenientCommand(plugin: IgnorancePlugin) {
   plugin.addCommand({
     id: "fix-missing-blank-lines",
     name: "补全缺失的空行（让表格被识别）",

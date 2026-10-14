@@ -1,7 +1,7 @@
+import { Decoration, ViewPlugin, WidgetType } from "@codemirror/view";
+import { RangeSetBuilder } from "@codemirror/state";
 import { colorValue, hexColorTags, inlineCodeSpans, isPlainTextColor } from "./color-swatch-core.js";
 
-const { Decoration, ViewPlugin, WidgetType } = require("@codemirror/view");
-const { RangeSetBuilder } = require("@codemirror/state");
 const { syntaxTree } = require("@codemirror/language");
 
 function makeSwatch(color) {
@@ -13,7 +13,7 @@ function makeSwatch(color) {
 }
 
 // Reading view, slides and exports: inline <code> whose whole text is a colour.
-export function colorSwatchPostProcessor(el) {
+export function colorSwatchPostProcessor(el: HTMLElement) {
   for (const code of el.querySelectorAll("code")) {
     if (code.closest("pre") || code.querySelector(".ib-color-swatch")) continue;
     const color = colorValue(code.textContent);

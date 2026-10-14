@@ -11,7 +11,7 @@ import { collapseWhitespace, cssColor, fontFace, fontPoints, groupAdjacentBlocks
    "font, fallback" measures differently from the fallback alone only when the
    font supplied the glyphs. Checked against two fallbacks to avoid false hits. */
 const fontCache = new Map();
-function fontDraws(name, sample) {
+function fontDraws(name: string, sample) {
   const key = `${name}\u0000${sample}`;
   if (fontCache.has(key)) return fontCache.get(key);
   const ctx = createEl("canvas").getContext("2d");
@@ -21,7 +21,7 @@ function fontDraws(name, sample) {
   fontCache.set(key, result);
   return result;
 }
-function faceFor(family, text) {
+function faceFor(family, text: string) {
   const sample = hasCjk(text) ? "永和九年岁在癸丑" : "Handgloves 0123";
   return fontFace(family, name => fontDraws(name, sample));
 }
@@ -30,12 +30,12 @@ const CHART_SVG = ".mermaid svg, .ib-echarts-block svg, [data-ib-echarts-state] 
 const OPAQUE = "table, pre, ul, ol, svg, .mermaid, .ib-echarts-block, [data-ib-echarts-state]";
 const TEXT_BLOCKS = "h1, h2, h3, h4, h5, h6, p, figcaption, dt, dd";
 
-function isInline(el) {
+function isInline(el: HTMLElement) {
   const display = getComputedStyle(el).display;
   return display === "inline" || display === "contents";
 }
 
-function hasOwnText(el) {
+function hasOwnText(el: HTMLElement) {
   return [...el.childNodes].some(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
 }
 
@@ -56,7 +56,7 @@ export function collectSlideObjects(surface) {
 
 export function makeGeometry(surface, slideWidth, slideHeight, canvasWidth) {
   const frame = surface.getBoundingClientRect();
-  const box = el => {
+  const box = (el: HTMLElement) => {
     const r = el.getBoundingClientRect();
     return {
       x: (r.left - frame.left) / frame.width * slideWidth,
@@ -70,7 +70,7 @@ export function makeGeometry(surface, slideWidth, slideHeight, canvasWidth) {
   return { box, points, inches };
 }
 
-function runOptions(el, points, text = "") {
+function runOptions(el: HTMLElement, points, text = "") {
   const css = getComputedStyle(el);
   const color = cssColor(css.color);
   const link = el.closest("a[href]");
@@ -91,7 +91,7 @@ function runOptions(el, points, text = "") {
 // Inline text of a block as pptxgenjs runs; nested blocks are left to their own objects.
 export function textRuns(block, points) {
   const runs = [];
-  const walk = node => {
+  const walk = (node: HTMLElement) => {
     for (const child of node.childNodes) {
       if (child.nodeType === Node.TEXT_NODE) {
         const text = collapseWhitespace(child.textContent);
@@ -111,7 +111,7 @@ export function textRuns(block, points) {
   return runs.filter(run => run.text || run.options.breakLine);
 }
 
-function paragraphOptions(el, points) {
+function paragraphOptions(el: HTMLElement, points) {
   const css = getComputedStyle(el);
   const size = parseFloat(css.fontSize) || 16;
   const lineHeight = parseFloat(css.lineHeight);
@@ -192,7 +192,7 @@ async function imageData(img) {
   return `data:${type.split(";")[0]};base64,${bytesToBase64(bytes)}`;
 }
 
-function svgData(svg) {
+function svgData(svg: SVGSVGElement) {
   const clone = svg.cloneNode(true);
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
   return `data:image/svg+xml;base64,${bytesToBase64(new TextEncoder().encode(new XMLSerializer().serializeToString(clone)))}`;
@@ -205,7 +205,7 @@ export async function addEditableSlide(pptx, surface, size, capture) {
   const objects = collectSlideObjects(surface);
   const hidden = [...objects.charts, ...objects.images, ...objects.tables, ...objects.codes, ...objects.lists, ...objects.texts];
   const placed = hidden.map(el => ({ el, rect: box(el) }));
-  const rectOf = el => placed.find(item => item.el === el).rect;
+  const rectOf = (el: HTMLElement) => placed.find(item => item.el === el).rect;
   // Measure everything first; the background is captured with it all hidden.
   const previous = hidden.map(el => el.style.visibility);
   let background;

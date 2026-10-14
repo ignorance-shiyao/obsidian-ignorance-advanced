@@ -1,8 +1,9 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 /* Table reading aid: pointing at a cell lights up its whole row and column. Reading view only; on with the
    setting "table crosshair" or per note with the `ib-crosshair` cssclass. */
 const ROW = "ib-xh-row", COLUMN = "ib-xh-col";
 
-export function installTableCrosshair(plugin) {
+export function installTableCrosshair(plugin: IgnorancePlugin) {
   let current: HTMLTableElement | null = null;
   const clear = () => {
     current?.querySelectorAll(`.${ROW}, .${COLUMN}`).forEach(element => element.classList.remove(ROW, COLUMN));

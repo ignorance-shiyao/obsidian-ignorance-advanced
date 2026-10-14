@@ -30,7 +30,7 @@ export function sourceChapterRanges(source: string): ChapterRange[] {
       return { offset, line: originalLines.get(offset)! };
     })
     .filter(heading => !containers.some(node => heading.offset >= node.startOffset && heading.offset < node.closeEnd));
-  return headings.map((heading, index) => ({
+  return headings.map((heading, index: number) => ({
     startOffset: heading.offset,
     endOffset: headings[index + 1]?.offset ?? source.length,
     startLine: heading.line,

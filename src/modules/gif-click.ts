@@ -1,9 +1,11 @@
+import type { TFile } from "obsidian";
+import type { IgnorancePlugin } from "../plugin-types.js";
 /* Click-to-play GIFs: write `click` in the alt text (![click|400](a.gif)). The image shows its first frame with a play
    badge and starts animating when clicked; click again to stop. The first frame is decoded from the file itself,
    so it works without touching the network. Exports keep the still frame. */
 const wantsClick = (alt: string) => alt.split("|").some(part => part.trim().toLowerCase() === "click");
 
-export function installGifClick(plugin) {
+export function installGifClick(plugin: IgnorancePlugin) {
   plugin.registerMarkdownPostProcessor(async (element, context) => {
     for (const holder of element.querySelectorAll(".internal-embed")) {
       const src = holder.getAttribute("src") || "";
@@ -16,7 +18,7 @@ export function installGifClick(plugin) {
   });
 }
 
-async function firstFrame(plugin, file) {
+async function firstFrame(plugin: IgnorancePlugin, file: TFile) {
   const bytes = await plugin.app.vault.readBinary(file);
   const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/gif" }));
   const canvas = createEl("canvas");
@@ -27,7 +29,7 @@ async function firstFrame(plugin, file) {
   return canvas.toDataURL("image/png");
 }
 
-async function arm(plugin, holder: Element, file) {
+async function arm(plugin: IgnorancePlugin, holder: Element, file: TFile) {
   let poster = "";
   try { poster = await firstFrame(plugin, file); } catch (_) { return; }
   // The <img> appears inside the placeholder a moment after post-processing.

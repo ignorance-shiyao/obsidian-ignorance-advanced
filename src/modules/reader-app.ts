@@ -18,13 +18,13 @@ function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[char]);
 }
 
-const clip = (text, length = 48) => {
+const clip = (text: string, length = 48) => {
   const value = String(text || "").replace(/\s+/g, " ").trim();
   return value.length > length ? `${value.slice(0, length)}…` : value;
 };
 
 // A short caption: the element's own label, else the text right after it.
-function captionFor(element, fallback) {
+function captionFor(element: HTMLElement, fallback) {
   const own = element.getAttribute?.("alt") || element.getAttribute?.("aria-label") || element.querySelector?.("caption, figcaption")?.textContent;
   if (own && own.trim()) return clip(own);
   const next = element.closest("p, figure, div")?.nextElementSibling;
@@ -38,7 +38,7 @@ export function indexContent(content) {
   const lists = { images: [], tables: [], code: [], charts: [] };
   const headings = [...content.querySelectorAll("h1, h2, h3, h4, h5, h6")];
   // The heading an element sits under, for labels like "图表 3 · 序列图".
-  const sectionOf = element => {
+  const sectionOf = (element: HTMLElement) => {
     let found = "";
     for (const heading of headings) {
       if (heading.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING) found = heading.textContent;
@@ -48,7 +48,7 @@ export function indexContent(content) {
   };
   // Headings that already carry a number ("1.", "一、", "第 2 章") skip the skin's automatic one.
   headings.forEach(heading => { if (/^\s*(?:第\s*[\d一二三四五六七八九十百]+\s*[章节部篇]|[\d一二三四五六七八九十]+(?:\.\d+)*\s*[.、．:：)\s])/.test(heading.textContent)) heading.setAttribute("data-ib-numbered", ""); });
-  const withSection = (base, element) => { const section = sectionOf(element); return section ? `${base} · ${section}` : base; };
+  const withSection = (base, element: HTMLElement) => { const section = sectionOf(element); return section ? `${base} · ${section}` : base; };
   const chartHosts = [...content.querySelectorAll("[data-reader-chart]")];
   chartHosts.forEach((el, index) => {
     el.id ||= `reader-chart-${index + 1}`;
@@ -56,8 +56,8 @@ export function indexContent(content) {
   });
   const images = [...content.querySelectorAll("img")].filter(img => !img.closest("[data-reader-chart]"));
   const doc = content.ownerDocument;
-  const el = (tag, cls, text) => { const node = doc.createElement(tag); if (cls) node.className = cls; if (text) node.textContent = text; return node; };
-  const toolButton = (action, label, name) => { const button = el("button", "ib-tool"); button.type = "button"; button.dataset.tool = action; button.dataset.tip = label; button.setAttribute("aria-label", label); setMarkup(button, icon(name)); return button; };
+  const el = (tag, cls, text: string) => { const node = doc.createElement(tag); if (cls) node.className = cls; if (text) node.textContent = text; return node; };
+  const toolButton = (action, label: string, name: string) => { const button = el("button", "ib-tool"); button.type = "button"; button.dataset.tool = action; button.dataset.tip = label; button.setAttribute("aria-label", label); setMarkup(button, icon(name)); return button; };
 
   // Images: numbered; a caption from meaningful alt text (Obsidian never shows alt).
   images.forEach((img, index) => {
@@ -96,7 +96,7 @@ export function indexContent(content) {
   [...content.querySelectorAll("pre")].forEach((pre, index) => {
     pre.id ||= `reader-code-${index + 1}`;
     const language = pre.getAttribute("data-lang") || "";
-    const first = pre.textContent.split("\n").map(line => line.trim()).find(Boolean) || "";
+    const first = pre.textContent.split("\n").map((line: number) => line.trim()).find(Boolean) || "";
     lists.code.push({ id: pre.id, label: `${language ? `${language} · ` : ""}${clip(first, 40) || `代码 ${index + 1}`}` });
     // Keep separators for exact copying; normal whitespace on the wrapper
     // prevents them from creating extra visual lines between block spans.

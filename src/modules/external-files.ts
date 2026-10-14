@@ -1,3 +1,6 @@
+import type { WorkspaceLeaf } from "obsidian";
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Notice, TFile, normalizePath } from "obsidian";
 /* Open Markdown files that live outside the vault (desktop).
    Finder hands a file to the "Obsidian 打开器" helper app, which calls
    obsidian://ignorance-open?src=<absolute path> (`path` is taken by Obsidian's
@@ -11,7 +14,6 @@
 import { electronRemote, hasDesktopExports, vaultBasePath } from "./desktop-runtime.js";
 import { EXTERNAL_VIEW, ExternalMarkdownView } from "./external-view.js";
 
-const { Notice, TFile, normalizePath } = require("obsidian");
 
 export const EXTERNAL_FOLDER = "外部文件";
 const PROTOCOL = "ignorance-open";
@@ -19,17 +21,17 @@ const PROTOCOL = "ignorance-open";
 function nodeFs() { return require("fs"); }
 function nodePath() { return require("path"); }
 
-function vaultRoot(plugin) {
+function vaultRoot(plugin: IgnorancePlugin) {
   return vaultBasePath(plugin);
 }
 
-function links(plugin) {
+function links(plugin: IgnorancePlugin) {
   plugin.state.externalFiles ||= {};
   return plugin.state.externalFiles;
 }
 
 // Stored instead of the text: data.json syncs, notes can be large.
-function digest(text) {
+function digest(text: string) {
   let hash = 0x811c9dc5;
   for (let i = 0; i < text.length; i += 1) hash = Math.imul(hash ^ text.charCodeAt(i), 0x01000193);
   return `${text.length}:${(hash >>> 0).toString(16)}`;
@@ -40,7 +42,7 @@ function sourceMtime(source) {
 }
 
 // Pick 外部文件/<name>.md, or <name> (<parent folder>).md, or add a number.
-function mirrorPathFor(plugin, source) {
+function mirrorPathFor(plugin: IgnorancePlugin, source) {
   const path = nodePath();
   const vault = plugin.app.vault;
   const map = links(plugin);
@@ -56,12 +58,12 @@ function mirrorPathFor(plugin, source) {
   return normalizePath(`${EXTERNAL_FOLDER}/${stem} ${Date.now()}${extension}`);
 }
 
-async function openInVault(plugin, file, leaf = plugin.app.workspace.getLeaf(false)) {
+async function openInVault(plugin: IgnorancePlugin, file: TFile, leaf = plugin.app.workspace.getLeaf(false)) {
   await leaf.openFile(file);
 }
 
 // Finder's entry point: a vault note opens as usual, anything else in the light view.
-export async function openExternalFile(plugin, source) {
+export async function openExternalFile(plugin: IgnorancePlugin, source) {
   const path = nodePath();
   const absolute = path.resolve(String(source || ""));
   if (!absolute || !nodeFs().existsSync(absolute)) {
@@ -87,7 +89,7 @@ export async function openExternalFile(plugin, source) {
 }
 
 // Copy into 外部文件/ and open with Obsidian's own editor (in `leaf` if given).
-export async function importExternalFile(plugin, absolute, leaf) {
+export async function importExternalFile(plugin: IgnorancePlugin, absolute, leaf: WorkspaceLeaf) {
   const vault = plugin.app.vault;
   const map = links(plugin);
   // Already mirrored: refresh from the original and focus it.
@@ -111,7 +113,7 @@ export async function importExternalFile(plugin, absolute, leaf) {
 }
 
 // The copy changed in Obsidian: write it to the original.
-async function pushToSource(plugin, file) {
+async function pushToSource(plugin: IgnorancePlugin, file: TFile) {
   const entry = links(plugin)[file.path];
   if (!entry) return;
   const text = await plugin.app.vault.read(file);
@@ -135,7 +137,7 @@ async function pushToSource(plugin, file) {
 }
 
 // The original changed elsewhere: bring the copy up to date.
-async function pullFromSource(plugin, file) {
+async function pullFromSource(plugin: IgnorancePlugin, file: TFile) {
   const entry = links(plugin)[file.path];
   if (!entry) return;
   const mtime = sourceMtime(entry.source);
@@ -150,7 +152,7 @@ async function pullFromSource(plugin, file) {
 }
 
 // Drop copies no tab shows any more (and records whose copy is gone).
-async function sweepMirrors(plugin) {
+async function sweepMirrors(plugin: IgnorancePlugin) {
   const map = links(plugin);
   const shown = new Set();
   plugin.app.workspace.iterateAllLeaves(leaf => {
@@ -174,7 +176,7 @@ async function sweepMirrors(plugin) {
   if (folder && Array.isArray(folder.children) && !folder.children.length) await plugin.app.vault.delete(folder, true).catch(() => {});
 }
 
-export function installExternalFiles(plugin) {
+export function installExternalFiles(plugin: IgnorancePlugin) {
   if (!hasDesktopExports()) return;
   const { workspace, vault } = plugin.app;
   plugin.registerView(EXTERNAL_VIEW, leaf => new ExternalMarkdownView(leaf, plugin, importExternalFile));
@@ -184,7 +186,7 @@ export function installExternalFiles(plugin) {
   // before plugins load, which is what the 打开器 helper covers.
   const app = electronRemote()?.app;
   if (app?.on) {
-    const onOpenFile = (_event, file) => {
+    const onOpenFile = (_event, file: TFile) => {
       if (!/\.(md|markdown)$/i.test(String(file))) return;
       void openExternalFile(plugin, file).catch(error => new Notice(`打开文件失败：${error.message || error}`, 8000));
     };

@@ -1,3 +1,5 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Menu } from "obsidian";
 import { setDocSheet, removeDocSheet } from "./doc-sheets.js";
 import { setIcon } from "./ui-icons.js";
 import { toggleWritingMode } from "./editor-tools.js";
@@ -7,7 +9,6 @@ import { PAGE_PRESETS, applyPagePreset } from "./page-presets.js";
 import { FOOTER_CHOICES, promptFooter } from "./page-footer.js";
 import { HEADING_FONT_OPTIONS } from "./fonts.js";
 import { applyAppearancePreferences } from "./appearance.js";
-const { Menu } = require("obsidian");
 
 let refreshReadingPages = () => {};
 
@@ -31,7 +32,7 @@ function pageDefaults() {
   };
 }
 
-function applyPageSettings(plugin) {
+function applyPageSettings(plugin: IgnorancePlugin) {
   const page = plugin.state.page;
   const body = document.body;
   // The page width is a share of the window. Zoom (Ctrl + wheel) magnifies the
@@ -64,7 +65,7 @@ function applyPageSettings(plugin) {
 
 /* Editing always shows one continuous sheet; only paged reading and export
    are cut into pages. Remove sheet layers left by older versions. */
-function refreshPageNumbers(plugin) {
+function refreshPageNumbers(plugin: IgnorancePlugin) {
   for (const sizer of document.querySelectorAll(".markdown-source-view.mod-cm6 .cm-sizer, .markdown-preview-view .markdown-preview-sizer")) {
     sizer.querySelector(":scope > .ibp-sheets")?.remove();
   }
@@ -73,7 +74,7 @@ function refreshPageNumbers(plugin) {
 /* Page settings (paper, margins…) for this device, and the sheet variables
    derived from them. Exports need them too, so this also runs on phones,
    which get no title-row toolbar. */
-export function initPageState(plugin) {
+export function initPageState(plugin: IgnorancePlugin) {
   if (plugin.pageStateReady) return;
   plugin.pageStateReady = true;
   // Page layout is per device: data.json syncs with the vault, and a paged A4
@@ -95,7 +96,7 @@ export function initPageState(plugin) {
   applyPageSettings(plugin);
 }
 
-function installPageControls(plugin, showExportMenu) {
+function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
   initPageState(plugin);
   const save = () => { applyPageSettings(plugin); plugin.app.saveLocalStorage?.("ibp-page", plugin.state.page); };
   save();
@@ -136,7 +137,7 @@ function installPageControls(plugin, showExportMenu) {
     }));
   };
 
-  const numberField = (parent, label, value, onChange, unit = "mm") => {
+  const numberField = (parent: HTMLElement, label: string, value, onChange, unit = "mm") => {
     const field = parent.createDiv({ cls: "ibp-field" });
     field.createSpan({ text: label });
     const input = field.createEl("input", { attr: { type: "number", step: "0.1", min: "0" } });
@@ -150,11 +151,11 @@ function installPageControls(plugin, showExportMenu) {
     closePopover();
     const p = page();
     const menu = new Menu();
-    const submenu = (parent, label, icon, fill) => parent.addItem(item => {
+    const submenu = (parent: HTMLElement, label: string, icon, fill) => parent.addItem(item => {
       item.setTitle(label).setIcon(icon);
       fill(item.setSubmenu());
     });
-    const choice = (parent, label, checked, action) => parent.addItem(item =>
+    const choice = (parent: HTMLElement, label: string, checked, action) => parent.addItem(item =>
       item.setTitle(label).setChecked(checked).onClick(action));
     const customFields = (title, fields) => {
       closePopover();
@@ -238,7 +239,7 @@ function installPageControls(plugin, showExportMenu) {
     const host = view.containerEl;
     if (host.querySelector(".ibp-toolbar")) return;
     const bar = createDiv({ cls: "ibp-toolbar" });
-    const button = (icon, label, onClick) => {
+    const button = (icon, label: string, onClick) => {
       const el = bar.createDiv({ cls: "clickable-icon ibp-button", attr: { "aria-label": label } });
       setIcon(el, icon);
       el.addEventListener("click", onClick);

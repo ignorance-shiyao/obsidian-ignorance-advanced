@@ -1,3 +1,4 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 // Language icons (Material Icon Theme, MIT) for the picker and every code header. The data file is
 // read the first time an icon is needed; languages without an icon get the shared Lucide glyph.
 import { LANGUAGES } from "./language-picker.js";
@@ -10,7 +11,7 @@ let pack: IconPack | null = null;
 let host: any = null;
 const waiting = new Set<() => void>();
 
-export function setLanguageIconHost(plugin) { host = plugin; }
+export function setLanguageIconHost(plugin: IgnorancePlugin) { host = plugin; }
 
 export function loadLanguageIcons(plugin = host): Promise<void> {
   if (pack) return Promise.resolve();

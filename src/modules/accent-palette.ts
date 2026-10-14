@@ -17,7 +17,7 @@ function accentContrast(a, b) {
   const [hi, lo] = [accentLuminance(a), accentLuminance(b)].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
 }
-function accentMix(hex, target, amount) {
+function accentMix(hex, target: HTMLElement, amount) {
   const a = accentRgb(hex), b = accentRgb(target);
   return accentHex(a.map((v, i) => v + (b[i] - v) * amount));
 }

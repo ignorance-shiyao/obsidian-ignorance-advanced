@@ -1,3 +1,4 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 // File-type icons in the file explorer, from the same Material Icon Theme set as the language
 // icons. The theme's Lucide masks stay as the fallback until the icon file has loaded.
 import { iconMarkup, loadPack, type IconPack } from "./icon-library.js";
@@ -17,7 +18,7 @@ export function fileIconName(pack: IconPack, path: string): string | null {
   return pack.file || null;
 }
 
-export function installFileIcons(plugin) {
+export function installFileIcons(plugin: IgnorancePlugin) {
   let pack: IconPack | null = null, loading = false, frame = 0;
   const pending = new Set<Element>();
 

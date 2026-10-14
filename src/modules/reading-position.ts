@@ -1,3 +1,5 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { MarkdownView } from "obsidian";
 /* Reading position, kept as a source line so it survives every view:
    - switching Live Preview / source / reading / paged reading lands on the same place;
    - reopening a note later continues where it was left (synced with plugin data).
@@ -5,7 +7,6 @@
    so there the line is resolved through the note's headings. */
 import { nextFrame } from "./export.js";
 
-const { MarkdownView } = require("obsidian");
 
 const MAX_REMEMBERED = 500;
 const tracked = new WeakMap();
@@ -49,7 +50,7 @@ export function currentLine(view) {
   return typeof line === "number" && isFinite(line) ? line : 0;
 }
 
-export function scrollToLine(view, line) {
+export function scrollToLine(view, line: number) {
   const bookEl = view.getMode?.() === "preview" ? book(view) : null;
   if (bookEl) {
     const pairs = bookHeadings(view, bookEl).filter(pair => pair.line <= line + 0.5);
@@ -62,7 +63,7 @@ export function scrollToLine(view, line) {
   view.setEphemeralState?.({ scroll: line });
 }
 
-function remember(plugin, path, line) {
+function remember(plugin: IgnorancePlugin, path: string, line: number) {
   const positions = plugin.state.readingPositions ||= {};
   delete positions[path];
   if (line < 1) { plugin.saveStoredState(); return; }
@@ -84,7 +85,7 @@ async function whenSettled(view, restore) {
   restore();
 }
 
-export function installReadingPosition(plugin) {
+export function installReadingPosition(plugin: IgnorancePlugin) {
   const { workspace } = plugin.app;
   const views = () => workspace.getLeavesOfType("markdown").map(leaf => leaf.view).filter(view => view instanceof MarkdownView && view.file);
   const guardedRenderers = new WeakSet();
@@ -95,7 +96,7 @@ export function installReadingPosition(plugin) {
     const original = renderer.applyScrollDelayed;
     // Native restoration can wait for asynchronous sections. A scroll made
     // after that request must win over the position captured before rendering.
-    const guarded = function(line, options, done) {
+    const guarded = function(line: number, options, done) {
       if (this.applyScroll(line, options)) { done?.(); return; }
       const box = this.previewEl;
       const start = box.scrollTop;
@@ -140,7 +141,7 @@ export function installReadingPosition(plugin) {
     state.restoring = false;
   }, true);
 
-  const restoreTo = (view, state, line) => {
+  const restoreTo = (view, state, line: number) => {
     const generation = state.restoreGeneration = (state.restoreGeneration || 0) + 1;
     state.restoring = true;
     whenSettled(view, () => {

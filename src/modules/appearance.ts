@@ -1,8 +1,9 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Notice, Menu, Platform, Setting } from "obsidian";
 import { setIcon } from "./ui-icons.js";
 import { THEME_PRESETS, THEME_TOKEN_NAMES, composeThemeTokens } from "./theme-presets.js";
 import { applyFontPreferences, clearFontPreferences, migrateLegacyFonts } from "./fonts.js";
 import { applyLineHeightPreference, clearLineHeightPreference } from "./line-height.js";
-const { Notice, Menu, Platform, Setting } = require("obsidian");
 
 const ACCENT_PRESETS = THEME_PRESETS.map(preset => ({ value: preset.id, label: preset.label, color: preset.accent }));
 const CUSTOM_ACCENT = "ib-accent-custom";
@@ -34,7 +35,7 @@ function presetId(value) {
   return THEME_PRESETS.some(preset => preset.id === mapped) ? mapped : "azure";
 }
 
-function selectedPresetId(plugin) {
+function selectedPresetId(plugin: IgnorancePlugin) {
   const appearance = plugin.state.appearance || {};
   return plugin.state.accent === CUSTOM_ACCENT
     ? presetId(appearance.themePreset || "azure")
@@ -67,11 +68,11 @@ function tabDefaults() {
   return { openInNewTab: true, deduplicateTabs: true, deduplicateAcrossTabGroups: true };
 }
 
-function currentAccent(plugin) {
+function currentAccent(plugin: IgnorancePlugin) {
   return plugin.state.accent === CUSTOM_ACCENT ? CUSTOM_ACCENT : presetId(plugin.state.accent || "none");
 }
 
-function applyAppearancePreferences(plugin) {
+function applyAppearancePreferences(plugin: IgnorancePlugin) {
   const body = document.body;
   const appearance = Object.assign(appearanceDefaults(), plugin.state.appearance || {});
   plugin.state.appearance = appearance;
@@ -110,7 +111,7 @@ function clearAppearancePreferences() {
   }
 }
 
-function applyAccent(plugin, value) {
+function applyAccent(plugin: IgnorancePlugin, value) {
   plugin.state.appearance ||= appearanceDefaults();
   if (value === CUSTOM_ACCENT) {
     if (plugin.state.accent !== CUSTOM_ACCENT) plugin.state.appearance.themePreset = presetId(plugin.state.accent || "none");
@@ -123,7 +124,7 @@ function applyAccent(plugin, value) {
   plugin.saveStoredState();
 }
 
-function addDropdownSetting(container, name, description, value, options, onChange) {
+function addDropdownSetting(container: HTMLElement, name: string, description, value, options, onChange) {
   new Setting(container).setName(name).setDesc(description).addDropdown(dropdown => {
     for (const [optionValue, label] of options) dropdown.addOption(optionValue, label);
     dropdown.setValue(String(value));
@@ -141,7 +142,7 @@ function setThemeMode(app, mode) {
   app.updateTheme?.();
 }
 
-function installAppearanceControls(plugin) {
+function installAppearanceControls(plugin: IgnorancePlugin) {
   const app = plugin.app;
   if (migrateLegacyFonts(app, plugin.state.appearance || {})) plugin.saveStoredState();
   applyAppearancePreferences(plugin);
@@ -150,7 +151,7 @@ function installAppearanceControls(plugin) {
   let popover = null;
   const closePopover = () => { popover?.remove(); popover = null; };
 
-  const fillModeMenu = menu => {
+  const fillModeMenu = (menu: Menu) => {
     const current = themeMode(app);
     for (const [mode, title, icon] of [["light", "浅色", "lucide-sun"], ["dark", "深色", "lucide-moon"], ["system", "跟随系统", "lucide-sun-moon"]]) {
       menu.addItem(item => item.setTitle(title).setIcon(icon).setChecked(current === mode).onClick(() => {
@@ -165,7 +166,7 @@ function installAppearanceControls(plugin) {
     menu.showAtMouseEvent(event);
   };
 
-  const fillThemeMenu = menu => {
+  const fillThemeMenu = (menu: Menu) => {
     menu.addItem(item => {
       item.setTitle("明暗模式").setIcon(modeIcon());
       fillModeMenu(item.setSubmenu());

@@ -1,5 +1,6 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 /* 原生折叠会动画尺寸；主题限制属性，插件只协调用户触发的状态。 */
-export function installCalloutMotion(plugin) {
+export function installCalloutMotion(plugin: IgnorancePlugin) {
   const states = new Map<HTMLElement, { originalCollapsed: boolean; originalDisplay: string; timer?: ReturnType<typeof setTimeout> }>();
   const clearMotion = (content: HTMLElement) => {
     content.classList.remove("ib-callout-opening", "ib-callout-closing");

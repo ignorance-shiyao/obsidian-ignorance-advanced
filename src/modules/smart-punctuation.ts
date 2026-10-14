@@ -1,9 +1,10 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { EditorSelection, Prec } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
 import { smartPunctuationChange } from "./smart-punctuation-core.js";
 
-const { EditorSelection, Prec } = require("@codemirror/state");
-const { EditorView } = require("@codemirror/view");
 
-export function smartPunctuationExtension(plugin) {
+export function smartPunctuationExtension(plugin: IgnorancePlugin) {
   return Prec.highest(EditorView.domEventHandlers({
     keydown(event, view) {
       if (!plugin.state?.smartPunctuation || event.isComposing || event.altKey || event.ctrlKey || event.metaKey) return false;

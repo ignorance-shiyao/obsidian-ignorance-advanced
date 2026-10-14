@@ -1,13 +1,15 @@
+import type { TFile } from "obsidian";
+import type { IgnorancePlugin } from "../plugin-types.js";
 import MarkdownIt from "markdown-it";
 import { preloadEChartsPreview } from "./echarts-renderer.js";
 const markdown = new MarkdownIt();
-export function installChartPreload(plugin) {
+export function installChartPreload(plugin: IgnorancePlugin) {
   let generation = 0, idleId = 0, serial = 0;
   const idle = () => new Promise<void>(resolve => {
     if (window.requestIdleCallback) window.requestIdleCallback(() => resolve(), { timeout: 1500 });
     else window.setTimeout(resolve, 40);
   });
-  const warm = async (file, token) => {
+  const warm = async (file: TFile, token) => {
     if (!file || file.extension !== "md") return;
     const source = await plugin.app.vault.cachedRead(file);
     const fences = markdown.parse(source, {}).filter(t => t.type === "fence" && /^(mermaid|echarts)\b/i.test(t.info));
@@ -22,7 +24,7 @@ export function installChartPreload(plugin) {
       } catch (_) { /* Invalid authored diagrams remain visible as normal renderer errors. */ }
     }
   };
-  const schedule = file => {
+  const schedule = (file: TFile) => {
     if (document.body.dataset.ibThemeCapture) return;
     const token = ++generation;
     window.clearTimeout(idleId);

@@ -1,3 +1,4 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 /* A cover block at the top of Reading view, built from the note's properties. Per note: add `ib-cover` to
    `cssclasses` (the inline title is then hidden, the cover shows it). Properties used: title, subtitle or
    description, author, date / created / published, tags. */
@@ -22,7 +23,7 @@ export function coverFields(frontmatter: Record<string, any> | undefined, basena
   };
 }
 
-export function installReadingCover(plugin) {
+export function installReadingCover(plugin: IgnorancePlugin) {
   plugin.registerMarkdownPostProcessor((element, context) => {
     const info = context.getSectionInfo?.(element);
     const file = plugin.app.vault.getFileByPath(context.sourcePath);

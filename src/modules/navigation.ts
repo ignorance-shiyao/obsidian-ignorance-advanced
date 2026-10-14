@@ -1,3 +1,5 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { SuggestModal, Notice, MarkdownView } from "obsidian";
 /* 导航: one searchable list of everything worth jumping to in the current note — headings, figures, tables,
    code blocks and diagrams — so a long note can be crossed without scrolling. Read-only. */
 import { parseCaptions } from "./captions.js";
@@ -51,8 +53,7 @@ export function buildNavItems(source: string, headings: Array<{ text: string; le
   return items.sort((a, b) => a.line - b.line);
 }
 
-export function openNavigation(plugin) {
-  const { SuggestModal, Notice, MarkdownView } = require("obsidian");
+export function openNavigation(plugin: IgnorancePlugin) {
   const { app } = plugin;
   const view = app.workspace.getActiveViewOfType(MarkdownView);
   if (!view?.file) { new Notice("请先打开一篇笔记"); return; }
@@ -69,7 +70,7 @@ export function openNavigation(plugin) {
         const needle = query.trim().toLowerCase();
         return needle ? items.filter(item => item.label.toLowerCase().includes(needle) || ICON[item.kind] === needle) : items;
       }
-      renderSuggestion(item, el) {
+      renderSuggestion(item, el: HTMLElement) {
         el.addClass("ib-nav-item");
         el.createSpan({ cls: "ib-nav-item__icon", text: ICON[item.kind] });
         el.createSpan({ cls: "ib-nav-item__label", text: item.label }).style.setProperty("--ib-nav-indent", `${Math.max(0, (item.level || 1) - 1)}em`);

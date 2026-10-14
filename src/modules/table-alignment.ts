@@ -1,7 +1,8 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Menu, Notice, MarkdownView } from "obsidian";
 import MarkdownIt from "markdown-it";
 import { setIcon, UI_ICONS } from "./ui-icons.js";
 import { saveErrorMessage, holdScrollPosition, replaceRangeQuietly } from "./quiet-edit.js";
-const { Menu, Notice, MarkdownView } = require("obsidian");
 const marker = /^\s*<!--\s*ib-table-align:(left|center|right)\s*-->\s*$/;
 function tables(source) { return new MarkdownIt().parse(source, {}).filter(t => t.type === "table_open"); }
 function metadata(lines, start) {
@@ -19,7 +20,7 @@ function setAlignment(table: HTMLElement, value: string | null) {
   if (value) wrapper.dataset.ibTableAlign = value;
   else delete wrapper.dataset.ibTableAlign;
 }
-export function applyTableSourceAlignment(root, source) {
+export function applyTableSourceAlignment(root: HTMLElement, source) {
   const entries = tables(source), lines = source.split("\n");
   [...root.querySelectorAll("table")].forEach((table: HTMLElement, index) => {
     if (table.closest(".markdown-embed, .internal-embed")) return;
@@ -30,13 +31,13 @@ export function applyTableSourceAlignment(root, source) {
 // Obsidian reuses an already rendered table section when only the marker comment above it changed
 // (set from Live Preview), so a table in reading view kept its old position. Re-read the markers
 // from the source whenever a reading view could be showing stale ones.
-export async function syncPreviewTableAlignment(plugin, view) {
+export async function syncPreviewTableAlignment(plugin: IgnorancePlugin, view) {
   const file = view?.file, preview = view?.containerEl?.querySelector(".markdown-preview-view");
   if (!file || !preview || view.getMode?.() !== "preview") return;
   const source = await plugin.app.vault.cachedRead(file);
   applyTableSourceAlignment(preview, source);
 }
-export function tableAlignmentControl(plugin, table, path, ordinal) {
+export function tableAlignmentControl(plugin: IgnorancePlugin, table, path: string, ordinal) {
   const locate = async () => {
     if (!path || ordinal == null || ordinal < 0) throw Error("未找到表格源码位置");
     const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
@@ -49,7 +50,7 @@ export function tableAlignmentControl(plugin, table, path, ordinal) {
     return { editor, file, source, lines, start, ...metadata(lines, start) };
   };
   void locate().then(found => { if (found.alignment) setAlignment(table, found.alignment); }).catch(() => {});
-  return host => {
+  return (host: HTMLElement) => {
     const button = host.createEl("button", {cls:"ibt-align",attr:{type:"button",title:"表格位置","aria-label":"表格位置"}});
     setIcon(button, UI_ICONS.alignCenter);
     button.addEventListener("pointerdown", e => {e.preventDefault();e.stopPropagation();});

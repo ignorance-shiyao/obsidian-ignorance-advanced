@@ -1,3 +1,6 @@
+import type { TFile } from "obsidian";
+import type { PluginState } from "./plugin-types.js";
+import { Notice, Plugin, MarkdownView, MarkdownRenderer, Component, Platform, View } from "obsidian";
 import { tableAlignmentControl, syncPreviewTableAlignment } from "./modules/table-alignment.js";
 import { setIcon, UI_ICONS } from "./modules/ui-icons.js";
 import { installChartPreload } from "./modules/chart-preload.js";
@@ -322,10 +325,9 @@ const {
   TocWidget,
   tocExtension
 } = TocModule;
-const { Notice, Plugin, MarkdownView, MarkdownRenderer, Component, Platform, View } = require("obsidian");
 
 // Raw viewBox plus the label text identify a diagram across renders (ids and styles vary).
-function diagramHeightKey(svg, viewBox: string) {
+function diagramHeightKey(svg: SVGSVGElement, viewBox: string) {
   const text = [...svg.querySelectorAll("text, .nodeLabel")].map(node => node.textContent).join("").slice(0, 160);
   return `m\n${viewBox}\n${text}`;
 }
@@ -343,6 +345,31 @@ function insertSnippet(editor, snippet) {
 }
 
 class IgnoranceBlueMermaidPlugin extends Plugin {
+  declare state: PluginState;
+  declare measuredBounds: WeakMap<Element, any>;
+  declare fileTools: Readonly<Record<string, any>>;
+  declare diagramStates: WeakMap<Element, any>;
+  declare diagramEnhancements: ReturnType<typeof createAfterPaintQueue>;
+  declare heightMemory: BlockHeightMemory;
+  declare tableStyles: InstanceType<typeof TableSizeStyles>;
+  declare tableLayers: Set<any>;
+  declare observer: MutationObserver;
+  declare themeObserver: MutationObserver;
+  declare exporters: Record<string, any>;
+  declare bundledMermaid: any;
+  declare blockSources: WeakMap<Element, any>;
+  declare echartsSources: WeakMap<Element, any>;
+  declare saveTimer: number;
+  declare retightenQueue: Map<any, any>;
+  declare retightenFrame: number;
+  declare baseWidths: Map<any, any> | null;
+  declare drawnSizes: WeakMap<Element, any>;
+  declare pageStateReady: boolean;
+  declare exportPreview?: any;
+  declare tabOpeningInstalled: boolean;
+  declare ensureMermaid: () => Promise<any>;
+  declare applyGrayMode?: () => void;
+  declare refreshReadingTime?: () => void;
   register(callback) {
     super.register(guardedCleanup(callback));
   }
@@ -351,10 +378,10 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.measuredBounds = new WeakMap();
     this.fileTools = Object.freeze({
       isMarkdownImportSource,
-      importVaultFileAsMarkdown: (file, noteName) => importVaultFileAsMarkdown(this, file, noteName)
+      importVaultFileAsMarkdown: (file: TFile, noteName) => importVaultFileAsMarkdown(this, file, noteName)
     });
     this.diagramStates = new WeakMap();
-    this.diagramEnhancements = createAfterPaintQueue(container => this.enhanceDiagram(container));
+    this.diagramEnhancements = createAfterPaintQueue((container: HTMLElement) => this.enhanceDiagram(container));
     this.register(() => this.diagramEnhancements.clear());
     setPageRefreshHandler(refreshBooks);
     this.registerEditorExtension(mermaidHighlighter);
@@ -502,7 +529,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
 
     // A sweep on layout changes catches any diagram the observer missed.
     // Reading view renders a moment after the mode switch or the save, so look again a few times.
-    const syncTablePositions = (file?) => [150, 700, 1800].forEach(delay => window.setTimeout(() => {
+    const syncTablePositions = (file: TFile?) => [150, 700, 1800].forEach(delay => window.setTimeout(() => {
       for (const leaf of this.app.workspace.getLeavesOfType("markdown")) {
         if (file && leaf.view.file?.path !== file.path) continue;
         void syncPreviewTableAlignment(this, leaf.view).catch(() => {});
@@ -748,7 +775,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     });
   }
 
-  enhanceCodeBlocks(root, context) {
+  enhanceCodeBlocks(root: HTMLElement, context) {
     for (const code of root.querySelectorAll("pre > code")) {
       const pre = code.parentElement;
       // Front matter is shown as the Properties box; its raw <pre> stays hidden.
@@ -774,7 +801,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
         language,
         withZoom: false,
         withEdit: false,
-        onRename: label => this.editLanguage(label, pre, context, language)
+        onRename: (label: string) => this.editLanguage(label, pre, context, language)
       });
       mountChartAlignment(this, pre, actions);
       const wrap = createEl("button");
@@ -793,7 +820,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     }
   }
 
-  async renderMarkdownPreviewBlock(source, element, context) {
+  async renderMarkdownPreviewBlock(source, element: HTMLElement, context) {
     this.rememberSource(element, context);
     const component = new Component();
     component.load();
@@ -818,7 +845,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     }
   }
 
-  rememberSource(element, context) {
+  rememberSource(element: HTMLElement, context) {
     const info = context?.getSectionInfo?.(element);
     if (!info || !context?.sourcePath) return;
     if (!this.blockSources) this.blockSources = new WeakMap();
@@ -831,7 +858,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     });
   }
 
-  editLanguage(label, pre, context, current) {
+  editLanguage(label: string, pre, context, current) {
     openLanguagePicker({
       anchor: label,
       current,
@@ -887,7 +914,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.register(() => { document.removeEventListener("click", handler, true); document.removeEventListener("mousedown", press, true); });
   }
 
-  anchorEditedBlock(target) {
+  anchorEditedBlock(target: HTMLElement) {
     const block = target.closest?.(".cm-embed-block, .cm-html-embed, .cm-callout, [class*=\"ibc-container\"]");
     if (!block) return;
     const cm = this.app.workspace.getLeavesOfType("markdown").map(leaf => leaf.view?.editor?.cm).find(cm => cm?.dom.contains(block));
@@ -903,7 +930,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
   /* One header for both block kinds. The only difference is whether the zoom
      group is present, so the slots — label, zoom, copy, edit — are always laid
      out the same way and nothing shifts between a diagram and a code block. */
-  buildBlockHeader(container, options) {
+  buildBlockHeader(container: HTMLElement, options) {
     const header = createDiv();
     header.className = "ibm-block-header";
 
@@ -951,7 +978,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
   /* Our own edit button. Obsidian's is created lazily, parented to a wrapper we
      do not own and replaced on re-render — moving it around is what made the
      header lose buttons. Ours stays put and simply presses Obsidian's. */
-  createEditButton(container) {
+  createEditButton(container: HTMLElement) {
     const button = createEl("button");
     button.type = "button";
     button.className = "ibm-edit-source";
@@ -967,7 +994,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     return button;
   }
 
-  editBlock(container) {
+  editBlock(container: HTMLElement) {
     const host = container.closest(".cm-embed-block, .cm-preview-code-block, .el-pre, .el-div");
     const native = host?.querySelector(".edit-block-button");
     if (native) {
@@ -996,7 +1023,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
 
   /* Section info is kept for the <pre> itself and for its reading-view section
      wrapper (a diagram replaces the <pre>, the wrapper survives). */
-  storedSourceFor(element) {
+  storedSourceFor(element: HTMLElement) {
     for (let node = element; node && node !== document.body; node = node.parentElement) {
       const stored = this.blockSources?.get(node);
       if (stored) return stored;
@@ -1005,7 +1032,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     return null;
   }
 
-  createCopyButton(container) {
+  createCopyButton(container: HTMLElement) {
     const button = createEl("button");
     button.type = "button";
     button.className = "ibm-copy-source";
@@ -1029,7 +1056,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
   /* The fenced source behind a rendered block. Reading view gives us the
      section info up front; in Live Preview the block is a CodeMirror widget, so
      ask the editor where the element sits and read the fence around it. */
-  async sourceForBlock(element) {
+  async sourceForBlock(element: HTMLElement) {
     const echartsSource = this.echartsSources?.get(element);
     if (echartsSource !== undefined) return echartsSource;
     // A code block carries its own source; no need to go back to the file.
@@ -1139,14 +1166,14 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
 
   /* Stored sizes per table: { cols: [px|null…], rows: [px|null…] }. Older
      versions stored a bare array of column widths. */
-  storedSizes(path, ordinal) {
+  storedSizes(path: string, ordinal) {
     const raw = this.state.tables?.[path]?.[ordinal];
     if (!raw) return { cols: [], rows: [] };
     if (Array.isArray(raw)) return { cols: raw, rows: [] };
     return { cols: raw.cols || [], rows: raw.rows || [] };
   }
 
-  storeSizes(path, ordinal, sizes) {
+  storeSizes(path: string, ordinal, sizes) {
     if (path == null || ordinal === null) return;
     if (!this.state.tables[path]) this.state.tables[path] = {};
     const empty = !sizes.cols.some(Boolean) && !sizes.rows.some(Boolean);
@@ -1159,7 +1186,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.saveStoredState();
   }
 
-  enhanceTables(root, context) {
+  enhanceTables(root: HTMLElement, context) {
     for (const table of root.querySelectorAll("table")) {
       if (table.closest(".cm-table-widget")) continue; // Live Preview is handled separately
       const info = context?.getSectionInfo?.(table);
@@ -1190,7 +1217,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     this.attachTable(table, path, ordinal);
   }
 
-  attachTable(table, path, ordinal) {
+  attachTable(table, path: string, ordinal) {
     if (table.classList.contains("ibt-enhanced")) return;
     if (headerCells(table).length < 1) return;
     table.classList.add("ibt-enhanced");
@@ -1204,7 +1231,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     // stored sizes, so Obsidian clearing the cell's inline style cannot undo it.
     let hold = null;
     const publish = () => this.tableStyles.set(key, {
-      cols: hold ? hold.map((width, index) => sizes.cols[index] || width) : sizes.cols,
+      cols: hold ? hold.map((width: number, index: number) => sizes.cols[index] || width) : sizes.cols,
       rows: sizes.rows,
       columnCount: headerCells(table).length
     }, rowSelectors(table));
@@ -1238,13 +1265,13 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
       alignmentControl: tableAlignmentControl(this, table, path, ordinal),
       isHolding: () => Boolean(hold),
       seedColumns: widths => {
-        widths.forEach((width, index) => { if (!sizes.cols[index]) sizes.cols[index] = width; });
+        widths.forEach((width: number, index: number) => { if (!sizes.cols[index]) sizes.cols[index] = width; });
       },
-      resize: (axis, index, size) => {
+      resize: (axis, index: number, size) => {
         (axis === "col" ? sizes.cols : sizes.rows)[index] = size;
         publish();
       },
-      reset: (axis, index) => {
+      reset: (axis, index: number) => {
         (axis === "col" ? sizes.cols : sizes.rows)[index] = null;
         publish();
         if (keyed) this.storeSizes(path, ordinal, sizes);
@@ -1304,10 +1331,10 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     });
   }
 
-  enhanceAll(root) {
+  enhanceAll(root: HTMLElement) {
     const diagrams = [];
     if (root.matches?.(".mermaid")) diagrams.push(root);
-    root.querySelectorAll?.(".mermaid").forEach(element => diagrams.push(element));
+    root.querySelectorAll?.(".mermaid").forEach((element: HTMLElement) => diagrams.push(element));
     this.enhanceDiagrams(diagrams);
   }
 
@@ -1325,7 +1352,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
   /* A diagram container is only enhanceable once its <svg> exists; Obsidian
      inserts the two separately, so this is called from several angles. */
 
-  disposeDiagram(container) {
+  disposeDiagram(container: HTMLElement) {
     const state = this.diagramStates.get(container);
     if (!state) return;
     state.cleanup?.();
@@ -1337,7 +1364,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     state.svg.style.removeProperty("transform-origin");
   }
 
-  enhanceDiagram(container) {
+  enhanceDiagram(container: HTMLElement) {
     // Paged pages hold frozen copies laid out from the staging strip; enhancing
     // them again would refit them to the page and change their height.
     if (container.closest?.(".ibp-book")) return;
@@ -1374,7 +1401,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     });
     container.appendChild(header);
 
-    const makeButton = (label, title) => {
+    const makeButton = (label: string, title) => {
       const button = createEl("button");
       button.type = "button";
       button.textContent = label;
@@ -1699,7 +1726,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
 
   /* Refit a bounded group in phases — all writes, then all reads — instead
      of fitting every diagram synchronously in one frame. */
-  scheduleRetighten(container, state, svg) {
+  scheduleRetighten(container: HTMLElement, state, svg: SVGSVGElement) {
     if (!this.retightenQueue) this.retightenQueue = new Map();
     this.retightenQueue.set(container, { state, svg });
     if (this.retightenFrame) return;
@@ -1734,7 +1761,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     finally { this.baseWidths = null; }
   }
 
-  async settleDiagramFits(root, signal) {
+  async settleDiagramFits(root: HTMLElement, signal) {
     while (root.isConnected) {
       signal?.throwIfAborted();
       const pending = [...root.querySelectorAll(".mermaid")].some(container => {
@@ -1790,7 +1817,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     }
   }
 
-  fitDiagram(container, state) {
+  fitDiagram(container: HTMLElement, state) {
     this.applyFit(state, this.measureFit(container, state));
   }
 
@@ -1807,7 +1834,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     if (key) this.heightMemory?.set(key, parseFloat(state.container.style.getPropertyValue("--ibm-mermaid-canvas-height")));
   }
 
-  measureFit(container, state) {
+  measureFit(container: HTMLElement, state) {
     const { width, height } = this.getDiagramSize(state.svg);
     // Width: the text column plus whatever spare page width sits beside it.
     const bleed = Number(this.bleedTarget(container).dataset.ibmBleed || 0);
@@ -1826,7 +1853,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
   /* The space the drawing can use: the canvas itself. The block's parent can
      be wider than the canvas (Live Preview's embed wrapper is), and fitting to
      it let a flowchart overflow both sides by 22px. */
-  availableWidth(container) {
+  availableWidth(container: HTMLElement) {
     // Compact cards must still fit against the text column, not their own
     // previous width; otherwise repeated fits progressively shrink them.
     const column = this.bleedTarget(container).parentElement;
@@ -1845,7 +1872,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
      Deriving it from the viewBox is what left bands of empty canvas: inside
      Obsidian the viewBox-to-pixels ratio is not the one we set, so the canvas
      came out 1.5-2x taller (and wider) than the drawing. */
-  getDiagramSize(svg) {
+  getDiagramSize(svg: SVGSVGElement) {
     const measured = this.drawnSizes?.get(svg);
     if (measured) return measured;
     const viewBox = svg.viewBox?.baseVal;
@@ -1859,7 +1886,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     return { width, height };
   }
 
-  tightenViewBox(svg) {
+  tightenViewBox(svg: SVGSVGElement) {
     try {
       const measured = this.measuredBounds.get(svg);
       this.measuredBounds.delete(svg);
@@ -1894,14 +1921,14 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
 
   /* The element that sits in the text column: Live Preview wraps the block
      in .cm-embed-block, which carries the visible frame there. */
-  bleedTarget(container) {
+  bleedTarget(container: HTMLElement) {
     return container.closest(".cm-embed-block") || container;
   }
 
   /* How far the block may grow past the readable line width on each side:
      the smaller of the two gaps between the column and the pane's padding,
      so the block stays centred on the text. */
-  maxBleed(container) {
+  maxBleed(container: HTMLElement) {
     // With the page toolbar the text width is the user's choice: diagrams stay
     // inside it (zoom past it pans inside the card) instead of bleeding out.
     if (document.body.style.getPropertyValue("--ib-content-max")) return 0;
@@ -1918,7 +1945,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     return Math.max(0, Math.floor(Math.min(left, right)));
   }
 
-  setBleed(container, perSide) {
+  setBleed(container: HTMLElement, perSide) {
     const target = this.bleedTarget(container);
     const value = Math.max(0, Math.round(perSide));
     if (Number(target.dataset.ibmBleed || 0) === value) return;
@@ -1935,7 +1962,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     }
   }
 
-  sizeCanvas(container, state) {
+  sizeCanvas(container: HTMLElement, state) {
     const { width, height } = this.getDiagramSize(state.svg);
     const gutter = 8;
     const contentWidth = width * state.scale;
@@ -2007,4 +2034,5 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
  * padding subtracted, so re-measuring converges instead of creeping.
  * -------------------------------------------------------------------------- */
 
+export type { IgnoranceBlueMermaidPlugin };
 module.exports = IgnoranceBlueMermaidPlugin;

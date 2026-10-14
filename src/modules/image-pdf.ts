@@ -23,7 +23,7 @@ export function buildImagePdf(pages, { widthMm, heightMm }) {
   const offsets = [];
   let length = 0;
   const push = part => { const bytes = typeof part === "string" ? encoder.encode(part) : part; chunks.push(bytes); length += bytes.length; };
-  const object = (id, body, stream) => {
+  const object = (id: string, body, stream) => {
     offsets[id] = length;
     push(`${id} 0 obj\n${body}\n`);
     if (stream) { push("stream\n"); push(stream); push("\nendstream\n"); }
@@ -32,11 +32,11 @@ export function buildImagePdf(pages, { widthMm, heightMm }) {
   const w = (widthMm * 72 / 25.4).toFixed(2), h = (heightMm * 72 / 25.4).toFixed(2);
   const count = pages.length;
   // 1 catalog, 2 page tree, then per page: page, content, image.
-  const pageId = index => 3 + index * 3;
+  const pageId = (index: number) => 3 + index * 3;
   push("%PDF-1.4\n%\xFF\xFF\xFF\xFF\n");
   object(1, "<< /Type /Catalog /Pages 2 0 R >>");
-  object(2, `<< /Type /Pages /Count ${count} /Kids [${pages.map((_, i) => `${pageId(i)} 0 R`).join(" ")}] >>`);
-  pages.forEach(({ jpeg }, index) => {
+  object(2, `<< /Type /Pages /Count ${count} /Kids [${pages.map((_, i: number) => `${pageId(i)} 0 R`).join(" ")}] >>`);
+  pages.forEach(({ jpeg }, index: number) => {
     const id = pageId(index);
     const { width, height } = jpegSize(jpeg);
     const content = encoder.encode(`q ${w} 0 0 ${h} 0 0 cm /Im0 Do Q`);

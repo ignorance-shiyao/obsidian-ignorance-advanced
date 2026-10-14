@@ -1,3 +1,5 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Modal, Notice, Setting, TFile, htmlToMarkdown, normalizePath, requestUrl } from "obsidian";
 import { setIcon } from "./ui-icons.js";
 /* Clip a web page into the clipping folder the way the Web Clipper template does:
    title / source / author / published / created / description / tags, the
@@ -12,12 +14,11 @@ import { setIcon } from "./ui-icons.js";
 import { encodePastedImage, safeAssetStem, nextPastedImageSequence } from "./file-tools.js";
 import { URL_PATTERN, day, frontmatter, isClipUrl, pad, tidyMarkdown } from "./web-clip-format.js";
 
-const { Modal, Notice, Setting, TFile, htmlToMarkdown, normalizePath, requestUrl } = require("obsidian");
 
 export const CLIP_FOLDER = "Clippings";
 
 /** The folder chosen in settings (default "Clippings"); its last segment is also the note tag. */
-export function clipFolder(plugin) {
+export function clipFolder(plugin: IgnorancePlugin) {
   const value = String(plugin.state.webClip?.folder || "").trim().replace(/^\/+|\/+$/g, "");
   return value || CLIP_FOLDER;
 }
@@ -37,7 +38,7 @@ function meta(doc, ...names) {
   return "";
 }
 
-function scriptVar(html, name) {
+function scriptVar(html, name: string) {
   const match = html.match(new RegExp(`var ${name}\\s*=\\s*(?:htmlDecode\\()?["']([^"']*)["']`));
   return match ? match[1] : "";
 }
@@ -60,7 +61,7 @@ function wechat(doc, html) {
     img.setAttribute("src", src.replace(/^\/\//, "https://"));
   });
   // Decorative empty sections and the "写留言" style widgets carry no text.
-  body.querySelectorAll("mp-style-type, script, style, .js_uneditable, mpvoice, mpprofile").forEach(el => el.remove());
+  body.querySelectorAll("mp-style-type, script, style, .js_uneditable, mpvoice, mpprofile").forEach((el: HTMLElement) => el.remove());
   return {
     title: meta(doc, "og:title") || scriptVar(html, "msg_title"),
     author: meta(doc, "og:article:author", "author") || scriptVar(html, "nickname"),
@@ -75,7 +76,7 @@ function mainBlock(doc) {
   const direct = doc.querySelector("article, [itemprop='articleBody'], main, .post-content, .article-content, .entry-content, .RichText");
   if (direct) return direct;
   let best = doc.body, score = 0;
-  doc.querySelectorAll("div, section").forEach(el => {
+  doc.querySelectorAll("div, section").forEach((el: HTMLElement) => {
     const text = el.textContent?.length || 0;
     const paragraphs = el.querySelectorAll(":scope > p").length;
     const value = paragraphs * 200 + text / 10;
@@ -86,7 +87,7 @@ function mainBlock(doc) {
 
 function generic(doc) {
   const body = mainBlock(doc);
-  body.querySelectorAll("script, style, noscript, nav, header, footer, aside, form, iframe, button").forEach(el => el.remove());
+  body.querySelectorAll("script, style, noscript, nav, header, footer, aside, form, iframe, button").forEach((el: HTMLElement) => el.remove());
   body.querySelectorAll("img").forEach(img => {
     const src = img.getAttribute("data-src") || img.getAttribute("data-original") || img.getAttribute("src") || "";
     if (src) img.setAttribute("src", src);
@@ -120,7 +121,7 @@ async function fetchArticle(url) {
 }
 
 // Download every image into <folder>/assets/, rewrite the <img> to point there.
-async function saveImages(plugin, body, folder, stem, progress) {
+async function saveImages(plugin: IgnorancePlugin, body, folder, stem, progress) {
   const vault = plugin.app.vault;
   const assetDir = normalizePath([folder, "assets"].filter(Boolean).join("/"));
   const images = [...body.querySelectorAll("img[src]")].filter(img => /^https?:/.test(img.getAttribute("src")));
@@ -148,7 +149,7 @@ function safeNoteName(title) {
   return String(title || "未命名剪藏").replace(/[\\/:*?"<>|#^[\]]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 120) || "未命名剪藏";
 }
 
-function uniquePath(vault, folder, name, except) {
+function uniquePath(vault, folder, name: string, except) {
   let path = normalizePath(`${folder}/${name}.md`);
   for (let index = 1; vault.getAbstractFileByPath(path) && vault.getAbstractFileByPath(path) !== except; index += 1) path = normalizePath(`${folder}/${name} ${index}.md`);
   return path;
@@ -161,7 +162,7 @@ export function siteFolder(url) {
   try { return new URL(url).hostname.replace(/^www\./, "").replace(/[\\/:*?"<>|]/g, "-"); } catch (_) { return ""; }
 }
 
-export async function clipUrl(plugin, url, target = null) {
+export async function clipUrl(plugin: IgnorancePlugin, url, target: HTMLElement = null) {
   const vault = plugin.app.vault;
   const notice = new Notice("正在剪藏…", 0);
   try {
@@ -173,7 +174,7 @@ export async function clipUrl(plugin, url, target = null) {
     const site = !inPlace && plugin.state.webClip?.byDomain ? siteFolder(url) : "";
     const folder = inPlace ? target.parent.path : site ? `${base}/${site}` : base;
     for (const path of [base, folder]) if (!vault.getAbstractFileByPath(path)) await vault.createFolder(path).catch(() => {});
-    await saveImages(plugin, article.body, folder, safeAssetStem(name), (i, n) => notice.setMessage(`正在剪藏：保存图片 ${i} / ${n}`));
+    await saveImages(plugin, article.body, folder, safeAssetStem(name), (i: number, n) => notice.setMessage(`正在剪藏：保存图片 ${i} / ${n}`));
     const markdown = tidyMarkdown(htmlToMarkdown(article.body.innerHTML));
     const text = `${frontmatter({ ...article, title, url, tag: (inPlace ? folder : base).split("/").pop() })}${markdown}\n`;
     let note = target;
@@ -196,7 +197,7 @@ export async function clipUrl(plugin, url, target = null) {
 
 /* --- entry points ----------------------------------------------------------- */
 
-function sourceOf(plugin, file, text) {
+function sourceOf(plugin: IgnorancePlugin, file: TFile, text: string) {
   const fm = plugin.app.metadataCache.getFileCache(file)?.frontmatter || {};
   const declared = [fm.source, fm.url, fm.link].find(value => typeof value === "string" && /^https?:/.test(value));
   return declared || text.match(URL_PATTERN)?.[0] || "";
@@ -206,7 +207,7 @@ function sourceOf(plugin, file, text) {
    (the system paste menu needs no permission), and a readable clipboard only
    pre-fills it in the background. A pasted link starts the clip at once. */
 class ClipModal extends Modal {
-  constructor(plugin) { super(plugin.app); this.plugin = plugin; this.busy = false; }
+  constructor(plugin: IgnorancePlugin) { super(plugin.app); this.plugin = plugin; this.busy = false; }
   onOpen() {
     this.modalEl.addClass("ib-clip-modal");
     this.titleEl.setText("剪藏网页");
@@ -246,7 +247,7 @@ class ClipModal extends Modal {
 /* Several links at once: one per line (or pasted as a block of text). Links already clipped, recognised by the
    `source` property of a note in the vault, are skipped; failures are counted and the rest carry on. */
 class BatchClipModal extends Modal {
-  constructor(plugin) { super(plugin.app); this.plugin = plugin; this.busy = false; }
+  constructor(plugin: IgnorancePlugin) { super(plugin.app); this.plugin = plugin; this.busy = false; }
   onOpen() {
     this.titleEl.setText("批量剪藏网页");
     this.contentEl.createDiv({ cls: "ib-form-hint", text: `每行一个链接，已经剪藏过的会跳过。保存到 ${clipFolder(this.plugin)}/。` });
@@ -265,7 +266,7 @@ class BatchClipModal extends Modal {
     this.busy = true;
     this.start.setAttr("disabled", "true");
     const { app } = this.plugin;
-    const known = new Set(app.vault.getMarkdownFiles().map(file => app.metadataCache.getFileCache(file)?.frontmatter?.source).filter(Boolean));
+    const known = new Set(app.vault.getMarkdownFiles().map((file: TFile) => app.metadataCache.getFileCache(file)?.frontmatter?.source).filter(Boolean));
     let done = 0, skipped = 0, failed = 0;
     for (const [index, url] of urls.entries()) {
       this.status.setText(`第 ${index + 1} / ${urls.length} 篇`);
@@ -280,7 +281,7 @@ class BatchClipModal extends Modal {
 }
 
 class ConfirmClipModal extends Modal {
-  constructor(plugin, message, url, action) { super(plugin.app); this.message = message; this.url = url; this.action = action; }
+  constructor(plugin: IgnorancePlugin, message, url, action) { super(plugin.app); this.message = message; this.url = url; this.action = action; }
   onOpen() {
     this.titleEl.setText("剪藏");
     this.contentEl.createEl("p", { text: this.message });
@@ -296,7 +297,7 @@ async function clipboardUrl() {
   try { return (await navigator.clipboard.readText()).match(URL_PATTERN)?.[0] || ""; } catch (_) { return ""; }
 }
 
-export function installWebClip(plugin) {
+export function installWebClip(plugin: IgnorancePlugin) {
   const { app } = plugin;
   plugin.addCommand({
     id: "clip-web-pages-batch",
@@ -351,7 +352,7 @@ export function installWebClip(plugin) {
   // back to the foreground, as well as on files created while it runs.
   const repairing = new Set();
   const told = new Set();
-  const repair = async file => {
+  const repair = async (file: TFile) => {
     if (!(file instanceof TFile) || file.extension !== "md" || repairing.has(file.path)) return;
     if (Date.now() - (file.stat?.ctime || 0) > 24 * 60 * 60 * 1000 || (file.stat?.size || 0) > 20000) return;
     const text = await app.vault.read(file).catch(() => "");

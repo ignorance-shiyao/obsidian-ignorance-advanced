@@ -1,3 +1,4 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 import { readAsset } from "./assets.js";
 import { parseInlineSyntax } from "./inline-syntax-source.js";
 
@@ -11,7 +12,7 @@ const ICON_ATTRS = new Set([
 ]);
 const iconDataCache = new Map<string, Promise<any>>();
 
-function loadLucideIconData(plugin) {
+function loadLucideIconData(plugin: IgnorancePlugin) {
   const path = `${plugin.manifest.dir}/lucide-icons.json`;
   if (!iconDataCache.has(path)) {
     const pending = readAsset(plugin, "lucide-icons.json").then(text => JSON.parse(text)).catch(error => {
@@ -27,7 +28,7 @@ function iconNames(data) {
   return new Set([...Object.keys(data.icons || {}), ...Object.keys(data.aliases || {}), ...Object.keys(ICON_ALIAS)]);
 }
 
-function resolveIconName(name, data) {
+function resolveIconName(name: string, data) {
   let current = ICON_ALIAS[name] || name;
   const seen = new Set();
   while (!data.icons?.[current] && data.aliases?.[current] && !seen.has(current)) {
@@ -38,7 +39,7 @@ function resolveIconName(name, data) {
   return data.icons?.[current] ? current : null;
 }
 
-function safeSvgChild(source, target) {
+function safeSvgChild(source, target: HTMLElement) {
   if (source.nodeType !== 1) return null;
   const name = source.localName.toLowerCase();
   if (!ICON_TAGS.has(name)) return null;
@@ -59,7 +60,7 @@ function safeSvgChild(source, target) {
   return clone;
 }
 
-function makeIconElement(name, data, doc = document) {
+function makeIconElement(name: string, data, doc = document) {
   const resolved = resolveIconName(name, data);
   if (!resolved) return null;
   const parser = new DOMParser();
@@ -86,7 +87,7 @@ function makeIconElement(name, data, doc = document) {
 function pointList(values) {
   const width = 100, height = 24, pad = 3;
   const min = Math.min(...values), max = Math.max(...values), span = max - min || 1;
-  const points = values.map((value, index) => {
+  const points = values.map((value, index: number) => {
     const x = pad + (width - 2 * pad) * (values.length === 1 ? 0 : index / (values.length - 1));
     const y = pad + (height - 2 * pad) * (1 - (value - min) / span);
     return [x, y];
@@ -153,7 +154,7 @@ function makeChipElement(token, doc = document) {
     crumb.className = "ib-inline-crumb";
     crumb.title = "点击复制路径";
     crumb.addEventListener("click", () => { void navigator.clipboard?.writeText(token.parts.join(" > ")).catch(() => {}); });
-    token.parts.forEach((part, index) => {
+    token.parts.forEach((part, index: number) => {
       if (index) {
         const separator = doc.createElement("span");
         separator.className = "ib-inline-crumb__sep";
@@ -224,12 +225,12 @@ function makeTokenElement(token, data, doc = document) {
   return wrapper;
 }
 
-function excludedTextNode(node) {
+function excludedTextNode(node: HTMLElement) {
   const parent = node.parentElement;
   return !parent || !!parent.closest("code, pre, a, script, style, svg, .math, .mermaid, .ibc-container-source-covered");
 }
 
-async function renderInlineSyntax(plugin, root) {
+async function renderInlineSyntax(plugin: IgnorancePlugin, root: HTMLElement) {
   const hasIconSyntax = /:[a-z][a-z0-9-]*:/i.test(root.textContent || "");
   let data = { icons: {}, aliases: {} };
   if (hasIconSyntax) {

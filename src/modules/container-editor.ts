@@ -1,12 +1,13 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Component, editorInfoField } from "obsidian";
+import { StateField } from "@codemirror/state";
+import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import { parseMarkdownContainers } from "./container-source.js";
 import { renderMarkdownWithContainers } from "./containers.js";
 
-const { Component, editorInfoField } = require("obsidian");
-const { StateField } = require("@codemirror/state");
-const { Decoration, EditorView, WidgetType } = require("@codemirror/view");
 
 class ContainerWidget extends WidgetType {
-  constructor(plugin, sourcePath, source) {
+  constructor(plugin: IgnorancePlugin, sourcePath: string, source) {
     super();
     this.plugin = plugin;
     this.sourcePath = sourcePath;
@@ -42,7 +43,7 @@ class ContainerWidget extends WidgetType {
   ignoreEvent() { return true; }
 }
 
-function buildContainerDecorations(state, plugin, cached = {}) {
+function buildContainerDecorations(state, plugin: IgnorancePlugin, cached = {}) {
   const file = state.field(editorInfoField, false)?.file;
   const sourcePath = file?.path || null;
   const selectionSignature = state.selection.ranges.map(range => `${range.from}:${range.to}`).join(",");
@@ -66,7 +67,7 @@ function buildContainerDecorations(state, plugin, cached = {}) {
   return { source, sourcePath, selectionSignature, nodes, decorations: ranges.length ? Decoration.set(ranges, true) : Decoration.none };
 }
 
-function containerEditorExtension(plugin) {
+function containerEditorExtension(plugin: IgnorancePlugin) {
   const field = StateField.define({
     create: state => buildContainerDecorations(state, plugin),
     update(value, transaction) {

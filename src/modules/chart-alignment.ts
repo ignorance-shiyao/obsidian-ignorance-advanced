@@ -1,19 +1,20 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Menu, Notice, MarkdownView } from "obsidian";
 import { applyTableSourceAlignment } from "./table-alignment.js";
 import { setIcon, UI_ICONS } from "./ui-icons.js";
 import { saveErrorMessage, holdScrollPosition, replaceLineQuietly } from "./quiet-edit.js";
 import MarkdownIt from "markdown-it";
 import { chartWidth, withChartWidth, setBlockWidth, MIN_BLOCK_WIDTH } from "./block-width.js";
-const { Menu, Notice, MarkdownView } = require("obsidian");
 export function chartAlignment(fence: string) { return fence.match(/\{align=(left|center|right)\}/)?.[1] || "center"; }
 export function withChartAlignment(fence: string, alignment: string) {
   const clean = fence.replace(/\s*\{align=(?:left|center|right)\}/g, "").trimEnd();
   return `${clean} {align=${alignment}}`;
 }
-const fenceMapAt = (source, line) => new MarkdownIt().parse(source, {}).find(token => token.type === "fence" && token.map[0] <= line && line < token.map[1])?.map;
-const fenceAt = (source, line) => fenceMapAt(source, line)?.[0];
+const fenceMapAt = (source, line: number) => new MarkdownIt().parse(source, {}).find(token => token.type === "fence" && token.map[0] <= line && line < token.map[1])?.map;
+const fenceAt = (source, line: number) => fenceMapAt(source, line)?.[0];
 // Blocks inside a Markdown preview block are fences nested in the outer fence's body.
 const NESTED_BLOCKS = "pre.ibc-enhanced, .mermaid, .ib-echarts-block";
-export function mountChartAlignment(plugin, container, actions) {
+export function mountChartAlignment(plugin: IgnorancePlugin, container: HTMLElement, actions) {
   const apply = alignment => {
     container.dataset.ibChartAlign = alignment;
     const wrapper = container.closest(".cm-embed-block");
@@ -23,7 +24,7 @@ export function mountChartAlignment(plugin, container, actions) {
   const label = container.tagName === "PRE" ? "代码块位置" : "图表位置";
   const button = actions.createEl("button", { cls: "ib-chart-align", attr: { type: "button", "aria-label": label, title: label } });
   setIcon(button, UI_ICONS.alignCenter);
-  const locateIn = async element => {
+  const locateIn = async (element: HTMLElement) => {
     const stored = plugin.storedSourceFor(element);
     if (stored) {
       const file = plugin.app.vault.getAbstractFileByPath(stored.path);
@@ -80,8 +81,8 @@ export function mountChartAlignment(plugin, container, actions) {
 
 
 // Drag a block's side edge to set its width. The new width lives on the fence like the position.
-function mountResizeHandles(plugin, container, locate) {
-  container.querySelectorAll(":scope > .ib-block-resize").forEach(node => node.remove());
+function mountResizeHandles(plugin: IgnorancePlugin, container: HTMLElement, locate) {
+  container.querySelectorAll(":scope > .ib-block-resize").forEach((node: HTMLElement) => node.remove());
   for (const side of ["west", "east"]) {
     const handle = container.createDiv({ cls: `ib-block-resize is-${side}` });
     handle.setAttribute("aria-hidden", "true");
@@ -132,12 +133,12 @@ function mountResizeHandles(plugin, container, locate) {
   }
 }
 
-function refit(plugin, container) {
+function refit(plugin: IgnorancePlugin, container: HTMLElement) {
   const state = plugin.diagramStates?.get(container);
   if (state && !state.disposed) plugin.scheduleRetighten(container, state, state.svg);
 }
 
-async function persistWidth(plugin, container, locate, width, previous) {
+async function persistWidth(plugin: IgnorancePlugin, container: HTMLElement, locate, width: number, previous) {
   const release = holdScrollPosition(container);
   try {
     const found = await locate();
@@ -152,7 +153,7 @@ async function persistWidth(plugin, container, locate, width, previous) {
 }
 
 // Staged readers and slides do not expose native section line information.
-export async function applyStagedChartAlignment(plugin, root, sourcePath, source) {
+export async function applyStagedChartAlignment(plugin: IgnorancePlugin, root: HTMLElement, sourcePath: string, source) {
   applyTableSourceAlignment(root, source);
   if (!root.querySelector(".mermaid,.ib-echarts-block")) return;
   const fences = new MarkdownIt().parse(source, {}).filter(t => t.type === "fence" && /^(?:mermaid|echarts)\b/i.test(t.info));

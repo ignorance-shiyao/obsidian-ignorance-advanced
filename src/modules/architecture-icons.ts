@@ -1,3 +1,4 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 import { readAsset } from "./assets.js";
 const ARCHITECTURE_BUILTINS = new Set(["cloud", "database", "disk", "internet", "server"]);
 const ARCHITECTURE_ALIASES = {
@@ -17,7 +18,7 @@ const ARCHITECTURE_ALIASES = {
 };
 let lucideNames = null;
 
-function registerLucideIcons(plugin, engine) {
+function registerLucideIcons(plugin: IgnorancePlugin, engine) {
   if (typeof engine.registerIconPacks !== "function") return;
   const load = async () => {
     const raw = JSON.parse(await readAsset(plugin, "lucide-icons.json"));
@@ -36,7 +37,7 @@ function registerLucideIcons(plugin, engine) {
   }).catch(() => {});
 }
 
-function mapArchitectureIcons(text) {
+function mapArchitectureIcons(text: string) {
   if (typeof text !== "string" || !/^\s*(?:---[\s\S]*?---\s*)?architecture/m.test(text)) return text;
   return text.replace(/^(\s*(?:service|group|junction)\s+[\w-]+)\(([\w-]+)\)/gm, (whole, head, name) => {
     if (ARCHITECTURE_BUILTINS.has(name)) return whole;

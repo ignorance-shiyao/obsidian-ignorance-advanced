@@ -1,3 +1,4 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 // Shared pieces for the icon files built from Material Icon Theme (MIT): language-icons.json for
 // code languages and file-icons.json for file types. Both are read lazily, never at startup.
 import { readAsset } from "./assets.js";
@@ -10,7 +11,7 @@ export interface IconPack {
 }
 
 const packs = new Map<string, Promise<IconPack>>();
-export function loadPack(plugin, file: string): Promise<IconPack> {
+export function loadPack(plugin: IgnorancePlugin, file: string): Promise<IconPack> {
   if (!packs.has(file)) {
     const job = readAsset(plugin, file).then(text => JSON.parse(text) as IconPack);
     job.catch(() => packs.delete(file));

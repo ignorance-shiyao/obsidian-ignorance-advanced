@@ -1,3 +1,4 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 /* Heading numbers in Reading view: "1", "1.1", "1.1.1". A lone H1 is treated as the note's title and left
    out, so numbering starts at the first H2. Turned on globally in settings, or per note with the `ib-numbered`
    cssclass (`ib-unnumbered` turns it off for a note). */
@@ -39,7 +40,7 @@ export type NumberStart = "auto" | "h1" | "h2";
 
 export interface NumberOptions { depth: number; style: NumberStyle; start: NumberStart }
 
-export function numberingOptions(plugin): NumberOptions {
+export function numberingOptions(plugin: IgnorancePlugin): NumberOptions {
   const state = plugin?.state || {};
   const depth = Math.round(Number(state.headingNumberDepth));
   return {
@@ -75,7 +76,7 @@ export function numberWithOptions(headings: HeadingEntry[], options: NumberOptio
   return numberHeadings(headings, options.depth, options.style, options.start);
 }
 
-export function wantsNumbers(plugin, frontmatter) {
+export function wantsNumbers(plugin: IgnorancePlugin, frontmatter) {
   const classes = [frontmatter?.cssclasses, frontmatter?.cssclass].flat().filter(Boolean).map(String);
   if (classes.includes("ib-unnumbered")) return false;
   return plugin.state?.headingNumbers === true || classes.includes("ib-numbered");
@@ -128,7 +129,7 @@ function headingOf(element: Element) {
   return element.querySelector(":scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6") || (/^H[1-6]$/.test(element.tagName) ? element : null);
 }
 
-function renumber(plugin) {
+function renumber(plugin: IgnorancePlugin) {
   const options = numberingOptions(plugin);
   const cache = new Map<string, Map<number, string>>();
   for (const badge of document.querySelectorAll<HTMLElement>(".markdown-preview-view .ib-heading-number:not(.ib-heading-number--editor)")) {
@@ -149,7 +150,7 @@ function renumber(plugin) {
   }
 }
 
-export function installHeadingNumbers(plugin) {
+export function installHeadingNumbers(plugin: IgnorancePlugin) {
   let timer = 0;
   const schedule = () => {
     window.clearTimeout(timer);

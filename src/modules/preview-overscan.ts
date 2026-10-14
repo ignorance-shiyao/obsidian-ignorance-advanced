@@ -1,3 +1,4 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 // Obsidian's progressive preview detaches sections outside its render window.
 // Keep a bounded extra screen ready before a fast wheel movement arrives.
 export function widenPreviewWindow(renderer) {
@@ -11,7 +12,7 @@ export function widenPreviewWindow(renderer) {
   };
 }
 
-export function installPreviewOverscan(plugin) {
+export function installPreviewOverscan(plugin: IgnorancePlugin) {
   const installed = new Map();
   let frame = 0;
   let timer = 0;

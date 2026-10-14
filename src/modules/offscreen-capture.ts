@@ -12,7 +12,7 @@ function collectCss() {
   return parts.join("\n");
 }
 
-export async function openOffscreenCapturer(width, height) {
+export async function openOffscreenCapturer(width: number, height) {
   const remote = electronRemote();
   if (!remote?.BrowserWindow) throw new Error("当前环境不支持后台渲染");
   // Match the main window's viewport so vw / vh based sizes lay out the same.
@@ -69,7 +69,7 @@ function dataUrlOf(source) {
 /* An off-screen, unscaled copy of one slide in the main document, laid out at
    the canvas size inside the same Reveal / skin classes. Used both to measure
    objects for the editable export and as the markup sent to the capturer. */
-export function stageSlide(root, section, width, height) {
+export function stageSlide(root: HTMLElement, section, width: number, height) {
   const stage = document.body.createDiv({ cls: `${root.className} ibp-export-stage ibp-pptx-exporting` });
   stage.setAttribute("style", `${root.getAttribute("style") || ""};position:fixed;left:-100000px;top:0;width:${width}px;height:${height}px;overflow:hidden;`);
   const slides = stage.createDiv({ cls: "slides" });

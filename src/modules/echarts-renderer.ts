@@ -1,3 +1,5 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Component } from "obsidian";
 import { observedSize, waitForSize } from "./element-size.js";
 import { setIcon, UI_ICONS } from "./ui-icons.js";
 import { HALF_A4_HEIGHT, DIAGRAM_HEADER_HEIGHT } from "./diagram-fit.js";
@@ -6,7 +8,6 @@ import { buildEChartsTheme, echartsThemeName, normalizeEChartsOption, parseEChar
 import { graphPixelBounds, fitDefaultGraph } from "./echarts-graph.js";
 import { setMarkup } from "./dom-markup.js";
 
-const { Component } = require("obsidian");
 const ECHARTS_FILE = "echarts.min.js";
 let echartsLoad: Promise<any> | null = null;
 const registeredThemes = new Set<string>();
@@ -18,7 +19,7 @@ const previewCache = new Map();
 let drawTurn: Promise<unknown> = Promise.resolve();
 let tooltipSerial = 0;
 
-function loadECharts(plugin) {
+function loadECharts(plugin: IgnorancePlugin) {
   if (!echartsLoad) {
     echartsLoad = (async () => {
       const source = await readAsset(plugin, ECHARTS_FILE);
@@ -45,7 +46,7 @@ function loadECharts(plugin) {
 
 // Reading computed styles forces a style pass; charts share one reading until the theme changes.
 let tokenCache = null;
-function readThemeTokens(element = null) {
+function readThemeTokens(element: HTMLElement = null) {
   const root = element?.closest(".skin-palette") || document.body;
   const dark = root.dataset.ibMode ? root.dataset.ibMode === "dark" : document.body.classList.contains("theme-dark");
   if (tokenCache && tokenCache.dark === dark && tokenCache.root === root) return tokenCache;
@@ -56,7 +57,7 @@ function forgetThemeTokens() { tokenCache = null; }
 
 function readThemeTokensNow(root = document.body) {
   const style = getComputedStyle(root);
-  const read = name => style.getPropertyValue(name).trim();
+  const read = (name: string) => style.getPropertyValue(name).trim();
   const primary = read("--ib-accent-solid") || "#4D81EF";
   const colors = Array.from({ length: 8 }, (_, index) => read(`--ib-chart-${index + 1}`)).filter(Boolean);
   return {
@@ -71,20 +72,20 @@ function readThemeTokensNow(root = document.body) {
   };
 }
 
-function chartRendererFor(element) {
+function chartRendererFor(element: HTMLElement) {
   return document.body.classList.contains("ibp-exporting")
     || document.body.classList.contains("ibp-paged")
     || !!element.closest(".ibp-staging, .ibp-export") ? "svg" : "canvas";
 }
 
-function setChartError(element, error) {
+function setChartError(element: HTMLElement, error) {
   element.dataset.ibEchartsState = "error";
   element.replaceChildren();
   const message = element.createEl("pre", { cls: "ib-echarts-error" });
   message.textContent = `ECharts 渲染失败：${error instanceof Error ? error.message : String(error)}`;
 }
 
-function renderEChartsBlock(plugin, source, element, context) {
+function renderEChartsBlock(plugin: IgnorancePlugin, source, element: HTMLElement, context) {
   element.addClass("ib-echarts-block");
   element.dataset.ibEchartsState = "loading";
   element.setAttribute("role", "img");
@@ -114,9 +115,9 @@ function renderEChartsBlock(plugin, source, element, context) {
   let viewportSize = { width:0, height:0 };
   let cardWidth = 0;
   const series = Array.isArray(option.series) ? option.series : [];
-  const leaves = node => !node || node.collapsed || !node.children?.length ? 1 : node.children.reduce((count, child) => count + leaves(child), 0);
+  const leaves = (node: HTMLElement) => !node || node.collapsed || !node.children?.length ? 1 : node.children.reduce((count, child) => count + leaves(child), 0);
   const treeHeight = series.filter(item => item && item.type === "tree" && !["TB", "BT"].includes(item.orient))
-    .reduce((height, item) => Math.max(height, (item.data || []).reduce((count, node) => count + leaves(node), 0) * 24 + 100), 0);
+    .reduce((height, item) => Math.max(height, (item.data || []).reduce((count, node: HTMLElement) => count + leaves(node), 0) * 24 + 100), 0);
   // Fixed-pixel parts (calendar cells, a visualMap strip) do not shrink with a narrow card, so give them a floor.
   const contentFloor = option.calendar ? 340 : option.visualMap ? 300 : 260;
   const longTree = treeHeight + DIAGRAM_HEADER_HEIGHT > HALF_A4_HEIGHT;
@@ -145,7 +146,7 @@ function renderEChartsBlock(plugin, source, element, context) {
     surface.style.height = `${height * zoom}px`;
     percent.textContent = `${Math.round(zoom * 100)}%`;
   };
-  const zoomButton = (label, text, action) => {
+  const zoomButton = (label: string, text: string, action) => {
     const button = toolbar.createEl("button", { text, attr: { type: "button", "aria-label": label, title: label } });
     if (text.startsWith("lucide-")) setIcon(button, text);
     button.addEventListener("click", action);
@@ -364,7 +365,7 @@ function renderEChartsBlock(plugin, source, element, context) {
   }
 }
 
-export async function preloadEChartsPreview(plugin, source) {
+export async function preloadEChartsPreview(plugin: IgnorancePlugin, source) {
   const tokens = readThemeTokens(), name = echartsThemeName(tokens), key = `${name}\n${source.trim()}`;
   if (previewCache.has(key)) return;
   const engine = await loadECharts(plugin);

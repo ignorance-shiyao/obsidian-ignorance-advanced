@@ -6,7 +6,7 @@ export function bytesToBase64(data) {
   return btoa(binary);
 }
 
-export function base64ToBytes(text) {
+export function base64ToBytes(text: string) {
   const binary = atob(text);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);

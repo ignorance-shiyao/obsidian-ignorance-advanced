@@ -1,18 +1,19 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Modal, Notice, TFile } from "obsidian";
 // Crop a vault image: drag a box over it, then choose to replace the original file or add the crop
 // as a new image. Raster formats only (png, jpg, webp); the output keeps the original's format.
-const { Modal, Notice, TFile } = require("obsidian");
 
 const OUTPUT = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp" } as const;
 const RATIOS: Array<[string, number]> = [["自由", 0], ["1:1", 1], ["4:3", 4 / 3], ["3:2", 3 / 2], ["16:9", 16 / 9], ["3:4", 3 / 4], ["9:16", 9 / 16]];
 
-export function canCrop(file) { return file instanceof TFile && Object.keys(OUTPUT).includes(file.extension.toLowerCase()); }
+export function canCrop(file: TFile) { return file instanceof TFile && Object.keys(OUTPUT).includes(file.extension.toLowerCase()); }
 
 import { adjustBox, fitBoxToRatio, type Box } from "./crop-geometry.js";
 
-const unique = (plugin, folder: string, base: string, ext: string) =>
+const unique = (plugin: IgnorancePlugin, folder: string, base: string, ext: string) =>
   plugin.app.vault.getAvailablePath(`${folder ? folder + "/" : ""}${base}`, ext);
 
-export async function cropImage(plugin, file, onDone: (result: { mode: "replace" | "new"; file: any }) => void) {
+export async function cropImage(plugin: IgnorancePlugin, file: TFile, onDone: (result: { mode: "replace" | "new"; file: any }) => void) {
   const ext = file.extension.toLowerCase();
   const mime = OUTPUT[ext];
   if (!mime) { new Notice("暂不支持裁切这种格式（支持 PNG、JPG、WebP）"); return; }
@@ -83,7 +84,7 @@ export async function cropImage(plugin, file, onDone: (result: { mode: "replace"
 }
 
 // After cropping: replace the original file, or keep it and add the crop as a new image.
-function confirmCrop(plugin, file, canvas: HTMLCanvasElement, data: ArrayBuffer, onDone) {
+function confirmCrop(plugin: IgnorancePlugin, file: TFile, canvas: HTMLCanvasElement, data: ArrayBuffer, onDone) {
   const refs = Object.values(plugin.app.metadataCache.resolvedLinks as Record<string, Record<string, number>>)
     .filter(links => links[file.path]).length;
   const modal = new Modal(plugin.app);

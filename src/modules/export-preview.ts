@@ -1,3 +1,6 @@
+import type { TFile } from "obsidian";
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Component, Modal, Platform } from "obsidian";
 /* Every export opens a preview window first: the result laid out the way the
    exporter will write it (same pagination, skin and canvas), with Cancel and
    Export. Nothing is written until Export is pressed. */
@@ -5,7 +8,6 @@ import { applyAppearancePreferences } from "./appearance.js";
 import { composePages } from "./reading-pagination.js";
 import { stageSlide } from "./offscreen-capture.js";
 
-const { Component, Modal, Platform } = require("obsidian");
 
 const TITLES = {
   pdf: "导出 PDF",
@@ -27,7 +29,7 @@ const NOTES = {
 };
 
 class ExportPreviewModal extends Modal {
-  constructor(plugin, file, kind, deps, run) {
+  constructor(plugin: IgnorancePlugin, file: TFile, kind, deps, run) {
     super(plugin.app);
     this.plugin = plugin;
     this.file = file;
@@ -127,7 +129,7 @@ class ExportPreviewModal extends Modal {
   }
 
   // Scale fixed-size content (pages, slides) to the viewport width.
-  fit(element, width) {
+  fit(element: HTMLElement, width: number) {
     const available = Math.max(200, this.viewport.clientWidth - 32);
     element.style.zoom = String(Math.min(1, available / width));
   }
@@ -233,7 +235,7 @@ class ExportPreviewModal extends Modal {
 }
 
 // Show the preview; `run` performs the real export when the user confirms.
-export function previewThenExport(plugin, file, kind, deps, run) {
+export function previewThenExport(plugin: IgnorancePlugin, file: TFile, kind, deps, run) {
   if (!file) return;
   new ExportPreviewModal(plugin, file, kind, deps, run).open();
 }

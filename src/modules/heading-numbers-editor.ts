@@ -1,12 +1,13 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { editorInfoField } from "obsidian";
+import { Decoration, ViewPlugin, WidgetType } from "@codemirror/view";
 /* The same heading numbers in Live Preview: a small widget in front of each heading's text. The numbers come
    from the document itself, so they stay right while the note is edited. */
 import { numberWithOptions, numberingOptions, scanHeadings, unpublishedIndexes } from "./heading-numbers.js";
 
-const { editorInfoField } = require("obsidian");
-const { Decoration, ViewPlugin, WidgetType } = require("@codemirror/view");
 
 class NumberWidget extends WidgetType {
-  constructor(text) { super(); this.text = text; }
+  constructor(text: string) { super(); this.text = text; }
   eq(other) { return other.text === this.text; }
   toDOM() {
     const span = createSpan({ cls: "ib-heading-number ib-heading-number--editor", text: this.text });
@@ -16,7 +17,7 @@ class NumberWidget extends WidgetType {
   ignoreEvent() { return true; }
 }
 
-function wanted(plugin, view) {
+function wanted(plugin: IgnorancePlugin, view) {
   const file = view.state.field(editorInfoField, false)?.file;
   const frontmatter = file && plugin.app.metadataCache.getFileCache(file)?.frontmatter;
   const classes = [frontmatter?.cssclasses, frontmatter?.cssclass].flat().filter(Boolean).map(String);
@@ -24,7 +25,7 @@ function wanted(plugin, view) {
   return plugin.state?.headingNumbers === true || classes.includes("ib-numbered");
 }
 
-function build(view, plugin) {
+function build(view, plugin: IgnorancePlugin) {
   if (!wanted(plugin, view)) return Decoration.none;
   const doc = view.state.doc;
   const lines: string[] = [];
@@ -43,7 +44,7 @@ function build(view, plugin) {
   return ranges.length ? Decoration.set(ranges, true) : Decoration.none;
 }
 
-export function headingNumbersEditorExtension(plugin) {
+export function headingNumbersEditorExtension(plugin: IgnorancePlugin) {
   return ViewPlugin.fromClass(class {
     constructor(view) { this.decorations = build(view, plugin); }
     update(update) { if (update.docChanged || update.viewportChanged || update.transactions.some(tr => tr.reconfigured)) this.decorations = build(update.view, plugin); }

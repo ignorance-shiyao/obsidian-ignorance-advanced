@@ -1,3 +1,4 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 /* Large runtime libraries (Mermaid, ECharts, the import converters…) are compressed and embedded in
    main.js at build time, and unpacked the first time a feature needs one. Nothing is downloaded and
    no code is fetched from the network: Obsidian installs main.js, manifest.json and styles.css,
@@ -31,7 +32,7 @@ export async function readAsset(_plugin, name: string): Promise<string> {
 /* The Markdown converters are a Node module (desktop only) that must be loadable with require().
    Write them, with the PDF worker they sit beside, to a versioned folder in the OS temp directory
    once, and hand back the path. */
-export async function materializeConverters(plugin): Promise<string> {
+export async function materializeConverters(plugin: IgnorancePlugin): Promise<string> {
   const fs = require("fs"), path = require("path"), os = require("os");
   const folder = path.join(os.tmpdir(), `ignorance-advanced-${plugin.manifest.version}`);
   fs.mkdirSync(folder, { recursive: true });

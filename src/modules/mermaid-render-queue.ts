@@ -1,7 +1,7 @@
 /* Mermaid uses shared DOM ids while drawing, so keep one render in flight.
    Obsidian passes a hidden scratch div rather than the real note block. Match
    the pending source block once and recheck its position before each draw. */
-export function mermaidRenderTargets(document, text, container) {
+export function mermaidRenderTargets(document, text: string, container: HTMLElement) {
   const targets = new Set();
   if (container?.parentElement !== document.body && container?.getBoundingClientRect) targets.add(container);
   if (typeof text === "string") {
@@ -44,7 +44,7 @@ export function mermaidTargetPriority(targets, document) {
 export function createMermaidRenderQueue(draw, {
   document = typeof window === "undefined" ? undefined : window.document,
   yieldToMain = () => new Promise(resolve => document.defaultView.setTimeout(resolve, 0)),
-  targetsFor = (text, container) => mermaidRenderTargets(document, text, container),
+  targetsFor = (text: string, container: HTMLElement) => mermaidRenderTargets(document, text, container),
   priorityFor = targets => mermaidTargetPriority(targets, document),
   isDark = () => document.body.classList.contains("theme-dark")
 } = {}) {
@@ -81,7 +81,7 @@ export function createMermaidRenderQueue(draw, {
       }
     } finally { running = false; }
   };
-  return (id, text, container, ...rest) => {
+  return (id: string, text: string, container: HTMLElement, ...rest) => {
     const key = `${container?.style?.width || ""}\n${isDark()}\n${document?.body?.dataset?.ibThemeStamp || ""}\n${typeof text === "string" ? text.trim() : text}`;
     const cached = cache.get(key);
     if (cached) { cache.delete(key); cache.set(key, cached); const { id: originalId, ...result } = cached; return Promise.resolve({ ...result, svg: result.svg.split(originalId).join(id) }); }

@@ -1,10 +1,11 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { MarkdownView, Menu, Modal, Notice, TFile, requestUrl, setTooltip } from "obsidian";
+import { EditorState, Transaction } from "@codemirror/state";
 import { setIcon } from "./ui-icons.js";
 import { IMAGE_FILTERS, hasImageKeyword, imageAlignment, imageFilter, imageLinkAt, withImageAlignment, withImageFilter, withImageKeyword, withoutImageWidth, withImageSize, withImageTarget, resizedImageBox } from "./image-align-core.js";
 import { cropImage, canCrop } from "./image-crop.js";
 import { keepViewport } from "./reading-position.js";
 
-const { MarkdownView, Menu, Modal, Notice, TFile, requestUrl, setTooltip } = require("obsidian");
-const { EditorState, Transaction } = require("@codemirror/state");
 
 const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif"]);
 const FILTER_LABELS = { gray: "灰度", sepia: "复古", invert: "反色", "dark-invert": "深色模式下反色", blur: "模糊（鼠标移上去恢复）" };
@@ -14,7 +15,7 @@ const LABELS = [["left", "左对齐", "lucide-align-left"], ["center", "居中",
 // so remember which embed was right-clicked. Live Preview edits the link in
 // the editor; reading view gets its own menu and rewrites the note on disk. Either way the viewport
 // stays where it was.
-export function installImageAlignment(plugin) {
+export function installImageAlignment(plugin: IgnorancePlugin) {
   installImageToolbar(plugin);
   plugin.registerEditorExtension(keepAlignmentOnResize);
   let target = null;
@@ -42,7 +43,7 @@ export function installImageAlignment(plugin) {
   }));
 }
 
-function addAlignItems(menu, view, found) {
+function addAlignItems(menu: Menu, view, found) {
   const current = imageAlignment(found.link);
   for (const [align, title, icon] of LABELS) {
     menu.addItem(item => item.setTitle(title).setIcon(icon).setChecked(current === align).setSection("ibp-image-align").onClick(() => {
@@ -51,7 +52,7 @@ function addAlignItems(menu, view, found) {
   }
 }
 
-function linksOnLine(text, offset) {
+function linksOnLine(text: string, offset) {
   const links = [];
   for (let index = text.indexOf("!["); index !== -1; index = text.indexOf("![", index + 1)) {
     const link = imageLinkAt(text, index);
@@ -85,7 +86,7 @@ function readingLink(view, embed) {
   });
   if (!section) return null;
   const lines = view.data.split("\n");
-  const start = lines.slice(0, lineStart).reduce((sum, text) => sum + text.length + 1, 0);
+  const start = lines.slice(0, lineStart).reduce((sum, text: string) => sum + text.length + 1, 0);
   const text = lines.slice(lineStart, lineStart + Math.max(1, section.lines || 1)).join("\n");
   const links = linksOnLine(text, start);
   const embeds = [...section.el.querySelectorAll(".image-embed")];
@@ -104,7 +105,7 @@ function readingLink(view, embed) {
    reset size and left / center / right. Styling lives in the theme. */
 const TOOLBAR = "ib-image-actions";
 
-function viewFor(plugin, el) {
+function viewFor(plugin: IgnorancePlugin, el: HTMLElement) {
   return plugin.app.workspace.getLeavesOfType("markdown").map(leaf => leaf.view)
     .find(view => view.file && view.containerEl.contains(el)) || null;
 }
@@ -115,7 +116,7 @@ function linkFor(view, embed) {
   return editorLink(view.editor?.cm, embed);
 }
 
-async function copyImage(plugin, embed) {
+async function copyImage(plugin: IgnorancePlugin, embed) {
   const img = embed.querySelector("img");
   if (!img) return;
   try {
@@ -165,7 +166,7 @@ async function toPng(buffer) {
 
 // Crop the vault image behind an embed. "New image" saves a copy and points this embed at it;
 // "replace" overwrites the file, and the embeds refresh on their own.
-function startCrop(plugin, embed) {
+function startCrop(plugin: IgnorancePlugin, embed) {
   const view = viewFor(plugin, embed);
   const linkPath = embed.getAttribute("src");
   const file = linkPath ? plugin.app.metadataCache.getFirstLinkpathDest(decodeURIComponent(linkPath), view?.file?.path || "") : null;
@@ -180,7 +181,7 @@ function startCrop(plugin, embed) {
   });
 }
 
-function addButton(bar, icon, label, run, extraClass = "") {
+function addButton(bar, icon, label: string, run, extraClass = "") {
   const button = bar.createDiv({ cls: `ib-image-action ${extraClass}`.trim() });
   setIcon(button, icon);
   setTooltip(button, label, { placement: "top" });
@@ -193,7 +194,7 @@ function addButton(bar, icon, label, run, extraClass = "") {
   return button;
 }
 
-function decorate(plugin, embed) {
+function decorate(plugin: IgnorancePlugin, embed) {
   const wrapper = embed.querySelector(":scope > .image-wrapper") || embed;
   if (wrapper.querySelector(`:scope > .${TOOLBAR}`)) return;
   if (embed.closest(".ibp-book, .ibp-staging, .ibp-export, .reveal")) return;
@@ -201,13 +202,13 @@ function decorate(plugin, embed) {
   const bar = wrapper.createDiv({ cls: TOOLBAR });
   // Keep the editor from selecting the widget (which would reveal the source).
   bar.addEventListener("mousedown", event => { event.preventDefault(); event.stopPropagation(); });
-  const native = label => embed.querySelector(`.embed-actions .embed-action${label}`);
+  const native = (label: string) => embed.querySelector(`.embed-actions .embed-action${label}`);
   // Zoom stays on double-click; only the edit action is carried over.
   const edit = native(".edit-block-button");
   if (edit) addButton(bar, "lucide-code-xml", edit.getAttribute("aria-label") || "编辑源码", () => edit.click());
   addButton(bar, "lucide-copy", "复制图片", () => copyImage(plugin, embed));
   addButton(bar, "lucide-crop", "裁切图片", () => startCrop(plugin, embed));
-  const change = (make, label) => () => {
+  const change = (make, label: string) => () => {
     const view = viewFor(plugin, embed);
     const found = linkFor(view, embed);
     if (!found) { new Notice(`无法定位图片链接，未${label}`); return; }
@@ -246,18 +247,18 @@ function decorate(plugin, embed) {
   });
 }
 
-function installImageToolbar(plugin) {
+function installImageToolbar(plugin: IgnorancePlugin) {
   // Handle the pointer before CodeMirror can select/rebuild the image widget.
   plugin.registerDomEvent(document, "pointerdown", event => {
     const handle = event.target instanceof Element ? event.target.closest(".ib-image-resize-handle") : null;
     if (handle?.__ibResizeStart) handle.__ibResizeStart(event);
   }, true);
-  const decorateWithin = root => {
+  const decorateWithin = (root: HTMLElement) => {
     if (!(root instanceof Element)) return;
     if (root.matches(".image-embed")) decorate(plugin, root);
     root.querySelectorAll?.(".image-embed").forEach(embed => decorate(plugin, embed));
   };
-  const inMarkdown = node => node instanceof Element && node.closest(".workspace-leaf-content[data-type='markdown']");
+  const inMarkdown = (node: HTMLElement) => node instanceof Element && node.closest(".workspace-leaf-content[data-type='markdown']");
   // Only look at what was added, not the whole workspace on every change.
   let pending = [];
   let scheduled = false;
@@ -319,7 +320,7 @@ const keepAlignmentOnResize = EditorState.transactionFilter.of(tr => {
 });
 
 // Removing the image link asks first; the image file itself is kept.
-function confirmRemoval(plugin, remove) {
+function confirmRemoval(plugin: IgnorancePlugin, remove) {
   const modal = new Modal(plugin.app);
   modal.titleEl.setText("删除图片");
   modal.contentEl.createEl("p", { text: "从笔记中移除这张图片？图片文件本身会保留。" });
@@ -329,7 +330,7 @@ function confirmRemoval(plugin, remove) {
   modal.open();
 }
 
-function installResizeHandles(plugin, embed, wrapper) {
+function installResizeHandles(plugin: IgnorancePlugin, embed, wrapper) {
   const img = wrapper.querySelector("img");
   if (!img || wrapper.querySelector(".ib-image-resize-layer")) return;
   const layer = wrapper.createDiv({ cls: "ib-image-resize-layer" });

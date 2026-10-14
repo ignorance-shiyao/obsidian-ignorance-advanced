@@ -1,3 +1,5 @@
+import type { TFile } from "obsidian";
+import type { IgnorancePlugin } from "../plugin-types.js";
 /* --------------------------------------------------------------------------
  * Default new-tab behavior
  * -------------------------------------------------------------------------- */
@@ -5,7 +7,7 @@
 // Views that follow a note rather than show it.
 const COMPANION_VIEWS = new Set(["file-properties", "outline", "backlink", "outgoing-link", "localgraph", "tag", "all-properties"]);
 
-function installTabOpening(plugin) {
+function installTabOpening(plugin: IgnorancePlugin) {
   const workspace = plugin.app.workspace;
   if (!workspace || plugin.tabOpeningInstalled) return;
   const originalGetLeaf = workspace.getLeaf;
@@ -35,7 +37,7 @@ function installTabOpening(plugin) {
     }
     return leaf;
   };
-  const openFile = function(file, ...args) {
+  const openFile = function(file: TFile, ...args) {
     const plain = this._ibOpenPlain; delete this._ibOpenPlain;
     const path = file?.path;
     if (plain && plugin.state.tabs.deduplicateTabs && path) {

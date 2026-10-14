@@ -1,6 +1,6 @@
 const PAINT_PROPERTIES = ['fill', 'stroke', 'color', 'background-color', 'outline-color', 'rx', 'ry'];
 
-export async function snapshotSvgPaints(root, checkpoint) {
+export async function snapshotSvgPaints(root: HTMLElement, checkpoint) {
   const snapshot = new Map();
   const svgs = [...root.querySelectorAll('svg')].filter(svg => !svg.parentElement?.closest('svg'));
   for (let index = 0; index < svgs.length; index++) {

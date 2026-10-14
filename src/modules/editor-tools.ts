@@ -1,3 +1,7 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Notice, Menu, MarkdownView } from "obsidian";
+import { Decoration, ViewPlugin, WidgetType, EditorView } from "@codemirror/view";
+import { StateEffect } from "@codemirror/state";
 import { setIcon, UI_ICONS } from "./ui-icons.js";
 import * as MermaidCore from "./mermaid-core.js";
 import { showCopyFeedback } from "./copy-feedback";
@@ -6,9 +10,6 @@ import { openLanguagePicker, fenceLanguage, withFenceLanguage } from "./language
 import { createLanguageIcon } from "./language-icons.js";
 
 const { buildMermaidDecorations, t } = MermaidCore;
-const { Notice, Menu, MarkdownView } = require("obsidian");
-const { Decoration, ViewPlugin, WidgetType, EditorView } = require("@codemirror/view");
-const { StateEffect } = require("@codemirror/state");
 
 function writingModeDefaults() {
   return { typewriterScroll: false, focusMode: false };
@@ -21,24 +22,24 @@ const DETENT_ENTER = 7;
 const DETENT_LEAVE = 14;
 /* A delimiter row must contain a pipe — without that test, YAML frontmatter
    fences and `---` rules counted as tables and shifted every stored width. */
-function isTableDelimiter(line) {
+function isTableDelimiter(line: number) {
   return line.includes("|") && /^[\s|:-]+$/.test(line) && line.includes("-");
 }
 
 // Delimiter-row line numbers of the last few documents: every table in a
 // note asks, and rescanning the note for each one was quadratic.
 const delimiterCache = [];
-function delimiterLines(text) {
+function delimiterLines(text: string) {
   const hit = delimiterCache.find(entry => entry.text === text);
   if (hit) return hit.lines;
   const lines = [];
-  text.split("\n").forEach((line, index) => { if (isTableDelimiter(line)) lines.push(index); });
+  text.split("\n").forEach((line: number, index: number) => { if (isTableDelimiter(line)) lines.push(index); });
   delimiterCache.unshift({ text, lines });
   delimiterCache.length = Math.min(delimiterCache.length, 3);
   return lines;
 }
 
-function tableOrdinal(text, lineStart) {
+function tableOrdinal(text: string, lineStart) {
   const lines = delimiterLines(text);
   let low = 0, high = lines.length;
   while (low < high) { const mid = (low + high) >> 1; if (lines[mid] < lineStart) low = mid + 1; else high = mid; }
@@ -89,14 +90,14 @@ class TableSizeStyles {
       const cols = sizes.cols || [];
       const count = sizes.columnCount || cols.length;
       if (count && cols.length >= count && cols.slice(0, count).every(Boolean)) {
-        const total = cols.slice(0, count).reduce((sum, width) => sum + width, 0);
+        const total = cols.slice(0, count).reduce((sum, width: number) => sum + width, 0);
         rules.push(`${scope} { table-layout: fixed !important; width: ${total}px !important; min-width: 0 !important; max-width: none !important; }`);
       }
-      cols.forEach((width, index) => {
+      cols.forEach((width: number, index: number) => {
         if (!width) return;
         rules.push(`${scope} > * > tr > :nth-child(${index + 1}) { width: ${width}px !important; min-width: ${width}px !important; max-width: ${width}px !important; }`);
       });
-      (sizes.rows || []).forEach((height, index) => {
+      (sizes.rows || []).forEach((height, index: number) => {
         if (!height || !rowMap?.[index]) return;
         rules.push(`${scope} > ${rowMap[index]} { height: ${height}px !important; }`);
       });
@@ -109,7 +110,7 @@ class TableSizeStyles {
   }
 }
 
-function tableKey(path, ordinal) {
+function tableKey(path: string, ordinal) {
   let hash = 0;
   for (const char of `${path}#${ordinal}`) hash = (hash * 31 + char.charCodeAt(0)) | 0;
   return `t${(hash >>> 0).toString(36)}`;
@@ -304,7 +305,7 @@ class TableResizeLayer {
     });
   }
 
-  addHandle(axis, index) {
+  addHandle(axis, index: number) {
     const handle = createDiv();
     handle.className = `ibt-handle is-${axis}`;
     handle.title = t(axis === "col" ? "resizeColumn" : "resizeRow");
@@ -326,7 +327,7 @@ class TableResizeLayer {
   }
 
   /* The band over the column or row a handle resizes. */
-  showFocus(target) {
+  showFocus(target: HTMLElement) {
     this.active = target;
     if (!target || !this.geo) {
       this.focus.classList.remove("is-visible");
@@ -342,7 +343,7 @@ class TableResizeLayer {
 
   /* The widest unwrapped content of a column, measured on a hidden one-column copy so it is the
      width the column needs to show every cell on one line. */
-  measureFit(index) {
+  measureFit(index: number) {
     const probe = createEl("table");
     probe.className = this.table.className.replace(/\bibt-[\w-]+/g, "").trim();
     probe.addClass("ibt-width-probe");
@@ -364,7 +365,7 @@ class TableResizeLayer {
   /* The height a row needs at its current column widths: its tallest cell's content plus that
      cell's own padding and borders. Reading the content with a Range ignores any height the row
      was stretched to, so it works after a row has been resized. */
-  measureRowFit(index) {
+  measureRowFit(index: number) {
     const row = tableRows(this.table)[index];
     if (!row) return MIN_ROW_HEIGHT;
     let tallest = 0;
@@ -383,16 +384,16 @@ class TableResizeLayer {
 
   // Every row to the tallest row's natural height.
   equalizeRows() {
-    const heights = this.geo.rows.map((_, index) => this.measureRowFit(index));
+    const heights = this.geo.rows.map((_, index: number) => this.measureRowFit(index));
     const tallest = Math.max(...heights, MIN_ROW_HEIGHT);
-    this.geo.rows.forEach((_, index) => this.options.resize("row", index, tallest));
+    this.geo.rows.forEach((_, index: number) => this.options.resize("row", index, tallest));
     this.options.commit();
     this.build();
     this.pulse(null);
   }
 
   autoRows() {
-    this.geo.rows.forEach((_, index) => this.options.reset("row", index));
+    this.geo.rows.forEach((_, index: number) => this.options.reset("row", index));
     this.options.commit();
     this.build();
     this.pulse(null);
@@ -403,29 +404,29 @@ class TableResizeLayer {
   /* Apply a whole set of column widths at once (the quick actions). */
   setWidths(widths) {
     this.options.seedColumns(this.currentWidths());
-    widths.forEach((width, index) => this.options.resize("col", index, Math.max(MIN_COLUMN_WIDTH, Math.round(width))));
+    widths.forEach((width: number, index: number) => this.options.resize("col", index, Math.max(MIN_COLUMN_WIDTH, Math.round(width))));
     this.options.commit();
     this.build();
     this.pulse(null);
   }
 
-  fitAll() { this.setWidths(this.geo.cols.map((_, index) => this.measureFit(index))); }
+  fitAll() { this.setWidths(this.geo.cols.map((_, index: number) => this.measureFit(index))); }
 
   equalize() {
-    const total = this.currentWidths().reduce((sum, width) => sum + width, 0);
+    const total = this.currentWidths().reduce((sum, width: number) => sum + width, 0);
     this.setWidths(this.geo.cols.map(() => total / this.geo.cols.length));
   }
 
   // Scale the columns together so the table fills the text column.
   fillWidth() {
     const room = Math.floor(this.host.clientWidth);
-    const widths = this.currentWidths(), total = widths.reduce((sum, width) => sum + width, 0);
-    if (room > 0 && total > 0) this.setWidths(widths.map(width => width * room / total));
+    const widths = this.currentWidths(), total = widths.reduce((sum, width: number) => sum + width, 0);
+    if (room > 0 && total > 0) this.setWidths(widths.map((width: number) => width * room / total));
   }
 
   resetAll() {
-    this.geo.cols.forEach((_, index) => this.options.reset("col", index));
-    this.geo.rows.forEach((_, index) => this.options.reset("row", index));
+    this.geo.cols.forEach((_, index: number) => this.options.reset("col", index));
+    this.geo.rows.forEach((_, index: number) => this.options.reset("row", index));
     this.build();
   }
 
@@ -437,7 +438,7 @@ class TableResizeLayer {
     try { navigator.vibrate?.(8); } catch (_) {}
   }
 
-  startDrag(event, axis, index, handle) {
+  startDrag(event, axis, index: number, handle) {
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
@@ -468,7 +469,7 @@ class TableResizeLayer {
     ] : [
       // Rows stop at their natural height, and at the tallest row's height (a uniform table).
       { value: Math.max(min, this.measureRowFit(index)), label: "适应内容" },
-      { value: Math.max(min, ...this.geo.rows.map((_, i) => this.measureRowFit(i))), label: "与最高行一致" }
+      { value: Math.max(min, ...this.geo.rows.map((_, i: number) => this.measureRowFit(i))), label: "与最高行一致" }
     ];
     let stuck = null;
     const render = () => {
@@ -682,7 +683,7 @@ const codeCopyButtons = ViewPlugin.fromClass(class {
 }, { decorations: value => value.decorations });
 
 // Obsidian's own language flair copies the code when clicked; make it a language picker instead.
-function installCodeLanguagePicker(plugin) {
+function installCodeLanguagePicker(plugin: IgnorancePlugin) {
   const flairOf = event => event.target instanceof Element ? event.target.closest(".cm-editor .code-block-flair") : null;
   plugin.registerDomEvent(document, "mousedown", event => { if (flairOf(event)) event.preventDefault(); }, true);
   plugin.registerDomEvent(document, "mouseover", event => {
@@ -713,7 +714,7 @@ function installCodeLanguagePicker(plugin) {
   }, true);
 }
 
-function installQuietTaskToggle(plugin) {
+function installQuietTaskToggle(plugin: IgnorancePlugin) {
   const checkbox = event => event.target instanceof Element
     ? event.target.closest(".cm-scroller input.task-list-item-checkbox") : null;
   plugin.registerDomEvent(document, "mousedown", event => {
@@ -764,7 +765,7 @@ function buildWritingFocusDecorations(view, enabled) {
   return ranges.length ? Decoration.set(ranges, true) : Decoration.none;
 }
 
-function writingModesExtension(plugin) {
+function writingModesExtension(plugin: IgnorancePlugin) {
   return ViewPlugin.fromClass(class {
     constructor(view) {
       this.decorations = buildWritingFocusDecorations(view, Boolean(plugin.state?.writingModes?.focusMode));
@@ -807,7 +808,7 @@ function writingModesExtension(plugin) {
   }, { decorations: value => value.decorations });
 }
 
-function setWritingMode(plugin, mode, value) {
+function setWritingMode(plugin: IgnorancePlugin, mode, value) {
   plugin.state.writingModes ||= writingModeDefaults();
   plugin.state.writingModes[mode] = Boolean(value);
   plugin.saveStoredState();
@@ -818,7 +819,7 @@ function setWritingMode(plugin, mode, value) {
   document.querySelectorAll(".ibp-toolbar").forEach(toolbar => toolbar.dispatchEvent(new CustomEvent("ibp-refresh")));
 }
 
-function toggleWritingMode(plugin, mode) {
+function toggleWritingMode(plugin: IgnorancePlugin, mode) {
   const current = Boolean(plugin.state.writingModes?.[mode]);
   setWritingMode(plugin, mode, !current);
   const label = mode === "typewriterScroll" ? "打字机滚动" : "专注模式";

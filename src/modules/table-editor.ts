@@ -1,7 +1,7 @@
+import { EditorSelection, Prec } from "@codemirror/state";
+import { EditorView, keymap } from "@codemirror/view";
 import { editTableLines, findPipeTableAtLine, parsePipeRow, type TableEditAction, type PipeTableRange } from "./table-edit.js";
 
-const { EditorSelection, Prec } = require("@codemirror/state");
-const { EditorView, keymap } = require("@codemirror/view");
 
 // Row / column editing is Obsidian's own (editor:table-*). Only CJK-aware
 // width formatting is added here; Tab / Enter navigation covers source mode,

@@ -1,3 +1,5 @@
+import type { TFile } from "obsidian";
+import type { IgnorancePlugin } from "../plugin-types.js";
 /* Heading numbers and captions for renders that have no per-section source info (paged reading, PDF, HTML
    and image export): the whole note is rendered into one container, and the source decides which element
    gets which number. A kind is skipped when the document and the source disagree about how many there are. */
@@ -33,7 +35,7 @@ export function removeUnpublished(root: HTMLElement) {
   }
 }
 
-function applyHeadingNumbers(plugin, root: HTMLElement, source: string) {
+function applyHeadingNumbers(plugin: IgnorancePlugin, root: HTMLElement, source: string) {
   const all = scanHeadings(source.split(/\r?\n/));
   const hidden = unpublishedIndexes(all);
   const entries = all.filter((_, index) => !hidden.has(index));
@@ -80,7 +82,7 @@ function applyCaptions(root: HTMLElement, source: string) {
   resolveRefs(root, entries);
 }
 
-export function enhanceStaged(plugin, root: HTMLElement, source: string, file) {
+export function enhanceStaged(plugin: IgnorancePlugin, root: HTMLElement, source: string, file: TFile) {
   removeUnpublished(root);
   const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
   if (wantsNumbers(plugin, frontmatter)) applyHeadingNumbers(plugin, root, source);

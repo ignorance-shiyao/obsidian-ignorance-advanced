@@ -1,3 +1,4 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 /* Gray mode: on the dates listed in settings (one MM-DD per line) the whole app turns grayscale, for days of
    remembrance. Nothing is on by default. */
 export function parseGrayDates(text: string): Set<string> {
@@ -15,7 +16,7 @@ export function isGrayDay(dates: Set<string>, now = new Date()) {
   return dates.has(`${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`);
 }
 
-export function installGrayMode(plugin) {
+export function installGrayMode(plugin: IgnorancePlugin) {
   const apply = () => document.body.classList.toggle("ib-gray-mode", isGrayDay(parseGrayDates(plugin.state?.grayDates)));
   plugin.applyGrayMode = apply;
   apply();

@@ -1,13 +1,14 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { editorInfoField } from "obsidian";
+import { Decoration, EditorView, WidgetType } from "@codemirror/view";
+import { StateField } from "@codemirror/state";
 /* Captions in Live Preview: the numbered label ("图 1", "表 2") appears in the editor too. A figure gets its caption
    as a block under the image; table, code and equation caption lines show their label in place of the "表：" prefix. */
 import { parseCaptions, wantsCaptions, type CaptionEntry } from "./captions.js";
 
-const { editorInfoField } = require("obsidian");
-const { Decoration, EditorView, WidgetType } = require("@codemirror/view");
-const { StateField } = require("@codemirror/state");
 
 class LabelWidget extends WidgetType {
-  constructor(label, block, text = "") { super(); this.label = label; this.block = block; this.text = text; }
+  constructor(label: string, block, text = "") { super(); this.label = label; this.block = block; this.text = text; }
   eq(other) { return other.label === this.label && other.text === this.text && other.block === this.block; }
   toDOM() {
     const wrap = this.block ? createDiv({ cls: "ib-caption ib-caption--editor" }) : createSpan({ cls: "ib-caption__label ib-caption__label--editor" });
@@ -20,7 +21,7 @@ class LabelWidget extends WidgetType {
 const PREFIX = /^\s*(?:表|Table|代码|Listing|公式|式|Equation)\s*[:：]\s*/i;
 const ID_SUFFIX = /\s*\{#[\w-]+\}\s*$/;
 
-function build(state, plugin) {
+function build(state, plugin: IgnorancePlugin) {
   const file = state.field(editorInfoField, false)?.file;
   const frontmatter = file && plugin.app.metadataCache.getFileCache(file)?.frontmatter;
   if (!wantsCaptions(plugin, frontmatter)) return Decoration.none;
@@ -42,7 +43,7 @@ function build(state, plugin) {
   return ranges.length ? Decoration.set(ranges, true) : Decoration.none;
 }
 
-export function captionsEditorExtension(plugin) {
+export function captionsEditorExtension(plugin: IgnorancePlugin) {
   return StateField.define({
     create: state => build(state, plugin),
     update: (value, transaction) => (transaction.docChanged || transaction.reconfigured ? build(transaction.state, plugin) : value),

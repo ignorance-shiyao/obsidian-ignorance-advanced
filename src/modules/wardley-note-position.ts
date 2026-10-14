@@ -14,9 +14,9 @@ export function segmentCrossesBox(segment, box, gap = 0) {
   return true;
 }
 
-export function wardleyNotePosition(label, obstacles, segments, bounds, gap = 8) {
+export function wardleyNotePosition(label: string, obstacles, segments, bounds, gap = 8) {
   const fits = box => box.x >= bounds.x && box.y >= bounds.y && box.x + box.width <= bounds.x + bounds.width && box.y + box.height <= bounds.y + bounds.height
-    && !obstacles.some(node => box.x < node.x + node.width + gap && box.x + box.width > node.x - gap && box.y < node.y + node.height + gap && box.y + box.height > node.y - gap)
+    && !obstacles.some((node: HTMLElement) => box.x < node.x + node.width + gap && box.x + box.width > node.x - gap && box.y < node.y + node.height + gap && box.y + box.height > node.y - gap)
     && !segments.some(segment => segmentCrossesBox(segment, box, gap));
   if (fits(label)) return label;
   const maxX = bounds.x + bounds.width - label.width, maxY = bounds.y + bounds.height - label.height;

@@ -1,16 +1,18 @@
+import type { TFile, WorkspaceLeaf } from "obsidian";
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Notice, Setting, Platform, Menu, FileView, Modal } from "obsidian";
 import { materializeConverters } from "./assets.js";
 import { findPandoc } from "./export.js";
 import { vaultFullPath } from "./desktop-runtime.js";
-const { Notice, Setting, Platform, Menu, FileView, Modal } = require("obsidian");
 
 const HTML_READONLY_VIEW = "ignorance-html-readonly";
 const MARKDOWN_IMPORT_EXTS = new Set(["docx", "pdf", "xlsx", "pptx", "csv", "tsv", "json", "html", "htm", "zip"]);
 
-async function loadImportConverters(plugin) {
+async function loadImportConverters(plugin: IgnorancePlugin) {
   return require(await loadImportConvertersPath(plugin));
 }
 
-async function loadImportConvertersPath(plugin) {
+async function loadImportConvertersPath(plugin: IgnorancePlugin) {
   return materializeConverters(plugin);
 }
 
@@ -18,7 +20,7 @@ function fileToolsDefaults() {
   return { apps: [], convertPastedImages: true };
 }
 
-function isPastedImageFile(file) {
+function isPastedImageFile(file: TFile) {
   if (!file || typeof file.size !== "number" || file.size <= 0) return false;
   const type = String(file.type || "").toLowerCase();
   const name = String(file.name || "");
@@ -50,7 +52,7 @@ function imageTransferRange(event, editor, kind) {
 
 let imageTransferSequence = 0;
 
-function handleImageTransfer(plugin, event, editor, info, kind) {
+function handleImageTransfer(plugin: IgnorancePlugin, event, editor, info, kind) {
   if (event.defaultPrevented || !plugin.state.fileTools?.convertPastedImages) return;
   const files = pastedImageFiles(event);
   const file = info?.file;
@@ -96,7 +98,7 @@ function replacePendingImageMarker(editor, marker, replacement) {
   }
 }
 
-async function encodePastedImage(file) {
+async function encodePastedImage(file: TFile) {
   const type = String(file.type || "").toLowerCase();
   const name = String(file.name || "");
   const preserveGif = type === "image/gif" || /\.gif$/i.test(name);
@@ -141,7 +143,7 @@ function nextPastedImageSequence(vault, assetDir, stem) {
   return maximum + 1;
 }
 
-async function trashPastedImageFiles(plugin, files, folder) {
+async function trashPastedImageFiles(plugin: IgnorancePlugin, files, folder) {
   for (const file of [...(files || [])].reverse()) {
     try { await plugin.app.fileManager.trashFile(file); } catch (_) {}
   }
@@ -150,7 +152,7 @@ async function trashPastedImageFiles(plugin, files, folder) {
   }
 }
 
-async function savePastedImages(plugin, note, files, editor, marker) {
+async function savePastedImages(plugin: IgnorancePlugin, note, files, editor, marker) {
   const vault = plugin.app.vault;
   const parentPath = note.parent?.path || "";
   const assetDir = [parentPath, "assets"].filter(Boolean).join("/");
@@ -208,7 +210,7 @@ async function savePastedImages(plugin, note, files, editor, marker) {
   }
 }
 
-function addFileToolsMenu(plugin, menu, file) {
+function addFileToolsMenu(plugin: IgnorancePlugin, menu: Menu, file: TFile) {
   if (!file || typeof file.path !== "string" || !file.extension) return;
   if (!Platform.isMobile) {
     if (Platform.isMacOS) {
@@ -231,12 +233,12 @@ function addFileToolsMenu(plugin, menu, file) {
   }
 }
 
-function isMarkdownImportSource(file) {
+function isMarkdownImportSource(file: TFile) {
   const extension = String(file?.extension || "").toLowerCase();
   return !Platform.isMobile && MARKDOWN_IMPORT_EXTS.has(extension);
 }
 
-async function runFileTool(label, task) {
+async function runFileTool(label: string, task) {
   try {
     const result = await task();
     if (result) new Notice(label + "：" + result, 6000);
@@ -246,13 +248,13 @@ async function runFileTool(label, task) {
   }
 }
 
-function fullVaultPath(plugin, file) {
+function fullVaultPath(plugin: IgnorancePlugin, file: TFile) {
   const fullPath = vaultFullPath(plugin, file.path);
   if (!fullPath) throw new Error("无法取得文件的系统路径");
   return fullPath;
 }
 
-function openWithNamedApp(plugin, file, appName) {
+function openWithNamedApp(plugin: IgnorancePlugin, file: TFile, appName) {
   return new Promise((resolve, reject) => {
     require("child_process").execFile(
       "open",
@@ -280,7 +282,7 @@ function htmlReaderDocument(source, baseHref) {
 }
 
 class HtmlReadOnlyView extends FileView {
-  constructor(leaf) {
+  constructor(leaf: WorkspaceLeaf) {
     super(leaf);
     this.renderToken = 0;
   }
@@ -295,7 +297,7 @@ class HtmlReadOnlyView extends FileView {
     this.contentEl.addClass("ibm-html-reader-view");
   }
 
-  async onLoadFile(file) {
+  async onLoadFile(file: TFile) {
     const token = ++this.renderToken;
     this.contentEl.empty();
     const iframe = this.contentEl.createEl("iframe", {
@@ -316,7 +318,7 @@ class HtmlReadOnlyView extends FileView {
     }
   }
 
-  async onUnloadFile(file) {
+  async onUnloadFile(file: TFile) {
     this.renderToken += 1;
     this.contentEl.empty();
     return super.onUnloadFile(file);
@@ -324,7 +326,7 @@ class HtmlReadOnlyView extends FileView {
 }
 
 class MarkdownImportModal extends Modal {
-  constructor(plugin, file) {
+  constructor(plugin: IgnorancePlugin, file: TFile) {
     super(plugin.app);
     this.plugin = plugin;
     this.file = file;
@@ -385,7 +387,7 @@ async function createMissingVaultFolders(vault, targetPaths, created = []) {
   return created;
 }
 
-async function rollbackImportedFiles(plugin, files, folders = []) {
+async function rollbackImportedFiles(plugin: IgnorancePlugin, files, folders = []) {
   const failures = [];
   for (const file of [...files].reverse()) {
     try { await plugin.app.fileManager.trashFile(file); } catch (_) { failures.push(file.path); }
@@ -398,7 +400,7 @@ async function rollbackImportedFiles(plugin, files, folders = []) {
   return failures;
 }
 
-async function openImportedNote(plugin, note) {
+async function openImportedNote(plugin: IgnorancePlugin, note) {
   try {
     await plugin.app.workspace.getLeaf(false).openFile(note);
   } catch (error) {
@@ -406,7 +408,7 @@ async function openImportedNote(plugin, note) {
   }
 }
 
-async function importVaultFileAsMarkdown(plugin, file, noteName) {
+async function importVaultFileAsMarkdown(plugin: IgnorancePlugin, file: TFile, noteName) {
   if (!isMarkdownImportSource(file)) throw new Error("不支持导入此文件类型");
   const extension = String(file.extension).toLowerCase();
   const normalizedName = normalizeMarkdownImportName(noteName);
@@ -447,7 +449,7 @@ function normalizeMarkdownImportName(value) {
   return name;
 }
 
-async function importNotionZipAsMarkdown(plugin, file, folderName) {
+async function importNotionZipAsMarkdown(plugin: IgnorancePlugin, file: TFile, folderName) {
   const fs = require("fs");
   const path = require("path");
   const os = require("os");
@@ -605,11 +607,11 @@ function rewriteImportedMedia(markdown, replacements) {
   return { markdown, count };
 }
 
-function safeAssetStem(name) {
+function safeAssetStem(name: string) {
   return name.replace(/[^\p{L}\p{N}_-]+/gu, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 72) || "word-import";
 }
 
-async function importDocxAsMarkdown(plugin, file, noteName) {
+async function importDocxAsMarkdown(plugin: IgnorancePlugin, file: TFile, noteName) {
   const pandoc = findPandoc();
   const cwebp = findCwebp();
   if (!pandoc) throw new Error("未找到 Pandoc，请先安装（brew install pandoc）");

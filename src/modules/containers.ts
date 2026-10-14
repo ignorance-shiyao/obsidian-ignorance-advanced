@@ -1,8 +1,9 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { Component, MarkdownRenderer } from "obsidian";
 import { applyStagedChartAlignment } from "./chart-alignment.js";
 import { CONTAINER_KINDS, parseMarkdownContainers } from "./container-source.js";
 import { setMarkup } from "./dom-markup.js";
 
-const { Component, MarkdownRenderer } = require("obsidian");
 import { wantsLenient, withBlankLines } from "./missing-blank-lines-core.js";
 const parsedSources = new Map();
 const processing = new WeakSet();
@@ -10,7 +11,7 @@ const processing = new WeakSet();
 function chapterContainers(source) {
   const nodes = parseMarkdownContainers(source);
   let index = 0;
-  const walk = items => items.forEach(node => {
+  const walk = items => items.forEach((node: HTMLElement) => {
     if (node.kind === "chapter") node.chapterTone = index++ % 3;
     walk(node.children);
   });
@@ -18,7 +19,7 @@ function chapterContainers(source) {
   return nodes;
 }
 
-function sourceContainers(sourcePath, source) {
+function sourceContainers(sourcePath: string, source) {
   const cached = parsedSources.get(sourcePath);
   if (cached?.source === source) return cached.containers;
   const containers = chapterContainers(source);
@@ -36,7 +37,7 @@ function containingNode(nodes, lineStart, lineEnd) {
   return null;
 }
 
-function makeContainer(node) {
+function makeContainer(node: HTMLElement) {
   const element = createEl(node.kind === "details" ? "details" : "div");
   element.className = `ibc-container ibc-container--${node.kind}`;
   element.dataset.ibcKind = node.kind;
@@ -75,7 +76,7 @@ function makeContainer(node) {
    (and in-page capture, which cannot place pseudo-elements or vertical
    writing-mode) draws them where they belong. The y label is stacked one
    character per line for the same reason. */
-function finishMatrix(container) {
+function finishMatrix(container: HTMLElement) {
   const { ibcXAxis: xAxis, ibcYAxis: yAxis } = container.dataset;
   if (!xAxis && !yAxis) return;
   const body = createDiv();
@@ -94,7 +95,7 @@ function finishMatrix(container) {
    exported HTML and clones where no script runs. Staged renders for export and pagination skip the
    switcher and lay every panel out in order with its title. */
 let tabGroups = 0;
-function finishTabs(container, interactive) {
+function finishTabs(container: HTMLElement, interactive) {
   const panels = [...container.querySelectorAll(":scope > .ibc-container--tab")];
   if (!panels.length) return;
   if (!interactive || panels.length < 2) { container.classList.add("ibc-tabs--static"); return; }
@@ -119,7 +120,7 @@ function finishTabs(container, interactive) {
 
 /* ::: compare with two images: a draggable divider reveals the first image over the second. The range
    input does the work (mouse, touch and keyboard); without script (exports) both images sit side by side. */
-function finishCompare(container, interactive) {
+function finishCompare(container: HTMLElement, interactive) {
   const images = [...container.querySelectorAll("img")].slice(0, 2);
   if (images.length < 2) return;
   const frames = images.map(img => {
@@ -147,7 +148,7 @@ function finishCompare(container, interactive) {
 
 // Gallery: one figure per image, captioned by its title (or alt text);
 // the <br>s between images in the same paragraph would otherwise take grid cells.
-function finishContainer(container, interactive = false) {
+function finishContainer(container: HTMLElement, interactive = false) {
   if (container.dataset.ibcKind === "tabs") { finishTabs(container, interactive); return; }
   if (container.dataset.ibcKind === "compare") { finishCompare(container, interactive); return; }
   if (container.dataset.ibcKind === "matrix") { finishMatrix(container); return; }
@@ -171,12 +172,12 @@ function finishContainer(container, interactive = false) {
   container.append(...figures);
 }
 
-async function renderFragment(plugin, sourcePath, source, target, component) {
+async function renderFragment(plugin: IgnorancePlugin, sourcePath: string, source, target: HTMLElement, component) {
   if (!source.trim()) return;
   await MarkdownRenderer.render(plugin.app, source, target, sourcePath, component);
 }
 
-async function renderRange(plugin, sourcePath, source, start, end, nodes, target, component, interactive = false) {
+async function renderRange(plugin: IgnorancePlugin, sourcePath: string, source, start, end, nodes, target: HTMLElement, component, interactive = false) {
   let cursor = start;
   for (const node of nodes) {
     if (node.startOffset < start || node.closeEnd > end) continue;
@@ -190,7 +191,7 @@ async function renderRange(plugin, sourcePath, source, start, end, nodes, target
   await renderFragment(plugin, sourcePath, source.slice(cursor, end), target, component);
 }
 
-async function renderMarkdownWithContainers(plugin, sourcePath, source, target, component, interactive = false) {
+async function renderMarkdownWithContainers(plugin: IgnorancePlugin, sourcePath: string, source, target: HTMLElement, component, interactive = false) {
   // A table typed right under a paragraph still counts as a table in pages, slides and exports.
   if (wantsLenient(plugin)) source = withBlankLines(source);
   const containers = chapterContainers(source);
@@ -213,7 +214,7 @@ async function renderMarkdownWithContainers(plugin, sourcePath, source, target, 
   await applyStagedChartAlignment(plugin, target, sourcePath, source);
 }
 
-async function renderContainer(plugin, element, context, source, node) {
+async function renderContainer(plugin: IgnorancePlugin, element: HTMLElement, context, source, node: HTMLElement) {
   const component = new Component();
   component.load();
   const container = makeContainer(node);
@@ -236,7 +237,7 @@ async function renderContainer(plugin, element, context, source, node) {
   }
 }
 
-function renderContainerBlocks(plugin, element, context) {
+function renderContainerBlocks(plugin: IgnorancePlugin, element: HTMLElement, context) {
   if (!element || element.closest?.(".ibc-container")) return;
   // The reading view reuses section elements and resets their content to the
   // raw markup before post-processing again, so "already handled" is judged by
@@ -248,7 +249,7 @@ function renderContainerBlocks(plugin, element, context) {
   const containers = sourceContainers(sourcePath, info.text);
   if (!containers.length) return;
 
-  const start = containers.find(node => node.startLine === info.lineStart);
+  const start = containers.find((node: HTMLElement) => node.startLine === info.lineStart);
   if (start) {
     processing.add(element);
     return renderContainer(plugin, element, context, info.text, start).finally(() => processing.delete(element));

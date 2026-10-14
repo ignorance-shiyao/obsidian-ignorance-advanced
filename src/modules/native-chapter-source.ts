@@ -1,3 +1,4 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 import { createNativeChapterCards } from "./native-chapter-cards.js";
 import { sourceChapterRanges, ChapterRange } from "./chapter-source.js";
 
@@ -6,7 +7,7 @@ export function chapterForSection(ranges: ChapterRange[], startLine: number, end
   return ranges.findIndex(range => startLine >= range.startLine && endLine < range.endLine);
 }
 
-export function installNativeChapterSource(plugin) {
+export function installNativeChapterSource(plugin: IgnorancePlugin) {
   const cards = createNativeChapterCards();
   const cache = new Map<string, { source: string; ranges: ChapterRange[]; ends: number[] }>();
   const elements = new Set<HTMLElement>();

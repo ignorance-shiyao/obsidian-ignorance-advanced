@@ -6,7 +6,7 @@ export const IMAGE_ALIGNMENTS = ["left", "center", "right"] as const;
 const KEYWORDS = new Set(["left", "center", "right"]);
 
 // The image link that starts at `from` in `text`, or null.
-export function imageLinkAt(text, from) {
+export function imageLinkAt(text: string, from) {
   const rest = text.slice(from);
   const wiki = /^!\[\[([^\]\n]+)\]\]/.exec(rest);
   if (wiki) return { from, to: from + wiki[0].length, kind: "wiki", inner: wiki[1] };

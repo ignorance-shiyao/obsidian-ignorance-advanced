@@ -1,3 +1,4 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
 /* Code that only exports and slides need (Word, PPTX, Reveal.js — about
    1.7 MB) lives in separate chunk files next to main.js, so Obsidian does not
    parse it on every start. A chunk is read and evaluated the first time it is
@@ -9,11 +10,11 @@ const loaded = new Map();
 
 export const CHUNK_FILES = ["chunk-docx.cjs", "chunk-pptx.cjs", "chunk-reveal.cjs", "chunk-capture.cjs"];
 
-export function setChunkHost(plugin) {
+export function setChunkHost(plugin: IgnorancePlugin) {
   host = plugin;
 }
 
-export function loadChunk(name) {
+export function loadChunk(name: string) {
   if (!loaded.has(name)) {
     const job = (async () => {
       if (!host) throw new Error("Ignorance Advanced is not loaded");
@@ -23,7 +24,7 @@ export function loadChunk(name) {
       // On mobile that require throws for anything but Obsidian's modules, and
       // bundled libraries probe for Node built-ins (JSZip asks for "stream"):
       // answer those with an empty module so they pick their browser path.
-      const safeRequire = name => {
+      const safeRequire = (name: string) => {
         try { return require(name) || {}; } catch (_) { return {}; }
       };
       new Function("module", "exports", "require", source)(module, module.exports, safeRequire);

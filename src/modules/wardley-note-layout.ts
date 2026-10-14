@@ -1,6 +1,6 @@
 import { wardleyNotePosition } from './wardley-note-position.js';
 
-export function wardleyNoteLines(text, width, measure) {
+export function wardleyNoteLines(text: string, width: number, measure) {
   const tokens = text.match(/\S+\s*|\s+/g) || [];
   const lines = [];
   let start = 0, end = 0;
@@ -13,7 +13,7 @@ export function wardleyNoteLines(text, width, measure) {
   return lines;
 }
 
-export function restoreWardleyNotes(svg) {
+export function restoreWardleyNotes(svg: SVGSVGElement) {
   for (const label of svg.querySelectorAll('[data-ibm-wardley-note-original]')) {
     const original = JSON.parse(label.getAttribute('data-ibm-wardley-note-original'));
     label.textContent = original.text;
@@ -22,16 +22,16 @@ export function restoreWardleyNotes(svg) {
     }
     label.removeAttribute('data-ibm-wardley-note-original');
   }
-  svg.querySelectorAll('.ibm-wardley-note-leader,.ibm-wardley-note-card').forEach(node => node.remove());
+  svg.querySelectorAll('.ibm-wardley-note-leader,.ibm-wardley-note-card').forEach((node: HTMLElement) => node.remove());
 }
 
-export function layoutWardleyNotes(svg) {
+export function layoutWardleyNotes(svg: SVGSVGElement) {
   if (svg.hasAttribute("data-ibm-keep-layout")) return;
   const root = svg.getCTM(), background = svg.querySelector('rect.wardley-background');
   if (!root || !background) return;
   const frame = background.getBBox(), bounds = { x: frame.x + 48, y: frame.y + 48, width: frame.width - 96, height: frame.height - 96 };
   if (bounds.width < 80 || bounds.height < 80) return;
-  const boxOf = element => {
+  const boxOf = (element: HTMLElement) => {
     const box = element.getBBox(), matrix = root.inverse().multiply(element.getCTM());
     const first = new DOMPoint(box.x, box.y).matrixTransform(matrix), last = new DOMPoint(box.x + box.width, box.y + box.height).matrixTransform(matrix);
     return { x: first.x, y: first.y, width: last.x - first.x, height: last.y - first.y };

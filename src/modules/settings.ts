@@ -1,8 +1,9 @@
+import type { IgnorancePlugin } from "../plugin-types.js";
+import { PluginSettingTab, Setting, Platform } from "obsidian";
 import * as Appearance from "./appearance.js";
 import { LINE_HEIGHT_PRESETS } from "./line-height.js";
 import { openSyntaxGuide } from "./syntax-guide.js";
 const { applyAppearancePreferences } = Appearance;
-const { PluginSettingTab, Setting, Platform } = require("obsidian");
 
 export { installTabOpening } from "./tab-opening.js";
 
@@ -12,7 +13,7 @@ const CLIPBOARD_DESC = "在其他 App 里复制文章链接后切回 Obsidian，
 /* Every setting is described once. Obsidian 1.13+ reads `getSettingDefinitions()` (which makes the rows
    searchable); older versions still call `display()`, which walks the same description. */
 class IgnoranceSettingTab extends PluginSettingTab {
-  constructor(app, plugin) { super(app, plugin); this.plugin = plugin; }
+  constructor(app, plugin: IgnorancePlugin) { super(app, plugin); this.plugin = plugin; }
 
   settingGroups() {
     const plugin = this.plugin;
@@ -79,7 +80,7 @@ class IgnoranceSettingTab extends PluginSettingTab {
         { name: "粘贴图片存入 assets/", desc: PASTE_IMAGE_DESC, add: toggle(() => state.fileTools.convertPastedImages !== false, value => { state.fileTools.convertPastedImages = value; plugin.saveStoredState(); }) }
       ] },
       { heading: "外观", items: [
-        { name: "灰度日期", desc: "这些日期整个界面变为灰度，每行一个，写成 月-日，例如 4-4。默认不启用。", aliases: ["gray mode", "grayscale"], add: setting => setting.addTextArea(text => {
+        { name: "灰度日期", desc: "这些日期整个界面变为灰度，每行一个，写成 月-日，例如 4-4。默认不启用。", aliases: ["gray mode", "grayscale"], add: setting => setting.addTextArea((text: string) => {
           text.setPlaceholder("4-4\n9-18").setValue(state.grayDates || "").onChange(value => { state.grayDates = value; plugin.saveStoredState(); plugin.applyGrayMode?.(); });
           text.inputEl.rows = 3;
         }) }
@@ -91,7 +92,7 @@ class IgnoranceSettingTab extends PluginSettingTab {
       ] },
       { heading: "剪藏", items: [
         { name: "回到 Obsidian 时检测剪贴板里的链接", desc: CLIPBOARD_DESC, add: toggle(() => Boolean(state.webClip?.watchClipboard), value => { state.webClip.watchClipboard = value; plugin.saveStoredState(); }) },
-        { name: "剪藏文件夹", desc: "网页剪藏的笔记和图片保存到这里，文件夹名同时作为笔记标签。默认 Clippings。", aliases: ["clippings"], add: setting => setting.addText(text => text.setPlaceholder("Clippings")
+        { name: "剪藏文件夹", desc: "网页剪藏的笔记和图片保存到这里，文件夹名同时作为笔记标签。默认 Clippings。", aliases: ["clippings"], add: setting => setting.addText((text: string) => text.setPlaceholder("Clippings")
           .setValue(state.webClip?.folder || "").onChange(value => { state.webClip.folder = value.trim(); plugin.saveStoredState(); })) },
         { name: "按网站分类", desc: "剪藏时在剪藏文件夹下按网站名建子文件夹，例如 Clippings/example.com/。", aliases: ["sort by site"], add: toggle(() => Boolean(state.webClip?.byDomain), value => { state.webClip.byDomain = value; plugin.saveStoredState(); }) }
       ] },
@@ -109,7 +110,7 @@ class IgnoranceSettingTab extends PluginSettingTab {
     ] });
     if (Platform.isMacOS) {
       groups.push({ heading: "文件", items: [
-        { name: "「用…打开」的程序", desc: "每行一个应用名称或 .app 路径，会出现在文件右键菜单中。", add: setting => setting.addTextArea(text => {
+        { name: "「用…打开」的程序", desc: "每行一个应用名称或 .app 路径，会出现在文件右键菜单中。", add: setting => setting.addTextArea((text: string) => {
           text.setPlaceholder("Visual Studio Code\nPreview\n/Applications/Typora.app")
             .setValue((state.fileTools.apps || []).join("\n"))
             .onChange(value => {
