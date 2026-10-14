@@ -1,3 +1,4 @@
+import { setDocSheet, removeDocSheet } from "./doc-sheets.js";
 import { electronRemote, hasDesktopExports, vaultBasePath } from "./desktop-runtime.js";
 import { prepareMarkdownTextForPandoc } from "./pandoc-markdown.js";
 import { composePages } from "./reading-pagination.js";
@@ -215,7 +216,7 @@ async function renderedElementPng(source, alt = "") {
   if (hasDesktopExports()) {
     // Page capture fails for elements outside the window (long notes); fall
     // back to painting the element in-page.
-    try { captured = `data:image/png;base64,${bytesToBase64(await captureElement(source))}`; } catch (_) { source.style.transform = ""; }
+    try { captured = `data:image/png;base64,${bytesToBase64(await captureElement(source))}`; } catch (_) { source.setCssStyles({ transform: "" }); }
     if (!captured) captured = await portableElementPng(source);
     if (!captured) {
       try { captured = `data:image/png;base64,${bytesToBase64(await capturePortable(source))}`; } catch (_) {}
@@ -231,8 +232,8 @@ async function renderedElementPng(source, alt = "") {
   inlineComputedStyles(source, image);
   if (rect.width > 0) image.style.setProperty("width", `${Math.ceil(rect.width)}px`);
   if (rect.height > 0) image.style.setProperty("height", `${Math.ceil(rect.height)}px`);
-  image.style.setProperty("max-width", "100%");
-  image.style.setProperty("height", "auto");
+  image.setCssStyles({ maxWidth: "100%" });
+  image.setCssStyles({ height: "auto" });
   return image;
 }
 
@@ -319,8 +320,8 @@ async function cloneForRichClipboard(source, plugin, imageIndex, target) {
     const rect = source.getBoundingClientRect();
     copy.setAttribute("src", await localImageData(plugin, src, imageIndex, rect.width, rect.height) || "");
     copy.setAttribute("alt", source.alt || "");
-    copy.style.setProperty("max-width", "100%");
-    copy.style.setProperty("height", "auto");
+    copy.setCssStyles({ maxWidth: "100%" });
+    copy.setCssStyles({ height: "auto" });
   }
 
   for (const child of source.childNodes) {
@@ -328,9 +329,9 @@ async function cloneForRichClipboard(source, plugin, imageIndex, target) {
     if (cloned) copy.appendChild(cloned);
   }
   if (target === "wechat" && source.matches(".ibc-container--cols")) {
-    copy.style.setProperty("display", "block");
-    copy.style.setProperty("width", "100%");
-    for (const child of copy.children) child.style.setProperty("width", "100%");
+    copy.setCssStyles({ display: "block" });
+    copy.setCssStyles({ width: "100%" });
+    for (const child of copy.children) child.setCssStyles({ width: "100%" });
   }
   return copy;
 }
@@ -350,10 +351,10 @@ async function prepareRichCopyMarkup(plugin, file, target = "wechat", { cover = 
     }
     const style = getComputedStyle(document.body);
     const root = createDiv();
-    root.style.setProperty("box-sizing", "border-box");
-    root.style.setProperty("width", "100%");
-    root.style.setProperty("max-width", "100%");
-    root.style.setProperty("margin", "0 auto");
+    root.setCssStyles({ boxSizing: "border-box" });
+    root.setCssStyles({ width: "100%" });
+    root.setCssStyles({ maxWidth: "100%" });
+    root.setCssStyles({ margin: "0 auto" });
     root.style.setProperty("font-family", style.getPropertyValue("--ib-font-sans").trim() || style.fontFamily);
     root.style.setProperty("font-size", getComputedStyle(staging).fontSize);
     root.style.setProperty("line-height", style.getPropertyValue("--ib-text-leading").trim() || getComputedStyle(staging).lineHeight);
@@ -388,12 +389,12 @@ async function copyFormattedNote(plugin, file, target = "wechat") {
 async function exportPdfToVault(plugin, file) {
   const size = paperSize(plugin.state.page);
   return withExportStage(plugin, file, { visible: true }, async (stage, { pages }) => {
-    pages.forEach(p => p.style.display = "none");
+    pages.forEach(p => p.setCssStyles({ display: "none" }));
     const images = [];
     for (let i = 0; i < pages.length; i += 1) {
-      pages[i].style.display = "";
+      pages[i].setCssStyles({ display: "" });
       images.push({ jpeg: await capturePortable(pages[i], { scale: 2, background: "#FFFFFF", type: "image/jpeg", quality: 0.9 }) });
-      pages[i].style.display = "none";
+      pages[i].setCssStyles({ display: "none" });
       await nextFrame();
     }
     return saveExportToVault(plugin, `${file.basename}.pdf`, buildImagePdf(images, { widthMm: size.w, heightMm: size.h }));
@@ -412,11 +413,11 @@ async function exportPdf(plugin, file, targetPath) {
   const size = paperSize(plugin.state.page);
   await withExportStage(plugin, file, {}, async stage => {
     stage.addClass("ibp-print-root");
-    const style = document.head.createEl("style", { text: `@media print {
+    setDocSheet("ibp-print-export", `@media print {
       @page { size: ${size.w}mm ${size.h}mm; margin: 0; }
       html, body { height: auto !important; overflow: visible !important; background: #FFFFFF !important; }
       body > :not(.ibp-print-root) { display: none !important; }
-    }` });
+    }`);
     const previousTitle = document.title;
     document.title = file.basename;
     try {
@@ -433,7 +434,7 @@ async function exportPdf(plugin, file, targetPath) {
       });
     } finally {
       if (document.title === file.basename) document.title = previousTitle;
-      style.remove();
+      removeDocSheet("ibp-print-export");
     }
   });
   return choice.filePath;
@@ -446,7 +447,7 @@ const nextFrame = () => new Promise(r => window.requestAnimationFrame(() => wind
 async function captureElement(element) {
   const contents = electronRemote().getCurrentWebContents();
   const dpr = window.devicePixelRatio || 1;
-  element.style.transform = "";
+  element.setCssStyles({ transform: "" });
   await nextFrame();
   const rect = element.getBoundingClientRect();
   const width = Math.ceil(rect.width), height = Math.ceil(rect.height);
@@ -465,7 +466,7 @@ async function captureElement(element) {
     const bitmap = await createImageBitmap(new Blob([shot.toPNG()], { type: "image/png" }));
     ctx.drawImage(bitmap, 0, Math.round(y * dpr * scale), Math.round(bitmap.width * scale), Math.round(bitmap.height * scale));
   }
-  element.style.transform = "";
+  element.setCssStyles({ transform: "" });
   const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
   return Buffer.from(await blob.arrayBuffer());
 }
@@ -474,15 +475,15 @@ async function captureElement(element) {
 async function exportImagesToVault(plugin, file, kind) {
   return withExportStage(plugin, file, { visible: true, keepStrip: kind === "long" }, async (stage, { pages, staging }) => {
     if (kind === "pages") {
-      pages.forEach(p => p.style.display = "none");
+      pages.forEach(p => p.setCssStyles({ display: "none" }));
       const digits = Math.max(2, String(pages.length).length);
       let first = "";
       for (let i = 0; i < pages.length; i += 1) {
-        pages[i].style.display = "";
+        pages[i].setCssStyles({ display: "" });
         const png = await capturePortable(pages[i], { scale: 2 });
         const saved = await saveExportToVault(plugin, `${file.basename}-${String(i + 1).padStart(digits, "0")}.png`, png);
         first ||= saved;
-        pages[i].style.display = "none";
+        pages[i].setCssStyles({ display: "none" });
         await nextFrame(); // let taps and the progress notice through between pages
       }
       return `${first.replace(/[^/]+$/, "")}（${pages.length} 张）`;
@@ -513,13 +514,13 @@ async function exportImages(plugin, file, kind, targetPath) {
   }
   return withExportStage(plugin, file, { visible: true, keepStrip: kind === "long" }, async (stage, { pages, staging }) => {
     if (kind === "pages") {
-      pages.forEach(p => p.style.display = "none");
+      pages.forEach(p => p.setCssStyles({ display: "none" }));
       const digits = String(pages.length).length;
       for (let i = 0; i < pages.length; i += 1) {
-        pages[i].style.display = "";
+        pages[i].setCssStyles({ display: "" });
         const png = await captureElement(pages[i]);
         fs.writeFileSync(path.join(target, `${file.basename}-${String(i + 1).padStart(Math.max(2, digits), "0")}.png`), png);
-        pages[i].style.display = "none";
+        pages[i].setCssStyles({ display: "none" });
       }
       return `${target}（${pages.length} 张）`;
     }
@@ -713,10 +714,10 @@ async function exportWord(plugin, file, targetPath, options = {}) {
           const out = path.join(tmp, `mermaid-${diagrams.length + 1}.png`);
           const solo = stage.createDiv({ cls: "ibp-capture-solo markdown-rendered" });
           solo.appendChild(diagram.cloneNode(true));
-          holder.style.display = "none";
+          holder.setCssStyles({ display: "none" });
           fs.writeFileSync(out, await captureElement(solo));
           solo.remove();
-          holder.style.display = "";
+          holder.setCssStyles({ display: "" });
           diagrams.push(out);
         }
       });

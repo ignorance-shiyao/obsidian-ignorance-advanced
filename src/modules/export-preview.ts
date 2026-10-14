@@ -164,7 +164,7 @@ class ExportPreviewModal extends Modal {
     const scrollTop = previous?.contentWindow?.scrollY || 0;
     const frame = this.viewport.createEl("iframe", { cls: "ibp-export-preview__frame" });
     // Keep the first screen painted while the completed reader loads.
-    if (previous) frame.style.visibility = "hidden";
+    if (previous) frame.setCssStyles({ visibility: "hidden" });
     frame.setAttribute("sandbox", "allow-scripts allow-same-origin");
     await new Promise((resolve, reject) => {
       const signal = this.controller.signal;
@@ -177,7 +177,7 @@ class ExportPreviewModal extends Modal {
       frame.srcdoc = html;
     });
     this.controller.signal.throwIfAborted();
-    frame.style.visibility = "";
+    frame.setCssStyles({ visibility: "" });
     if (!previous) frame.addClass("ibp-export-preview__reveal");
     previous?.remove();
     this.frame = frame;
@@ -221,8 +221,8 @@ class ExportPreviewModal extends Modal {
       const staged = stageSlide(deck.reveal, entry.el, deck.width, deck.height);
       const frame = list.createDiv({ cls: "ibp-export-preview__slide" });
       // Move the off-screen stage into the preview, laid out in place.
-      staged.stage.style.position = "relative";
-      staged.stage.style.left = "0";
+      staged.stage.setCssStyles({ position: "relative" });
+      staged.stage.setCssStyles({ left: "0" });
       frame.appendChild(staged.stage);
       // Slides read best at a comfortable size, not stretched to the window.
       const available = Math.min(760, Math.max(200, this.viewport.clientWidth - 32));

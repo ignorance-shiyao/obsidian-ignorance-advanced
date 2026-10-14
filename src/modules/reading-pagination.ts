@@ -369,7 +369,7 @@ function retainTableRows(block, cloneTable, start, stop, repeatHeader) {
     [...columns.children].slice(sourceCells.length).forEach(column => column.remove());
     sourceCells.forEach((cell, index) => { columns.children[index].style.width = `${cell.getBoundingClientRect().width}px`; });
     cloneTable.style.width = `${block.table.getBoundingClientRect().width}px`;
-    cloneTable.style.tableLayout = "fixed";
+    cloneTable.setCssStyles({ tableLayout: "fixed" });
   }
 }
 
@@ -422,7 +422,7 @@ function makePage(blocks, window, index, total, page, contentHeight = window.sto
       clone.style.setProperty("left", `${block.chapter.left}px`, "important");
       clone.style.setProperty("right", `${block.chapter.right}px`, "important");
       clone.style.setProperty("width", `calc(100% - ${block.chapter.left + block.chapter.right}px)`, "important");
-      clone.style.setProperty("min-width", "0", "important");
+      clone.classList.add("ibp-no-min-width");
     }
     // Line-safe page windows can stop before the paper edge; clip their final text block there
     // so the remaining lines begin only on the next page.
@@ -554,9 +554,7 @@ async function composePages(plugin, file, text, book, component, { keepStrip = f
         element.querySelector(".callout-title")?.setAttribute("aria-expanded", "true");
         const content = element.querySelector<HTMLElement>(".callout-content");
         if (content) {
-          content.style.setProperty("display", "block", "important");
-          content.style.setProperty("height", "auto", "important");
-          content.style.setProperty("opacity", "1", "important");
+          content.classList.add("ibp-callout-open");
         }
       });
     }

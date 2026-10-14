@@ -345,14 +345,14 @@ class TableResizeLayer {
   measureFit(index) {
     const probe = createEl("table");
     probe.className = this.table.className.replace(/\bibt-[\w-]+/g, "").trim();
-    probe.style.cssText = "position:absolute;left:0;top:0;visibility:hidden;pointer-events:none;width:max-content;max-width:none;table-layout:auto;white-space:nowrap;margin:0";
+    probe.addClass("ibt-width-probe");
     const body = probe.createTBody();
     for (const row of tableRows(this.table).slice(0, 120)) {
       const cell = row.children[index];
       if (!cell) continue;
       const clone = cell.cloneNode(true) as HTMLElement;
       clone.removeAttribute("colspan");
-      clone.style.cssText = "width:auto;min-width:0;max-width:none;white-space:nowrap";
+      clone.addClass("ibt-width-probe-cell");
       body.insertRow().appendChild(clone);
     }
     this.host.appendChild(probe);

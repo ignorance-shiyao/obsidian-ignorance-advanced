@@ -77,9 +77,9 @@ function snapshotThemeTokens() {
   }
   const colors = new Map();
   const probe = createSpan();
-  probe.style.position = "fixed";
-  probe.style.visibility = "hidden";
-  probe.style.pointerEvents = "none";
+  probe.setCssStyles({ position: "fixed" });
+  probe.setCssStyles({ visibility: "hidden" });
+  probe.setCssStyles({ pointerEvents: "none" });
   body.appendChild(probe);
   for (const name of [...THEME_TOKEN_NAMES, "--ib-table-heading-bg", "--ib-table-stripe-bg", ...["keyword", "string", "number", "function", "property", "comment", "operator", "punctuation", "variable", "type"].map(kind => `--ib-syntax-${kind}`), ...["info", "success", "warning", "error"].flatMap(kind => ["text", "icon", "bg", "border"].map(part => `--ib-${kind}-${part}`))]) {
     const value = bodyStyle.getPropertyValue(name).trim();
@@ -212,8 +212,8 @@ async function imageAsPng(source, colors, alt = "") {
   image.alt = alt;
   inlineStandaloneStyles(source, image, colors);
   if (rect.width > 0) image.style.width = `${Math.ceil(rect.width)}px`;
-  if (rect.height > 0) image.style.height = "auto";
-  image.style.maxWidth = "100%";
+  if (rect.height > 0) image.setCssStyles({ height: "auto" });
+  image.setCssStyles({ maxWidth: "100%" });
   return image;
 }
 
@@ -275,12 +275,12 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
       const width = parseFloat(svg.getAttribute("width") || "");
       const height = parseFloat(svg.getAttribute("height") || "");
       if (!svg.hasAttribute("viewBox") && width > 0 && height > 0) svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-      svg.style.maxWidth = "100%";
+      svg.setCssStyles({ maxWidth: "100%" });
       svg.style.maxHeight = source.closest(".is-long-diagram") ? "none" : "min(148.5mm, 72vh)";
-      svg.style.width = "auto";
-      svg.style.height = "auto";
-      svg.style.display = "block";
-      svg.style.marginInline = "auto";
+      svg.setCssStyles({ width: "auto" });
+      svg.setCssStyles({ height: "auto" });
+      svg.setCssStyles({ display: "block" });
+      svg.setCssStyles({ marginInline: "auto" });
     }
     return svg;
   }
@@ -310,8 +310,8 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
       image.alt = source.alt || "";
       image.loading = "lazy";
       inlineStandaloneStyles(source, image, colors);
-      image.style.maxWidth = "100%";
-      image.style.height = "auto";
+      image.setCssStyles({ maxWidth: "100%" });
+      image.setCssStyles({ height: "auto" });
       return image;
     }
     const data = await imageDataUri(plugin, source, imageIndex);
@@ -320,8 +320,8 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
       image.src = data;
       image.alt = source.alt || "";
       inlineStandaloneStyles(source, image, colors);
-      image.style.maxWidth = "100%";
-      image.style.height = "auto";
+      image.setCssStyles({ maxWidth: "100%" });
+      image.setCssStyles({ height: "auto" });
       return image;
     }
     // Remote images: download and inline them. Capturing the page is the last
@@ -333,8 +333,8 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
       image.src = remote;
       image.alt = source.alt || "";
       inlineStandaloneStyles(source, image, colors);
-      image.style.maxWidth = "100%";
-      image.style.height = "auto";
+      image.setCssStyles({ maxWidth: "100%" });
+      image.setCssStyles({ height: "auto" });
       return image;
     }
     if (source.complete && source.naturalWidth > 0) {
@@ -342,7 +342,7 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
       const linked = createEl("img");
       linked.src = source.currentSrc || source.getAttribute("src") || "";
       linked.alt = source.alt || "";
-      linked.style.maxWidth = "100%";
+      linked.setCssStyles({ maxWidth: "100%" });
       return linked;
     }
     const fallback = createSpan();
@@ -362,7 +362,7 @@ async function cloneHtmlNode(source, plugin, imageIndex, colors, headingIds, che
   if (source.classList.contains("ibc-container--chapter")) {
     copy.setAttribute("data-ib-chapter", "");
     copy.setAttribute("data-ib-chapter-tone", source.dataset.ibcTone || "0");
-    copy.style.position = "relative";
+    copy.setCssStyles({ position: "relative" });
   }
   if (source.classList.contains("ibc-chapter__rail")) {
     copy.setAttribute("data-ib-chapter-rail", "");

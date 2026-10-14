@@ -172,7 +172,7 @@ function scaleToFit(el: HTMLElement, maxH: number): void {
   wrapper.className = 'slide-scale-fit'
   wrapper.style.cssText = `height:${maxH}px;overflow:hidden;`
   el.before(wrapper)
-  el.style.transformOrigin = 'top left'
+  el.setCssStyles({ transformOrigin: 'top left' })
   el.style.transform = `scale(${scale})`
   el.style.width = `${Math.round(100 / scale)}%`
   wrapper.appendChild(el)
@@ -216,9 +216,9 @@ export function paginateSlideSections(slides: HTMLElement): boolean {
       : null
     const root = wrappedRoot ?? inner
     if (wrappedRoot) {
-      root.style.height = '100%'
-      root.style.maxHeight = '100%'
-      root.style.overflow = 'auto'
+      root.setCssStyles({ height: '100%' })
+      root.setCssStyles({ maxHeight: '100%' })
+      root.setCssStyles({ overflow: 'auto' })
     }
     if (!isOverflowing(root)) {
       if (wrappedRoot) {
@@ -253,9 +253,9 @@ export function paginateSlideSections(slides: HTMLElement): boolean {
       ninner.className = 'slide-inner'
       const pageRoot = wrappedRoot ? wrappedRoot.cloneNode(false) as HTMLElement : ninner
       if (wrappedRoot) {
-        pageRoot.style.height = '100%'
-        pageRoot.style.maxHeight = '100%'
-        pageRoot.style.overflow = 'hidden'
+        pageRoot.setCssStyles({ height: '100%' })
+        pageRoot.setCssStyles({ maxHeight: '100%' })
+        pageRoot.setCssStyles({ overflow: 'hidden' })
         ninner.appendChild(pageRoot)
       }
       if (h1) {
@@ -270,9 +270,9 @@ export function paginateSlideSections(slides: HTMLElement): boolean {
       changed = true
     }
     if (wrappedRoot) {
-      wrappedRoot.style.height = '100%'
-      wrappedRoot.style.maxHeight = '100%'
-      wrappedRoot.style.overflow = 'hidden'
+      wrappedRoot.setCssStyles({ height: '100%' })
+      wrappedRoot.setCssStyles({ maxHeight: '100%' })
+      wrappedRoot.setCssStyles({ overflow: 'hidden' })
     }
   }
   return changed

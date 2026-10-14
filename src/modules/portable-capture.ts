@@ -113,7 +113,7 @@ export async function capturePortable(element, { scale = 2, background = null, t
         const image = _document.createElement("img");
         image.src = raster.src;
         image.style.cssText = `position:absolute;left:${raster.rect.left - parentRect.left}px;top:${raster.rect.top - parentRect.top}px;width:${raster.rect.width}px;height:${raster.rect.height}px;max-width:none;`;
-        if (getComputedStyle(liveSvgs[index].parentElement).position === "static") parent.style.position = "relative";
+        if (getComputedStyle(liveSvgs[index].parentElement).position === "static") parent.setCssStyles({ position: "relative" });
         // The SVG may have been what gave the parent its height.
         parent.style.minHeight = `${parentRect.height}px`;
         svg.replaceWith(image);

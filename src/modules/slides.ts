@@ -842,7 +842,7 @@ async function addImageSlide(pptx, surface, slideWidth, slideHeight, capture) {
   });
   let png;
   try {
-    charts.forEach(chart => { chart.svg.style.visibility = "hidden"; });
+    charts.forEach(chart => { chart.svg.setCssStyles({ visibility: "hidden" }); });
     png = await capture(surface);
   } finally {
     charts.forEach(chart => { chart.svg.style.visibility = chart.visible; });
@@ -889,8 +889,8 @@ async function choosePptxPath(file, targetPath = "") {
 async function capturePortableStage(staged) {
   const { stage } = staged;
   const previous = { left: stage.style.left, zIndex: stage.style.zIndex };
-  stage.style.left = "0px";
-  stage.style.zIndex = "-1";
+  stage.setCssStyles({ left: "0px" });
+  stage.setCssStyles({ zIndex: "-1" });
   try {
     return await capturePortable(staged.surface, { scale: 2 });
   } finally {

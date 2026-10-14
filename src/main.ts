@@ -937,7 +937,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
       toolbar.className = "ibm-mermaid-toolbar";
       toolbar.setAttribute("role", "toolbar");
       toolbar.setAttribute("aria-label", t("controls"));
-      toolbar.style.setProperty("--no-tooltip", "true");
+      toolbar.setCssProps({ "--no-tooltip": "true" });
       actions.appendChild(toolbar);
     }
 
@@ -957,7 +957,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     button.className = "ibm-edit-source";
     button.title = t("editSource");
     button.setAttribute("aria-label", t("editSource"));
-    button.style.setProperty("--no-tooltip", "true");
+    button.setCssProps({ "--no-tooltip": "true" });
     setIcon(button, UI_ICONS.code);
     button.addEventListener("click", event => {
       event.preventDefault();
@@ -1011,7 +1011,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     button.className = "ibm-copy-source";
     button.title = t("copySource");
     button.setAttribute("aria-label", t("copySource"));
-    button.style.setProperty("--no-tooltip", "true");
+    button.setCssProps({ "--no-tooltip": "true" });
     setIcon(button, UI_ICONS.copy);
     button.addEventListener("click", async () => {
       const source = await this.sourceForBlock(container);
@@ -1380,7 +1380,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
       button.textContent = label;
       button.title = title;
       button.setAttribute("aria-label", title);
-      button.style.setProperty("--no-tooltip", "true");
+      button.setCssProps({ "--no-tooltip": "true" });
       toolbar.appendChild(button);
       return button;
     };
@@ -1429,7 +1429,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
       // Once the reader zooms by hand the frame stays as it is: the picture is magnified inside it and the note
       // around it does not reflow. Fitting again (double-click, the percentage) lets the frame size itself.
       if (!state.lockFrame) this.sizeCanvas(container, state);
-      svg.style.transformOrigin = "50% 0";
+      svg.setCssStyles({ transformOrigin: "50% 0" });
       // Cancel the drawing's offset inside its own box so the ink itself is
       // centred horizontally and hangs from the top gutter.
       const drawn = this.drawnSizes?.get(svg);
@@ -1664,8 +1664,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
       }
       svg.style.removeProperty("width");
       svg.style.removeProperty("height");
-      svg.style.removeProperty("max-width");
-      svg.style.removeProperty("max-height");
+      svg.classList.remove("ibm-unclamp");
       this.setBleed(container, 0);
       container.classList.remove("is-readable-scroll");
       for (const name of ["--ibm-readable-width", "--ibm-readable-height", "--ibm-readable-center"]) container.style.removeProperty(name);
@@ -1764,8 +1763,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
       if (box?.width && box?.height) {
         svg.style.setProperty("width", `${Math.ceil(box.width)}px`, "important");
         svg.style.setProperty("height", `${Math.ceil(box.height)}px`, "important");
-        svg.style.setProperty("max-width", "none", "important");
-        svg.style.setProperty("max-height", "none", "important");
+        svg.classList.add("ibm-unclamp");
       }
       // Measure the real drawing at 100%, then fit from that.
       state.lockFrame = false;
@@ -1888,8 +1886,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
       // max-height: calc(100vh - …) !important }` clamp the box to the canvas;
       // the drawing then shrinks inside it on top of our own zoom. Only an
       // inline !important outranks those.
-      svg.style.setProperty("max-width", "none", "important");
-      svg.style.setProperty("max-height", "none", "important");
+      svg.classList.add("ibm-unclamp");
     } catch (_) {
       // Some transient Mermaid SVGs are not measurable until the next render.
     }
@@ -1928,12 +1925,13 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     if (value) {
       target.dataset.ibmBleed = String(value);
       target.style.setProperty("width", `calc(100% + ${value * 2}px)`, "important");
-      target.style.setProperty("max-width", "none", "important");
+      target.classList.add("ibm-unclamp-width");
       target.style.setProperty("margin-left", `-${value}px`, "important");
       target.style.setProperty("margin-right", `-${value}px`, "important");
     } else {
       delete target.dataset.ibmBleed;
-      for (const prop of ["width", "max-width", "margin-left", "margin-right"]) target.style.removeProperty(prop);
+      target.classList.remove("ibm-unclamp-width");
+      for (const prop of ["width", "margin-left", "margin-right"]) target.style.removeProperty(prop);
     }
   }
 

@@ -1224,7 +1224,7 @@ function decorateSequence(svg) {
     group.appendChild(el("path", { class: "ibm-seq-icon", d: FLOW_ICONS[match[1]] || REQ_ICONS[match[1]], transform: `translate(${x + 14},${y + h / 2 - 12})` }));
     // Text starts right of the icon instead of staying centred over it.
     group.setAttribute("data-ibm-seq-iconed", "");
-    text.style.setProperty("text-anchor", "start");
+    text.setCssStyles({ textAnchor: "start" });
     for (const node of [text, ...text.querySelectorAll("tspan[x]")]) {
       if (node.hasAttribute("x")) node.setAttribute("x", x + 46);
       node.setAttribute("text-anchor", "start");

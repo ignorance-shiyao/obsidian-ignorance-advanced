@@ -1,3 +1,4 @@
+import { setDocSheet, removeDocSheet } from "./doc-sheets.js";
 import { setIcon } from "./ui-icons.js";
 import { toggleWritingMode } from "./editor-tools.js";
 import { openPresentation } from "./slides.js";
@@ -54,9 +55,7 @@ function applyPageSettings(plugin) {
   body.style.setProperty("--ibp-mb", px(m.b));
   body.style.setProperty("--ibp-ml", px(m.l));
   // Print / native PDF export use the same sheet.
-  let style = document.getElementById("ibp-print-page");
-  if (!style) style = document.head.createEl("style", { attr: { id: "ibp-print-page" } });
-  style.textContent = page.paged ? `@media print { @page { size: ${size.w}mm ${size.h}mm; margin: ${m.t}mm ${m.r}mm ${m.b}mm ${m.l}mm; } }` : "";
+  setDocSheet("ibp-print-page", page.paged ? `@media print { @page { size: ${size.w}mm ${size.h}mm; margin: ${m.t}mm ${m.r}mm ${m.b}mm ${m.l}mm; } }` : "");
   for (const toolbar of document.querySelectorAll(".ibp-toolbar")) toolbar.dispatchEvent(new CustomEvent("ibp-refresh"));
   refreshPageNumbers(plugin);
   refreshReadingPages(plugin, true);
@@ -366,7 +365,7 @@ function installPageControls(plugin, showExportMenu) {
     document.querySelectorAll(".ibp-toolbar, .ibp-book, .ibp-staging").forEach(el => el.remove());
     document.querySelectorAll(".ibp-has-book").forEach(el => el.removeClass("ibp-has-book"));
     document.querySelectorAll(".ibp-book-host, .ibp-toolbar-host, .ibp-source-fixed-width").forEach(el => el.removeClasses(["ibp-book-host", "ibp-toolbar-host", "ibp-source-fixed-width"]));
-    document.getElementById("ibp-print-page")?.remove();
+    removeDocSheet("ibp-print-page");
     document.body.classList.remove("ibp-paged");
     for (const name of ["--ibp-zoom", "--ibp-share", "--ibp-scale", "--ibp-font-size", "--ib-content-max", "--file-line-width", "--ibp-page-w", "--ibp-page-h", "--ibp-page-gap", "--ibp-mt", "--ibp-mr", "--ibp-mb", "--ibp-ml"]) document.body.style.removeProperty(name);
   });

@@ -210,7 +210,7 @@ export async function addEditableSlide(pptx, surface, size, capture) {
   const previous = hidden.map(el => el.style.visibility);
   let background;
   try {
-    hidden.forEach(el => { el.style.visibility = "hidden"; });
+    hidden.forEach(el => { el.setCssStyles({ visibility: "hidden" }); });
     background = await capture(surface);
   } finally {
     hidden.forEach((el, index) => { el.style.visibility = previous[index]; });

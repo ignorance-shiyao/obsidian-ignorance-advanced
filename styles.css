@@ -540,3 +540,11 @@ g.node > :is(.members-group, .methods-group) foreignObject > div {
 .ib-nav-view__empty { padding: var(--size-4-3); color: var(--text-muted); }
 
 .ib-footer-input { width: 100%; }
+
+/* Static overrides that used to be set as inline styles from script. */
+body svg.ibm-unclamp.ibm-unclamp.ibm-unclamp { max-width: none !important; max-height: none !important; }
+body .ibm-unclamp-width.ibm-unclamp-width { max-width: none !important; }
+.ibp-no-min-width.ibp-no-min-width { min-width: 0 !important; }
+.ibp-callout-open.ibp-callout-open { display: block !important; height: auto !important; opacity: 1 !important; }
+.ibt-width-probe { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; width: max-content; max-width: none; table-layout: auto; white-space: nowrap; margin: 0; }
+.ibt-width-probe-cell { width: auto; min-width: 0; max-width: none; white-space: nowrap; }

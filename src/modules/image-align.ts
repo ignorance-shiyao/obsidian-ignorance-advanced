@@ -335,7 +335,7 @@ function installResizeHandles(plugin, embed, wrapper) {
   const layer = wrapper.createDiv({ cls: "ib-image-resize-layer" });
   const update = () => {
     const width = Number(img.getAttribute("width")), height = Number(img.getAttribute("height"));
-    if (width > 0 && height > 0) { img.style.aspectRatio = `${width} / ${height}`; img.style.objectFit = "fill"; img.dataset.ibExplicitRatio = "1"; }
+    if (width > 0 && height > 0) { img.setCssStyles({ aspectRatio: `${width} / ${height}`, objectFit: "fill" }); img.dataset.ibExplicitRatio = "1"; }
     else if (img.dataset.ibExplicitRatio) {
       img.style.removeProperty("aspect-ratio"); img.style.removeProperty("object-fit");
       delete img.dataset.ibExplicitRatio;
@@ -369,7 +369,7 @@ function installResizeHandles(plugin, embed, wrapper) {
         next = resizedImageBox(rect.width, rect.height, e.clientX - event.clientX, e.clientY - event.clientY, direction);
         img.style.setProperty("width", `${next.width}px`, "important");
         img.style.setProperty("height", `${next.height}px`, "important");
-        img.style.setProperty("object-fit", "fill");
+        img.setCssStyles({ objectFit: "fill" });
         update();
       };
       const finish = async e => {

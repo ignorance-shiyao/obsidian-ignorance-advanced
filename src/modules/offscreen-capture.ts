@@ -105,7 +105,7 @@ export function stageSlide(root, section, width, height) {
     // Markup for the capture window: same stage, placed at the origin.
     html() {
       const left = stage.style.left;
-      stage.style.left = "0px";
+      stage.setCssStyles({ left: "0px" });
       const markup = stage.outerHTML;
       stage.style.left = left;
       return markup;
