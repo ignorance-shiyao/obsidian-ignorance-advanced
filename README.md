@@ -2,9 +2,9 @@
 
 # Ignorance Advanced
 
-**[Ignorance 主题](https://community.obsidian.md/themes/ignorance)的配套插件：** 图表、表格、图片、演示与导出，一次到位。
+**The companion plugin for the [Ignorance theme](https://community.obsidian.md/themes/ignorance):** diagrams, tables, images, presentations and exports in one place.
 
-[English](README.en.md) · [支持作者](#支持)
+[中文](README.zh-CN.md) · [Support](#support)
 
 ![License](https://img.shields.io/github/license/ignorance-shiyao/obsidian-ignorance-advanced?color=4D81EF)
 ![Release](https://img.shields.io/github/v/release/ignorance-shiyao/obsidian-ignorance-advanced?color=4D81EF)
@@ -15,107 +15,116 @@
 
 </div>
 
-> 外观由主题负责，插件只做 CSS 做不到的事。插件也能配合其他主题使用，但控件是按本主题的设计变量做的，换主题后会朴素一些。
+> The theme owns the look; the plugin adds what CSS cannot do. It works with other themes too, but its controls are designed around the theme's tokens and look plainer without it.
 
-## 配色：八套，一键切换
+## Palettes: eight, one click
 
-在插件设置里选择 Azure、Pine、Book、Graphite、Terracotta、Teal、Wisteria、Amber，浅色深色各自调校，上方动图即是效果。
+Choose Azure, Pine, Book, Graphite, Terracotta, Teal, Wisteria or Amber in the plugin settings, each tuned for light and dark (see the animations above).
 
-## 功能
+## Features
 
-### Mermaid 增强
-Mermaid 12（含 ELK 布局与 ZenUML），随主题明暗与配色自动换色。每个图可缩放、复制或编辑源码、左中右定位、拖拽调宽（写在围栏上：`{align=center} {width=560}`）。
+### Mermaid enhancement
+Mermaid 12 (with ELK layout and ZenUML), recolored to the active theme and palette in light and dark. Each diagram has zoom, copy / edit source, left / center / right placement and drag-to-resize width (saved on the fence as `{align=center} {width=560}`).
 
-### ECharts 增强
-Apache ECharts 代码块直接渲染成图，同样跟随主题配色，操作与 Mermaid 一致。
+### ECharts enhancement
+Apache ECharts blocks render in place, follow the theme palette, and share the same controls as Mermaid.
 
-### 表格增强
-拖拽列边与行边，带吸附顿挫（适应内容宽度或等分，Alt 自由拖动，Shift 以 10 px 步进）；尺寸菜单可一键适应内容、等分、撑满正文、重置；双击边线适应内容；左中右定位；按钮仅在悬停时出现，手机端同样可用。
+### Table enhancement
+Drag column and row edges with detents (fit-to-content or equal share; Alt drags freely, Shift steps by 10 px). A size menu fits all columns, equalizes, fills the text width or resets; double-click an edge to fit it; left / center / right placement. Buttons appear on hover and work on mobile.
 
-### 演示（PPT）
-用 `---` 分页，直接把一篇笔记变成演示文稿：全屏放映、图表与代码块原样上页，并可**导出 PPTX** 或打印成分页 PDF。笔记始终是纯 Markdown，随时可编辑。
+### Presentations (PPT)
+Turn any note into a deck with `---` between slides: full-screen presenting, diagrams and code blocks carried onto the slide as-is, **PPTX export**, or a paged PDF. The note stays plain Markdown and editable.
 
 <div align="center">
 <img src="docs/assets/light-slides.jpg" width="420"> <img src="docs/assets/dark-slides.jpg" width="420">
 </div>
 
-### 代码块
-可搜索的语言选择器（输入 `py`、`ts`、`sql`）、130+ 种语言、语言图标、行号、复制、折行；文件树同样带 Material Icon Theme 文件图标，文件夹的打开/关闭/空状态各不相同。
+### Code blocks
+A searchable language picker (type `py`, `ts`, `sql`), 130+ languages, language icons, line numbers, copy, soft wrap. The file explorer gets Material Icon Theme file icons, with distinct open, closed and empty folders.
 
-### 图片
-对齐、八向缩放、复制、删除，以及**裁切**（裁切后选择替换原图或新增一张）。
+### Images
+Align, resize with eight handles, copy, remove, and **crop** (then replace the original or add a new image).
 
-### 阅读与导出
-页面工具栏（正文宽度、纸张、页边距、页码、分页阅读，与 PDF 输出一致）；导出 PDF、Word、PPT、图片，以及带目录、搜索和明暗切换的离线 HTML 阅读器。
+### Reading and export
+A page toolbar (content width, paper size, margins, page numbers, a paged view that matches PDF output). Export to PDF, Word, PowerPoint, images, and a standalone offline HTML reader with table of contents, search and a light/dark switch.
 
-### 其他
-标签页复用、打字机与专注模式、智能标点、彩色高亮（`==🟢文字==`）、网页剪藏、从 Word/PDF/Excel/PPT 等导入 Markdown（桌面端）。
+### And more
+Tab reuse, typewriter and focus modes, smart punctuation, `==🟢colored==` highlights, web clipping, and Markdown import from Word, PDF, Excel, PowerPoint and more (desktop).
 
-## 长图预览
+## Long preview
 
 <div align="center">
 <img src="docs/assets/showcase-light.jpg" width="420"> <img src="docs/assets/showcase-dark.jpg" width="420">
 </div>
 
-## 安装
+## Install
 
-- **社区插件**：设置 → 第三方插件 → 浏览，搜索 “Ignorance Advanced”（[插件页面](https://community.obsidian.md/plugins/ignorance-advanced)）。
-- **手动**：从[最新发布](https://github.com/ignorance-shiyao/obsidian-ignorance-advanced/releases/latest)下载 `main.js`、`manifest.json`、`styles.css`，放入 `<库>/.obsidian/plugins/ignorance-advanced/` 后启用。
-- **主题**：在 设置 → 外观 安装 [Ignorance](https://community.obsidian.md/themes/ignorance) 以获得完整外观。
+- **Community plugins**: Settings → Community plugins → Browse → search "Ignorance Advanced". ([plugin page](https://community.obsidian.md/plugins/ignorance-advanced))
+- **Manual**: download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/ignorance-shiyao/obsidian-ignorance-advanced/releases/latest) into `<vault>/.obsidian/plugins/ignorance-advanced/`, then enable it.
+- **Theme**: install [Ignorance](https://community.obsidian.md/themes/ignorance) from Settings → Appearance for the full look.
 
-需要 Obsidian 1.8.7 及以上，支持桌面与手机；Word/PDF 导入等部分功能仅桌面端可用。
+Requires Obsidian 1.8.7 or later. Works on desktop and mobile; Word/PDF import and some exports need the desktop app.
 
-## 使用
+## Usage
 
-- **图表**：写一个语言为 `mermaid` 或 `echarts` 的代码块，在实时预览和阅读视图中会自动渲染；悬停可缩放、复制、编辑源码、调整对齐，拖动边缘可调整宽度。
-- **表格**：拖动列边或行边调整大小；按住 Alt 自由拖动，按住 Shift 以 10 px 步进，双击边线适应内容。
-- **图片**：点击图片可对齐、缩放或裁切。
-- **代码块**：点击语言标签可搜索语言；行号和折行在代码块工具栏里。
-- **演示**：用单独一行 `---` 分隔幻灯片，然后点笔记顶部页面工具栏里的"演示"按钮（或在命令面板运行"打开演示模式"）。
-- **放映辅助**：演示工具栏和全屏浮条里有激光笔（红点跟随鼠标）和聚光灯（只照亮鼠标周围），再点一次关闭；「逐段显示」让下一页先显示下一段内容；「安静视图」隐藏工具栏，鼠标移到顶部时再显示。
-- **行内组件**：`((green:构建 | 通过))` 两段徽章，`((spoiler:答案))` 点击显示，`((ruby:汉字 | hànzì))` 注音，`((crumb:设置 > 外观 > 主题))` 面包屑，另有 `((bar:72:进度))` 进度条与 `((spark:3,5,2))` 趋势线。
-- **图片对比**：把两张图片放进 `::: compare`，阅读视图里拖动分隔线对比，导出时并排显示。
-- **GIF 点击播放**：在 GIF 的 alt 里写 `click`（如 `![click|400](a.gif)`），平时只显示第一帧和播放标记，点一下开始播放，再点停止；导出时保持静止首帧。
-- **图片滤镜**：在图片的 alt 里写 `gray`（灰度）、`sepia`（复古）、`invert`（反色）、`dark-invert`（深色模式下反色）、`blur`（模糊，悬停恢复），如 `![left|gray|400](a.png)`。
-- **页签**：用 `::: tabs` 包住若干 `::: tab 标题`，阅读视图里点标题切换，打印和导出时按顺序全部展开。
-- **表格**增强：单元格里只写 `<` 并入左边的格子，只写 `^` 并入上方的格子；只写 `[ ]` 或 `[x]` 显示为方框。右对齐的列（`---:`）里，五位以上的整数自动加千分位，`72%` 画成进度条；第一格以 `>` 开头的行是上一行的子行，上一行出现折叠按钮；超过 16 行的表格在阅读视图里自带滚动框，表头保持冻结。
-- **题注与交叉引用**：设置里打开「图表题注与编号」，或在笔记属性 `cssclasses` 里写 `ib-captions`。独占一行的图片 `![架构图 {#fig-arch}](a.png)` 显示为「图 1 架构图」，表格下一行写 `表：季度营收 {#tab-q}` 显示为「表 1 季度营收」，代码块下一行写 `代码：说明`、公式下一行写 `公式：说明` 同样编号（实时预览里也显示标签），正文里用 `((ref:fig-arch))` 引用，点击跳转。
-- **卡片版式**：笔记属性 `cssclasses` 里写 `ib-cards`，阅读视图里每个二级标题的小节显示成一张卡片。
-- **表格十字高亮**：设置里打开，或在笔记属性 `cssclasses` 里写 `ib-crosshair`，阅读视图里鼠标指到单元格时高亮它所在的行和列。
-- **长代码块自动折叠**：设置里打开后，阅读视图里超过 40 行的代码块只显示前一部分，点「展开全部」查看；分页阅读和导出始终完整。
-- **未发布内容**：把标题整个划掉（`## ~~草稿~~`），这一节（含下级小节）在阅读视图里变淡并标「未发布」，分页阅读和导出时整节隐藏，也不占编号。
-- **标题编号**：设置里打开「标题自动编号」，或在笔记属性 `cssclasses` 里写 `ib-numbered`，标题前显示 1、1.1、1.1.1（阅读视图和实时预览都有；设置里可改成「一、（一）」风格）。
-- **导航**：命令「跳到标题、图表、表格或代码」列出当前笔记的标题、图片、表格、代码块和图表，输入关键字筛选，回车跳转。
-- **导航侧栏**：命令「在侧栏打开导航」把同样的列表常驻在右侧栏，跟随当前笔记，边输入边筛选，点击跳转。
-- **检查链接**：命令面板运行「检查当前笔记的链接和标题」，列出不存在的笔记、嵌入、标题锚点和同级重名标题，点一行跳到对应位置。
-- **批量剪藏**：命令「批量剪藏网页」一次粘贴多个链接，已剪藏过的自动跳过；设置里可选「按网站分类」，在剪藏文件夹下按网站名建子文件夹。
-- **灰度日期**：设置里填写日期（如 `4-4`），当天整个界面变为灰度；默认不启用。
-- **阅读时长**：桌面端状态栏显示当前笔记的预计阅读时间，可在设置里关闭。
-- **封面**：在笔记属性 `cssclasses` 里写 `ib-cover`，阅读视图顶部按属性（`title`、`subtitle` 或 `description`、`author`、`date` 或 `created`、`tags`）生成封面，并隐藏内联标题。
-- **页脚**：页面设置菜单里的「页脚」可以在分页阅读、导出的每一页底部左侧写文字，支持 `{title}`、`{page}`、`{pages}`、`{date}`。
-- **版式预设**：页面设置菜单里的「版式预设」一键套用论文、汇报、公文、博客的纸张、页边距和页码，之后仍可逐项调整。
-- **导出**：用页面工具栏的导出按钮生成 PDF、Word、PPT、图片或离线 HTML 阅读器。
-- **设置**：设置 → Ignorance Advanced（配色、页面布局、高亮颜色、标签页行为）。
+- **Diagrams and charts**: write a fenced block with the language `mermaid` or `echarts`. It renders in Live Preview and Reading view; hover it for zoom, copy, edit-source and alignment controls, and drag its edges to resize.
+- **Tables**: drag a column or row edge to resize; Alt drags freely, Shift steps by 10 px, double-click an edge to fit it.
+- **Images**: click an image to align, resize or crop it.
+- **Code blocks**: click the language label to search the language list; line numbers and soft wrap are in the block toolbar.
+- **Presentations**: separate slides with a line containing `---`, then use the *Presentation* button in the page toolbar at the top of the note (or run *Open presentation mode* from the command palette).
+- **Presenting aids**: the presentation toolbar and the fullscreen bar have a laser pointer (a red dot that follows the mouse) and a spotlight (only the area around the mouse stays bright); click again to turn off. "Step by step" shows the next block of a slide before moving to the next slide, and "Quiet view" hides the toolbar until the mouse reaches the top.
+- **Inline components**: `((green:build | passed))` two-part badge, `((spoiler:answer))` click to reveal, `((ruby:汉字 | hànzì))` ruby annotation, `((crumb:Settings > Appearance > Themes))` breadcrumb, plus `((bar:72:progress))` and `((spark:3,5,2))`.
+- **Image compare**: put two images inside `::: compare`; drag the divider in Reading view, and exports show them side by side.
+- **Click-to-play GIFs**: write `click` in a GIF's alt text (`![click|400](a.gif)`); it shows its first frame with a play badge, plays on click and stops on the next click; exports keep the still frame.
+- **Image filters**: write `gray`, `sepia`, `invert`, `dark-invert` (inverts only in dark mode) or `blur` (clears on hover) in the image's alt text, for example `![left|gray|400](a.png)`.
+- **Tabs**: wrap `::: tab Title` blocks in `::: tabs`; click a title in Reading view to switch, and print or export lays every panel out in order.
+- **Table extras**: a cell holding only `<` joins the cell on its left, only `^` joins the cell above, and `[ ]` / `[x]` show as boxes. In a right-aligned column (`---:`) integers of five or more digits get thousands separators and `72%` draws a bar; a row whose first cell starts with `>` becomes a child of the row above, which gets a fold button; tables over 16 rows scroll inside their own frame with a frozen header in Reading view.
+- **Captions and cross references**: turn on "Figure and table captions" in settings, or add `ib-captions` to a note's `cssclasses`. An image alone on a line, `![Architecture {#fig-arch}](a.png)`, shows as "Figure 1 Architecture"; a line `Table: Quarterly revenue {#tab-q}` under a table shows as "Table 1 …"; `Listing: …` under a code block and `Equation: …` under a `$$` equation are numbered the same way; refer to either with `((ref:fig-arch))`, which links to it.
+- **Card layout**: add `ib-cards` to a note's `cssclasses` and every H2 section is drawn as a card in Reading view.
+- **Table crosshair**: turn it on in settings, or add `ib-crosshair` to a note's `cssclasses`, and pointing at a cell in Reading view lights up its row and column.
+- **Long code blocks folded**: with the setting on, code blocks over 40 lines show only their start in Reading view with a "Show all" button; paged reading and exports always keep them whole.
+- **Unpublished content**: strike a whole heading through (`## ~~Draft~~`) and that section, sub-sections included, is dimmed and marked in Reading view, left out of paged reading and exports, and does not take a number.
+- **Heading numbers**: turn on "Heading numbers" in settings, or add `ib-numbered` to a note's `cssclasses`, to show 1, 1.1, 1.1.1 before headings in Reading view and Live Preview; a setting switches to a Chinese 一、（一） style.
+- **Navigation**: the "Jump to a heading, figure, table or code block" command lists headings, images, tables, code blocks and diagrams of the current note; type to filter, Enter to jump.
+- **Navigation sidebar**: the "Open navigation in the sidebar" command keeps the same list open on the right; it follows the current note, filters as you type, and jumps on click.
+- **Link check**: run "Check links and headings in the current note" from the command palette to list missing notes, missing embeds, broken heading links and duplicate headings; click a row to jump there.
+- **Batch clipping**: the "Clip web pages in bulk" command takes many links at once and skips ones already clipped; "Sort by site" in settings files clippings into one sub-folder per website.
+- **Gray mode**: list dates in settings (for example `4-4`) and the whole interface turns grayscale on those days; off by default.
+- **Reading time**: on desktop the status bar shows the estimated reading time of the current note; turn it off in settings.
+- **Cover**: add `ib-cover` to a note's `cssclasses` and Reading view opens with a cover built from the properties (`title`, `subtitle` or `description`, `author`, `date` or `created`, `tags`); the inline title is hidden.
+- **Page footer**: "Footer" in the page settings menu puts text at the bottom left of every page in the paged view and in exports, with `{title}`, `{page}`, `{pages}` and `{date}`.
+- **Layout presets**: "Layout presets" in the page settings menu fills in paper, margins and page numbers for a paper, a report, an official document or a blog post; every value can still be changed afterwards.
+- **Export**: use the export button in the page toolbar to produce PDF, Word, PowerPoint, images or an offline HTML reader.
+- **Settings**: Settings → Ignorance Advanced (palette, page layout, highlight colors, tab behavior).
 
-## 隐私与网络
+## Privacy and network use
 
-- 无遥测、无统计、无广告。
-- 插件不会下载或自行更新任何代码。Mermaid、ECharts、导出引擎等库都压缩在 `main.js` 里（所以约 7 MB），用到时才解压。
-- 只有你主动操作时才会联网：剪藏网页、复制或导出图片链接、笔记里设置的封面图链接。
-- **访问库外文件（仅桌面端，且只在你主动操作时）**：把导出文件保存到你选择的位置；用你指定的外部应用打开笔记里的文件；打开并编辑库外的 Markdown 文件；Word、PDF 等导入时在系统临时目录里解包转换器；导出 Word 时若你安装了 Pandoc，会调用它。这些功能需要 Node.js 与 Electron，手机端不会启用，其余功能手机和桌面都可用。
+- No telemetry, no analytics, no ads.
+- Nothing is downloaded or updated by the plugin itself. All libraries (Mermaid, ECharts, the export engines…) are compressed inside `main.js`, which is why it is about 7 MB, and are unpacked only when a feature needs them.
+- Network requests happen only when you ask for them: fetching a web page you clip, an image URL you export or copy, or a cover image URL you set in a note.
+- **Files outside the vault (desktop only, and only when you ask):** saving an export to a location you choose; opening a file from your notes in an external app you name; opening and editing Markdown files that live outside the vault; unpacking the Word / PDF import converters into the system temp folder; calling Pandoc for Word export if you have it installed. These features need Node.js and Electron, so they stay off on mobile; everything else works on both.
 
-## 反馈
+## Build from source
 
-使用中遇到问题，或有功能需求，欢迎[提交 issue](https://github.com/ignorance-shiyao/obsidian-ignorance-advanced/issues)；附上截图、Obsidian 版本和平台（桌面或手机）会更容易定位。
+```bash
+npm install
+npm run build          # writes dist/main.js, dist/styles.css, dist/manifest.json
+npm test
+OBSIDIAN_VAULT=/path/to/vault npm run install:vault   # build and copy into a vault
+```
 
-## 支持
+## Feedback
 
-如果它对你有用，欢迎请我喝杯咖啡，谢谢！
+If you run into a problem or want a feature, please [open an issue](https://github.com/ignorance-shiyao/obsidian-ignorance-advanced/issues). A screenshot, your Obsidian version and the platform (desktop or mobile) help a lot.
 
-| 微信 | 支付宝 |
+## Support
+
+If this is useful to you, you can buy me a coffee. Thank you!
+
+| WeChat | Alipay |
 | --- | --- |
-| ![微信](docs/assets/coffee-wechat.png) | ![支付宝](docs/assets/coffee-alipay.png) |
+| ![WeChat](docs/assets/coffee-wechat.png) | ![Alipay](docs/assets/coffee-alipay.png) |
 
-## 许可
+## License
 
-[MIT](LICENSE)。第三方软件见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+[MIT](LICENSE). Third-party software is listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md); license texts are in [`licenses/`](licenses).
