@@ -23,7 +23,7 @@ export async function stagingStyleSheet(doc: Document, fetchSource = (url: strin
     }
     return [...sheet.cssRules].map(rule => rule.cssText).join('\n');
   }));
-  const source = sources.join('\n') + '\nbody[data-ibp-staging] { display: contents !important; }';
+  const source = sources.join('\n');
   if (cache?.source === source) return cache.sheet;
   const sheet = new (doc.defaultView as any).CSSStyleSheet();
   sheet.replaceSync(source);
@@ -40,7 +40,9 @@ export async function createIsolatedStaging(plugin, parent: HTMLElement, compone
   host.setCssStyles({ display: 'contents' });
   host.setAttribute('aria-hidden', 'true');
   const shadow = host.attachShadow({ mode: 'open' });
-  shadow.adoptedStyleSheets = [sheet];
+  const own = new (doc.defaultView as any).CSSStyleSheet();
+  own.replaceSync('body[data-ibp-staging] { display: contents !important; }');
+  shadow.adoptedStyleSheets = [sheet, own];
   // A body element, including its inline appearance preferences, is needed for
   // body-scoped typography rules. A div with the same classes is insufficient.
   const body = doc.body.cloneNode(false) as HTMLElement;
