@@ -1,6 +1,6 @@
 /* Styles for the Ignorance theme's own features (diagrams, charts, containers, slides, reader, paged view, export).
  * They live here, next to the code that produces those elements, so the theme itself stays small. */
-:is(.markdown-rendered, .ib-reader-note) blockquote:not(.slide-surface blockquote) {
+.ib-reader-note blockquote:not(.slide-surface blockquote) {
   position: relative;
   background: transparent;
   padding: var(--ib-space-4) var(--ib-space-5) var(--ib-space-4) var(--ib-quote-inset);
@@ -10,11 +10,11 @@
   line-height: var(--ib-quote-leading);
   font-weight: var(--ib-heading-bold);
 }
-:is(.markdown-rendered, .ib-reader-note) blockquote:not(.slide-surface blockquote) > p {
+.ib-reader-note blockquote:not(.slide-surface blockquote) > p {
   font-size: inherit;
   line-height: inherit;
 }
-:is(.markdown-rendered, .ib-reader-note) blockquote:not(.slide-surface blockquote)::before {
+.ib-reader-note blockquote:not(.slide-surface blockquote)::before {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
@@ -22,7 +22,7 @@
   background: var(--ib-accent-brand);
   border-radius: var(--ib-radius-xs);
 }
-:is(.markdown-rendered, .ib-reader-note) blockquote:not(.slide-surface blockquote)::after {
+.ib-reader-note blockquote:not(.slide-surface blockquote)::after {
   content: "“";
   position: absolute;
   inset: var(--ib-space-2) auto auto var(--ib-space-2);
@@ -33,10 +33,10 @@
   opacity: var(--ib-quote-mark-opacity);
   pointer-events: none;
 }
-:is(.markdown-rendered, .ib-reader-note) blockquote blockquote:not(.slide-surface blockquote) {
+.ib-reader-note blockquote blockquote:not(.slide-surface blockquote) {
   background: transparent;
 }
-:is(.markdown-rendered, .ib-reader-note) blockquote:not(.slide-surface blockquote) cite {
+.ib-reader-note blockquote:not(.slide-surface blockquote) cite {
   display: block;
   text-align: right;
   color: var(--ib-text-muted);
@@ -45,16 +45,6 @@
   line-height: var(--ib-tiny-leading);
   font-weight: normal;
   font-style: normal;
-}
-.callout:not(.slide-surface .callout) .callout-title {
-  font-size: var(--ib-callout-heading-size);
-  font-weight: var(--ib-heading-bold);
-  color: var(--ib-callout-semantic-text, rgb(var(--callout-color)));
-}
-.callout:not(.slide-surface .callout) .callout-content,
-.callout:not(.slide-surface .callout) .callout-content :is(p, li) {
-  font-size: var(--ib-callout-text-size);
-  line-height: var(--ib-callout-leading);
 }
 :is(.markdown-preview-section, .markdown-rendered) .mermaid:not(.ibm-mermaid-enhanced),
 .markdown-source-view.mod-cm6 .cm-scroller .mermaid:not(.ibm-mermaid-enhanced) {
@@ -2007,8 +1997,7 @@ body.ib-show-code-line-numbers .markdown-source-view.mod-cm6.is-live-preview .ib
   animation: none;
   transition: none;
 }
-.markdown-rendered :is(table, .ibc-container--kpi), .markdown-source-view.mod-cm6 .cm-table-widget { font-variant-numeric: tabular-nums; }
-.markdown-rendered pre:not(.ibc-enhanced) { box-shadow: var(--ib-card-highlight), var(--ib-shadow-1); }
+.markdown-rendered .ibc-container--kpi { font-variant-numeric: tabular-nums; }
 :is(.ibp-has-book, .ibp-book, .ibp-staging, .ibp-export, .ibp-export-preview__book, .ibp-export-preview__slides) {
   --ib-noise-opacity: 0;
   --ib-noise-image: none;
@@ -2096,38 +2085,40 @@ body.ib-show-code-line-numbers .markdown-source-view.mod-cm6.is-live-preview .ib
 .ib-reader .ib-code-frame .ib-caption { font-size: var(--ib-code-label-size); font-weight: var(--ib-heading-bold); }
 .markdown-rendered pre.ibc-enhanced .ibm-copy-source::after,
 .ib-reader .ib-code-frame [data-tool="copy"]::after { content: none; }
-:is(.markdown-rendered, .ib-reader-note) del:not(.slide-surface del) {
+.ib-reader-note del:not(.slide-surface del) {
   text-decoration: line-through;
 }
-:is(.markdown-rendered, .ib-reader-note) mark:not(.slide-surface mark),
-.markdown-source-view.mod-cm6 .cm-highlight,
-.theme-dark .markdown-source-view.mod-cm6 .cm-highlight {
+.ib-reader-note mark:not(.slide-surface mark) {
   color: var(--ib-highlight-yellow-text);
   background: var(--ib-highlight-yellow-bg);
   border-radius: var(--ib-radius-xs);
   box-shadow: none;
 }
-:is(.markdown-rendered, .ib-reader-note) mark:is([data-highlight="red"], [data-highlight="orange"], [data-highlight="green"], [data-highlight="blue"], [data-highlight="purple"]):not(.slide-surface mark) {
+.ib-reader-note mark[data-highlight="red"]:not(.slide-surface mark),
+.ib-reader-note mark[data-highlight="orange"]:not(.slide-surface mark),
+.ib-reader-note mark[data-highlight="green"]:not(.slide-surface mark),
+.ib-reader-note mark[data-highlight="blue"]:not(.slide-surface mark),
+.ib-reader-note mark[data-highlight="purple"]:not(.slide-surface mark) {
   color: var(--ib-text-primary);
   background: var(--highlight-background);
 }
-:is(.markdown-rendered, .ib-reader-note) mark[data-highlight="red"]:not(.slide-surface mark) { --highlight-background: var(--highlight-background-red); }
-:is(.markdown-rendered, .ib-reader-note) mark[data-highlight="orange"]:not(.slide-surface mark) { --highlight-background: var(--highlight-background-orange); }
-:is(.markdown-rendered, .ib-reader-note) mark[data-highlight="green"]:not(.slide-surface mark) { --highlight-background: var(--highlight-background-green); }
-:is(.markdown-rendered, .ib-reader-note) mark[data-highlight="blue"]:not(.slide-surface mark) { --highlight-background: var(--highlight-background-blue); }
-:is(.markdown-rendered, .ib-reader-note) mark[data-highlight="purple"]:not(.slide-surface mark) { --highlight-background: var(--highlight-background-purple); }
+.ib-reader-note mark[data-highlight="red"]:not(.slide-surface mark) { --highlight-background: var(--highlight-background-red); }
+.ib-reader-note mark[data-highlight="orange"]:not(.slide-surface mark) { --highlight-background: var(--highlight-background-orange); }
+.ib-reader-note mark[data-highlight="green"]:not(.slide-surface mark) { --highlight-background: var(--highlight-background-green); }
+.ib-reader-note mark[data-highlight="blue"]:not(.slide-surface mark) { --highlight-background: var(--highlight-background-blue); }
+.ib-reader-note mark[data-highlight="purple"]:not(.slide-surface mark) { --highlight-background: var(--highlight-background-purple); }
 :is(.markdown-rendered, .ib-reader-note) mark.ib-highlight-blue:not(.slide-surface mark) {
   color: var(--ib-highlight-blue-text);
   background: var(--ib-highlight-blue-bg);
 }
-:is(.markdown-rendered, .ib-reader-note) input[type="checkbox"]:not(.slide-surface input) {
+.ib-reader-note input[type="checkbox"]:not(.slide-surface input) {
   --checkbox-radius: var(--ib-task-radius);
   border-radius: var(--ib-task-radius);
   accent-color: var(--ib-accent-solid);
 }
 .markdown-rendered .task-list-item.is-checked:not(.slide-surface .task-list-item),
 .ib-reader-note li.is-checked { color: var(--ib-text-muted); }
-:is(.markdown-rendered, .ib-reader-note) kbd:not(.slide-surface kbd) {
+.ib-reader-note kbd:not(.slide-surface kbd) {
   display: inline-block;
   padding: 6px 10px;
   border: var(--ib-border-1) solid var(--ib-border-default);
@@ -2140,12 +2131,13 @@ body.ib-show-code-line-numbers .markdown-source-view.mod-cm6.is-live-preview .ib
   vertical-align: middle;
   box-shadow: none;
 }
-:is(.markdown-rendered, .ib-reader-note) dl:not(.slide-surface dl) {
+.ib-reader-note dl:not(.slide-surface dl) {
   font-size: var(--ib-definition-size);
   line-height: var(--ib-definition-leading);
   color: var(--ib-text-secondary);
 }
-:is(.markdown-rendered, .ib-reader-note) dl :is(dt, dd) { line-height: inherit; }
+.ib-reader-note dl dt,
+.ib-reader-note dl dd { line-height: inherit; }
 .ib-reader .ib-code-frame [data-ib-line="hl"] { border-radius: var(--ib-code-highlight-radius); }
 .ib-reader .ib-code-frame [data-tk~="keyword"]:not(#_ib) { color: var(--ib-syntax-keyword); font-weight: var(--ib-heading-bold); }
 .ib-reader .ib-code-frame :is([data-tk~="function"], [data-tk~="class-name"]):not(#_ib) { color: var(--ib-syntax-function); font-weight: var(--ib-heading-bold); }
@@ -2153,21 +2145,21 @@ body.ib-show-code-line-numbers .markdown-source-view.mod-cm6.is-live-preview .ib
 .ib-reader .ib-code-frame :is([data-tk~="number"], [data-tk~="boolean"]):not(#_ib) { color: var(--ib-syntax-number); }
 .ib-reader .ib-code-frame [data-tk~="comment"]:not(#_ib) { color: var(--ib-syntax-comment); }
 .ib-reader .ib-code-frame [data-tool="copy"] { width: 30px; min-width: 30px; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
-:is(.markdown-rendered, .ib-reader-note) details:not(.slide-surface details) {
+.ib-reader-note details:not(.slide-surface details) {
   padding: var(--ib-space-2) var(--ib-space-4);
   border: var(--ib-border-1) solid var(--ib-border-default);
   border-radius: var(--ib-details-radius);
   background: var(--ib-bg-secondary);
 }
-:is(.markdown-rendered, .ib-reader-note) details:not(.slide-surface details) > summary {
+.ib-reader-note details:not(.slide-surface details) > summary {
   color: var(--ib-text-primary);
   font-size: var(--ib-details-title-size);
   font-weight: var(--ib-heading-bold);
   cursor: pointer;
 }
-:is(.markdown-rendered, .ib-reader-note) details > summary::marker { color: var(--ib-accent-solid); }
-:is(.markdown-rendered, .ib-reader-note) details[open] > summary + * { margin-top: var(--ib-space-3); }
-:is(.markdown-rendered, .ib-reader-note) .footnotes:not(.slide-surface .footnotes) {
+.ib-reader-note details > summary::marker { color: var(--ib-accent-solid); }
+.ib-reader-note details[open] > summary + * { margin-top: var(--ib-space-3); }
+.ib-reader-note .footnotes:not(.slide-surface .footnotes) {
   margin-top: var(--ib-space-5);
   padding-top: var(--ib-space-3);
   border-top: var(--ib-border-1) solid var(--ib-divider);
@@ -2175,12 +2167,13 @@ body.ib-show-code-line-numbers .markdown-source-view.mod-cm6.is-live-preview .ib
   font-size: var(--ib-footnote-size);
   line-height: var(--ib-footnote-leading);
 }
-:is(.markdown-rendered, .ib-reader-note) .footnotes :is(p, li) {
+.ib-reader-note .footnotes p,
+.ib-reader-note .footnotes li {
   font-size: var(--ib-footnote-size);
   line-height: var(--ib-footnote-leading);
   color: inherit;
 }
-:is(.markdown-rendered, .ib-reader-note) .footnotes > hr { display: none; }
+.ib-reader-note .footnotes > hr { display: none; }
 .ib-reader [data-ib-callout][data-ib-collapsed] > [data-ib-callout-title] { cursor: pointer; }
 .ib-reader [data-ib-callout-content] { transition: opacity var(--ib-dur-base) var(--ib-ease-out); }
 .ib-reader [data-ib-callout][data-ib-collapsed="true"] > [data-ib-callout-content]:not(#_ib) { display: none; }
@@ -2196,7 +2189,6 @@ body.ib-show-code-line-numbers .markdown-source-view.mod-cm6.is-live-preview .ib
 @media print {
   .ib-reader [data-ib-callout][data-ib-collapsed] > [data-ib-callout-content]:not(#_ib) { display: block; opacity: 1; animation: none; transition: none; }
 }
-.markdown-reading-view:not(.ibp-book-host) .el-table > table { overflow: visible; }
 @media screen {
   /* Wide reading tables scroll instead of squeezing prose into tall columns. */
   .markdown-reading-view:not(.ibp-book-host) .el-table > table.ib-wide-table {
@@ -2205,14 +2197,6 @@ body.ib-show-code-line-numbers .markdown-source-view.mod-cm6.is-live-preview .ib
   .markdown-reading-view:not(.ibp-book-host) .el-table > table.ib-wide-table :is(th, td):not(#_ib) {
     white-space: nowrap;
   }
-}
-.markdown-reading-view:not(.ibp-book-host) .el-table > table tr > :first-child {
-  position: sticky; inset-inline-start: 0; z-index: 1;
-}
-.markdown-reading-view:not(.ibp-book-host) .el-table > table thead tr > :first-child { z-index: 2;
-}
-.markdown-reading-view:not(.ibp-book-host) .el-table > table thead tr > :first-child:not(#_ib) {
-  background: var(--ib-table-heading-bg);
 }
 .markdown-reading-view:not(.ibp-book-host) pre.ibc-enhanced { --code-white-space: pre; }
 .markdown-reading-view:not(.ibp-book-host) pre.ibc-enhanced .ib-code-line { white-space: pre; }
@@ -2228,22 +2212,6 @@ body.ib-show-code-line-numbers .markdown-source-view.mod-cm6.is-live-preview .ib
 :is(.ibp-page-body, .ibp-staging, .ibp-export) :is(th, td):not(#_ib) {
   min-width: 0;
 }
-body.ib-heading-badge .markdown-reading-view .markdown-preview-view:not(.ibp-has-book):not(.ibp-page-body):not(.ibp-staging) h2::before {
-  content: "#";
-  position: static;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5em;
-  height: 1.5em;
-  margin-right: 0.5em;
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--ib-accent-brand) 10%, transparent);
-  color: var(--ib-accent-brand);
-  font: 700 0.72em/1 var(--font-monospace);
-  vertical-align: middle;
-}
-.markdown-reading-view table > caption,
 :is(.ibp-page-body, .ibp-staging) table > caption,
 .ib-reader .ib-reader-note table > caption {
   caption-side: top;
@@ -2297,7 +2265,7 @@ body[data-ib-table-alignment] .markdown-rendered table { width:auto; max-width:1
 body[data-ib-table-alignment="left"] .markdown-rendered table { margin-inline-start:0; margin-inline-end:auto; }
 body[data-ib-table-alignment="center"] .markdown-rendered table { margin-inline:auto; }
 body[data-ib-table-alignment="right"] .markdown-rendered table { margin-inline-start:auto; margin-inline-end:0; }
-:is(.markdown-rendered, .ib-reader-note) mark { font-family:inherit; border-radius:var(--ib-radius-xs); padding:0 .12em; }
+.ib-reader-note mark { font-family:inherit; border-radius:var(--ib-radius-xs); padding:0 .12em; }
 .ib-image-resize-layer { position:absolute; pointer-events:none; z-index:3; }
 .ib-image-resize-handle { position:absolute; pointer-events:auto; padding:0; margin:0; min-width:0; width:10px; height:10px; border:1px solid var(--ib-accent-solid); border-radius:3px; background:var(--ib-bg-primary); box-shadow:var(--ib-shadow-1); opacity:0; touch-action:none; transform:translate(-50%,-50%); }
 .image-embed:hover .ib-image-resize-handle, .ib-image-resize-handle:focus-visible, .ib-image-resize-layer.is-dragging .ib-image-resize-handle { opacity:1; }
@@ -2487,7 +2455,6 @@ body[data-ib-table-alignment] .markdown-rendered table[data-ib-table-align="righ
   & g.node[data-ibm-group="6"] > :is(rect, polygon, circle, ellipse, path, .label-container) { fill: color-mix(in srgb, var(--ib-mm-series-6) var(--ib-mm-group-node), var(--ib-mm-card)); stroke: color-mix(in srgb, var(--ib-mm-series-6) 42%, transparent); }
   & g.node[data-ibm-group="7"] > :is(rect, polygon, circle, ellipse, path, .label-container) { fill: color-mix(in srgb, var(--ib-mm-series-7) var(--ib-mm-group-node), var(--ib-mm-card)); stroke: color-mix(in srgb, var(--ib-mm-series-7) 42%, transparent); }
   & g.node[data-ibm-group="8"] > :is(rect, polygon, circle, ellipse, path, .label-container) { fill: color-mix(in srgb, var(--ib-mm-series-8) var(--ib-mm-group-node), var(--ib-mm-card)); stroke: color-mix(in srgb, var(--ib-mm-series-8) 42%, transparent); }
-
 
   /* Notes and tabular rows. */
   & :is(rect.note, .note > rect, .state-note, g.note rect, rect.labelBox) { fill: var(--ib-mm-note-fill); stroke: var(--ib-mm-note-stroke); rx: 8px; ry: 8px; }
@@ -3283,7 +3250,6 @@ tr[data-ib-level="3"] > :first-child { padding-inline-start: 4em; }
 .ib-unpublished::after { content: "未发布"; margin-inline-start: .6em; padding: 0 .5em; border-radius: 999px; background: var(--ib-bg-tertiary, var(--background-modifier-hover)); color: var(--ib-text-muted, var(--text-muted)); font-size: .45em; font-weight: 600; vertical-align: middle; }
 .ib-caption--editor { margin: .2em 0 .6em; }
 .ib-caption__label--editor { color: var(--ib-text-secondary, var(--text-normal)); font-weight: 700; }
-
 
 /* Page zoom: the page sheet is magnified as a whole, so its inner layout never changes. CSS zoom makes
    percentages resolve against the zoomed-out parent, so the width is the window share times the zoom,
