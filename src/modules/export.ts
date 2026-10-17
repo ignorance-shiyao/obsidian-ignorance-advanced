@@ -419,6 +419,8 @@ async function exportPdf(plugin: IgnorancePlugin, file: TFile, targetPath) {
       @page { size: ${size.w}mm ${size.h}mm; margin: 0; }
       html, body { height: auto !important; overflow: visible !important; background: #FFFFFF !important; }
       body > :not(.ibp-print-root) { display: none !important; }
+      /* Obsidian's own print CSS hides every body child without .print. */
+      html body > .ibp-print-root { display: block !important; }
     }`);
     const previousTitle = document.title;
     document.title = file.basename;
