@@ -1,6 +1,7 @@
 // Pre-release self-check: node scripts/check-release.mjs [--audit]
 // Mirrors what the Obsidian directory scans for, plus what must never reach the public repository.
-// Lint counts are compared with scripts/lint-baseline.json: a rule may go down, never up.
+// The directory review must come back clean: zero ESLint problems, main.js under 5 MB, no Node / Electron,
+// no eval, no !important.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
@@ -35,8 +36,8 @@ const sourceFiles = [];
   }
 })("src");
 const sourceText = sourceFiles.map(file => read(file)).join("\n");
-// These two build scripts as strings for other pages (the exported reader, a hidden capture window); they never touch Obsidian's DOM.
-const scriptStringFiles = ["src/modules/reader-app.ts", "src/modules/offscreen-capture.ts"];
+// This one builds scripts as strings for another page (the exported reader); it never touches Obsidian's DOM.
+const scriptStringFiles = ["src/modules/reader-app.ts"];
 const pluginDomText = sourceFiles.filter(file => !scriptStringFiles.includes(file)).map(file => read(file)).join("\n");
 const tally = (pattern, text = sourceText) => (text.match(pattern) || []).length;
 check(tally(/\.(innerHTML|outerHTML)\s*=|insertAdjacentHTML\(/g, pluginDomText) === 0, "no innerHTML / outerHTML / insertAdjacentHTML in plugin code", String(tally(/\.(innerHTML|outerHTML)\s*=|insertAdjacentHTML\(/g, pluginDomText)));
@@ -44,28 +45,45 @@ check(tally(/console\.log\(|console\.info\(|console\.debug\(/g) === 0, "no conso
 check(tally(/(^|\n)\s*var\s/g) === 0, "no var declarations");
 check(tally(/hotkeys\s*:/g) === 0, "no default hotkeys");
 check(tally(/window\.app\b|globalThis\.app\b/g) === 0, "no global app");
-check(tally(/\beval\(/g) === 0, "no eval()");
+check(tally(/\beval\(|new Function\b|\bFunction\(/g) === 0, "no eval() or Function constructor");
+check(tally(/\bfetch\(/g) === 0, "no fetch() (requestUrl instead)");
+const nodeAccess = /(?:from\s*|import\(\s*)["'](?:node:)?(?:fs|path|os|child_process|electron|vm)["']|ipcRenderer|\brequire\(/g;
+check(tally(nodeAccess) === 0, "no Node built-ins, Electron or require()", String(tally(nodeAccess)));
 check(!/\bfetch\(["'`]https?:/.test(sourceText) || true, "network calls are user-initiated (review manually)");
 
-// Lint rules compared with the baseline
+// Lint: the directory runs eslint-plugin-obsidianmd; every problem shows up as a review warning.
 if (!process.argv.includes("--no-lint")) {
-  let report = [];
-  try { execFileSync("npx", ["eslint", "src", "--format", "json", "-o", "/tmp/ib-eslint.json"], { stdio: "ignore" }); } catch (_) { /* eslint exits non-zero when it finds problems */ }
-  report = JSON.parse(read("/tmp/ib-eslint.json"));
-  const counts = {};
-  for (const file of report) for (const message of file.messages) if (message.ruleId) counts[message.ruleId] = (counts[message.ruleId] || 0) + 1;
-  const baseline = JSON.parse(read("scripts/lint-baseline.json"));
-  for (const [rule, allowed] of Object.entries(baseline)) check((counts[rule] || 0) <= allowed, `lint ${rule} ≤ ${allowed}`, String(counts[rule] || 0));
+  try { execFileSync("npx", ["eslint", ".", "--format", "json", "-o", "/tmp/ib-eslint.json"], { stdio: "ignore" }); } catch { /* eslint exits non-zero when it finds problems */ }
+  const report = JSON.parse(read("/tmp/ib-eslint.json"));
+  const problems = report.flatMap(file => file.messages.map(message => `${path.relative(process.cwd(), file.filePath)}:${message.line} ${message.ruleId || message.message}`));
+  check(problems.length === 0, "eslint: 0 errors, 0 warnings", `${problems.length} — ${problems.slice(0, 4).join(", ")}`);
 }
+
+// Stylesheets: no !important, no property declared twice in one rule.
+const sheets = ["styles.css", "theme-features.css", "reveal.css"];
+const important = sheets.flatMap(f => read(f).split("\n").map((line, i) => [f, i + 1, line]).filter(([, , line]) => line.includes("!important")).map(([f, no]) => `${f}:${no}`));
+check(important.length === 0, "no !important in stylesheets", important.slice(0, 6).join(", "));
+const repeated = [];
+for (const sheet of sheets) {
+  for (const [, body] of read(sheet).replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/\{([^{}]*)\}/g)) {
+    const props = body.split(";").map(d => d.split(":")[0].trim()).filter(p => /^-?[a-z][a-z-]*$/.test(p));
+    const dup = props.find((p, i) => props.indexOf(p) !== i);
+    if (dup) repeated.push(`${sheet}: ${dup}`);
+  }
+}
+check(repeated.length === 0, "no duplicate properties in a rule", repeated.slice(0, 6).join(", "));
 
 // Build output
 if (existsSync("dist/main.js")) {
   const size = statSync("dist/main.js").size / 1048576;
-  check(true, `dist/main.js is ${size.toFixed(2)} MB (directory warns above 5 MB: known, kept)`);
+  check(size < 5, "dist/main.js is under 5 MB", `${size.toFixed(2)} MB`);
+  const bundle = read("dist/main.js");
+  const banned = ["child_process", "ipcRenderer", 'require("electron")', 'require("fs")', "new Function", "eval("].filter(token => bundle.includes(token));
+  check(banned.length === 0, "dist/main.js has no Node / Electron access or eval", banned.join(", "));
 }
 
 // Nothing internal in the public repository
-const files = git("ls-files").split("\n");
+const files = git("ls-files").split("\n").filter(f => existsSync(f));
 const internalName = /plan|roadmap|todo|notes?\.md$|handoff|交接|计划|迭代|competitor|竞品/i;
 const internal = files.filter(f => internalName.test(f) && !/^(scripts\/|src\/|vendor\/|licenses\/)/.test(f));
 check(internal.length === 0, "no planning or internal files tracked", internal.join(", "));

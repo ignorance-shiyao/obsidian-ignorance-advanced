@@ -8,6 +8,7 @@
     "check": "node scripts/check-release.mjs"
   },
   "devDependencies": {
+    "@types/markdown-it": "14.1.2",
     "@xmldom/xmldom": "0.8.11",
     "esbuild": "0.28.2",
     "eslint": "^9.39.5",
@@ -20,9 +21,13 @@
     "vitest": "5.0.2"
   },
   "dependencies": {
+    "@codemirror/language": "6.11.3",
+    "@codemirror/state": "6.5.0",
+    "@codemirror/view": "6.38.6",
     "docx": "9.7.1",
     "echarts": "6.1.0",
     "html2canvas-pro": "2.4.5",
+    "jszip": "3.10.1",
     "markdown-it": "14.3.2",
     "pptxgenjs": "4.0.1",
     "reveal.js": "6.0.1"

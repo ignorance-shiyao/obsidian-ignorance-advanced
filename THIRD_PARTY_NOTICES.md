@@ -15,12 +15,20 @@ Ignorance Advanced bundles the open-source software below. Each remains under it
 
 | Package | Version | License |
 | --- | --- | --- |
+| @codemirror/language | 6.11.3 | MIT |
+| @codemirror/state | 6.5.0 | MIT |
+| @codemirror/view | 6.38.6 | MIT |
+| @lezer/common | 1.5.3 | MIT |
+| @lezer/highlight | 1.2.5 | MIT |
+| @lezer/lr | 1.4.11 | MIT |
+| @marijn/find-cluster-break | 1.0.4 | MIT |
 | @types/node | 25.9.8 | MIT |
 | @types/node | 22.20.4 | MIT |
 | argparse | 2.0.1 | Python-2.0 |
 | base64-arraybuffer | 1.0.2 | MIT |
 | chroma-js | 3.2.0 | (BSD-3-Clause AND Apache-2.0) |
 | core-util-is | 1.0.3 | MIT |
+| crelt | 1.0.7 | MIT |
 | css-line-break | 2.1.0 | MIT |
 | docx | 9.7.1 | MIT |
 | echarts | 6.1.0 | Apache-2.0 |
@@ -50,6 +58,7 @@ Ignorance Advanced bundles the open-source software below. Each remains under it
 | sax | 1.6.1 | BlueOak-1.0.0 |
 | setimmediate | 1.0.5 | MIT |
 | string_decoder | 1.1.1 | MIT |
+| style-mod | 4.1.4 | MIT |
 | text-segmentation | 1.0.3 | MIT |
 | tslib | 2.3.0 | 0BSD |
 | uc.micro | 2.1.0 | MIT |
@@ -57,6 +66,7 @@ Ignorance Advanced bundles the open-source software below. Each remains under it
 | undici-types | 6.21.0 | MIT |
 | util-deprecate | 1.0.2 | MIT |
 | utrie | 1.0.2 | MIT |
+| w3c-keyname | 2.2.8 | MIT |
 | xml | 1.0.1 | MIT |
 | xml-js | 1.6.11 | MIT |
 | zrender | 6.1.0 | BSD-3-Clause |
