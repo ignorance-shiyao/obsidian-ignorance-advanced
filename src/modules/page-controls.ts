@@ -86,7 +86,8 @@ export function initPageState(plugin: IgnorancePlugin) {
   plugin.state.page.margins = Object.assign({ ...MARGIN_PRESETS.normal }, plugin.state.page.margins || {});
   // Widths used to be pixels; a custom width above 100 is one of those.
   if (!(plugin.state.page.customWidth >= 30 && plugin.state.page.customWidth <= 100)) plugin.state.page.customWidth = 80;
-  plugin.state.page.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(plugin.state.page.zoom) || 1));
+  // Zoom is a temporary view, not a layout choice: a trackpad pinch must not leave the page shrunk after a restart.
+  plugin.state.page.zoom = 1;
   // The old "full width" preset is now Obsidian's readable-line-length switch.
   if (plugin.state.page.width === "full") {
     plugin.state.page.width = "standard";
