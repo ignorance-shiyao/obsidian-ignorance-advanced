@@ -1,11 +1,9 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { withClassElkSpacing } from "./class-elk-spacing.js";
 import { withClassBoxMeasurement } from "./class-box-measurement.js";
 import { withMermaidConfigIsolation } from "./mermaid-config-isolation.js";
 import { layoutWardleyNotes, restoreWardleyNotes } from "./wardley-note-layout.js";
 import { parseYaml } from "obsidian";
 import { withWardleyFontConfig } from "./wardley-font-config.js";
-import { readAsset } from "./assets.js";
 import { Decoration } from "@codemirror/view";
 import { mapArchitectureIcons, registerLucideIcons } from "./architecture-icons.js";
 import { avoidC4LabelNodes } from "./c4-label-layout.js";
@@ -1825,7 +1823,7 @@ function t(key: string) {
 }
 
 /* --------------------------------------------------------------------------
- * Bundled Mermaid
+ * Mermaid engine
  *
  * Obsidian hardcodes Mermaid ahead of the plugin code-block registry:
  *
@@ -1833,150 +1831,21 @@ function t(key: string) {
  *   else if (codeBlockPostProcessors.hasOwnProperty(lang)) { ... }
  *
  * so a registerMarkdownCodeBlockProcessor("mermaid", ...) never runs. Its
- * renderer calls the global `mermaid`, which is also where its own copy lives,
- * so the way to get newer diagram families is to put ours in that slot and put
- * Obsidian's back on unload.
+ * renderer calls the global `mermaid`, so the way to theme and decorate every
+ * diagram is to put a router in that slot (around Obsidian's own engine) and
+ * put the original back on unload.
  * -------------------------------------------------------------------------- */
 
-const MERMAID_FILE = "mermaid.min.js";
-const MERMAID_VERSION = "12.0.0";
-
-/* Diagram families Mermaid ships as separate packages. Each is an esbuild IIFE
-   (same shape as mermaid.min.js) loaded only the first time a block of that
-   type renders, so the multi-MB bundles cost nothing on startup. */
-const EXTERNAL_DIAGRAMS = [
-  // @mermaid-js/mermaid-zenuml 1.0.1
-  { id: "zenuml", file: "mermaid-zenuml.min.js", global: "mermaid-zenuml", detector: (text: string) => /^\s*zenuml/.test(text) }
-];
-
-/* The bundles end by publishing themselves from the GLOBAL
-   __esbuild_esm_mermaid_nm, which is Obsidian's and lacks our entries; that
-   line would throw. Drop it and read the local copy instead. */
-function evalEsbuildBundle(source: string, key: string) {
-  const body = source.replace(/\nglobalThis\["[^"]+"\]\s*=\s*[^\n]*\s*$/, "");
-  return new Function(`${body}\n;return __esbuild_esm_mermaid_nm[${JSON.stringify(key)}].default;`)();
+/* The slice of Mermaid's API this plugin calls. */
+interface MermaidEngine {
+  initialize(config: unknown): void;
+  parse(...args: unknown[]): unknown;
+  render(id: string, text: string, ...rest: unknown[]): Promise<{ svg: string; bindFunctions?: (element: Element) => void }>;
+  mermaidAPI?: { getDiagramFromText?(text: string): Promise<{ db: Record<string, () => unknown> & { getConfig(): Record<string, number>; getTasks(): unknown[]; getTickInterval(): string } }> };
+  registerIconPacks?(packs: unknown[]): void;
 }
 
-/* --------------------------------------------------------------------------
- * Balanced layout
- *
- * dagre lays a flowchart out along one axis only, so a long chain comes out
- * as a thin strip. What matters in a note is how large the text ends up once
- * the diagram is fitted to the text column (vertical scrolling is free,
- * horizontal overflow is not), with a penalty for diagrams that run
- * absurdly tall. If the rendered layout would shrink below MIN_READABLE, the
- * flipped direction is rendered too and the more readable one is kept.
- * Opt out per diagram with a `%% ibm:keep-layout` comment.
- * -------------------------------------------------------------------------- */
-
-const COLUMN_WIDTH = 720;
-const COMFORTABLE_HEIGHT = 1600;
-const MIN_READABLE = 0.6;
 const FLOWCHART_HEADER = /^(\s*(?:---[\s\S]*?\n---\s*\n)?(?:%%[^\n]*\n\s*)*(?:flowchart|graph))(?:[ \t]+(LR|RL|TB|TD|BT))?[ \t]*$/m;
-
-function svgSize(svgText) {
-  const match = /viewBox="([^"]+)"/.exec(svgText || "");
-  if (!match) return null;
-  const [, , width, height] = match[1].trim().split(/[\s,]+/).map(Number);
-  return width > 0 && height > 0 ? { width, height } : null;
-}
-
-/* Scale the text would render at when fitted to the column, discounted when
-   the fitted diagram is taller than a comfortable read. */
-function readability(size) {
-  const scale = Math.min(1, COLUMN_WIDTH / size.width);
-  const tall = Math.max(1, (size.height * scale) / COMFORTABLE_HEIGHT);
-  return scale / tall;
-}
-
-/* ELK (@mermaid-js/layout-elk 1.0.0, rebuilt as one IIFE) is loaded only
-   the first time a diagram needs it. Its runElkLayout was patched to pass the
-   graph through globalThis.__ibmElkTune before layout, which is where graph
-   wrapping gets switched on. */
-const ELK_FILE = "mermaid-layout-elk.min.js";
-const ELK_ALGORITHMS = ["elk.layered", "elk.stress", "elk.force", "elk.mrtree", "elk.sporeOverlap", "elk.box", "elk.rectpacking"];
-let elkWrapRequested = false;
-
-function registerElkLayouts(plugin: IgnorancePlugin, mermaid) {
-  if (typeof mermaid.registerLayoutLoaders !== "function") return;
-  let pending = null;
-  const load = async () => {
-    pending ||= readAsset(plugin, ELK_FILE).then(source => {
-      const layouts = new Function(`${source}\n;return __ibmLayoutElk.default;`)();
-      return layouts[0].loader;
-    });
-    const loader = await pending;
-    return loader();
-  };
-  mermaid.registerLayoutLoaders(ELK_ALGORITHMS.map((algorithm, index) => ({
-    name: index === 0 ? "elk" : algorithm,
-    loader: load,
-    algorithm
-  })));
-
-  // Graph wrapping folds a long layered chain into rows until the drawing
-  // approaches the aspect ratio. ELK only wraps flat graphs; with compound
-  // nodes it is a no-op, which is why only flat flowcharts request it.
-  window.__ibmElkTune = graph => {
-    if (!elkWrapRequested) return graph;
-    graph.layoutOptions = {
-      ...(graph.layoutOptions || {}),
-      "elk.layered.wrapping.strategy": "MULTI_EDGE",
-      "elk.aspectRatio": String(TARGET_ASPECT)
-    };
-    return graph;
-  };
-}
-
-const TARGET_ASPECT = 1.6;
-
-function withLayoutDirective(text: string, layout: string) {
-  const directive = `%%{init: {"layout": "${layout}"}}%%\n`;
-  const frontmatter = /^\s*---[\s\S]*?\n---[ \t]*\n/.exec(text);
-  return frontmatter
-    ? text.slice(0, frontmatter[0].length) + directive + text.slice(frontmatter[0].length)
-    : directive + text;
-}
-
-function installBalancedLayout(mermaid) {
-  const render = mermaid.render.bind(mermaid);
-  let counter = 0;
-  const attempt = async (id: string, text: string, rest, wrap = false) => {
-    elkWrapRequested = wrap;
-    try {
-      const result = await render(`${id}-ibm-alt${counter++}`, text, ...rest);
-      const size = svgSize(result.svg);
-      return size ? { result, score: readability(size) } : null;
-    } catch (_) {
-      return null;
-    } finally {
-      elkWrapRequested = false;
-    }
-  };
-
-  mermaid.render = async (id: string, text: string, ...rest) => {
-    const result = await render(id, text, ...rest);
-    try {
-      if (typeof text !== "string" || /%%\s*ibm:keep-layout/.test(text)) return result;
-      // An author who picked a layout engine has made the call already.
-      if (/["']?layout["']?\s*:/.test(text)) return result;
-      if (!FLOWCHART_HEADER.test(text)) return result;
-      const size = svgSize(result.svg);
-      if (!size || readability(size) >= MIN_READABLE) return result;
-
-      // Only a flat graph (no subgraphs) can be folded into rows by ELK
-      // wrapping. Flipping the axis instead was tried and read worse: a wide
-      // strip just became a tall one.
-      if (/^\s*subgraph\b/m.test(text)) return result;
-      let best = { result, score: readability(size) };
-      const wrapped = await attempt(id, withLayoutDirective(text, "elk"), rest, true);
-      if (wrapped && wrapped.score > best.score) best = wrapped;
-      return best.result;
-    } catch (_) {
-      return result;
-    }
-  };
-}
 
 /* --------------------------------------------------------------------------
  * Use case crossing reduction
@@ -2106,20 +1975,6 @@ function installUsecaseOrdering(mermaid) {
   };
 }
 
-async function registerExternalDiagrams(plugin: IgnorancePlugin, mermaid) {
-  if (typeof mermaid.registerExternalDiagrams !== "function") return;
-  const definitions = EXTERNAL_DIAGRAMS.map(entry => ({
-    id: entry.id,
-    detector: entry.detector,
-    loader: async () => {
-      const source = await readAsset(plugin, entry.file);
-      const external = evalEsbuildBundle(source, entry.global);
-      return external.loader();
-    }
-  }));
-  await mermaid.registerExternalDiagrams(definitions, { lazyLoad: true });
-}
-
 const MERMAID_CONFIG = {
   startOnLoad: false,
   securityLevel: "loose",
@@ -2194,85 +2049,21 @@ const MERMAID_CONFIG = {
   }
 };
 
-const USE_CLASSIC_ENGINE = false;
-const CLASSIC_FAMILIES = /^\s*(?:---[\s\S]*?\n---\s*\n)?(?:\s*%%[^\n]*\n)*\s*(?:flowchart|graph|sequenceDiagram|classDiagram(?:-v2)?|stateDiagram(?:-v2)?|erDiagram)\b/;
+/* The engine is Obsidian's own Mermaid (11), obtained through loadMermaid().
+   It is wrapped in a router that applies this plugin's configuration per
+   render and stamps each drawing, so diagrams drawn before it took over can
+   be found and redrawn. */
+function createMermaidRouter(plugin: IgnorancePlugin, engine: MermaidEngine) {
+  registerLucideIcons(plugin, engine);
+  engine.initialize(MERMAID_CONFIG);
 
-/* Obsidian ships Mermaid 11 at /lib/mermaid.min.js inside the app bundle.
-   Evaluate a private copy the same way as the bundled 12. */
-async function loadObsidianMermaid() {
-  try {
-    const response = await fetch("/lib/mermaid.min.js");
-    if (!response.ok) return null;
-    const source = (await response.text()).replace(/\nglobalThis\["mermaid"\]\s*=[^\n]*\s*$/, "");
-    const engine = new Function(`${source}\n;return __esbuild_esm_mermaid_nm.mermaid.default;`)();
-    return engine && typeof engine.render === "function" ? engine : null;
-  } catch (error) {
-    console.warn("[ignorance-advanced] Obsidian's Mermaid unavailable; using the bundled one for everything", error);
-    return null;
-  }
-}
-
-async function loadBundledMermaid(plugin: IgnorancePlugin, { publish = true } = {}) {
-  const path = `${plugin.manifest.dir}/${MERMAID_FILE}`;
-  const source = await readAsset(plugin, MERMAID_FILE);
-
-  const previous = {
-    mermaid: window.mermaid,
-    descriptor: Object.getOwnPropertyDescriptor(window, "mermaid"),
-    esbuild: window.__esbuild_esm_mermaid_nm
-  };
-
-  // The bundle declares `var __esbuild_esm_mermaid_nm` — inside new Function
-  // that is a LOCAL variable, while its last line publishes from the GLOBAL of
-  // the same name, which is Obsidian's. Read it out locally to get the copy we
-  // just built.
-  const loaded = evalEsbuildBundle(source, "mermaid");
-  if (!loaded || typeof loaded.render !== "function") {
-    throw new Error("bundled Mermaid did not expose a render()");
-  }
-
-  // Obsidian's own Mermaid 11 lays out the families it knows (flowchart,
-  // sequence, class, …) noticeably better than 12's reworked layout — 12
-  // spreads a clustered flowchart into a thin strip. Load a private copy of
-  // it (Obsidian's instance stays Obsidian's) and route by diagram type:
-  // 11 for anything it can parse, 12 only for the families 11 lacks.
-  // Every diagram renders with the bundled Mermaid 12 (user preference).
-  // Routing to Obsidian's Mermaid 11 is kept but switched off: set
-  // USE_CLASSIC_ENGINE to true to send CLASSIC_FAMILIES to 11 again.
-  const classic = USE_CLASSIC_ENGINE ? await loadObsidianMermaid() : null;
-  for (const engine of [loaded, classic].filter(Boolean)) {
-    registerElkLayouts(plugin, engine);
-    registerLucideIcons(plugin, engine);
-    engine.initialize(MERMAID_CONFIG);
-  }
-  try {
-    await registerExternalDiagrams(plugin, loaded);
-  } catch (error) {
-    console.warn("[ignorance-advanced] external diagrams not registered", error);
-  }
-
-  const obsidianInits = [];
-  const router = {
-    engines: { modern: loaded, classic },
+  const router: MermaidEngine = {
     // Obsidian calls initialize() once its own chunk loads; that config
     // (useMaxWidth, strict security, …) must not replace ours.
-    initialize: config => { obsidianInits.push(config); },
-    parse: (...args) => loaded.parse(...args),
-    // Only the families whose 11 layout is clearly better — and whose styling
-    // was checked against 11's DOM — go to 11. Everything else (C4, gantt,
-    // pie, journey, the beta families, …) stays on 12, whose DOM the theme
-    // and decorations were built for.
-    async pick(text: string) {
-      if (!classic || typeof text !== "string" || !CLASSIC_FAMILIES.test(text)) return loaded;
-      try {
-        return (await classic.parse(text, { suppressErrors: true })) ? classic : loaded;
-      } catch (_) {
-        return loaded;
-      }
-    },
-    async render(id: string, text: string, ...rest) {
+    initialize: () => {},
+    parse: (...args: unknown[]) => engine.parse(...args),
+    async render(id: string, text: string, ...rest: unknown[]) {
       text = mapArchitectureIcons(text);
-      const engine = await router.pick(text);
       return withMermaidConfigIsolation(engine, async () => {
         if (/^\s*gantt\b/m.test(text) && engine.mermaidAPI?.getDiagramFromText) {
           try {
@@ -2282,33 +2073,18 @@ async function loadBundledMermaid(plugin: IgnorancePlugin, { publish = true } = 
               (config.useWidth || 740) - (config.leftPadding || 0) - (config.rightPadding || 0),
               diagram.db.getTickInterval() || config.tickInterval);
             if (interval) text = text.replace(/^(\s*gantt[^\n]*\n)/m, `$1    tickInterval ${interval}\n`);
-          } catch (_) { /* Original rendering retains Mermaid's error handling. */ }
+          } catch { /* Original rendering retains Mermaid's error handling. */ }
         }
-        const result = await withClassNoteLayout(engine, text, () => withClassBoxMeasurement(engine, id, text, () => withWardleyFontConfig(engine, text, () => withClassElkSpacing(text, () => engine.render(id, text, ...rest)), parseYaml)), getComputedStyle(document.body).getPropertyValue("--ib-font-mono").trim());
+        const result = await withClassNoteLayout(engine, text, () => withClassBoxMeasurement(engine, id, text, () => withWardleyFontConfig(engine, text, () => engine.render(id, text, ...rest), parseYaml)), getComputedStyle(document.body).getPropertyValue("--ib-font-mono").trim());
         // Stamp who drew it, so diagrams Obsidian drew before we loaded can be found.
-        return { ...result, svg: result.svg.replace(/<svg\b/, `<svg${/%%\s*ibm:keep-layout/.test(text) ? ' data-ibm-keep-layout=""' : ""} data-ibm-engine="${engine === loaded ? "12" : "11"}"`) };
+        return { ...result, svg: result.svg.replace(/<svg\b/, `<svg${/%%\s*ibm:keep-layout/.test(text) ? ' data-ibm-keep-layout=""' : ""} data-ibm-engine="11"`) };
       });
     }
   };
-  installBalancedLayout(router);
   installUsecaseOrdering(router);
   installFlowchartShapes(router);
-
-  /* Obsidian loads its own Mermaid chunk lazily — the first diagram render can
-     publish it over ours long after this runs. So hold the global behind an
-     accessor: reads always get the router, later writes are remembered but
-     ignored, and unload puts the original property back. */
-  const overwrites = [];
-  if (publish) Object.defineProperty(window, "mermaid", {
-    configurable: true,
-    enumerable: true,
-    get: () => router,
-    set: value => { overwrites.push(value); }
-  });
-
-  return { mermaid: router, previous, overwrites };
+  return router;
 }
-
 
 
 export {
@@ -2392,23 +2168,7 @@ export {
   STRINGS,
   interfaceLanguage,
   t,
-  MERMAID_FILE,
-  MERMAID_VERSION,
-  EXTERNAL_DIAGRAMS,
-  evalEsbuildBundle,
-  COLUMN_WIDTH,
-  COMFORTABLE_HEIGHT,
-  MIN_READABLE,
   FLOWCHART_HEADER,
-  svgSize,
-  readability,
-  ELK_FILE,
-  ELK_ALGORITHMS,
-  elkWrapRequested,
-  registerElkLayouts,
-  TARGET_ASPECT,
-  withLayoutDirective,
-  installBalancedLayout,
   USECASE_HEADER,
   USECASE_EDGE,
   usecasePositions,
@@ -2420,10 +2180,7 @@ export {
   SWIMLANE_HEADER,
   installFlowchartShapes,
   installUsecaseOrdering,
-  registerExternalDiagrams,
   MERMAID_CONFIG,
-  USE_CLASSIC_ENGINE,
-  CLASSIC_FAMILIES,
-  loadObsidianMermaid,
-  loadBundledMermaid
+  createMermaidRouter
 };
+export type { MermaidEngine };

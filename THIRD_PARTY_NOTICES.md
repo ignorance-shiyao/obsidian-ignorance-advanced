@@ -6,9 +6,6 @@ Ignorance Advanced bundles the open-source software below. Each remains under it
 
 | Library | Version | License | Source | Notes |
 | --- | --- | --- | --- | --- |
-| Mermaid | 12.x | MIT | https://github.com/mermaid-js/mermaid | vendor/mermaid.min.js, built with esbuild as an IIFE |
-| @mermaid-js/layout-elk (with elkjs) | see bundle | MIT (elkjs: EPL-2.0) | https://github.com/mermaid-js/mermaid | vendor/mermaid-layout-elk.min.js |
-| @mermaid-js/mermaid-zenuml | 1.0.1 | MIT | https://github.com/mermaid-js/mermaid-zenuml | vendor/mermaid-zenuml.min.js |
 | Apache ECharts | see file header | Apache-2.0 | https://echarts.apache.org | vendor/echarts.min.js (NOTICE in licenses/NOTICE-echarts) |
 | Lucide icons via @iconify-json/lucide | see file | ISC | https://lucide.dev | vendor/lucide-icons.json (architecture diagram icons) |
 | Material Icon Theme | see devDependency | MIT | https://github.com/material-extensions/vscode-material-icon-theme | language and file-type icons, built into the plugin by gen-icon-library.mjs |

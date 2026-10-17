@@ -1,5 +1,6 @@
-import { MarkdownView,Notice,Platform } from "obsidian";
-import { loadBundledMermaid,paintDiagram,t } from "../modules/mermaid-core.js";
+import { MarkdownView, Notice, Platform, loadMermaid } from "obsidian";
+import { createMermaidRouter, paintDiagram, t } from "../modules/mermaid-core.js";
+import type { MermaidEngine } from "../modules/mermaid-core.js";
 import { createMermaidRenderQueue } from "../modules/mermaid-render-queue.js";
 import { guardedCleanup,restoreGlobalProperty } from "../modules/plugin-cleanup.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
@@ -7,23 +8,29 @@ import type { IgnorancePlugin } from "../plugin-types.js";
 // Mermaid's built-in edge animations (see styles.css for the shared copies).
 const MERMAID_KEYFRAMES = /@keyframes\s+(?:edge-animation-frame|dash)\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g;
 
-/* Mermaid loading: the bundled Mermaid is unpacked on first use, and diagrams drawn before the theme settled are redrawn. */
+/* Mermaid loading: Obsidian's own Mermaid is loaded on first use and wrapped in the router, and diagrams drawn before the theme settled are redrawn. */
 
 /* Obsidian only calls mermaid.initialize() and mermaid.render(). Stand in
-   for the global right away with a light router, and read and evaluate the
-   bundled Mermaid (the slowest part of startup, especially on mobile) the
-   first time a diagram is drawn. Desktop warms it up once the app is idle. */
+   for the global right away with a light router, and load Obsidian's Mermaid
+   (the slowest part of startup, especially on mobile) the first time a
+   diagram is drawn. Desktop warms it up once the app is idle. */
 export function installLazyMermaid(plugin: IgnorancePlugin) {
   const previous = {
     mermaid: window.mermaid,
     descriptor: Object.getOwnPropertyDescriptor(window, "mermaid")
   };
-  const configs = [];
-  const overwrites = [];
-  let engine = null;
-  let loading = null;
-  const ensure = () => loading ||= loadBundledMermaid(plugin, { publish: false })
-    .then(({ mermaid }) => {
+  const configs: unknown[] = [];
+  const overwrites: MermaidEngine[] = [];
+  let engine: MermaidEngine | null = null;
+  let loading: Promise<MermaidEngine> | null = null;
+  // loadMermaid() resolves with the global, which is this stand-in; the real
+  // engine is what Obsidian's script assigned to it (or what was there first).
+  const native = () => overwrites[overwrites.length - 1] || previous.mermaid as MermaidEngine | undefined;
+  const ensure = () => loading ||= loadMermaid()
+    .then(() => {
+      const original = native();
+      if (!original || typeof original.render !== "function") throw new Error("Obsidian's Mermaid is unavailable");
+      const mermaid = createMermaidRouter(plugin, original);
       // Each diagram's <style> declares the same global @keyframes; inserting
       // or cloning one made Chrome restyle the whole document (~0.3s on a
       // long note, per diagram). They live once in styles.css instead.
@@ -48,7 +55,7 @@ export function installLazyMermaid(plugin: IgnorancePlugin) {
       console.error("Ignorance Advanced: keeping Obsidian's Mermaid —", error);
       new Notice(t("mermaidLoadFailed"));
       // Fall back to the Mermaid Obsidian published meanwhile, if any.
-      const fallback = overwrites[overwrites.length - 1] || previous.mermaid;
+      const fallback = native();
       if (!fallback) throw error;
       configs.forEach(config => fallback.initialize?.(config));
       return engine = fallback;
@@ -66,12 +73,12 @@ export function installLazyMermaid(plugin: IgnorancePlugin) {
   });
   plugin.ensureMermaid = ensure;
   plugin.register(() => {
-    const native = overwrites[overwrites.length - 1] || previous.mermaid;
-    const descriptor = previous.descriptor || (native ? { value: native, writable: true, configurable: true, enumerable: true } : undefined);
+    const original = native();
+    const descriptor = previous.descriptor || (original ? { value: original, writable: true, configurable: true, enumerable: true } : undefined);
     guardedCleanup(() => restoreGlobalProperty(window, "mermaid", descriptor), "恢复 Mermaid")();
-    // __esbuild_esm_mermaid_nm belongs to Obsidian's lazy loader. Our bundle
-    // evaluates it locally, so unloading must not delete or clear the
-    // native loader that appeared after plugin startup.
+    // The router configured Obsidian's shared engine; hand it back the
+    // configuration Obsidian asked for.
+    if (original) configs.forEach(config => original.initialize(config));
   });
   if (!Platform.isMobile) {
     plugin.app.workspace.onLayoutReady(() => {

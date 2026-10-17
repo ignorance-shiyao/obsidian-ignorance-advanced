@@ -41,7 +41,7 @@ for (const name of ["docx", "pptx", "reveal", "capture"]) {
 }
 add("import-converters.cjs", await bundle(path.join(here, "src/modules/import-converters.js"), { platform: "node", format: "cjs", minify: true, keepNames: true }));
 add("pdf.worker.mjs", Buffer.from((await transform(await readFile(path.join(here, "node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"), "utf8"), { loader: "js", minify: true, legalComments: "none", target: "es2022" })).code));
-for (const name of ["mermaid.min.js", "mermaid-zenuml.min.js", "mermaid-layout-elk.min.js", "echarts.min.js", "lucide-icons.json"]) await addFile(name, path.join(here, "vendor", name));
+for (const name of ["echarts.min.js", "lucide-icons.json"]) await addFile(name, path.join(here, "vendor", name));
 for (const name of ["language-icons.json", "file-icons.json"]) await addFile(name, path.join(generated, name));
 
 const virtual = {
