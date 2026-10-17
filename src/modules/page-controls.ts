@@ -1,5 +1,5 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { Menu } from "obsidian";
+import { Menu, Platform } from "obsidian";
 import { setDocSheet, removeDocSheet } from "./doc-sheets.js";
 import { setIcon } from "./ui-icons.js";
 import { toggleWritingMode } from "./editor-tools.js";
@@ -38,8 +38,10 @@ function applyPageSettings(plugin: IgnorancePlugin) {
   // The page width is a share of the window. Zoom (Ctrl + wheel) magnifies the
   // whole page like a picture: the layout inside it is the same at every level,
   // it just gets bigger or smaller, and a page larger than the window scrolls.
-  const share = page.width === "custom" ? page.customWidth : (WIDTH_PRESETS.find(([id]) => id === page.width)?.[2] ?? 70);
-  const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(page.zoom) || 1));
+  // A phone is too narrow to give any of its width away, and pinching already zooms.
+  const phone = Platform.isPhone;
+  const share = phone ? 100 : page.width === "custom" ? page.customWidth : (WIDTH_PRESETS.find(([id]) => id === page.width)?.[2] ?? 70);
+  const zoom = phone ? 1 : Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(page.zoom) || 1));
   body.style.setProperty("--ib-content-max", `${share}%`);
   // Obsidian caps embeds (images, tables) at --file-line-width inside the page, so it must not be the share again.
   body.setCssProps({ "--ibp-zoom": String(zoom), "--ibp-share": String(share / 100), "--file-line-width": "100%" });
