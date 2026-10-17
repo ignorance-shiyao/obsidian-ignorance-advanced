@@ -13,13 +13,12 @@ import { Notice, TFile, normalizePath } from "obsidian";
    shows it. */
 import { electronRemote, hasDesktopExports, vaultBasePath } from "./desktop-runtime.js";
 import { EXTERNAL_VIEW, ExternalMarkdownView } from "./external-view.js";
+import { nodeFs, nodePath } from "./node-builtins.js";
 
 
 export const EXTERNAL_FOLDER = "外部文件";
 const PROTOCOL = "ignorance-open";
 
-function nodeFs() { return require("fs"); }
-function nodePath() { return require("path"); }
 
 function vaultRoot(plugin: IgnorancePlugin) {
   return vaultBasePath(plugin);

@@ -13,6 +13,7 @@ import { capturePortable, rasterizeSvg } from "./portable-capture.js";
 import { exportNotePptx, buildDeck } from "./slides.js";
 import { previewThenExport } from "./export-preview.js";
 import { buildImagePdf } from "./image-pdf.js";
+import { nodeChildProcess, nodeFs, nodeOs, nodePath } from "./node-builtins.js";
 
 /* --------------------------------------------------------------------------
  * Export
@@ -500,7 +501,7 @@ async function exportImagesToVault(plugin: IgnorancePlugin, file: TFile, kind: s
 async function exportImages(plugin: IgnorancePlugin, file: TFile, kind: string, targetPath) {
   if (!hasDesktopExports() && !targetPath) return exportImagesToVault(plugin, file, kind);
   const remote = electronRemote();
-  const fs = require("fs"), path = require("path");
+  const fs = nodeFs(), path = nodePath();
   let target = targetPath;
   if (target) {
     // Given by the caller (tests); skip the dialog.
@@ -535,12 +536,12 @@ async function exportImages(plugin: IgnorancePlugin, file: TFile, kind: string, 
 }
 
 function findPandoc() {
-  const fs = require("fs");
+  const fs = nodeFs();
   return ["/opt/homebrew/bin/pandoc", "/usr/local/bin/pandoc", "/usr/bin/pandoc", "C:\\Program Files\\Pandoc\\pandoc.exe"].find(p => fs.existsSync(p)) || null;
 }
 
 async function toPngFile(src, dest) {
-  const fs = require("fs");
+  const fs = nodeFs();
   const bitmap = await createImageBitmap(new Blob([fs.readFileSync(src)]));
   const canvas = createEl("canvas");
   canvas.width = bitmap.width; canvas.height = bitmap.height;
@@ -551,7 +552,7 @@ async function toPngFile(src, dest) {
 
 /* Rewrite Obsidian-only syntax into plain Markdown Pandoc understands. */
 async function prepareMarkdownForPandoc(plugin: IgnorancePlugin, file: TFile, text: string, tmp, diagrams, { structuredWord = false } = {}) {
-  const path = require("path");
+  const path = nodePath();
   const base = vaultBasePath(plugin);
   const noteDir = path.join(base, file.parent?.path || "");
   let imageIndex = 0;
@@ -574,7 +575,7 @@ function wordFontFromToken(value: string, fallback: string) {
 }
 
 async function resolveStructuredWordImage(plugin: IgnorancePlugin, file: TFile, tmp, source: string) {
-  const fs = require("fs"), path = require("path");
+  const fs = nodeFs(), path = nodePath();
   const dataUri = String(source).match(/^data:image\/(png|jpe?g|gif|bmp);base64,([\s\S]+)$/i);
   if (dataUri) {
     const type = dataUri[1].toLowerCase().replace("jpeg", "jpg");
@@ -699,7 +700,7 @@ async function exportWord(plugin: IgnorancePlugin, file: TFile, targetPath, opti
   const remote = electronRemote();
   const choice = targetPath ? { filePath: targetPath } : await remote.dialog.showSaveDialog({ defaultPath: `${file.basename}.docx`, filters: [{ name: "Word", extensions: ["docx"] }], properties: ["showOverwriteConfirmation", "createDirectory"] });
   if (choice.canceled || !choice.filePath) return null;
-  const fs = require("fs"), path = require("path"), os = require("os");
+  const fs = nodeFs(), path = nodePath(), os = nodeOs();
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ibp-docx-"));
   try {
     const text = await plugin.app.vault.cachedRead(file);
@@ -745,7 +746,7 @@ async function exportWord(plugin: IgnorancePlugin, file: TFile, targetPath, opti
     fs.writeFileSync(source, markdown);
     const base = vaultBasePath(plugin);
     await new Promise((resolve, reject) => {
-      require("child_process").execFile(pandoc, [
+      nodeChildProcess().execFile(pandoc, [
         source, "-f", "markdown+mark+pipe_tables+tex_math_dollars+task_lists", "-t", "docx",
         "-o", choice.filePath, "--resource-path", [path.join(base, file.parent?.path || ""), base, tmp].join(path.delimiter)
       ], { timeout: 120000 }, (error, _out, stderr) => error ? reject(new Error(stderr || error.message)) : resolve());

@@ -23,6 +23,7 @@ import { structureSlide } from "./structure.js";
 import { addEditableSlide } from "./pptx-editable.js";
 import { openOffscreenCapturer, stageSlide } from "./offscreen-capture.js";
 import { setMarkup } from "./dom-markup.js";
+import { nodeFs } from "./node-builtins.js";
 
 const VIEW_TYPE = "ignorance-presentation";
 const CANVASES = [
@@ -939,7 +940,7 @@ async function exportDeckPptx(deck, filePath: string, mode = "editable") {
       savedPath = await saveExportToVault(deck.plugin, filePath.slice(VAULT_TARGET.length), bytes);
     } else {
       const bytes = await pptx.write({ outputType: "nodebuffer" });
-      await require("fs").promises.writeFile(filePath, bytes);
+      await nodeFs().promises.writeFile(filePath, bytes);
     }
     progress.hide();
     new Notice(`PPTX 已导出：${savedPath}`, 7000);

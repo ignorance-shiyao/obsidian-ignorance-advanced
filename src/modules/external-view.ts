@@ -12,12 +12,12 @@ import { EditorView, keymap, drawSelection, highlightActiveLine } from "@codemir
 import { EditorState } from "@codemirror/state";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { renderMarkdownWithContainers } from "./containers.js";
+import { nodeFs, nodePath } from "./node-builtins.js";
 
 
 export const EXTERNAL_VIEW = "ib-external-markdown";
 
-function fs() { return require("fs"); }
-function nodePath() { return require("path"); }
+function fs() { return nodeFs(); }
 
 // file:// paths as Obsidian's resource URLs, so <img> can load them.
 function resourceUrl(absolute: string) {

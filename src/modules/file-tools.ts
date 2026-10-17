@@ -4,6 +4,7 @@ import { Notice, Setting, Platform, Menu, FileView, Modal } from "obsidian";
 import { materializeConverters } from "./assets.js";
 import { findPandoc } from "./export.js";
 import { vaultFullPath } from "./desktop-runtime.js";
+import { nodeChildProcess, nodeFs, nodeOs, nodePath } from "./node-builtins.js";
 
 const HTML_READONLY_VIEW = "ignorance-html-readonly";
 const MARKDOWN_IMPORT_EXTS = new Set(["docx", "pdf", "xlsx", "pptx", "csv", "tsv", "json", "html", "htm", "zip"]);
@@ -256,7 +257,7 @@ function fullVaultPath(plugin: IgnorancePlugin, file: TFile) {
 
 function openWithNamedApp(plugin: IgnorancePlugin, file: TFile, appName: string) {
   return new Promise((resolve, reject) => {
-    require("child_process").execFile(
+    nodeChildProcess().execFile(
       "open",
       ["-a", appName, fullVaultPath(plugin, file)],
       { timeout: 30000, maxBuffer: 1024 * 1024 },
@@ -450,9 +451,9 @@ function normalizeMarkdownImportName(value: string) {
 }
 
 async function importNotionZipAsMarkdown(plugin: IgnorancePlugin, file: TFile, folderName: string) {
-  const fs = require("fs");
-  const path = require("path");
-  const os = require("os");
+  const fs = nodeFs();
+  const path = nodePath();
+  const os = nodeOs();
   const vault = plugin.app.vault;
   const parentPath = file.parent?.path || "";
   const importRoot = [parentPath, normalizeMarkdownImportName(folderName)].filter(Boolean).join("/");
@@ -512,13 +513,13 @@ async function importNotionZipAsMarkdown(plugin: IgnorancePlugin, file: TFile, f
 }
 
 function findCwebp() {
-  const fs = require("fs");
+  const fs = nodeFs();
   return ["/opt/homebrew/bin/cwebp", "/usr/local/bin/cwebp", "/usr/bin/cwebp"]
     .find(candidate => fs.existsSync(candidate)) || null;
 }
 
 async function convertImageToWebp(source, destination, cwebp: string) {
-  const fs = require("fs");
+  const fs = nodeFs();
   if (cwebp) {
     try {
       await execFileAsync(cwebp, ["-quiet", "-q", "85", source, "-o", destination], {
@@ -549,23 +550,22 @@ async function convertImageToWebp(source, destination, cwebp: string) {
 }
 
 function pathBasename(filePath) {
-  return require("path").basename(filePath);
+  return nodePath().basename(filePath);
 }
 
 function execFileAsync(binary: string, args, options) {
   return new Promise((resolve, reject) => {
-    require("child_process").execFile(binary, args, options, (error, stdout, stderr) => {
+    nodeChildProcess().execFile(binary, args, options, (error, stdout, stderr) => {
       if (error) {
-        error.stderr = stderr;
-        reject(error);
+        reject(Object.assign(error, { stderr }));
       } else resolve({ stdout, stderr });
     });
   });
 }
 
 function collectFiles(directory, root = directory) {
-  const fs = require("fs");
-  const path = require("path");
+  const fs = nodeFs();
+  const path = nodePath();
   const files = [];
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
     const candidate = path.join(directory, entry.name);
@@ -580,7 +580,7 @@ function decodeHtmlEntities(value: string) {
 }
 
 function mediaKey(relativePath: string) {
-  const path = require("path");
+  const path = nodePath();
   let decoded = decodeHtmlEntities(String(relativePath).replace(/\\/g, "/"));
   try { decoded = decodeURIComponent(decoded); } catch (_) {}
   decoded = decoded.split(/[?#]/, 1)[0].replace(/^\.\//, "");
@@ -616,9 +616,9 @@ async function importDocxAsMarkdown(plugin: IgnorancePlugin, file: TFile, noteNa
   const cwebp = findCwebp();
   if (!pandoc) throw new Error("未找到 Pandoc，请先安装（brew install pandoc）");
 
-  const fs = require("fs");
-  const path = require("path");
-  const os = require("os");
+  const fs = nodeFs();
+  const path = nodePath();
+  const os = nodeOs();
   const vault = plugin.app.vault;
   const parentPath = file.parent?.path || "";
   const normalizedName = noteName.trim().replace(/\.md$/i, "");

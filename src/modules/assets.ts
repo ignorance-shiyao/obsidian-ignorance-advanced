@@ -5,6 +5,7 @@ import type { IgnorancePlugin } from "../plugin-types.js";
    so everything the plugin runs ships inside them. */
 import EMBEDDED from "embedded-assets";
 import { decode91 } from "./base91";
+import { nodeFs, nodeOs, nodePath } from "./node-builtins.js";
 
 type Embedded = Record<string, { data: string; size: number }>;
 const assets = EMBEDDED as Embedded;
@@ -33,7 +34,7 @@ export async function readAsset(_plugin, name: string): Promise<string> {
    Write them, with the PDF worker they sit beside, to a versioned folder in the OS temp directory
    once, and hand back the path. */
 export async function materializeConverters(plugin: IgnorancePlugin): Promise<string> {
-  const fs = require("fs"), path = require("path"), os = require("os");
+  const fs = nodeFs(), path = nodePath(), os = nodeOs();
   const folder = path.join(os.tmpdir(), `ignorance-advanced-${plugin.manifest.version}`);
   fs.mkdirSync(folder, { recursive: true });
   for (const name of ["import-converters.cjs", "pdf.worker.mjs"]) {

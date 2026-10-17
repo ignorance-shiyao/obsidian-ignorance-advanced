@@ -22,6 +22,7 @@ import {
   withExportStage,
   saveExportToVault
 } from "./export.js";
+import { nodeFs } from "./node-builtins.js";
 
 const OMIT_FROM_HTML = new Set(["SCRIPT", "STYLE", "BUTTON", "TEXTAREA", "SELECT", "IFRAME", "OBJECT", "EMBED", "SOURCE", "META", "LINK", "BASE", "FORM"]);
 const OMIT_HTML_SELECTOR = ".ibm-block-header, .ibm-mermaid-toolbar, .ibp-page-number, .ib-table-resize-layer, .ibt-layer, .ib-image-actions, .ib-image-resize-layer, .copy-button";
@@ -629,7 +630,7 @@ async function exportHtml(plugin: IgnorancePlugin, file: TFile, targetPath) {
     properties: ["showOverwriteConfirmation", "createDirectory"]
   });
   if (choice.canceled || !choice.filePath) return null;
-  const fs = require("fs");
+  const fs = nodeFs();
   fs.writeFileSync(choice.filePath, await prepareHtmlDocument(plugin, file), "utf8");
   if (!targetPath) remote.shell?.openPath(choice.filePath);
   return choice.filePath;
