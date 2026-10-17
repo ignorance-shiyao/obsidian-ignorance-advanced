@@ -20,7 +20,7 @@ const MM = 96 / 25.4;
 // Full width is Obsidian's own "Readable line length" switched off; these
 // presets are the share of the window the page takes while it is on.
 // Each preset also has a line-length cap in pixels: on a wide monitor a bare share gives lines too long to read.
-const WIDTH_PRESETS = [["narrow", "窄", 55, 720], ["standard", "标准", 70, 900], ["wide", "宽", 88, 1200]];
+const WIDTH_PRESETS: [string, string, number, number][] = [["narrow", "窄", 55, 720], ["standard", "标准", 70, 900], ["wide", "宽", 88, 1200]];
 const ZOOM_MIN = 0.5, ZOOM_MAX = 3;
 const PAGE_GAP = 24;
 
@@ -31,6 +31,14 @@ function pageDefaults() {
     marginPreset: "normal", margins: { ...MARGIN_PRESETS.normal },
     pageNumber: "center", pageNumberFormat: "plain", runningHeader: "none", footerText: "", breakMode: "whitespace"
   };
+}
+
+// The sizer of whichever mode the view is showing (reading and editing each keep their own).
+function visibleSizer(host: HTMLElement): HTMLElement | null {
+  for (const sizer of host.querySelectorAll<HTMLElement>(".markdown-reading-view .markdown-preview-sizer, .markdown-source-view.mod-cm6 .cm-sizer")) {
+    if (sizer.offsetParent) return sizer;
+  }
+  return null;
 }
 
 function applyPageSettings(plugin: IgnorancePlugin) {
@@ -281,7 +289,9 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
     const refresh = () => {
       const p = page();
       const preset = WIDTH_PRESETS.find(([id]) => id === p.width);
-      width.setText(p.width === "custom" ? `宽 ${p.customWidth}%` : `宽度 · ${preset ? preset[1] : "标准"}`);
+      // Show the width the page actually has: the share, the cap and the zoom together are hard to picture.
+      const px = Math.round(visibleSizer(host)?.getBoundingClientRect().width || 0);
+      width.setText(`${p.width === "custom" ? `宽 ${p.customWidth}%` : `宽度 · ${preset ? preset[1] : "标准"}`}${px ? ` · ${px}` : ""}`);
       typewriter.toggleClass("is-active", Boolean(plugin.state.writingModes?.typewriterScroll));
       typewriter.setAttr("aria-pressed", String(Boolean(plugin.state.writingModes?.typewriterScroll)));
       focus.toggleClass("is-active", Boolean(plugin.state.writingModes?.focusMode));
@@ -297,7 +307,64 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
     if (actions) actions.before(bar);
     else host.insertBefore(bar, host.querySelector(":scope > .view-content"));
     host.addClass("ibp-toolbar-host");
+    installWidthHandle(view);
     syncWidthFlags();
+  };
+
+  // Drag the page edge to set its width. The handle appears when the pointer is near either edge
+  // of the page; dragging is symmetric because the page stays centred, and it switches to a custom width.
+  const installWidthHandle = view => {
+    const content = view.containerEl.querySelector(":scope > .view-content");
+    if (!content || Platform.isMobile || content.querySelector(":scope > .ibp-width-handle")) return;
+    const handle = content.createDiv({ cls: "ibp-width-handle", attr: { "aria-label": "拖动调整正文宽度" } });
+    const usable = () => !view.containerEl.hasClass("ibp-book-host") && !view.containerEl.hasClass("ibp-source-fixed-width");
+    let frame = 0, dragging = false;
+    const place = (x: number) => {
+      const sizer = visibleSizer(view.containerEl);
+      if (!sizer || !usable()) return handle.removeClass("is-visible");
+      const box = sizer.getBoundingClientRect(), area = content.getBoundingClientRect();
+      const edge = Math.abs(x - box.right) < Math.abs(x - box.left) ? box.right : box.left;
+      const near = dragging || Math.abs(x - edge) <= 10;
+      handle.toggleClass("is-visible", near);
+      if (near && !dragging) handle.setCssStyles({ left: `${Math.round(edge - area.left)}px` });
+    };
+    plugin.registerDomEvent(content, "pointermove", event => {
+      if (dragging || frame) return;
+      frame = window.requestAnimationFrame(() => { frame = 0; place(event.clientX); });
+    });
+    plugin.registerDomEvent(content, "pointerleave", () => { if (!dragging) handle.removeClass("is-visible"); });
+    handle.addEventListener("pointerdown", event => {
+      const sizer = visibleSizer(view.containerEl);
+      if (!sizer || event.button !== 0) return;
+      event.preventDefault();
+      dragging = true;
+      handle.setPointerCapture(event.pointerId);
+      document.body.addClass("ibp-width-dragging");
+      const box = sizer.getBoundingClientRect(), area = content.getBoundingClientRect();
+      const centre = box.left + box.width / 2;
+      // The share is of the sizer's container (the scroller minus its padding and scrollbar), not of the whole view.
+      const parent = sizer.parentElement!, pad = getComputedStyle(parent);
+      const room = parent.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
+      const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(page().zoom) || 1));
+      const move = (e: PointerEvent) => {
+        const share = Math.round(Math.min(100, Math.max(30, (Math.abs(e.clientX - centre) * 2) / (room * zoom) * 100)));
+        handle.setCssStyles({ left: `${Math.round(e.clientX - area.left)}px` });
+        if (page().width === "custom" && page().customWidth === share) return;
+        page().width = "custom";
+        page().customWidth = share;
+        applyPageSettings(plugin);
+      };
+      const end = () => {
+        dragging = false;
+        handle.removeEventListener("pointermove", move);
+        document.body.removeClass("ibp-width-dragging");
+        handle.removeClass("is-visible");
+        save();
+      };
+      handle.addEventListener("pointermove", move);
+      handle.addEventListener("pointerup", end, { once: true });
+      handle.addEventListener("pointercancel", end, { once: true });
+    });
   };
 
   // The width button is inert while the editor is not using the readable line width; the theme dims it through this flag.
@@ -311,6 +378,12 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
   sweep();
   applyPageSettings(plugin);
   plugin.registerEvent(plugin.app.workspace.on("layout-change", sweep));
+  // The width label shows pixels, which change with the window.
+  let resizeTimer = 0;
+  plugin.registerEvent(plugin.app.workspace.on("resize", () => {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(() => document.querySelectorAll(".ibp-toolbar").forEach(bar => bar.dispatchEvent(new CustomEvent("ibp-refresh"))), 150);
+  }));
   plugin.registerEvent(plugin.app.workspace.on("active-leaf-change", sweep));
   // Opening a file can swap a leaf's view (e.g. an empty tab becomes a note)
   // without a layout-change, so the toolbar is checked here too.

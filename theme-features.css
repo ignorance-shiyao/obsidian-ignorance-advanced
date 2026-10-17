@@ -3307,3 +3307,32 @@ body.is-phone .workspace-leaf-content[data-type="markdown"] :is(.markdown-readin
   zoom: 1;
   width: 100%;
 }
+
+/* Page width handle: a thin bar on the page edge, shown when the pointer is near it. */
+.workspace-leaf-content[data-type="markdown"] > .view-content { position: relative; }
+.ibp-width-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 5;
+  width: 12px;
+  margin-left: -6px;
+  cursor: col-resize;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--ib-dur-fast, .12s);
+}
+.ibp-width-handle.is-visible { opacity: 1; pointer-events: auto; }
+.ibp-width-handle::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 5px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--interactive-accent);
+  opacity: .55;
+}
+.ibp-width-handle:hover::after, body.ibp-width-dragging .ibp-width-handle::after { opacity: 1; }
+body.ibp-width-dragging { cursor: col-resize; user-select: none; }
