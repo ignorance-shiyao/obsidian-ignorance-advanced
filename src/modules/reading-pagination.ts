@@ -261,7 +261,12 @@ async function renderBookOnce(plugin: IgnorancePlugin, view) {
   const previous: BookState = books.get(view) || {};
   const text = await plugin.app.vault.cachedRead(view.file);
   if (!plugin.state.page.paged || !view.containerEl.isConnected) return;
-  const key = [view.file.path, text.length, hashText(text), JSON.stringify(page), document.body.className.includes("theme-dark")].join("|");
+  // A [toc] block is built from the metadata cache, which can lag behind the text (a note just
+  // created or edited); keying on its headings re-lays the book out once the cache catches up.
+  const tocHeadings = /^\s*(?:\[toc\]|\[\[toc\]\])\s*$/im.test(text)
+    ? (plugin.app.metadataCache.getFileCache(view.file)?.headings || []).map(h => `${h.level}${h.heading}`).join("\n")
+    : "";
+  const key = [view.file.path, text.length, hashText(text), JSON.stringify(page), document.body.className.includes("theme-dark"), hashText(tocHeadings)].join("|");
   if (previous.key === key && previous.book?.isConnected) return;
 
   const component = new Component();

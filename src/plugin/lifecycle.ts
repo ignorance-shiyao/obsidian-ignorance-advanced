@@ -241,6 +241,8 @@ export async function onload(plugin: IgnorancePlugin) {
   }, delay));
   plugin.registerEvent(plugin.app.workspace.on("layout-change", () => { markContext(document.body); plugin.sweepBlocks(); syncTablePositions(); }));
   plugin.registerEvent(plugin.app.vault.on("modify", file => syncTablePositions(file)));
+  // Paged books key their [toc] on the cached headings; re-check them when the cache updates.
+  plugin.registerEvent(plugin.app.metadataCache.on("changed", () => { if (plugin.state.page.paged) refreshBooks(plugin, false); }));
   plugin.registerEvent(plugin.app.workspace.on("active-leaf-change", () => {
     plugin.sweepBlocks();
     refreshBooks(plugin, false);
