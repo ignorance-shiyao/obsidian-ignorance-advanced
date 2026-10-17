@@ -529,7 +529,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
 
     // A sweep on layout changes catches any diagram the observer missed.
     // Reading view renders a moment after the mode switch or the save, so look again a few times.
-    const syncTablePositions = (file: TFile?) => [150, 700, 1800].forEach(delay => window.setTimeout(() => {
+    const syncTablePositions = (file?: TFile) => [150, 700, 1800].forEach(delay => window.setTimeout(() => {
       for (const leaf of this.app.workspace.getLeavesOfType("markdown")) {
         if (file && leaf.view.file?.path !== file.path) continue;
         void syncPreviewTableAlignment(this, leaf.view).catch(() => {});
