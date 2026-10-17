@@ -3302,3 +3302,8 @@ body.is-phone .workspace-leaf-content[data-type="markdown"] :is(.markdown-readin
 }
 .ibp-width-handle:hover::after, body.ibp-width-dragging .ibp-width-handle::after { opacity: 1; }
 body.ibp-width-dragging { cursor: col-resize; user-select: none; }
+
+/* Per-note width (cssclasses ib-wide / ib-narrow, see the theme) wins over the global width setting:
+   the note's view sets the share and cap the page width rule reads. */
+.workspace-leaf-content[data-type="markdown"] :is(.markdown-preview-view, .markdown-source-view).ib-wide { --ibp-share: 0.92; --ibp-cap: 1120px; }
+.workspace-leaf-content[data-type="markdown"] :is(.markdown-preview-view, .markdown-source-view).ib-narrow { --ibp-share: 1; --ibp-cap: 660px; }

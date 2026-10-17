@@ -1,5 +1,6 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Menu, Platform } from "obsidian";
+import type { TFile } from "obsidian";
 import { setDocSheet, removeDocSheet } from "./doc-sheets.js";
 import { setIcon } from "./ui-icons.js";
 import { toggleWritingMode } from "./editor-tools.js";
@@ -31,6 +32,22 @@ function pageDefaults() {
     marginPreset: "normal", margins: { ...MARGIN_PRESETS.normal },
     pageNumber: "center", pageNumberFormat: "plain", runningHeader: "none", footerText: "", breakMode: "whitespace"
   };
+}
+
+// The note's cssclasses as a list (the property may be a string or a list).
+function noteClasses(plugin: IgnorancePlugin, file: TFile): string[] {
+  const value = plugin.app.metadataCache.getFileCache(file)?.frontmatter?.cssclasses;
+  return (Array.isArray(value) ? value : typeof value === "string" ? value.split(/[\s,]+/) : []).map(String).filter(Boolean);
+}
+
+async function setNoteWidthClass(plugin: IgnorancePlugin, file: TFile, cls: string) {
+  await plugin.app.fileManager.processFrontMatter(file, frontmatter => {
+    const value = frontmatter.cssclasses;
+    const list = (Array.isArray(value) ? value : typeof value === "string" ? value.split(/[\s,]+/) : []).map(String).filter(name => name && name !== "ib-wide" && name !== "ib-narrow");
+    if (cls) list.push(cls);
+    if (list.length) frontmatter.cssclasses = list;
+    else delete frontmatter.cssclasses;
+  });
 }
 
 // The sizer of whichever mode the view is showing (reading and editing each keep their own).
@@ -125,6 +142,16 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
       menu.addItem(item => item.setTitle(`${label}（窗口的 ${px}%，最宽 ${cap}px）`).setChecked(page().width === id).onClick(() => { page().width = id; save(); }));
     }
     menu.addItem(item => item.setTitle(`自定义…${page().width === "custom" ? `（${page().customWidth}%）` : ""}`).setChecked(page().width === "custom").onClick(() => openWidthInput(event)));
+    // Per note: the theme's cssclasses, so the choice travels with the note and works without the plugin too.
+    const file = plugin.app.workspace.getActiveFile();
+    if (file?.extension === "md") {
+      menu.addSeparator();
+      const classes = noteClasses(plugin, file);
+      const current = classes.includes("ib-wide") ? "ib-wide" : classes.includes("ib-narrow") ? "ib-narrow" : "";
+      for (const [cls, label] of [["", "本笔记：跟随上面的设置"], ["ib-wide", "本笔记：加宽（最宽 1120px）"], ["ib-narrow", "本笔记：收窄（最宽 660px）"]]) {
+        menu.addItem(item => item.setTitle(label).setChecked(current === cls).onClick(() => { if (current !== cls) void setNoteWidthClass(plugin, file, cls); }));
+      }
+    }
     menu.showAtMouseEvent(event);
   };
 
@@ -292,7 +319,9 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
       // Show the width the page is laid out at (zoom only magnifies that layout).
       const sizer = visibleSizer(host);
       const px = sizer ? Math.round(parseFloat(getComputedStyle(sizer).width)) : 0;
-      width.setText(`${p.width === "custom" ? `宽 ${p.customWidth}%` : `宽度 · ${preset ? preset[1] : "标准"}`}${px ? ` · ${px}` : ""}${Number(p.zoom) && Number(p.zoom) !== 1 ? ` · ${Math.round(Number(p.zoom) * 100)}%` : ""}`);
+      const own = view.file ? noteClasses(plugin, view.file) : [];
+      const noteLabel = own.includes("ib-wide") ? "本笔记加宽" : own.includes("ib-narrow") ? "本笔记收窄" : "";
+      width.setText(`${noteLabel ? `宽度 · ${noteLabel}` : p.width === "custom" ? `宽 ${p.customWidth}%` : `宽度 · ${preset ? preset[1] : "标准"}`}${px ? ` · ${px}` : ""}${Number(p.zoom) && Number(p.zoom) !== 1 ? ` · ${Math.round(Number(p.zoom) * 100)}%` : ""}`);
       typewriter.toggleClass("is-active", Boolean(plugin.state.writingModes?.typewriterScroll));
       typewriter.setAttr("aria-pressed", String(Boolean(plugin.state.writingModes?.typewriterScroll)));
       focus.toggleClass("is-active", Boolean(plugin.state.writingModes?.focusMode));
@@ -379,6 +408,8 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
   sweep();
   applyPageSettings(plugin);
   plugin.registerEvent(plugin.app.workspace.on("layout-change", sweep));
+  // A note's own width (cssclasses) changes the label too.
+  plugin.registerEvent(plugin.app.metadataCache.on("changed", () => window.setTimeout(() => document.querySelectorAll(".ibp-toolbar").forEach(bar => bar.dispatchEvent(new CustomEvent("ibp-refresh"))), 50)));
   // The width label shows pixels, which change with the window.
   let resizeTimer = 0;
   plugin.registerEvent(plugin.app.workspace.on("resize", () => {
