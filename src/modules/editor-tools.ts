@@ -1,6 +1,6 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Notice, Menu, MarkdownView } from "obsidian";
-import { Decoration, ViewPlugin, WidgetType, EditorView } from "@codemirror/view";
+import { Decoration, ViewPlugin, WidgetType, EditorView, type DecorationSet, type ViewUpdate } from "@codemirror/view";
 import { StateEffect } from "@codemirror/state";
 import { setIcon, UI_ICONS } from "./ui-icons.js";
 import * as MermaidCore from "./mermaid-core.js";
@@ -22,7 +22,7 @@ const DETENT_ENTER = 7;
 const DETENT_LEAVE = 14;
 /* A delimiter row must contain a pipe — without that test, YAML frontmatter
    fences and `---` rules counted as tables and shifted every stored width. */
-function isTableDelimiter(line: number) {
+function isTableDelimiter(line: string) {
   return line.includes("|") && /^[\s|:-]+$/.test(line) && line.includes("-");
 }
 
@@ -33,7 +33,7 @@ function delimiterLines(text: string) {
   const hit = delimiterCache.find(entry => entry.text === text);
   if (hit) return hit.lines;
   const lines: number[] = [];
-  text.split("\n").forEach((line: number, index: number) => { if (isTableDelimiter(line)) lines.push(index); });
+  text.split("\n").forEach((line: string, index: number) => { if (isTableDelimiter(line)) lines.push(index); });
   delimiterCache.unshift({ text, lines });
   delimiterCache.length = Math.min(delimiterCache.length, 3);
   return lines;
@@ -68,6 +68,9 @@ const MIN_ROW_HEIGHT = 24;
  * -------------------------------------------------------------------------- */
 
 class TableSizeStyles {
+  el: HTMLStyleElement;
+  sizes: Map<any, any>;
+
   constructor() {
     this.el = createEl("style");
     this.el.id = "ibt-sizes";
@@ -134,8 +137,45 @@ function rowSelectors(table) {
  * which column or row a handle controls, on hover and throughout a drag.
  * -------------------------------------------------------------------------- */
 
+// Callbacks the resize layer uses to read and store sizes; the plugin keeps them per table.
+export interface TableResizeOptions {
+  resize(axis: "col" | "row", index: number, size: number): void;
+  reset(axis: "col" | "row", index: number): void;
+  seedColumns(widths: number[]): void;
+  commit(): void;
+  isHolding?(): boolean;
+  alignmentControl?(layer: HTMLElement): void;
+}
+
+type Axis = "col" | "row";
+
+interface TableGeometry {
+  cols: { start: number; end: number }[];
+  rows: { start: number; end: number }[];
+  width: number;
+  height: number;
+}
+
 class TableResizeLayer {
-  constructor(table, options) {
+  table: HTMLTableElement;
+  options: TableResizeOptions;
+  host: HTMLElement;
+  onEnter: (event: any) => void;
+  touchOff: ((outside: any) => void) | null;
+  touchOffHandler: ((outside: any) => void) | null;
+  onLeave: (event: any) => void;
+  built: boolean;
+  layer: HTMLDivElement;
+  focus: HTMLDivElement;
+  readout: HTMLDivElement;
+  resizeObserver: ResizeObserver;
+  geo: TableGeometry;
+  stableCols: number[];
+  active: { axis: Axis; index: number } | null;
+  dragging: boolean;
+  cancelDrag: (() => void) | null;
+
+  constructor(table: HTMLTableElement, options: TableResizeOptions) {
     this.table = table;
     this.options = options;
     this.host = table.parentElement;
@@ -296,8 +336,8 @@ class TableResizeLayer {
     if (this.active) this.showFocus(this.active);
   }
 
-  place(axis: string, edges) {
-    const handles = [...this.layer.querySelectorAll(`.ibt-handle.is-${axis}`)];
+  place(axis: Axis, edges: number[]) {
+    const handles = [...this.layer.querySelectorAll<HTMLElement>(`.ibt-handle.is-${axis}`)];
     while (handles.length < edges.length) handles.push(this.addHandle(axis, handles.length));
     while (handles.length > edges.length) handles.pop().remove();
     handles.forEach((handle, index) => {
@@ -305,7 +345,7 @@ class TableResizeLayer {
     });
   }
 
-  addHandle(axis: string, index: number) {
+  addHandle(axis: Axis, index: number) {
     const handle = createDiv();
     handle.className = `ibt-handle is-${axis}`;
     handle.title = t(axis === "col" ? "resizeColumn" : "resizeRow");
@@ -327,7 +367,7 @@ class TableResizeLayer {
   }
 
   /* The band over the column or row a handle resizes. */
-  showFocus(target: HTMLElement) {
+  showFocus(target: { axis: Axis; index: number }) {
     this.active = target;
     if (!target || !this.geo) {
       this.focus.classList.remove("is-visible");
@@ -438,7 +478,7 @@ class TableResizeLayer {
     try { navigator.vibrate?.(8); } catch (_) {}
   }
 
-  startDrag(event: PointerEvent, axis: string, index: number, handle: HTMLDivElement) {
+  startDrag(event: PointerEvent, axis: Axis, index: number, handle: HTMLDivElement) {
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
@@ -531,11 +571,12 @@ class TableResizeLayer {
 }
 
 const mermaidHighlighter = ViewPlugin.fromClass(class {
-  constructor(view) {
+  decorations: DecorationSet;
+  constructor(view: EditorView) {
     this.decorations = buildMermaidDecorations(view);
   }
 
-  update(update) {
+  update(update: ViewUpdate) {
     if (update.docChanged || update.viewportChanged) {
       this.decorations = buildMermaidDecorations(update.view);
     }
@@ -676,8 +717,9 @@ function buildCopyDecorations(view) {
 }
 
 const codeCopyButtons = ViewPlugin.fromClass(class {
-  constructor(view) { this.decorations = buildCopyDecorations(view); }
-  update(update) {
+  decorations: DecorationSet;
+  constructor(view: EditorView) { this.decorations = buildCopyDecorations(view); }
+  update(update: ViewUpdate) {
     if (update.docChanged) this.decorations = buildCopyDecorations(update.view);
   }
 }, { decorations: value => value.decorations });
@@ -693,7 +735,7 @@ function installCodeLanguagePicker(plugin: IgnorancePlugin) {
   plugin.registerDomEvent(document, "click", event => {
     const flair = flairOf(event);
     if (!flair) return;
-    const cm = plugin.app.workspace.getLeavesOfType("markdown").map(leaf => leaf.view?.editor?.cm).find(cm => cm?.dom.contains(flair));
+    const cm = plugin.app.workspace.getLeavesOfType("markdown").map(leaf => (leaf.view as MarkdownView)?.editor?.cm).find(cm => cm?.dom.contains(flair));
     if (!cm) return;
     event.preventDefault(); event.stopImmediatePropagation();
     let line;
@@ -723,7 +765,7 @@ function installQuietTaskToggle(plugin: IgnorancePlugin) {
   plugin.registerDomEvent(document, "click", event => {
     const input = checkbox(event);
     if (!input) return;
-    const view = plugin.app.workspace.getLeavesOfType("markdown").map(leaf => leaf.view)
+    const view = plugin.app.workspace.getLeavesOfType("markdown").map(leaf => leaf.view as MarkdownView)
       .find(view => view.editor?.cm?.dom.contains(input));
     const cm = view?.editor?.cm;
     if (!cm) return;
@@ -767,12 +809,14 @@ function buildWritingFocusDecorations(view, enabled: boolean) {
 
 function writingModesExtension(plugin: IgnorancePlugin) {
   return ViewPlugin.fromClass(class {
-    constructor(view) {
+    decorations: DecorationSet;
+    frame: number;
+    constructor(view: EditorView) {
       this.decorations = buildWritingFocusDecorations(view, Boolean(plugin.state?.writingModes?.focusMode));
       this.frame = 0;
     }
 
-    update(update) {
+    update(update: ViewUpdate) {
       const modeChanged = update.transactions.some(transaction =>
         transaction.effects.some(effect => effect.is(writingModeRefresh))
       );
@@ -813,7 +857,7 @@ function setWritingMode(plugin: IgnorancePlugin, mode: string, value: boolean) {
   plugin.state.writingModes[mode] = Boolean(value);
   plugin.saveStoredState();
   plugin.app.workspace.iterateAllLeaves(leaf => {
-    const cm = leaf.view?.editor?.cm;
+    const cm = (leaf.view as MarkdownView)?.editor?.cm;
     if (cm?.dispatch) cm.dispatch({ effects: writingModeRefresh.of(null) });
   });
   document.querySelectorAll(".ibp-toolbar").forEach(toolbar => toolbar.dispatchEvent(new CustomEvent("ibp-refresh")));

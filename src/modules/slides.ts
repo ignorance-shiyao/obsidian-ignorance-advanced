@@ -1,12 +1,12 @@
-import type { TFile, WorkspaceLeaf } from "obsidian";
+import type { MarkdownView, WorkspaceLeaf } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { Component, ItemView, Menu, Notice, Platform } from "obsidian";
+import { Component, ItemView, Menu, Notice, Platform, TFile } from "obsidian";
 import { setIcon } from "./ui-icons.js";
 import { applyStagedChartAlignment } from "./chart-alignment.js";
 import { applyAccent, setThemeMode } from "./appearance.js";
 import { nextFrame } from "./export.js";
 import { electronRemote } from "./desktop-runtime.js";
-import { parseSlideLayout } from "./layout.js";
+import { parseSlideLayout, type SlideLayout } from "./layout.js";
 import { paginateSlideSections } from "./paginate.js";
 import { normalizePresentationSkin } from "./skin-choice.js";
 import { renderBudget } from "./render-budget.js";
@@ -26,7 +26,7 @@ import { setMarkup } from "./dom-markup.js";
 import { nodeFs } from "./node-builtins.js";
 
 const VIEW_TYPE = "ignorance-presentation";
-const CANVASES = [
+const CANVASES: [string, number, number][] = [
   ["16:9", 1280, 720],
   ["16:10", 1280, 800],
   ["4:3", 1200, 900],
@@ -38,7 +38,7 @@ const CANVASES = [
 function canvasId(settings) {
   return (Platform.isPhone ? settings?.phoneCanvas || "9:16" : settings?.canvas || "16:9");
 }
-function canvasEntry(settings) {
+function canvasEntry(settings: IgnorancePlugin["state"]["presentation"]) {
   const id = canvasId(settings);
   return CANVASES.find(([entry]) => entry === id) || CANVASES[0];
 }
@@ -91,7 +91,7 @@ async function renderSlideDiagrams(root: HTMLElement, width: number) {
 }
 
 async function settleSlideContent(root: HTMLElement) {
-  await Promise.all([...root.querySelectorAll("img")].map(img => img.complete ? null : new Promise(resolve => {
+  await Promise.all([...root.querySelectorAll("img")].map(img => img.complete ? null : new Promise<void>(resolve => {
     const timer = window.setTimeout(resolve, 2500);
     img.addEventListener("load", () => { window.clearTimeout(timer); resolve(); }, { once: true });
     img.addEventListener("error", () => { window.clearTimeout(timer); resolve(); }, { once: true });
@@ -104,7 +104,7 @@ async function settleSlideContent(root: HTMLElement) {
   }
   // Checked per frame: a fixed 100ms wait per check added a quarter second
   // to every slide, seconds before a long deck could show its first one.
-  const frame = () => new Promise(resolve => window.requestAnimationFrame(() => resolve()));
+  const frame = () => new Promise<void>(resolve => window.requestAnimationFrame(() => resolve()));
   let previous = -1, stable = 0;
   for (let attempt = 0; attempt < 120 && stable < 3; attempt += 1) {
     await frame();
@@ -142,7 +142,7 @@ function applySkin(root: HTMLElement, skinId) {
   if (palette && THEME_PRESETS.some(preset => preset.id === palette[1])) {
     root.classList.add("skin-palette");
     root.dataset.ibMode = palette[2];
-    for (const [name, value] of Object.entries(composeThemeTokens(palette[1], palette[2]))) root.style.setProperty(name, value);
+    for (const [name, value] of Object.entries(composeThemeTokens(palette[1], palette[2] as "light" | "dark"))) root.style.setProperty(name, value);
     return;
   }
 
@@ -290,7 +290,7 @@ function addToolbarSeparator(parent: HTMLElement) {
 }
 
 function makeDataUri(svg: SVGSVGElement) {
-  const clone = svg.cloneNode(true);
+  const clone = svg.cloneNode(true) as SVGSVGElement;
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
   const xml = new XMLSerializer().serializeToString(clone);
   return `data:image/svg+xml;base64,${bytesToBase64(new TextEncoder().encode(xml))}`;
@@ -303,7 +303,7 @@ function makeDataUri(svg: SVGSVGElement) {
 export async function buildDeck(plugin: IgnorancePlugin, file: TFile, component, isCurrent = () => true, { limit = Infinity } = {}) {
   const markdown = await plugin.app.vault.cachedRead(file);
   if (!isCurrent()) return null;
-  const settings = plugin.state.presentation || {};
+  const settings = plugin.state.presentation || presentationDefaults();
   const [, width, height] = canvasEntry(settings);
   const allColumns = splitSlides(stripFrontmatter(markdown)).columns;
   const columns = allColumns.slice(0, limit);
@@ -341,15 +341,15 @@ export async function buildDeck(plugin: IgnorancePlugin, file: TFile, component,
         measure.appendChild(wrapper);
         await settleSlideContent(surface);
         paginateSlideSections(wrapper);
-        const queue = [...wrapper.children].filter(el => el.instanceOf(HTMLElement));
+        const queue = [...wrapper.children].filter((el): el is HTMLElement => el.instanceOf(HTMLElement));
         for (let q = 0; q < queue.length; q += 1) {
           const page = queue[q];
-          const layout = (Array.from(page.classList).find(name => name.startsWith("slide-layout-")) || "slide-layout-default").slice("slide-layout-".length);
+          const layout = (Array.from(page.classList).find(name => name.startsWith("slide-layout-")) || "slide-layout-default").slice("slide-layout-".length) as SlideLayout;
           const isContent = ["default", "split", "grid"].includes(layout);
           const badge = chrome && isContent && !page.dataset.autopage ? String.fromCharCode(65 + (badgeIndex++ % 26)) : "";
           const rawClass = page.className;
           const heading = page.querySelector(":scope > .slide-inner > :first-child");
-          const repeat = heading && /^H[1-4]$/.test(heading.tagName) ? heading.cloneNode(true) : null;
+          const repeat = heading && /^H[1-4]$/.test(heading.tagName) ? heading.cloneNode(true) as HTMLElement : null;
           structureSlide(page, layout, { chrome, badge, tag: page.dataset.slideTag || "" });
           // Pages are split before the title bar and body frame exist, so the
           // body can still come out taller than its frame; move the overflow
@@ -441,6 +441,33 @@ export async function buildDeck(plugin: IgnorancePlugin, file: TFile, component,
 }
 
 class PresentationView extends ItemView {
+  plugin: IgnorancePlugin;
+  filePath: string;
+  renderToken: number;
+  // The reveal.js instance (the library ships no types).
+  deck: any;
+  renderComponent: Component | null;
+  slideEntries: { el: HTMLElement; h: number; v: number }[];
+  preferredIndices: number[];
+  returnMode: string;
+  stage: HTMLDivElement;
+  toolbar: HTMLDivElement;
+  resizeObserver: ResizeObserver;
+  prevButton: HTMLButtonElement;
+  counter: HTMLDivElement;
+  nextButton: HTMLButtonElement;
+  pointerButtons: HTMLElement[];
+  stepButtons: HTMLElement[];
+  exportButton: HTMLButtonElement;
+  fullscreenPrev: HTMLButtonElement;
+  fullscreenCounter: HTMLDivElement;
+  fullscreenNext: HTMLButtonElement;
+  lastSlideH: number;
+  stepMode: boolean;
+  pointerTool: string;
+  root: HTMLElement;
+  declare titleEl: HTMLElement;
+
   constructor(leaf: WorkspaceLeaf, plugin: IgnorancePlugin) {
     super(leaf);
     this.plugin = plugin;
@@ -453,8 +480,13 @@ class PresentationView extends ItemView {
   }
 
   getViewType() { return VIEW_TYPE; }
-  getDisplayText() {
+  noteFile(): TFile | null {
     const file = this.plugin.app.vault.getAbstractFileByPath(this.filePath);
+    return file instanceof TFile ? file : null;
+  }
+
+  getDisplayText() {
+    const file = this.noteFile();
     return file?.basename ? `${file.basename} · 演示` : "演示模式";
   }
   getIcon() { return "lucide-presentation"; }
@@ -473,7 +505,7 @@ class PresentationView extends ItemView {
     this.stage = this.contentEl.createDiv({ cls: "ibp-presentation-stage" });
     this.toolbar = this.contentEl.createDiv({ cls: "ibp-presentation-toolbar" });
     this.buildToolbar();
-    this.registerDomEvent(window, "ib-theme-change", () => {
+    this.registerDomEvent(window, "ib-theme-change" as keyof WindowEventMap, () => {
       if (document.body.dataset.ibThemeCapture) return;
       if (this.deck?.getIndices) { const index = this.deck.getIndices(); this.preferredIndices = [index.h, index.v]; }
       this.plugin.state.presentation.skin = "none";
@@ -568,7 +600,7 @@ class PresentationView extends ItemView {
     this.registerDomEvent(this.stage, "wheel", event => {
       if (!this.deck || event.ctrlKey) return;
       const delta = Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
-      if (!delta || canScrollInside(event.target, this.stage, delta)) return;
+      if (!delta || canScrollInside(event.target as HTMLElement, this.stage, delta)) return;
       event.preventDefault();
       const now = Date.now();
       const notch = event.deltaMode !== 0 || (Math.abs(delta) >= 50 && Number.isInteger(delta));
@@ -729,7 +761,7 @@ class PresentationView extends ItemView {
     this.renderComponent = null;
     this.stage.empty();
     this.slideEntries = [];
-    const file = this.plugin.app.vault.getAbstractFileByPath(this.filePath);
+    const file = this.noteFile();
     if (!file || file.extension !== "md") {
       this.stage.createDiv({ cls: "ibp-presentation-empty", text: this.filePath ? `找不到笔记「${this.filePath}」，它可能已被移动或删除。` : "请从 Markdown 笔记打开演示模式。" });
       return;
@@ -768,7 +800,7 @@ class PresentationView extends ItemView {
     this.root = reveal;
     this.buildFullscreenNav(reveal);
     // The title depends on filePath, which setState/rename change after Obsidian drew the header.
-    this.leaf.updateHeader?.();
+    (this.leaf as WorkspaceLeaf & { updateHeader?(): void }).updateHeader?.();
     this.titleEl?.setText(this.getDisplayText());
     const { Reveal } = await loadChunk("chunk-reveal.cjs");
     const deck = new Reveal(reveal, {
@@ -807,13 +839,13 @@ class PresentationView extends ItemView {
   }
 
   previewPptx(mode: string) {
-    const file = this.plugin.app.vault.getAbstractFileByPath(this.filePath);
+    const file = this.noteFile();
     previewThenExport(this.plugin, file, `pptx-${mode}`, { buildDeck }, () => { void this.exportPptx("", mode); });
   }
 
   async exportPptx(targetPath = "", mode = "editable") {
     if (!this.deck || !this.slideEntries.length) return;
-    const file = this.plugin.app.vault.getAbstractFileByPath(this.filePath);
+    const file = this.noteFile();
     const filePath = await choosePptxPath(file, targetPath);
     if (!filePath) return;
     this.exportButton?.addClass("is-busy");
@@ -956,7 +988,7 @@ async function exportDeckPptx(deck, filePath: string, mode = "editable") {
 /* Export straight from a note: build the deck off-screen with the current
    presentation settings, without opening the presentation view. */
 export async function exportNotePptx(plugin: IgnorancePlugin, file: TFile, mode = "editable", targetPath = "") {
-  if (file?.extension !== "md") return;
+  if (!(file instanceof TFile) || file.extension !== "md") return;
   const filePath = await choosePptxPath(file, targetPath);
   if (!filePath) return;
   const preparing = new Notice("正在排版幻灯片…", 0);
@@ -982,7 +1014,7 @@ export async function openPresentation(plugin: IgnorancePlugin, file: TFile, lea
     new Notice("请先打开一篇 Markdown 笔记。", 5000);
     return;
   }
-  const returnMode = leaf.view?.getMode?.() === "preview" ? "preview" : "source";
+  const returnMode = (leaf.view as MarkdownView)?.getMode?.() === "preview" ? "preview" : "source";
   await leaf.setViewState({ type: VIEW_TYPE, active: true, state: { filePath: file.path, returnMode } }, { focus: true });
 }
 
@@ -995,22 +1027,22 @@ export function installPresentationMode(plugin: IgnorancePlugin) {
     callback: () => openPresentation(plugin, plugin.app.workspace.getActiveFile()),
   });
   plugin.registerEvent(plugin.app.vault.on("modify", file => {
-    if (file?.extension !== "md") return;
+    if (!(file instanceof TFile) || file.extension !== "md") return;
     for (const leaf of plugin.app.workspace.getLeavesOfType(VIEW_TYPE)) {
-      if (leaf.view.filePath === file.path) void leaf.view.renderSlides();
+      if ((leaf.view as PresentationView).filePath === file.path) void (leaf.view as PresentationView).renderSlides();
     }
   }));
   // Like a note tab, a presentation closes when its note is deleted.
   plugin.registerEvent(plugin.app.vault.on("delete", file => {
     for (const leaf of plugin.app.workspace.getLeavesOfType(VIEW_TYPE)) {
-      if (leaf.view.filePath === file.path) leaf.detach();
+      if ((leaf.view as PresentationView).filePath === file.path) leaf.detach();
     }
   }));
   plugin.registerEvent(plugin.app.vault.on("rename", (file, oldPath) => {
     for (const leaf of plugin.app.workspace.getLeavesOfType(VIEW_TYPE)) {
-      if (leaf.view.filePath === oldPath) {
-        leaf.view.filePath = file.path;
-        void leaf.view.renderSlides();
+      if ((leaf.view as PresentationView).filePath === oldPath) {
+        (leaf.view as PresentationView).filePath = file.path;
+        void (leaf.view as PresentationView).renderSlides();
       }
     }
   }));

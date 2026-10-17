@@ -28,8 +28,31 @@ const NOTES = {
   zhihu: "粘贴到知乎编辑器后的内容与样式。"
 };
 
+// Builders the preview borrows from the exporters, passed in to avoid an import cycle.
+export interface ExportPreviewDeps {
+  prepareHtmlDocument(plugin: IgnorancePlugin, file: TFile, options: { cover?: boolean; signal?: AbortSignal; onProgress?: (html: string) => Promise<void> }): Promise<string>;
+  prepareRichCopyMarkup(plugin: IgnorancePlugin, file: TFile, kind: string, options: { cover?: boolean }): Promise<{ html: string }>;
+  pageVarsAtFullScale(page: unknown): Record<string, string>;
+  buildDeck(plugin: IgnorancePlugin, file: TFile, component: Component): Promise<{ reveal: HTMLElement; entries: { el: HTMLElement }[]; width: number; height: number } | null>;
+}
+
 class ExportPreviewModal extends Modal {
-  constructor(plugin: IgnorancePlugin, file: TFile, kind: string, deps, run) {
+  plugin: IgnorancePlugin;
+  file: TFile;
+  kind: string;
+  deps: Partial<ExportPreviewDeps>;
+  run: () => void;
+  component: Component;
+  controller: AbortController;
+  restoreTheme: (() => void) | null;
+  viewport: HTMLDivElement;
+  status: HTMLDivElement;
+  statusTimer: number;
+  summary: HTMLDivElement;
+  confirm: HTMLButtonElement;
+  frame: HTMLIFrameElement;
+
+  constructor(plugin: IgnorancePlugin, file: TFile, kind: string, deps: Partial<ExportPreviewDeps>, run: () => void) {
     super(plugin.app);
     this.plugin = plugin;
     this.file = file;
@@ -131,7 +154,7 @@ class ExportPreviewModal extends Modal {
   // Scale fixed-size content (pages, slides) to the viewport width.
   fit(element: HTMLElement, width: number) {
     const available = Math.max(200, this.viewport.clientWidth - 32);
-    element.style.zoom = String(Math.min(1, available / width));
+    element.style.setProperty("zoom", String(Math.min(1, available / width)));
   }
 
   async render() {
@@ -174,7 +197,7 @@ class ExportPreviewModal extends Modal {
       const aborted = () => { cleanup(); reject(signal.reason); };
       const timer = window.setTimeout(() => { cleanup(); reject(new Error("预览页面加载超时")); }, 10000);
       signal.addEventListener("abort", aborted, { once: true });
-      frame.onload = () => { cleanup(); frame.contentWindow?.scrollTo(0, scrollTop); resolve(); };
+      frame.onload = () => { cleanup(); frame.contentWindow?.scrollTo(0, scrollTop); resolve(undefined); };
       frame.onerror = () => { cleanup(); reject(new Error("预览页面加载失败")); };
       frame.srcdoc = html;
     });
@@ -228,14 +251,14 @@ class ExportPreviewModal extends Modal {
       frame.appendChild(staged.stage);
       // Slides read best at a comfortable size, not stretched to the window.
       const available = Math.min(760, Math.max(200, this.viewport.clientWidth - 32));
-      frame.style.zoom = String(Math.min(1, available / deck.width));
+      frame.style.setProperty("zoom", String(Math.min(1, available / deck.width)));
     }
     this.summary.setText(`共 ${deck.entries.length} 页`);
   }
 }
 
 // Show the preview; `run` performs the real export when the user confirms.
-export function previewThenExport(plugin: IgnorancePlugin, file: TFile, kind: string, deps, run) {
+export function previewThenExport(plugin: IgnorancePlugin, file: TFile, kind: string, deps: Partial<ExportPreviewDeps>, run: () => void) {
   if (!file) return;
   new ExportPreviewModal(plugin, file, kind, deps, run).open();
 }

@@ -15,17 +15,18 @@ interface PaginationElement {
   querySelector(selector: string): { children: Iterable<PaginationElement> } | null;
 }
 
-export function paginationElements(strip: { children: Iterable<PaginationElement> }) {
-  const elements: PaginationElement[] = [];
-  const append = (element: PaginationElement) => {
+// Generic so callers passing real DOM elements get HTMLElement back; tests pass plain objects.
+export function paginationElements<T extends PaginationElement>(strip: { children: Iterable<T> }): T[] {
+  const elements: T[] = [];
+  const append = (element: T) => {
     if (element.matches("[data-ib-auto-chapter]")) {
-      [...element.children].filter(child => !child.matches(".ibc-chapter__rail")).forEach(append);
+      [...element.children].filter(child => !child.matches(".ibc-chapter__rail")).forEach(child => append(child as T));
       return;
     }
     if (element.matches(".ibm-markdown-preview-block")) {
       const preview = element.querySelector(":scope > .ibm-markdown-preview");
       const children = preview ? [...preview.children] : [];
-      if (children.length) children.forEach(append);
+      if (children.length) children.forEach(child => append(child as T));
       else elements.push(element);
       return;
     }

@@ -1,4 +1,4 @@
-import type { TFile } from "obsidian";
+import type { MarkdownPreviewView, TFile, View } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Component, Notice, MarkdownView } from "obsidian";
 import { waitForStableLayout } from "./layout-stability.js";
@@ -24,7 +24,19 @@ function setBookFlag(preview: HTMLElement, on: boolean) {
   if (!on) preview.removeClass("ib-has-pages");
 }
 
-const books = new WeakMap();
+// Last composed book per reading view; reused when only some blocks changed.
+interface BookState {
+  key?: string;
+  component?: Component;
+  book?: HTMLElement;
+  staging?: HTMLElement | null;
+  filePath?: string;
+  renderSignature?: string;
+  blockSignatures?: string[];
+  pageRanges?: { start: number; end: number }[];
+  pages?: HTMLElement[];
+}
+const books = new WeakMap<View, BookState>();
 const interactiveBooks = new WeakSet();
 
 function stripFrontmatter(text: string) {
@@ -57,7 +69,7 @@ function setTaskCloneState(inputs, checked: boolean) {
   }
 }
 
-function findBookAnchor(book, target: HTMLElement) {
+function findBookAnchor(book, target: string) {
   if (!target.startsWith("#")) return null;
   let fragment = target.slice(1);
   try { fragment = decodeURIComponent(fragment); } catch (_) {}
@@ -94,8 +106,8 @@ function installBookInteractions(plugin: IgnorancePlugin, view, book) {
       const destination = plugin.app.metadataCache.getFirstLinkpathDest(target, file.path);
       if (!destination || workspace.getActiveViewOfType(MarkdownView)?.file?.path === destination.path) return;
       const leaves = workspace.getLeavesOfType("markdown");
-      const opened = leaves.find(leaf => !existingLeaves.has(leaf) && leaf.view.file?.path === destination.path)
-        || leaves.find(leaf => leaf.view.file?.path === destination.path);
+      const opened = leaves.find(leaf => !existingLeaves.has(leaf) && (leaf.view as MarkdownView).file?.path === destination.path)
+        || leaves.find(leaf => (leaf.view as MarkdownView).file?.path === destination.path);
       if (opened) await workspace.setActiveLeaf(opened, { focus: true });
     })().catch(error => console.error("Ignorance Advanced: paged link failed —", error));
   });
@@ -165,9 +177,9 @@ function paginateStrip(strip: HTMLDivElement, contentHeight: number, mode: strin
   const stripRect = strip.getBoundingClientRect();
   const stripTop = stripRect.top;
   const chapterRects = new Map();
-  const blocks = paginationElements(strip).map(el => {
+  const blocks = paginationElements(strip as { children: Iterable<HTMLElement> }).map(el => {
     const r = el.getBoundingClientRect();
-    const chapterElement = el.closest("[data-ib-auto-chapter]");
+    const chapterElement = el.closest<HTMLElement>("[data-ib-auto-chapter]");
     let chapterRect = chapterElement && chapterRects.get(chapterElement);
     if (chapterElement && !chapterRect) {
       chapterRect = chapterElement.getBoundingClientRect();
@@ -184,6 +196,7 @@ function paginateStrip(strip: HTMLDivElement, contentHeight: number, mode: strin
     const tableCaption = table?.querySelector(":scope > caption");
     return {
       el, table, chapter, top: r.top - stripTop, bottom: r.bottom - stripTop,
+      layoutTop: undefined as number | undefined, layoutBottom: undefined as number | undefined,
       renderTop: r.top - stripTop, renderBottom: r.bottom - stripTop,
       tableRows: table ? [...table.querySelectorAll("tr")].map(row => {
         const rowRect = row.getBoundingClientRect();
@@ -214,8 +227,8 @@ function paginateStrip(strip: HTMLDivElement, contentHeight: number, mode: strin
       ? block.tableRows.map(row => row.bottom)
       : breakPoints(block.el, stripTop),
     continuationOverhead: block.continuationOverhead,
-    atomic: block.el.matches(".mermaid, .math-block, .math, mjx-container, figure, .internal-embed, .image-embed, svg, img")
-      || (block.el.matches("p") && block.el.textContent.trim() === "" && block.el.querySelector("img, svg")),
+    atomic: Boolean(block.el.matches(".mermaid, .math-block, .math, mjx-container, figure, .internal-embed, .image-embed, svg, img")
+      || (block.el.matches("p") && block.el.textContent.trim() === "" && block.el.querySelector("img, svg"))),
     leadIn: /^H[1-6]$/.test(block.el.tagName) || (block.el.tagName === "P" && /[:：]\s*$/.test(block.el.textContent))
   }));
   return { blocks, windows: paginateStripCoordinates(coordinates, contentHeight, mode) };
@@ -245,7 +258,7 @@ async function renderBookOnce(plugin: IgnorancePlugin, view) {
   const page = plugin.state.page;
   const preview = view.containerEl.querySelector(".markdown-reading-view .markdown-preview-view");
   if (!preview || !view.file) return;
-  const previous = books.get(view) || {};
+  const previous: BookState = books.get(view) || {};
   const text = await plugin.app.vault.cachedRead(view.file);
   if (!plugin.state.page.paged || !view.containerEl.isConnected) return;
   const key = [view.file.path, text.length, hashText(text), JSON.stringify(page), document.body.className.includes("theme-dark")].join("|");
@@ -405,7 +418,7 @@ function makePage(blocks, window, index: number, total: number, page, contentHei
     if (block.bottom <= window.start + 0.5 || block.top >= window.stop - 0.5) continue;
     const clone = block.el.cloneNode(true);
     // Paper language labels are information, not disconnected rename buttons.
-    clone.querySelectorAll('.ibm-block-label.is-editable').forEach((label: string) => {
+    clone.querySelectorAll('.ibm-block-label.is-editable').forEach((label: HTMLElement) => {
       const text = createEl('span');
       text.className = 'ibm-block-label';
       text.textContent = label.textContent;
@@ -467,13 +480,13 @@ async function settleRenderRegion(root: HTMLElement, height: number, signal = nu
   const top = root.getBoundingClientRect().top;
   const inside = (element: HTMLElement) => element.getBoundingClientRect().top < top + height;
   const images = [...root.querySelectorAll("img")].filter(inside);
-  await Promise.all(images.map(img => img.complete ? null : new Promise(resolve => {
+  await Promise.all(images.map(img => img.complete ? null : new Promise<void>(resolve => {
     const timer = window.setTimeout(resolve, 2500);
     img.addEventListener("load", () => { window.clearTimeout(timer); resolve(); }, { once: true });
     img.addEventListener("error", () => { window.clearTimeout(timer); resolve(); }, { once: true });
   })));
   for (let i = 0; i < 20; i += 1) {
-    const pending = [...root.querySelectorAll(".mermaid, pre.language-mermaid")].some(element => inside(element) && !element.querySelector("svg") && !/Error/.test(element.textContent));
+    const pending = [...root.querySelectorAll<HTMLElement>(".mermaid, pre.language-mermaid")].some(element => inside(element) && !element.querySelector("svg") && !/Error/.test(element.textContent));
     if (!pending) break;
     await wait(100);
   }
@@ -486,7 +499,7 @@ async function settleRenderRegion(root: HTMLElement, height: number, signal = nu
   await waitForStableLayout(() => [...root.children].filter(inside).reduce((max, element) => Math.max(max, element.getBoundingClientRect().bottom - top), 0), { signal });
 }
 
-async function composePages(plugin: IgnorancePlugin, file: TFile, text: string, book: HTMLDivElement, component, { keepStrip = false, previous = {}, showProgress = false, expandDetails = false, onProgress = null, signal = null } = {}) {
+async function composePages(plugin: IgnorancePlugin, file: TFile, text: string, book: HTMLDivElement, component, { keepStrip = false, previous = {} as BookState, showProgress = false, expandDetails = false, onProgress = null, signal = null } = {}) {
   signal?.throwIfAborted();
   const page = plugin.state.page;
   // Measure in the same view context as the final pages so inherited note
@@ -494,7 +507,7 @@ async function composePages(plugin: IgnorancePlugin, file: TFile, text: string, 
   const stagingParent = book.parentElement || document.body;
   // Both strips measure the same render with the same stylesheet snapshot.
   const sheet = await stagingStyleSheet(stagingParent.ownerDocument);
-  let staging;
+  let staging: HTMLDivElement | undefined;
   const measure = book.createDiv({ cls: "ibp-page" });
   const bodyBox = measure.createDiv({ cls: "ibp-page-body" }).getBoundingClientRect();
   measure.remove();
@@ -629,7 +642,7 @@ async function settleRender(root: HTMLElement, signal = null) {
     await new Promise(r => window.setTimeout(r, ms));
     signal?.throwIfAborted();
   };
-  await Promise.all([...root.querySelectorAll("img")].map(img => img.complete ? null : new Promise(resolve => {
+  await Promise.all([...root.querySelectorAll("img")].map(img => img.complete ? null : new Promise<void>(resolve => {
     const done = () => { window.clearTimeout(timer); img.removeEventListener("load", done); img.removeEventListener("error", done); signal?.removeEventListener("abort", done); resolve(); };
     const timer = window.setTimeout(done, 2500);
     img.addEventListener("load", done, { once: true });
@@ -660,7 +673,7 @@ async function settleRender(root: HTMLElement, signal = null) {
 
 function refreshBooks(plugin: IgnorancePlugin, force: boolean) {
   for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) {
-    const view = leaf.view;
+    const view = leaf.view as MarkdownView;
     const state = books.get(view);
     const reading = view.getMode?.() === "preview";
     // Editing keeps the laid-out book (the reading view stays in the DOM,
@@ -684,7 +697,7 @@ function refreshBooks(plugin: IgnorancePlugin, force: boolean) {
       // The hidden native renderer may have cached zero-height sections.
       // Once paging is off, invalidate those measurements and rendered blocks
       // so scrolling/jumping uses the real reading layout again.
-      if (!plugin.state.page.paged && hadBook) view.previewMode?.renderer?.rerender(true);
+      if (!plugin.state.page.paged && hadBook) (view.previewMode as MarkdownPreviewView & { renderer?: { rerender(full: boolean): void } })?.renderer?.rerender(true);
       continue;
     }
     // A hidden tab can keep a very large preview alive, but it is not visible

@@ -1,4 +1,4 @@
-import type { TFile } from "obsidian";
+import { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Menu, Notice, Component, Platform, MarkdownView } from "obsidian";
 import { setDocSheet, removeDocSheet } from "./doc-sheets.js";
@@ -263,7 +263,7 @@ function vaultImageIndex(plugin: IgnorancePlugin) {
   return byResource;
 }
 
-async function localImageData(plugin: IgnorancePlugin, src, index: number, width = 800, height = 600) {
+async function localImageData(plugin: IgnorancePlugin, src, index: Map<string, TFile>, width = 800, height = 600) {
   if (!src || src.startsWith("data:")) return src;
   if (/^https?:\/\//i.test(src)) return src;
   const file = index.get(src) || index.get(resourcePathKey(src));
@@ -291,7 +291,7 @@ async function localImageData(plugin: IgnorancePlugin, src, index: number, width
 const OMIT_FROM_CLIPBOARD = new Set(["SCRIPT", "STYLE", "BUTTON", "INPUT", "TEXTAREA", "SELECT", "IFRAME", "OBJECT", "EMBED", "SOURCE"]);
 const OMIT_CLIPBOARD_SELECTOR = ".ibm-block-header, .ibm-mermaid-toolbar, .ibp-page-number, .ib-table-resize-layer, .copy-button";
 
-async function cloneForRichClipboard(source, plugin: IgnorancePlugin, imageIndex, target: HTMLElement) {
+async function cloneForRichClipboard(source, plugin: IgnorancePlugin, imageIndex, target: string) {
   if (source.nodeType === Node.TEXT_NODE) return source.cloneNode(true);
   if (!(source instanceof Element) || OMIT_FROM_CLIPBOARD.has(source.tagName) || source.matches(OMIT_CLIPBOARD_SELECTOR)) return null;
 
@@ -303,7 +303,7 @@ async function cloneForRichClipboard(source, plugin: IgnorancePlugin, imageIndex
     return renderedElementPng(source, "图表");
   }
 
-  const copy = createEl(source.tagName.toLowerCase());
+  const copy = createEl(source.tagName.toLowerCase() as keyof HTMLElementTagNameMap);
   for (const attribute of [...source.attributes]) {
     const name = attribute.name.toLowerCase();
     if (name === "class" || name === "id" || name === "style" || name === "srcset" || name.startsWith("on") || name.startsWith("data-") || name.startsWith("aria-")) continue;
@@ -333,7 +333,7 @@ async function cloneForRichClipboard(source, plugin: IgnorancePlugin, imageIndex
   if (target === "wechat" && source.matches(".ibc-container--cols")) {
     copy.setCssStyles({ display: "block" });
     copy.setCssStyles({ width: "100%" });
-    for (const child of copy.children) child.setCssStyles({ width: "100%" });
+    for (const child of copy.children) (child as HTMLElement).setCssStyles({ width: "100%" });
   }
   return copy;
 }
@@ -403,7 +403,7 @@ async function exportPdfToVault(plugin: IgnorancePlugin, file: TFile) {
   });
 }
 
-async function exportPdf(plugin: IgnorancePlugin, file: TFile, targetPath) {
+async function exportPdf(plugin: IgnorancePlugin, file: TFile, targetPath?: string) {
   if (!hasDesktopExports() && !targetPath) return exportPdfToVault(plugin, file);
   const remote = electronRemote();
   const choice = targetPath ? { filePath: targetPath } : await remote.dialog.showSaveDialog({
@@ -471,7 +471,7 @@ async function captureElement(element: HTMLElement) {
     ctx.drawImage(bitmap, 0, Math.round(y * dpr * scale), Math.round(bitmap.width * scale), Math.round(bitmap.height * scale));
   }
   element.setCssStyles({ transform: "" });
-  const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
+  const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/png"));
   return Buffer.from(await blob.arrayBuffer());
 }
 
@@ -500,7 +500,7 @@ async function exportImagesToVault(plugin: IgnorancePlugin, file: TFile, kind: s
   });
 }
 
-async function exportImages(plugin: IgnorancePlugin, file: TFile, kind: string, targetPath) {
+async function exportImages(plugin: IgnorancePlugin, file: TFile, kind: string, targetPath?: string) {
   if (!hasDesktopExports() && !targetPath) return exportImagesToVault(plugin, file, kind);
   const remote = electronRemote();
   const fs = nodeFs(), path = nodePath();
@@ -548,7 +548,7 @@ async function toPngFile(src, dest) {
   const canvas = createEl("canvas");
   canvas.width = bitmap.width; canvas.height = bitmap.height;
   canvas.getContext("2d").drawImage(bitmap, 0, 0);
-  const blob = await new Promise(r => canvas.toBlob(r, "image/png"));
+  const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/png"));
   fs.writeFileSync(dest, Buffer.from(await blob.arrayBuffer()));
 }
 
@@ -558,7 +558,7 @@ async function prepareMarkdownForPandoc(plugin: IgnorancePlugin, file: TFile, te
   const base = vaultBasePath(plugin);
   const noteDir = path.join(base, file.parent?.path || "");
   let imageIndex = 0;
-  const resolveLocalImage = async (target: HTMLElement) => {
+  const resolveLocalImage = async (target: string) => {
     const clean = decodeURIComponent(target.split("#")[0].split("|")[0]);
     const linked = plugin.app.metadataCache.getFirstLinkpathDest(clean, file.path);
     const abs = linked ? path.join(base, linked.path) : path.resolve(noteDir, clean);
@@ -651,7 +651,7 @@ async function vaultImageForWord(plugin: IgnorancePlugin, file: TFile, source: s
   if (/^(?:https?:|mailto:)/i.test(source)) return null;
   const clean = decodeURIComponent(String(source).replace(/^<|>$/g, "").split("#")[0]);
   const linked = plugin.app.metadataCache.getFirstLinkpathDest(clean, file.path) || plugin.app.vault.getAbstractFileByPath(clean);
-  if (!linked?.extension) return null;
+  if (!(linked instanceof TFile)) return null;
   const bytes = new Uint8Array(await plugin.app.vault.readBinary(linked));
   const extension = linked.extension.toLowerCase();
   if (["png", "jpg", "jpeg", "gif", "bmp"].includes(extension)) return { type: extension === "jpeg" ? "jpg" : extension, data: bytes };
@@ -696,7 +696,7 @@ async function exportWordToVault(plugin: IgnorancePlugin, file: TFile) {
   return saveExportToVault(plugin, `${file.basename}.docx`, bytes);
 }
 
-async function exportWord(plugin: IgnorancePlugin, file: TFile, targetPath, options = {}) {
+async function exportWord(plugin: IgnorancePlugin, file: TFile, targetPath?: string, options: { pandocPath?: string | null } = {}) {
   if (!hasDesktopExports()) return exportWordToVault(plugin, file);
   const pandoc = Object.prototype.hasOwnProperty.call(options, "pandocPath") ? options.pandocPath : findPandoc();
   const remote = electronRemote();
@@ -751,7 +751,7 @@ async function exportWord(plugin: IgnorancePlugin, file: TFile, targetPath, opti
       nodeChildProcess().execFile(pandoc, [
         source, "-f", "markdown+mark+pipe_tables+tex_math_dollars+task_lists", "-t", "docx",
         "-o", choice.filePath, "--resource-path", [path.join(base, file.parent?.path || ""), base, tmp].join(path.delimiter)
-      ], { timeout: 120000 }, (error, _out, stderr) => error ? reject(new Error(stderr || error.message)) : resolve());
+      ], { timeout: 120000 }, (error, _out, stderr) => error ? reject(new Error(stderr || error.message)) : resolve(undefined));
     });
     if (!targetPath) remote.shell.openPath(choice.filePath);
     return choice.filePath;
