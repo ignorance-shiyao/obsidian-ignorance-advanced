@@ -10,7 +10,6 @@ import { applyAppearancePreferences } from "./appearance.js";
 import { loadChunk } from "./chunks.js";
 import { base64ToBytes, bytesToBase64 } from "./bytes.js";
 import { capturePortable, rasterizeSvg } from "./portable-capture.js";
-import { prepareMarkdownTextForPandoc } from "./pandoc-markdown.js";
 import { exportNotePptx, buildDeck } from "./slides.js";
 import { previewThenExport } from "./export-preview.js";
 import { buildImagePdf } from "./image-pdf.js";
