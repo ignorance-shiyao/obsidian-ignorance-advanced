@@ -1,8 +1,5 @@
 # Changelog
 
-## 1.0.17
-Re-release of the 1.0.16 store review clean-up for a fresh directory scan; no functional changes.
-
 ## 1.0.16
 Store review clean-up: main.js shrinks from 7.2 MB to 3.6 MB and the code passes the directory's ESLint rules with no errors or warnings. Diagrams now use Obsidian's built-in Mermaid (11), so the families only Mermaid 12 offered (use case, Wardley, Ishikawa, event modeling, tree view), ZenUML and ELK layout are gone. The plugin no longer touches the file system, other programs or Electron: every export is saved into the vault's `导出/` folder, PDF on desktop goes through the system print dialog ("Save as PDF" keeps text selectable), and Word, Excel, PowerPoint, PDF, HTML and Notion imports run inside Obsidian (PDF and HTML through Obsidian's own converters). Removed with that: editing files outside the vault, "Open with" external apps and Pandoc. No `eval`, no `fetch`, no `!important` in the stylesheets.
 
