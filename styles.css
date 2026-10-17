@@ -416,12 +416,14 @@ body.ibt-dragging-row *:not(#_ib) { cursor: row-resize; user-select: none; }
 .ibm-block-header { position:relative; z-index:3; overflow:visible; }
 .ibm-block-header .ib-chart-align { display:flex; align-items:center; justify-content:center; }
 .ibm-block-header .ib-chart-align svg { width:16px; height:16px; }
-[data-ib-chart-align="left"]:is(.mermaid,.ib-echarts-block,.cm-embed-block):not(#_ib) { margin-left:0; margin-right:auto; }
-[data-ib-chart-align="center"]:is(.mermaid,.ib-echarts-block):not(#_ib) { margin-left:auto; margin-right:auto; }
-[data-ib-chart-align="right"]:is(.mermaid,.ib-echarts-block):not(#_ib) { margin-left:auto; margin-right:0; }
+/* Above the diagram card rule (width + margin-inline: auto), which has the same base specificity and comes later. */
+[data-ib-chart-align="left"]:is(.mermaid,.ib-echarts-block,.cm-embed-block):not(#_ib):not(#_ib2) { margin-left:0; margin-right:auto; }
+[data-ib-chart-align="center"]:is(.mermaid,.ib-echarts-block):not(#_ib):not(#_ib2) { margin-left:auto; margin-right:auto; }
+[data-ib-chart-align="right"]:is(.mermaid,.ib-echarts-block):not(#_ib):not(#_ib2) { margin-left:auto; margin-right:0; }
 /* Obsidian pins margin: 0 !important on everything inside the editor, so only here the margin has to be forced. */
-[data-ib-chart-align="center"].cm-embed-block { margin-left:auto !important; margin-right:auto !important; }
-[data-ib-chart-align="right"].cm-embed-block { margin-left:auto !important; margin-right:0 !important; }
+/* Obsidian's rule is `.markdown-source-view.mod-cm6 .cm-content > *` (three classes), so these need more. */
+.markdown-source-view.mod-cm6 .cm-content > [data-ib-chart-align="center"].cm-embed-block { margin-left:auto !important; margin-right:auto !important; }
+.markdown-source-view.mod-cm6 .cm-content > [data-ib-chart-align="right"].cm-embed-block { margin-left:auto !important; margin-right:0 !important; }
 /* Authored width ({width=480} on the fence) and the edge handles that set it. */
 [data-ib-chart-width]:is(.mermaid,.ib-echarts-block,pre) { box-sizing:border-box; }
 [data-ib-chart-width]:is(.mermaid,.ib-echarts-block,pre):not(#_ib):not(#_ib2) { width:var(--ib-chart-width); max-width:100%; }
