@@ -63,6 +63,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
   sweepBlocks() { return BlockTools.sweepBlocks(this); }
   loadStoredState() { return StoredState.loadStoredState(this); }
   saveStoredState() { return StoredState.saveStoredState(this); }
+  onExternalSettingsChange() { return StoredState.mergeExternalState(this); }
   applyDensity() { return StoredState.applyDensity(this); }
   applyCodeLineNumbers() { return StoredState.applyCodeLineNumbers(this); }
   cycleDensity() { return StoredState.cycleDensity(this); }

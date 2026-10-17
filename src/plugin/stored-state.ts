@@ -5,6 +5,7 @@ import { fileToolsDefaults } from "../modules/file-tools.js";
 import { t } from "../modules/mermaid-core.js";
 import { normalizePresentationSkin } from "../modules/skin-choice.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
+import { mergeReadingPositions } from "../modules/reading-position.js";
 
 /* Settings and per-note state: load, save (debounced), and the body classes that follow them. */
 
@@ -42,6 +43,13 @@ export async function loadStoredState(plugin: IgnorancePlugin) {
   plugin.applyDensity();
   applyAppearancePreferences(plugin);
   plugin.applyCodeLineNumbers();
+}
+
+// Called by Obsidian when data.json was changed by sync from another device.
+export async function mergeExternalState(plugin: IgnorancePlugin) {
+  const stored = await plugin.loadData();
+  if (!stored || !plugin.state) return;
+  mergeReadingPositions(plugin, stored.readingPositions);
 }
 
 export function saveStoredState(plugin: IgnorancePlugin) {

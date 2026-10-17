@@ -63,7 +63,11 @@ export function scrollToLine(view, line: number) {
   view.setEphemeralState?.({ scroll: line });
 }
 
+// Paths whose position changed on this device since data.json was last read; see mergeReadingPositions.
+const changedHere = new Set<string>();
+
 function remember(plugin: IgnorancePlugin, path: string, line: number) {
+  changedHere.add(path);
   const positions = plugin.state.readingPositions ||= {};
   delete positions[path];
   if (line < 1) { plugin.saveStoredState(); return; }
@@ -208,4 +212,23 @@ export async function keepViewport(view, change) {
     if (box && top !== undefined) box.scrollTop = top;
   }
   if (state) window.setTimeout(() => { state.restoring = false; }, 250);
+}
+
+/* data.json syncs between devices (Obsidian Sync or any file sync). When it changes underneath us, take the
+   positions it holds — another device may have read further — and lay this device's own changes since
+   the last read on top, so neither side's progress is lost when the next save writes the file. */
+export function mergePositions(external: Record<string, number> | undefined, local: Record<string, number>, changed: Iterable<string>, limit = MAX_REMEMBERED) {
+  const merged: Record<string, number> = { ...(external || {}) };
+  for (const path of changed) {
+    delete merged[path];
+    if (path in local) merged[path] = local[path];
+  }
+  const keys = Object.keys(merged);
+  for (const key of keys.slice(0, Math.max(0, keys.length - limit))) delete merged[key];
+  return merged;
+}
+
+export function mergeReadingPositions(plugin: IgnorancePlugin, external: Record<string, number> | undefined) {
+  plugin.state.readingPositions = mergePositions(external, plugin.state.readingPositions || {}, changedHere);
+  changedHere.clear();
 }

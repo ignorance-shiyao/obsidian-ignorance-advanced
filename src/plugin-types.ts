@@ -61,7 +61,8 @@ export interface PluginState {
   webClip: { watchClipboard: boolean; folder: string; byDomain: boolean };
   readingTime: { enabled: boolean };
   introShown: boolean;
-  readingPositions?: Record<string, { ratio?: number; [key: string]: unknown }>;
+  /** Source line last read, per note path (most recent last). */
+  readingPositions?: Record<string, number>;
   externalFiles?: Record<string, unknown>;
   htmlSkin?: unknown;
   pageDefaults?: unknown;
