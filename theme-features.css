@@ -3290,7 +3290,7 @@ tr[data-ib-level="3"] > :first-child { padding-inline-start: 4em; }
    capped at the window minus its margin, both in unzoomed terms. */
 .workspace-leaf-content[data-type="markdown"] :is(.markdown-reading-view .markdown-preview-sizer, .markdown-source-view.mod-cm6 .cm-sizer):not(#_ib):not(#_ib2):not(#_ib3) {
   zoom: var(--ibp-zoom, 1);
-  width: min(calc(100% * var(--ibp-share, 0.7) * var(--ibp-zoom, 1)), calc(100% * var(--ibp-zoom, 1) - 48px));
+  width: min(calc(100% * var(--ibp-share, 0.7) * var(--ibp-zoom, 1)), var(--ibp-cap, 900px), calc(100% * var(--ibp-zoom, 1) - 48px));
   max-width: none;
   flex: none;
 }

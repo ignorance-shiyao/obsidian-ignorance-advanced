@@ -19,7 +19,8 @@ export function setPageRefreshHandler(handler) {
 const MM = 96 / 25.4;
 // Full width is Obsidian's own "Readable line length" switched off; these
 // presets are the share of the window the page takes while it is on.
-const WIDTH_PRESETS = [["narrow", "窄", 55], ["standard", "标准", 70], ["wide", "宽", 88]];
+// Each preset also has a line-length cap in pixels: on a wide monitor a bare share gives lines too long to read.
+const WIDTH_PRESETS = [["narrow", "窄", 55, 720], ["standard", "标准", 70, 900], ["wide", "宽", 88, 1200]];
 const ZOOM_MIN = 0.5, ZOOM_MAX = 3;
 const PAGE_GAP = 24;
 
@@ -40,11 +41,14 @@ function applyPageSettings(plugin: IgnorancePlugin) {
   // it just gets bigger or smaller, and a page larger than the window scrolls.
   // A phone is too narrow to give any of its width away, and pinching already zooms.
   const phone = Platform.isPhone;
-  const share = phone ? 100 : page.width === "custom" ? page.customWidth : (WIDTH_PRESETS.find(([id]) => id === page.width)?.[2] ?? 70);
+  const preset = WIDTH_PRESETS.find(([id]) => id === page.width) ?? WIDTH_PRESETS[1];
+  const share = phone ? 100 : page.width === "custom" ? page.customWidth : preset[2];
+  // A custom width is an explicit share and is not capped.
+  const cap = phone || page.width === "custom" ? 100000 : preset[3];
   const zoom = phone ? 1 : Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(page.zoom) || 1));
   body.style.setProperty("--ib-content-max", `${share}%`);
   // Obsidian caps embeds (images, tables) at --file-line-width inside the page, so it must not be the share again.
-  body.setCssProps({ "--ibp-zoom": String(zoom), "--ibp-share": String(share / 100), "--file-line-width": "100%" });
+  body.setCssProps({ "--ibp-zoom": String(zoom), "--ibp-share": String(share / 100), "--ibp-cap": `${cap}px`, "--file-line-width": "100%" });
   const scale = 1;
   body.classList.toggle("ibp-paged", page.paged);
   const size = paperSize(page);
@@ -109,8 +113,8 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
 
   const openWidthMenu = event => {
     const menu = new Menu();
-    for (const [id, label, px] of WIDTH_PRESETS) {
-      menu.addItem(item => item.setTitle(px ? `${label}（窗口的 ${px}%）` : label).setChecked(page().width === id).onClick(() => { page().width = id; save(); }));
+    for (const [id, label, px, cap] of WIDTH_PRESETS) {
+      menu.addItem(item => item.setTitle(`${label}（窗口的 ${px}%，最宽 ${cap}px）`).setChecked(page().width === id).onClick(() => { page().width = id; save(); }));
     }
     menu.addItem(item => item.setTitle(`自定义…${page().width === "custom" ? `（${page().customWidth}%）` : ""}`).setChecked(page().width === "custom").onClick(() => openWidthInput(event)));
     menu.showAtMouseEvent(event);
@@ -371,7 +375,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
     document.querySelectorAll(".ibp-book-host, .ibp-toolbar-host, .ibp-source-fixed-width").forEach(el => el.removeClasses(["ibp-book-host", "ibp-toolbar-host", "ibp-source-fixed-width"]));
     removeDocSheet("ibp-print-page");
     document.body.classList.remove("ibp-paged");
-    for (const name of ["--ibp-zoom", "--ibp-share", "--ibp-scale", "--ibp-font-size", "--ib-content-max", "--file-line-width", "--ibp-page-w", "--ibp-page-h", "--ibp-page-gap", "--ibp-mt", "--ibp-mr", "--ibp-mb", "--ibp-ml"]) document.body.style.removeProperty(name);
+    for (const name of ["--ibp-zoom", "--ibp-share", "--ibp-cap", "--ibp-scale", "--ibp-font-size", "--ib-content-max", "--file-line-width", "--ibp-page-w", "--ibp-page-h", "--ibp-page-gap", "--ibp-mt", "--ibp-mr", "--ibp-mb", "--ibp-ml"]) document.body.style.removeProperty(name);
   });
 }
 
