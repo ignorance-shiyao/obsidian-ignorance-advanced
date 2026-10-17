@@ -420,10 +420,9 @@ body.ibt-dragging-row *:not(#_ib) { cursor: row-resize; user-select: none; }
 [data-ib-chart-align="left"]:is(.mermaid,.ib-echarts-block,.cm-embed-block):not(#_ib):not(#_ib2) { margin-left:0; margin-right:auto; }
 [data-ib-chart-align="center"]:is(.mermaid,.ib-echarts-block):not(#_ib):not(#_ib2) { margin-left:auto; margin-right:auto; }
 [data-ib-chart-align="right"]:is(.mermaid,.ib-echarts-block):not(#_ib):not(#_ib2) { margin-left:auto; margin-right:0; }
-/* Obsidian pins margin: 0 !important on everything inside the editor, so only here the margin has to be forced. */
-/* Obsidian's rule is `.markdown-source-view.mod-cm6 .cm-content > *` (three classes), so these need more. */
-.markdown-source-view.mod-cm6 .cm-content > [data-ib-chart-align="center"].cm-embed-block { margin-left:auto !important; margin-right:auto !important; }
-.markdown-source-view.mod-cm6 .cm-content > [data-ib-chart-align="right"].cm-embed-block { margin-left:auto !important; margin-right:0 !important; }
+/* Obsidian pins the margins of every direct child of the editor content to 0, so an aligned block's shell
+   spans the line and the chart inside it (which carries the same alignment) places itself. */
+.markdown-source-view.mod-cm6 .cm-content > .cm-embed-block[data-ib-chart-align]:not(#_ib):not(#_ib2) { width:100%; max-width:100%; }
 /* Authored width ({width=480} on the fence) and the edge handles that set it. */
 [data-ib-chart-width]:is(.mermaid,.ib-echarts-block,pre) { box-sizing:border-box; }
 [data-ib-chart-width]:is(.mermaid,.ib-echarts-block,pre):not(#_ib):not(#_ib2) { width:var(--ib-chart-width); max-width:100%; }
@@ -480,7 +479,8 @@ body.theme-light .ib-li-light { display:inline; }
 
 /* Image cropper. */
 .ib-crop-modal .modal { width:min(92vw, 880px); }
-.ib-crop-stage { position:relative; clip-path:inset(-10px); display:inline-block; max-width:100%; line-height:0; user-select:none; touch-action:none; }
+.ib-crop-clip { display:inline-block; max-width:100%; padding:10px; margin:-10px; overflow:hidden; line-height:0; }
+.ib-crop-stage { position:relative; display:inline-block; max-width:100%; line-height:0; user-select:none; touch-action:none; }
 .ib-crop-image { display:block; max-width:100%; max-height:62vh; width:auto; height:auto; }
 .ib-crop-box { position:absolute; box-sizing:border-box; border:2px solid var(--ib-focus, var(--interactive-accent)); box-shadow:0 0 0 9999px rgba(10,14,22,.55); cursor:move; }
 .ib-crop-box::before, .ib-crop-box::after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(to right, transparent calc(33.3% - .5px), rgba(255,255,255,.55) calc(33.3% - .5px) calc(33.3% + .5px), transparent calc(33.3% + .5px) calc(66.6% - .5px), rgba(255,255,255,.55) calc(66.6% - .5px) calc(66.6% + .5px), transparent calc(66.6% + .5px)); }
@@ -504,16 +504,6 @@ body.is-mobile .ib-crop-box { border-width:3px; }
 body.is-mobile .image-embed:hover .ib-image-actions { opacity:.9; }
 body.is-mobile .ib-image-actions .ib-image-action { width:34px; height:34px; }
 
-/* Class-diagram text must never wrap. Mermaid caps each member line at a width derived from the class name;
-   where fonts measure the name narrower (iOS) a longer member wraps onto a second line and overprints the
-   heading. The cap lives in an inline style, so override it — measurement included, which is why this is not
-   scoped to the finished diagram. */
-g.node > :is(.members-group, .methods-group) foreignObject > div {
-  display: table-cell !important;
-  white-space: nowrap !important;
-  width: auto !important;
-  max-width: none !important;
-}
 
 .ib-reading-time { color: var(--text-muted); }
 
@@ -543,10 +533,12 @@ g.node > :is(.members-group, .methods-group) foreignObject > div {
 
 .ib-footer-input { width: 100%; }
 
-/* Static overrides that used to be set as inline styles from script. */
-body svg.ibm-unclamp.ibm-unclamp.ibm-unclamp { max-width: none !important; max-height: none !important; }
-body .ibm-unclamp-width.ibm-unclamp-width { max-width: none !important; }
-.ibp-no-min-width.ibp-no-min-width { min-width: 0 !important; }
-.ibp-callout-open.ibp-callout-open { display: block !important; height: auto !important; opacity: 1 !important; }
+/* Mermaid's own cap on the drawing (moved from its inline style by the render router). */
+.mermaid svg[data-ibm-engine]:not(#_ib):not(#_ib2) { max-width: var(--ibm-max-width, 100%); }
+/* Static overrides that used to be set as inline styles from script; three ids outrank every class rule. */
+svg.ibm-unclamp:not(#_ib):not(#_ib2):not(#_ib3) { max-width: none; max-height: none; }
+.ibm-unclamp-width:not(#_ib):not(#_ib2):not(#_ib3) { max-width: none; }
+.ibp-no-min-width:not(#_ib):not(#_ib2):not(#_ib3) { min-width: 0; }
+.ibp-callout-open:not(#_ib):not(#_ib2):not(#_ib3) { display: block; height: auto; opacity: 1; }
 .ibt-width-probe { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; width: max-content; max-width: none; table-layout: auto; white-space: nowrap; margin: 0; }
 .ibt-width-probe-cell { width: auto; min-width: 0; max-width: none; white-space: nowrap; }

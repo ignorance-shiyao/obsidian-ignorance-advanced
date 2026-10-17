@@ -943,7 +943,8 @@ body.is-phone .markdown-rendered pre.ibc-enhanced > code {
   .ib-echarts-block { height: 320px; min-height: 260px; }
 }
 /* The theme forces pre-wrap on code; code with its own line elements must stay normal so lines do not double-space. */
-.markdown-rendered pre code.ib-code-lines:not(#_ib):not(#_ib2) { display: block; white-space: normal !important; }
+/* The theme's `pre code` rule has the same weight and loads later; a third id keeps lines on their own wrapping. */
+.markdown-rendered pre code.ib-code-lines:not(#_ib):not(#_ib2):not(#_ib3) { display: block; white-space: normal; }
 .markdown-rendered pre .ib-code-line {
   position: relative;
   display: block;
@@ -1903,7 +1904,7 @@ body.ib-show-code-line-numbers .markdown-source-view.mod-cm6.is-live-preview .ib
 .ibp-anim-title { color: var(--ib-text-primary); font-size: var(--font-ui-small); }
 .ibp-anim-hint { color: var(--ib-text-muted); font-size: var(--font-ui-smaller); }
 @media (prefers-reduced-motion: reduce) {
-  .ibp-popover, .ibp-anim-demo, .ibp-anim-demo > * { animation: none !important; }
+  .ibp-popover:not(#_ib), .ibp-anim-demo:not(#_ib), .ibp-anim-demo:not(#_ib) > * { animation: none; }
 }
 .reveal.ibp-pptx-exporting .slides section:not(#_ib),
 .reveal.ibp-pptx-exporting .slides section *:not(#_ib) {
@@ -2511,8 +2512,7 @@ body[data-ib-table-alignment] .markdown-rendered table[data-ib-table-align="righ
   & g.quadrant:nth-child(4) rect { fill: color-mix(in srgb, var(--ib-mm-series-2) 8%, var(--ib-mm-card)); }
   & g.quadrant rect { stroke: none; }
   & g.quadrant text { fill: var(--ib-mm-muted); stroke: none; font-weight: 600; letter-spacing: 0.02em; }
-  /* Mermaid writes the frame color as a plain inline style; the frame has no
-     author-facing style hook, so !important here overrides nothing of yours. */
+  /* The quadrant frame has no author-facing style hook, so recoloring it overrides nothing of yours. */
   & g.border line { stroke: var(--ib-mm-cluster-stroke); stroke-width: 1px; }
   & g.data-point circle { fill: var(--ib-accent-brand); stroke: var(--ib-mm-card); stroke-width: 2px; filter: var(--ib-mm-shadow); }
   & g.data-point text { fill: var(--ib-mm-text); }
@@ -2797,7 +2797,7 @@ body[data-ib-table-alignment] .markdown-rendered table[data-ib-table-align="righ
   & rect.task.milestone:is([class*="crit"]):not(#_ib) { fill: var(--ib-mm-crit-stroke); }
 
   & text:is(.taskText, [class*="taskText"]) { fill: var(--ib-mm-text-accent); font-weight: 500; }
-  /* Mermaid pins doneText/activeText to #333 !important — unreadable on dark bars. */
+  /* Mermaid's own doneText/activeText color is #333 — unreadable on dark bars. */
   & text:is([class*="doneText"], [class*="activeText"]) { fill: var(--ib-mm-text-accent); }
   & text[class*="taskTextOutside"]:is([class*="doneText"], [class*="activeText"]) { fill: var(--ib-mm-text); }
   & text:is(.taskTextOutsideRight, .taskTextOutsideLeft, [class*="taskTextOutside"]) { fill: var(--ib-mm-text); }
@@ -3143,10 +3143,12 @@ body[data-ib-table-alignment] .markdown-rendered table[data-ib-table-align="righ
 .ibc-container--compare { position: relative; margin: var(--ib-space-4, 16px) 0; border-radius: var(--ib-radius-lg, 12px); overflow: hidden; }
 .ibc-container--compare img { display: block; width: 100%; height: auto; margin: 0; }
 .ibc-compare--static { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ib-space-3, 12px); overflow: visible; }
-.ibc-compare--interactive { display: grid; }
+.ibc-compare--interactive { display: grid; container-type: inline-size; }
 .ibc-compare--interactive > .ibc-compare__pane { grid-area: 1 / 1; min-width: 0; }
-.ibc-compare--interactive > .ibc-compare__pane:first-of-type { z-index: 1; clip-path: inset(0 calc(100% - var(--ibc-split, 50%)) 0 0); }
+/* The "before" pane is cut to the split width; its picture keeps the full width so both line up. */
+.ibc-compare--interactive > .ibc-compare__pane:first-of-type { z-index: 1; justify-self: start; width: var(--ibc-split, 50%); overflow: hidden; }
 .ibc-compare--interactive > .ibc-compare__pane img { height: 100%; object-fit: cover; }
+.ibc-compare--interactive > .ibc-compare__pane:first-of-type img:not(#_ib):not(#_ib2) { width: 100cqw; max-width: none; }
 .ibc-compare--interactive::after {
   content: ""; position: absolute; top: 0; bottom: 0; left: var(--ibc-split, 50%); z-index: 2; width: 2px; margin-left: -1px;
   background: #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .25); pointer-events: none;
