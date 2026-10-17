@@ -98,8 +98,8 @@ export function initPageState(plugin: IgnorancePlugin) {
   plugin.state.page.margins = Object.assign({ ...MARGIN_PRESETS.normal }, plugin.state.page.margins || {});
   // Widths used to be pixels; a custom width above 100 is one of those.
   if (!(plugin.state.page.customWidth >= 30 && plugin.state.page.customWidth <= 100)) plugin.state.page.customWidth = 80;
-  // Zoom is a temporary view, not a layout choice: a trackpad pinch must not leave the page shrunk after a restart.
-  plugin.state.page.zoom = 1;
+  // Zoom is a saved preview scale: the page is laid out at its width setting, then magnified as a whole.
+  plugin.state.page.zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(plugin.state.page.zoom) || 1));
   // The old "full width" preset is now Obsidian's readable-line-length switch.
   if (plugin.state.page.width === "full") {
     plugin.state.page.width = "standard";
@@ -289,9 +289,10 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
     const refresh = () => {
       const p = page();
       const preset = WIDTH_PRESETS.find(([id]) => id === p.width);
-      // Show the width the page actually has: the share, the cap and the zoom together are hard to picture.
-      const px = Math.round(visibleSizer(host)?.getBoundingClientRect().width || 0);
-      width.setText(`${p.width === "custom" ? `宽 ${p.customWidth}%` : `宽度 · ${preset ? preset[1] : "标准"}`}${px ? ` · ${px}` : ""}`);
+      // Show the width the page is laid out at (zoom only magnifies that layout).
+      const sizer = visibleSizer(host);
+      const px = sizer ? Math.round(parseFloat(getComputedStyle(sizer).width)) : 0;
+      width.setText(`${p.width === "custom" ? `宽 ${p.customWidth}%` : `宽度 · ${preset ? preset[1] : "标准"}`}${px ? ` · ${px}` : ""}${Number(p.zoom) && Number(p.zoom) !== 1 ? ` · ${Math.round(Number(p.zoom) * 100)}%` : ""}`);
       typewriter.toggleClass("is-active", Boolean(plugin.state.writingModes?.typewriterScroll));
       typewriter.setAttr("aria-pressed", String(Boolean(plugin.state.writingModes?.typewriterScroll)));
       focus.toggleClass("is-active", Boolean(plugin.state.writingModes?.focusMode));
