@@ -73,6 +73,11 @@ const forbidden = /\/Users\/|MyNotes|iCloud|40-归档|@gmail|@qq\.com|claude|ant
 const textFiles = files.filter(f => /\.(md|json|mjs|ts|js|css|yml|yaml|txt)$/.test(f) && !/^(package-lock\.json|vendor\/|licenses\/|build\/)/.test(f) && f !== "scripts/check-release.mjs");
 const hits = textFiles.flatMap(f => read(f).split("\n").map((line, i) => [f, i + 1, line]).filter(([, , line]) => forbidden.test(line)).map(([file, no]) => `${file}:${no}`));
 check(hits.length === 0, "no personal or internal wording in tracked files", hits.slice(0, 6).join(", "));
+// Phone / tablet rules must win over the desktop rules they adjust (see scripts/check-cascade.mjs).
+let cascade = "";
+try { execFileSync("node", ["scripts/check-cascade.mjs"], { encoding: "utf8" }); } catch (error) { cascade = String(error.stdout).trim().split("\n").pop(); }
+check(!cascade, "device rules win over desktop rules", cascade);
+
 const authors = [...new Set(git("log", "--format=%ae").split("\n"))];
 check(authors.every(a => a.endsWith("@users.noreply.github.com")), "commit emails are GitHub noreply addresses", authors.join(", "));
 check(git("status", "--porcelain") === "", "working tree is clean (commit before releasing)");
