@@ -19,9 +19,9 @@ export const MARKER_RULES: MarkerRule[] = [
   { child: 'img:is([alt="left"], [alt$="|left"], [alt^="left|"])', up: ".image-embed", attr: ["data-ib-align", "left"] },
   { child: 'img:is([alt="right"], [alt$="|right"], [alt^="right|"])', up: ".image-embed", attr: ["data-ib-align", "right"] },
   // Image filters written in the alt text: ![gray](a.png), ![x|dark-invert](a.png) …
-  ...["gray", "sepia", "invert", "dark-invert", "blur"].map(name => ({
+  ...["gray", "sepia", "invert", "dark-invert", "blur"].map((name): MarkerRule => ({
     child: `img:is([alt="${name}"], [alt$="|${name}"], [alt^="${name}|"])`, up: ".image-embed", attr: ["data-ib-filter", name]
-  } as MarkerRule)),
+  })),
   { child: ".ib-image-actions", up: ".image-embed", cls: "ib-has-image-actions" },
   { child: ".image-embed > .ib-image-resize-layer", cls: "ib-has-resize-layer" },
   // Table cells that hold nothing but one code span stay as narrow as the code.
@@ -77,7 +77,7 @@ export function markContext(root: ParentNode & Partial<Element>) {
 /** Remove every marker again (plugin unload). */
 export function clearContextMarkers() {
   for (const rule of MARKER_RULES) {
-    if (rule.cls) document.querySelectorAll("." + rule.cls).forEach(element => element.classList.remove(rule.cls!));
-    if (rule.attr) document.querySelectorAll(`[${rule.attr[0]}="${rule.attr[1]}"]`).forEach(element => element.removeAttribute(rule.attr![0]));
+    if (rule.cls) document.querySelectorAll("." + rule.cls).forEach(element => element.classList.remove(rule.cls));
+    if (rule.attr) document.querySelectorAll(`[${rule.attr[0]}="${rule.attr[1]}"]`).forEach(element => element.removeAttribute(rule.attr[0]));
   }
 }

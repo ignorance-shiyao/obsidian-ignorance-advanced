@@ -1,4 +1,5 @@
-import type { IgnorancePlugin } from "../plugin-types.js";
+import type { MarkdownPostProcessorContext } from "obsidian";
+import type { IgnorancePlugin, PluginState } from "../plugin-types.js";
 /* Heading numbers in Reading view: "1", "1.1", "1.1.1". A lone H1 is treated as the note's title and left
    out, so numbering starts at the first H2. Turned on globally in settings, or per note with the `ib-numbered`
    cssclass (`ib-unnumbered` turns it off for a note). */
@@ -41,7 +42,7 @@ export type NumberStart = "auto" | "h1" | "h2";
 export interface NumberOptions { depth: number; style: NumberStyle; start: NumberStart }
 
 export function numberingOptions(plugin: IgnorancePlugin): NumberOptions {
-  const state = plugin?.state || {};
+  const state: Partial<PluginState> = plugin?.state || {};
   const depth = Math.round(Number(state.headingNumberDepth));
   return {
     depth: depth >= 1 && depth <= 6 ? depth : 4,
@@ -76,7 +77,7 @@ export function numberWithOptions(headings: HeadingEntry[], options: NumberOptio
   return numberHeadings(headings, options.depth, options.style, options.start);
 }
 
-export function wantsNumbers(plugin: IgnorancePlugin, frontmatter) {
+export function wantsNumbers(plugin: IgnorancePlugin, frontmatter: Record<string, unknown> | undefined) {
   const classes = [frontmatter?.cssclasses, frontmatter?.cssclass].flat().filter(Boolean).map(String);
   if (classes.includes("ib-unnumbered")) return false;
   return plugin.state?.headingNumbers === true || classes.includes("ib-numbered");
@@ -123,7 +124,7 @@ export function scanHeadings(lines: string[]) {
 /* Reading view keeps the sections that did not change when a note is edited, so a number written into one of
    them goes stale as soon as a heading is added or removed above it. Every heading remembers where it came from
    and is renumbered from the current text after each render pass. */
-const origins = new WeakMap<Element, { element: Element; context: any }>();
+const origins = new WeakMap<Element, { element: HTMLElement; context: MarkdownPostProcessorContext }>();
 
 function headingOf(element: Element) {
   return element.querySelector(":scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6") || (/^H[1-6]$/.test(element.tagName) ? element : null);

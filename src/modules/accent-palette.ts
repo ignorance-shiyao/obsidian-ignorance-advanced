@@ -1,7 +1,7 @@
 const LIGHT_PAGE = "#FAFBFD";
 const DARK_PAGE = "#0F172A";
 
-function accentRgb(hex) {
+function accentRgb(hex: string) {
   const h = hex.replace("#", "");
   const full = h.length === 3 ? h.split("").map(c => c + c).join("") : h;
   return [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16));
@@ -17,18 +17,18 @@ function accentContrast(a: string, b: string) {
   const [hi, lo] = [accentLuminance(a), accentLuminance(b)].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
 }
-function accentMix(hex, target: HTMLElement, amount: number) {
+function accentMix(hex: string, target: string, amount: number) {
   const a = accentRgb(hex), b = accentRgb(target);
   return accentHex(a.map((v, i) => v + (b[i] - v) * amount));
 }
-function accentStep(hex: string, toward, against: string, ratio: number) {
+function accentStep(hex: string, toward: string, against: string, ratio: number) {
   for (let t = 0; t <= 1.0001; t += 0.02) {
     const candidate = accentMix(hex, toward, t);
     if (accentContrast(candidate, against) >= ratio) return candidate;
   }
   return toward;
 }
-export function derivePalette(hex: string, surfaces = {}) {
+export function derivePalette(hex: string, surfaces: { lightPage?: string; darkPage?: string } = {}) {
   const lightPage = surfaces.lightPage || LIGHT_PAGE;
   const darkPage = surfaces.darkPage || DARK_PAGE;
   const lightSolid = accentStep(hex, "#000000", "#FFFFFF", 5);

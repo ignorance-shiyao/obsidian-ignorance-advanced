@@ -8,10 +8,12 @@ function fragmentFor(markup: string): DocumentFragment {
   let fragment = parsed.get(markup);
   if (!fragment) {
     const doc = new DOMParser().parseFromString(markup, "text/html");
-    fragment = document.createDocumentFragment();
+    fragment = createFragment();
     for (const node of Array.from(doc.body.childNodes)) fragment.appendChild(document.importNode(node, true));
     if (markup.length < 20000) {
-      if (parsed.size >= CACHE_LIMIT) parsed.delete(parsed.keys().next().value);
+      if (parsed.size >= CACHE_LIMIT) {
+        for (const oldest of parsed.keys()) { parsed.delete(oldest); break; }
+      }
       parsed.set(markup, fragment);
     }
   }

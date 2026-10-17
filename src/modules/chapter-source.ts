@@ -1,6 +1,14 @@
 import MarkdownIt from "markdown-it";
 import { parseMarkdownContainers } from "./container-source.js";
 
+/* The slice of a markdown-it token this module reads. */
+interface HeadingToken {
+  type: string;
+  tag: string;
+  level: number;
+  map: [number, number] | null;
+}
+
 const markdown = new MarkdownIt({ html: true });
 
 export interface ChapterRange {
@@ -22,12 +30,13 @@ export function sourceChapterRanges(source: string): ChapterRange[] {
   const bodyStarts = [0];
   for (let i = 0; i < body.length; i++) if (body[i] === "\n") bodyStarts.push(i + 1);
   const originalLines = new Map(starts.map((offset, line) => [offset, line]));
-  const headings = markdown.parse(body, {})
+  const tokens: HeadingToken[] = markdown.parse(body, {});
+  const headings = tokens
     .filter(token => token.type === "heading_open" && token.tag === "h2" && token.level === 0 && token.map)
     .map(token => {
-      const local = bodyStarts[token.map![0]];
+      const local = bodyStarts[token.map[0]];
       const offset = frontmatterEnd + local;
-      return { offset, line: originalLines.get(offset)! };
+      return { offset, line: originalLines.get(offset) };
     })
     .filter(heading => !containers.some(node => heading.offset >= node.startOffset && heading.offset < node.closeEnd));
   return headings.map((heading, index: number) => ({

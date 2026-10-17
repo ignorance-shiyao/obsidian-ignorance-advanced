@@ -1,5 +1,5 @@
 // Base64 without Node's Buffer, so exports also run on mobile.
-export function bytesToBase64(data) {
+export function bytesToBase64(data: Uint8Array | ArrayBuffer) {
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
   let binary = "";
   for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));

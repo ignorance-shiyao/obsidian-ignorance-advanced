@@ -1,8 +1,8 @@
 import { Decoration, ViewPlugin, WidgetType } from "@codemirror/view";
+import type { DecorationSet, EditorView, ViewUpdate } from "@codemirror/view";
 import { RangeSetBuilder } from "@codemirror/state";
+import { syntaxTree } from "@codemirror/language";
 import { colorValue, hexColorTags, inlineCodeSpans, isPlainTextColor } from "./color-swatch-core.js";
-
-const { syntaxTree } = require("@codemirror/language");
 
 function makeSwatch(color: string) {
   const dot = createSpan();
@@ -31,8 +31,8 @@ export function colorSwatchPostProcessor(el: HTMLElement) {
     acceptNode: node => node.parentElement?.closest("code, pre, a, .ib-color-value, .ib-color-swatch, svg, .mermaid")
       ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
   });
-  const texts = [];
-  for (let node = walker.nextNode(); node; node = walker.nextNode()) if (node.textContent.includes("#")) texts.push(node);
+  const texts: Text[] = [];
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) if (node.textContent.includes("#")) texts.push(node as Text);
   for (const node of texts) {
     const matches = hexColorTags(node.textContent).filter(([, color]) => isPlainTextColor(color));
     for (const [at, color] of matches.reverse()) {
@@ -47,19 +47,20 @@ export function colorSwatchPostProcessor(el: HTMLElement) {
 }
 
 class SwatchWidget extends WidgetType {
-  constructor(color) { super(); this.color = color; }
-  eq(other) { return other.color === this.color; }
+  color: string;
+  constructor(color: string) { super(); this.color = color; }
+  eq(other: SwatchWidget) { return other.color === this.color; }
   toDOM() { return makeSwatch(this.color); }
   ignoreEvent() { return false; }
 }
 
-function buildDecorations(view) {
-  const builder = new RangeSetBuilder();
+function buildDecorations(view: EditorView) {
+  const builder = new RangeSetBuilder<Decoration>();
   const tree = syntaxTree(view.state);
   for (const { from, to } of view.visibleRanges) {
     for (let pos = from; pos <= to;) {
       const line = view.state.doc.lineAt(pos);
-      const marks = [];
+      const marks: [number, string][] = [];
       if (line.text.includes("`")) {
         for (const [start, , text] of inlineCodeSpans(line.text)) {
           const color = colorValue(text);
@@ -86,12 +87,15 @@ function buildDecorations(view) {
   return builder.finish();
 }
 
-// Live Preview and source mode.
-export const colorSwatchExtension = ViewPlugin.fromClass(class {
-  constructor(view) { this.decorations = buildDecorations(view); }
-  update(update) {
+class SwatchPlugin {
+  decorations: DecorationSet;
+  constructor(view: EditorView) { this.decorations = buildDecorations(view); }
+  update(update: ViewUpdate) {
     if (update.docChanged || update.viewportChanged || syntaxTree(update.state) !== syntaxTree(update.startState)) {
       this.decorations = buildDecorations(update.view);
     }
   }
-}, { decorations: plugin => plugin.decorations });
+}
+
+// Live Preview and source mode.
+export const colorSwatchExtension = ViewPlugin.fromClass(SwatchPlugin, { decorations: plugin => plugin.decorations });

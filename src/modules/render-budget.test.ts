@@ -8,7 +8,7 @@ describe("预览生成让出主线程与取消", () => {
     const events: string[] = [];
     const checkpoint = renderBudget(undefined, 8);
     await vi.advanceTimersByTimeAsync(10);
-    setTimeout(() => events.push("输入"), 0);
+    window.setTimeout(() => events.push("输入"), 0);
     const work = checkpoint().then(() => events.push("生成"));
     await vi.runAllTimersAsync();
     await work;

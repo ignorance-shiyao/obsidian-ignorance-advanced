@@ -1,6 +1,7 @@
+/// <reference types="vite/client" />
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
-import { parseMarkdownContainers } from "./container-source";
+import fixture from "./fixtures/ppt-mixed-layouts.md?raw";
+import { parseMarkdownContainers, type MarkdownContainer } from "./container-source";
 
 describe("::: Markdown 容器解析", () => {
   it("读取容器类型、标题、行范围并支持嵌套", () => {
@@ -45,10 +46,10 @@ describe("::: Markdown 容器解析", () => {
   });
 
   it("完整识别混合版式回归样例中的各类容器", () => {
-    const source = readFileSync(new URL("./fixtures/ppt-mixed-layouts.md", import.meta.url), "utf8");
+    const source = fixture;
     const roots = parseMarkdownContainers(source);
     const kinds = new Set<string>();
-    const visit = nodes => nodes.forEach(node => { kinds.add(node.kind); visit(node.children); });
+    const visit = (nodes: MarkdownContainer[]) => nodes.forEach(node => { kinds.add(node.kind); visit(node.children); });
     visit(roots);
     expect(["kpi", "cols", "card", "panel", "process", "gallery", "roadmap", "matrix"].every(kind => kinds.has(kind))).toBe(true);
     expect(roots.every(node => node.endLine > node.startLine)).toBe(true);

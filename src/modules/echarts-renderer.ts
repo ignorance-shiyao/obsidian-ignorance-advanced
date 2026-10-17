@@ -1,25 +1,36 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { Component } from "obsidian";
+import { MarkdownRenderChild } from "obsidian";
+import type { MarkdownPostProcessorContext } from "obsidian";
+import type { EChartsType } from "echarts";
 import { observedSize, waitForSize } from "./element-size.js";
 import { setIcon, UI_ICONS } from "./ui-icons.js";
 import { HALF_A4_HEIGHT, DIAGRAM_HEADER_HEIGHT } from "./diagram-fit.js";
 import { buildEChartsTheme, echartsThemeName, normalizeEChartsOption, parseEChartsOption } from "./echarts-core.js";
 import { graphPixelBounds, fitDefaultGraph } from "./echarts-graph.js";
+import type { GraphChart } from "./echarts-graph.js";
 import { setMarkup } from "./dom-markup.js";
 
-let echartsLoad: Promise<any> | null = null;
+type EChartsModule = typeof import("echarts");
+type ChartRenderer = "canvas" | "svg";
+type TreeNode = { collapsed?: boolean; children?: TreeNode[] };
+type SeriesItem = { type?: string; orient?: string; data?: TreeNode[] };
+type TooltipOption = { className?: string; extraCssText?: string };
+type GraphBounds = ReturnType<typeof graphPixelBounds>;
+type ChartBlockElement = HTMLElement & { __ibGraphMetrics?: () => GraphBounds[] };
+
+let echartsLoad: Promise<EChartsModule> | null = null;
 const registeredThemes = new Set<string>();
 // Charts already shown once this session: Obsidian re-renders sections as they
 // scroll back into view, and replaying the intro animation looked like flicker.
 const shownCharts = new Set<string>();
 const NEAR_VIEW = "1600px 0px";
-const previewCache = new Map();
+const previewCache = new Map<string, string>();
 let drawTurn: Promise<unknown> = Promise.resolve();
 let tooltipSerial = 0;
 
 // ECharts (the full build) sits behind a dynamic import: evaluated on the first chart only.
-function loadECharts(_plugin?: IgnorancePlugin) {
-  if (!echartsLoad) {
+function loadECharts(_plugin?: IgnorancePlugin): Promise<EChartsModule> {
+  if (echartsLoad === null) {
     echartsLoad = import("echarts").catch(error => {
       echartsLoad = null;
       throw error;
@@ -29,9 +40,9 @@ function loadECharts(_plugin?: IgnorancePlugin) {
 }
 
 // Reading computed styles forces a style pass; charts share one reading until the theme changes.
-let tokenCache = null;
+let tokenCache: (ReturnType<typeof readThemeTokensNow> & { root: HTMLElement }) | null = null;
 function readThemeTokens(element: HTMLElement = null) {
-  const root = element?.closest(".skin-palette") || document.body;
+  const root = element?.closest<HTMLElement>(".skin-palette") || document.body;
   const dark = root.dataset.ibMode ? root.dataset.ibMode === "dark" : document.body.classList.contains("theme-dark");
   if (tokenCache && tokenCache.dark === dark && tokenCache.root === root) return tokenCache;
   tokenCache = { ...readThemeTokensNow(root), root };
@@ -39,7 +50,7 @@ function readThemeTokens(element: HTMLElement = null) {
 }
 function forgetThemeTokens() { tokenCache = null; }
 
-function readThemeTokensNow(root = document.body) {
+function readThemeTokensNow(root: HTMLElement = document.body) {
   const style = getComputedStyle(root);
   const read = (name: string) => style.getPropertyValue(name).trim();
   const primary = read("--ib-accent-solid") || "#4D81EF";
@@ -56,26 +67,31 @@ function readThemeTokensNow(root = document.body) {
   };
 }
 
-function chartRendererFor(element: HTMLElement) {
+// The chart returned by echarts.init has the graph accessors echarts-graph.ts reads; checked rather than assumed.
+function isGraphChart(chart: unknown): chart is GraphChart {
+  return typeof chart === "object" && chart !== null && "getModel" in chart && "convertToPixel" in chart && "dispatchAction" in chart;
+}
+
+function chartRendererFor(element: HTMLElement): ChartRenderer {
   return document.body.classList.contains("ibp-exporting")
     || document.body.classList.contains("ibp-paged")
     || !!element.closest(".ibp-staging, .ibp-export") ? "svg" : "canvas";
 }
 
-function setChartError(element: HTMLElement, error) {
+function setChartError(element: HTMLElement, error: unknown) {
   element.dataset.ibEchartsState = "error";
   element.replaceChildren();
   const message = element.createEl("pre", { cls: "ib-echarts-error" });
-  message.textContent = `ECharts 渲染失败：${error instanceof Error ? error.message : String(error)}`;
+  message.textContent = `ECharts 渲染失败：${error instanceof Error ? error.message : typeof error === "string" ? error : "未知错误"}`;
 }
 
-function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HTMLElement, context) {
+function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HTMLElement, context: MarkdownPostProcessorContext) {
   element.addClass("ib-echarts-block");
   element.dataset.ibEchartsState = "loading";
   element.setAttribute("role", "img");
-  element.setAttribute("aria-label", "ECharts 图表");
+  element.setAttribute("aria-label", "数据图表");
 
-  let option;
+  let option: Record<string, unknown>;
   try { option = parseEChartsOption(source); }
   catch (error) { setChartError(element, error); return; }
   element.replaceChildren();
@@ -87,7 +103,7 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HT
   const viewport = element.createDiv({ cls: "ib-echarts-viewport" });
   const cachedKey = `${echartsThemeName(readThemeTokens(element))}\n${source.trim()}`;
   const cachedPreview = previewCache.get(cachedKey);
-  let placeholder: Element = null;
+  let placeholder: Element | null = null;
   element.dataset.ibEchartsPreloaded = String(Boolean(cachedPreview));
   if (cachedPreview) {
     placeholder = viewport.createDiv({ cls: "ib-echarts-placeholder" });
@@ -98,10 +114,10 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HT
   let zoom = 1;
   let viewportSize = { width:0, height:0 };
   let cardWidth = 0;
-  const series = Array.isArray(option.series) ? option.series : [];
-  const leaves = (node: HTMLElement) => !node || node.collapsed || !node.children?.length ? 1 : node.children.reduce((count, child: HTMLElement) => count + leaves(child), 0);
+  const series = (Array.isArray(option.series) ? option.series : []) as SeriesItem[];
+  const leaves = (node: TreeNode): number => !node || node.collapsed || !node.children?.length ? 1 : node.children.reduce((count, child) => count + leaves(child), 0);
   const treeHeight = series.filter(item => item && item.type === "tree" && !["TB", "BT"].includes(item.orient))
-    .reduce((height, item) => Math.max(height, (item.data || []).reduce((count, node: HTMLElement) => count + leaves(node), 0) * 24 + 100), 0);
+    .reduce((height, item) => Math.max(height, (item.data || []).reduce((count, node) => count + leaves(node), 0) * 24 + 100), 0);
   // Fixed-pixel parts (calendar cells, a visualMap strip) do not shrink with a narrow card, so give them a floor.
   const contentFloor = option.calendar ? 340 : option.visualMap ? 300 : 260;
   const longTree = treeHeight + DIAGRAM_HEADER_HEIGHT > HALF_A4_HEIGHT;
@@ -130,7 +146,7 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HT
     surface.style.height = `${height * zoom}px`;
     percent.textContent = `${Math.round(zoom * 100)}%`;
   };
-  const zoomButton = (label: string, text: string, action) => {
+  const zoomButton = (label: string, text: string, action: () => void) => {
     const button = toolbar.createEl("button", { text, attr: { type: "button", "aria-label": label, title: label } });
     if (text.startsWith("lucide-")) setIcon(button, text);
     button.addEventListener("click", action);
@@ -150,7 +166,7 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HT
       void draw();
     }, 220);
   };
-  const setZoom = (value: number, anchor = null) => {
+  const setZoom = (value: number, anchor: { x: number; y: number } | null = null) => {
     const next = Math.min(8, Math.max(.25, value));
     if (next === zoom) return;
     const ratio = next / zoom;
@@ -176,14 +192,14 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HT
     setZoom(zoom * (event.deltaY < 0 ? 1 + step : 1 - step), { x: event.clientX, y: event.clientY });
   }, { passive: false });
 
-  const component = new Component();
+  const component = new MarkdownRenderChild(element);
   component.load();
   context.addChild(component);
-  let chart = null;
+  let chart: EChartsType | null = null;
   let graphFitTimer = 0;
   // Read-only geometry for repeatable checks of the actually rendered nodes.
-  element.__ibGraphMetrics = () => chart && !chart.isDisposed()
-    ? series.map((item, index) => item?.type === "graph" ? graphPixelBounds(chart, index) : null).filter(Boolean) : [];
+  (element as ChartBlockElement).__ibGraphMetrics = () => chart && !chart.isDisposed()
+    ? series.map((item, index) => item?.type === "graph" && isGraphChart(chart) ? graphPixelBounds(chart, index) : null).filter(Boolean) : [];
   const tooltipClass = `ib-echarts-tooltip-${++tooltipSerial}`;
   const disposeChart = () => {
     window.clearTimeout(graphFitTimer);
@@ -248,21 +264,21 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HT
       const key = `${source.length}:${source.slice(0, 200)}`;
       if (cachedPreview || shownCharts.has(key) || renderer === "svg") normalized.animation = false;
       shownCharts.add(key);
-      const tooltip = normalized.tooltip;
+      const tooltip = normalized.tooltip as TooltipOption | TooltipOption[] | undefined;
       if (!Array.isArray(tooltip)) normalized.tooltip = { ...(tooltip || {}), appendTo: document.body, confine: false, className: `${tooltip?.className || ""} ${tooltipClass}`,
         extraCssText: `${tooltip?.extraCssText || ""};z-index:var(--layer-tooltip,10000);pointer-events:none;` };
       chart.setOption(normalized);
       if (series.some(item => item?.type === "graph")) {
         const renderedChart = chart;
-        let previous = [], stable = 0;
+        let previous: GraphBounds[] = [], stable = 0;
         const fitWhenSettled = () => {
           if (chart !== renderedChart || run !== generation || chart.isDisposed()) return;
-          const bounds = series.map((item, index) => item?.type === "graph" ? graphPixelBounds(chart, index) : null);
+          const bounds = series.map((item, index) => item?.type === "graph" && isGraphChart(chart) ? graphPixelBounds(chart, index) : null);
           const settled = bounds.every((value, index) => !value || previous[index] &&
             Math.abs(value.width - previous[index].width) < .1 && Math.abs(value.height - previous[index].height) < .1);
           stable = settled ? stable + 1 : 0; previous = bounds;
           if (stable >= 3) {
-            series.forEach((item, index) => { if (item?.type === "graph") fitDefaultGraph(chart, item, index); });
+            series.forEach((item, index) => { if (item?.type === "graph" && isGraphChart(chart)) fitDefaultGraph(chart, item, index); });
             element.dataset.ibGraphFit = "ready";
           }
           else graphFitTimer = window.setTimeout(fitWhenSettled, 100);
@@ -276,9 +292,9 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HT
       lastStamp = stamp;
     } catch (error) {
       if (run === generation) {
-        try { disposeChart(); } catch (_) {}
+        try { disposeChart(); } catch { /* chart may not have been created */ }
         chart = null;
-        console.error("Ignorance Advanced: ECharts 渲染失败 —", (option.series || []).map(item => item.type).join(","), error);
+        console.error("Ignorance Advanced: ECharts 渲染失败 —", series.map(item => item?.type).join(","), error);
         setChartError(element, error);
       }
     }
@@ -292,22 +308,23 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HT
       else if (entry.target === element) cardWidth = Math.round(entry.borderBoxSize?.[0]?.inlineSize ?? entry.contentRect.width);
     }
     if (resizeFrame) return;
-    resizeFrame = window.requestAnimationFrame(async () => {
-      // Multiple charts resize together; spread their geometry work across
-      // task turns instead of forcing a whole-note layout in one frame.
-      await (drawTurn = drawTurn.then(() => new Promise(resolve => window.setTimeout(resolve, 0))));
-      resizeFrame = 0;
-      if (!component._loaded || !element.isConnected) return;
-      if (sizeCard()) return; // The viewport observer reports the final height.
-      const { width, height } = viewportSize;
-      const size = `${width}x${height}`;
-      if (deferred && width && height) { deferred = false; void draw(); return; }
-      if (!chart || !width || !height || size === lastSize) return;
-      lastSize = size;
-      applyZoom();
-      try { chart.resize({ width, height }); } catch (_) { /* next layout notification can retry */ }
-    });
+    resizeFrame = window.requestAnimationFrame(() => { void settleResize(); });
   });
+  const settleResize = async () => {
+    // Multiple charts resize together; spread their geometry work across
+    // task turns instead of forcing a whole-note layout in one frame.
+    await (drawTurn = drawTurn.then(() => new Promise(resolve => window.setTimeout(resolve, 0))));
+    resizeFrame = 0;
+    if (!component._loaded || !element.isConnected) return;
+    if (sizeCard()) return; // The viewport observer reports the final height.
+    const { width, height } = viewportSize;
+    const size = `${width}x${height}`;
+    if (deferred && width && height) { deferred = false; void draw(); return; }
+    if (!chart || !width || !height || size === lastSize) return;
+    lastSize = size;
+    applyZoom();
+    try { chart.resize({ width, height }); } catch { /* next layout notification can retry */ }
+  };
   resizeObserver.observe(element);
   resizeObserver.observe(viewport);
   const onThemeChange = () => {
@@ -318,14 +335,15 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HT
     if (next !== lastStamp) void draw();
   };
   component.registerEvent(plugin.app.workspace.on("css-change", onThemeChange));
-  component.registerDomEvent(window, "ib-theme-change", onThemeChange);
+  window.addEventListener("ib-theme-change", onThemeChange);
+  component.register(() => window.removeEventListener("ib-theme-change", onThemeChange));
   component.register(() => {
     generation += 1;
     window.cancelAnimationFrame(resizeFrame);
     nearObserver?.disconnect();
     if (window.cancelIdleCallback) window.cancelIdleCallback(idleId); else window.clearTimeout(idleId);
     resizeObserver.disconnect();
-    try { disposeChart(); } catch (_) { /* chart may already be disposed by Obsidian */ }
+    try { disposeChart(); } catch { /* chart may already be disposed by Obsidian */ }
     chart = null;
   });
   // Draw when the chart comes near the viewport. Exports and paged layout
@@ -333,7 +351,7 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HT
   let idleId = 0;
   let started = false;
   const start = () => { if (started || !element.isConnected || !cardWidth) return; started = true; nearObserver?.disconnect(); nearObserver = null; void draw(); };
-  let nearObserver = null;
+  let nearObserver: IntersectionObserver | null = null;
   const eager = chartRendererFor(element) === "svg" || typeof IntersectionObserver !== "function";
   if (eager) void draw();
   else {
@@ -355,14 +373,18 @@ export async function preloadEChartsPreview(plugin: IgnorancePlugin, source: str
   const engine = await loadECharts(plugin);
   if (!registeredThemes.has(name)) { engine.registerTheme(name, buildEChartsTheme(tokens)); registeredThemes.add(name); }
   const host = createDiv();
-  let chart;
+  let chart: EChartsType | undefined;
   try {
     chart = engine.init(host, name, { renderer: "svg", width: 720, height: 416 });
     chart.setOption({ ...normalizeEChartsOption(parseEChartsOption(source), "svg"), animation: false });
     const svg = chart.renderToSVGString();
     if (svg.length < 250000) previewCache.set(key, svg);
-    while (previewCache.size > 32) previewCache.delete(previewCache.keys().next().value);
+    while (previewCache.size > 32) {
+      const oldest = previewCache.keys().next().value as string | undefined;
+      if (oldest === undefined) break;
+      previewCache.delete(oldest);
+    }
   } finally { chart?.dispose(); }
 }
 
-export { ECHARTS_FILE, loadECharts, readThemeTokens, chartRendererFor, waitForSize, renderEChartsBlock };
+export { loadECharts, readThemeTokens, chartRendererFor, waitForSize, renderEChartsBlock };

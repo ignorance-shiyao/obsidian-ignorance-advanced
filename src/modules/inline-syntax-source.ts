@@ -6,6 +6,7 @@ export interface InlineSyntaxToken {
   end: number;
   source: string;
   color?: string;
+  /** bar: the text before the bar; ref: the resolved caption label, filled in by the editor */
   label?: string;
   percent?: number;
   values?: number[];
@@ -13,17 +14,15 @@ export interface InlineSyntaxToken {
   /** badge: the right-hand half; ruby: the annotation */
   note?: string;
   parts?: string[];
-  /** ref: the resolved caption label, filled in by the editor */
-  label?: string;
 }
 
 const CHIP = /\(\(\s*([^()\n]+?)\s*\)\)/g;
 const ICON = /:([a-z][a-z0-9-]*):/gi;
 const COLORS = new Set(["green", "red", "blue", "amber", "gray", "primary"]);
-const FRIENDLY_ICONS = { chart: "chart-column-increasing" };
+const FRIENDLY_ICONS: Record<string, string> = { chart: "chart-column-increasing" };
 
 function lineRanges(source: string, expression: RegExp): Array<{ from: number; to: number }> {
-  const ranges = [];
+  const ranges: Array<{ from: number; to: number }> = [];
   const lines = source.split("\n");
   let offset = 0;
   let fence = "";
@@ -49,7 +48,7 @@ function lineRanges(source: string, expression: RegExp): Array<{ from: number; t
   if (fence) ranges.push({ from: fenceStart, to: source.length });
 
   expression.lastIndex = 0;
-  let match;
+  let match: RegExpExecArray | null;
   while ((match = expression.exec(source))) ranges.push({ from: match.index, to: match.index + match[0].length });
   return ranges.sort((a, b) => a.from - b.from || b.to - a.to);
 }
@@ -119,7 +118,7 @@ export function parseInlineSyntax(source: string, iconNames: Set<string> | null 
   const tokens: InlineSyntaxToken[] = [];
 
   CHIP.lastIndex = 0;
-  let match;
+  let match: RegExpExecArray | null;
   while ((match = CHIP.exec(source))) {
     if (!protectedAt(protectedRanges, match.index)) {
       tokens.push(parseChip(match[1], match.index, match.index + match[0].length, match[0]));

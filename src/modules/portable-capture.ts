@@ -15,15 +15,15 @@ const PAINT_PROPERTIES = ["fill", "fill-opacity", "stroke", "stroke-width", "str
    diagram SVG is rasterized here first — labels turned into SVG text, theme
    var() colors resolved — and swapped for that PNG on the capture copy, at
    the exact place and size it has on screen. */
-export async function rasterizeSvg(live) {
+export async function rasterizeSvg(live: SVGSVGElement) {
   const rect = live.getBoundingClientRect();
   if (rect.width < 24 || rect.height < 24) return null; // icons render fine as they are
-  const copy = live.cloneNode(true);
+  const copy = live.cloneNode(true) as SVGSVGElement;
   copy.setAttribute("xmlns", SVG_NS);
   // The theme colors diagrams from page stylesheets, which a standalone SVG
   // image never sees: bake the computed paint into the copy.
-  const liveNodes = [...live.querySelectorAll("*")];
-  [...copy.querySelectorAll("*")].forEach((node, index) => {
+  const liveNodes = [...live.querySelectorAll<SVGElement>("*")];
+  [...copy.querySelectorAll<SVGElement>("*")].forEach((node, index) => {
     const source = liveNodes[index];
     if (!source || source.closest("foreignObject")) return;
     const style = getComputedStyle(source);
@@ -32,10 +32,10 @@ export async function rasterizeSvg(live) {
       if (value) node.style.setProperty(name, value);
     }
   });
-  const liveObjects = [...live.querySelectorAll("foreignObject")];
-  [...copy.querySelectorAll("foreignObject")].forEach((object, index) => {
+  const liveObjects = [...live.querySelectorAll<SVGForeignObjectElement>("foreignObject")];
+  [...copy.querySelectorAll<SVGForeignObjectElement>("foreignObject")].forEach((object, index) => {
     const source = liveObjects[index];
-    const inner = source?.querySelector("*") || source;
+    const inner = source?.querySelector<Element>("*") || source;
     const style = inner ? getComputedStyle(inner) : null;
     const x = parseFloat(object.getAttribute("x") || "0"), y = parseFloat(object.getAttribute("y") || "0");
     const w = parseFloat(object.getAttribute("width") || "0"), h = parseFloat(object.getAttribute("height") || "0");
@@ -54,9 +54,9 @@ export async function rasterizeSvg(live) {
     object.replaceWith(text);
   });
   const styles = getComputedStyle(live);
-  const resolve = (value: string) => value.replace(/var\((--[\w-]+)(?:,\s*([^()]*))?\)/g, (whole, name: string, fallback) => styles.getPropertyValue(name).trim() || fallback || whole);
+  const resolve = (value: string) => value.replace(/var\((--[\w-]+)(?:,\s*([^()]*))?\)/g, (whole: string, name: string, fallback: string | undefined) => styles.getPropertyValue(name).trim() || fallback || whole);
   copy.querySelectorAll("style").forEach(tag => { tag.textContent = resolve(tag.textContent || ""); });
-  [copy, ...copy.querySelectorAll("*")].forEach(node => {
+  [copy, ...copy.querySelectorAll("*")].forEach((node: Element) => {
     for (const attribute of [...node.attributes]) if (attribute.value.includes("var(")) node.setAttribute(attribute.name, resolve(attribute.value));
   });
   // Draw at the diagram's own size (its viewBox), independent of pan/zoom.
@@ -68,23 +68,23 @@ export async function rasterizeSvg(live) {
   const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(copy)], { type: "image/svg+xml" }));
   try {
     const image = new Image();
-    await new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; image.src = url; });
+    await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = reject; image.src = url; });
     const scale = Math.min(3, Math.max(1, 2 * rect.width / width));
     const canvas = createEl("canvas");
     canvas.width = Math.round(width * scale);
     canvas.height = Math.round(height * scale);
-    canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+    canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
     return { src: canvas.toDataURL("image/png"), rect };
-  } catch (_) {
-    return null;
+  } catch {
+    return null; // a diagram that cannot be rasterized stays an SVG in the capture
   } finally {
     URL.revokeObjectURL(url);
   }
 }
 
-export async function capturePortable(element: HTMLElement, { scale = 2, background = null, type = "image/png", quality = 0.92 } = {}) {
+export async function capturePortable(element: HTMLElement, { scale = 2, background = null, type = "image/png", quality = 0.92 }: { scale?: number; background?: string | null; type?: string; quality?: number } = {}) {
   const { html2canvas } = await loadChunk("chunk-capture.cjs");
-  const liveSvgs = [...element.querySelectorAll("svg")].filter(svg => !svg.parentElement?.closest("svg"));
+  const liveSvgs = [...element.querySelectorAll<SVGSVGElement>("svg")].filter(svg => !svg.parentElement?.closest("svg"));
   const rasters = await Promise.all(liveSvgs.map(svg => rasterizeSvg(svg)));
   const rect = element.getBoundingClientRect();
   const area = Math.max(1, rect.width * rect.height);
@@ -100,7 +100,7 @@ export async function capturePortable(element: HTMLElement, { scale = 2, backgro
     onclone: (_document, clonedElement) => {
       // html2canvas lays text out glyph by glyph; automatic CJK/Latin spacing
       // shifts glyphs under it (an opening 「 went missing), so turn it off.
-      const reset = _document.createElement("style");
+      const reset = _document.adoptNode(createEl("style"));
       reset.textContent = "*{text-autospace:no-autospace !important;text-spacing-trim:space-all !important;}";
       _document.head.appendChild(reset);
       const copies = [...clonedElement.querySelectorAll("svg")].filter(svg => !svg.parentElement?.closest("svg"));
@@ -110,7 +110,7 @@ export async function capturePortable(element: HTMLElement, { scale = 2, backgro
         if (!raster || !parent) return;
         // Same place as on screen, relative to the (untransformed) parent box.
         const parentRect = liveSvgs[index].parentElement.getBoundingClientRect();
-        const image = _document.createElement("img");
+        const image = _document.adoptNode(createEl("img"));
         image.src = raster.src;
         image.style.cssText = `position:absolute;left:${raster.rect.left - parentRect.left}px;top:${raster.rect.top - parentRect.top}px;width:${raster.rect.width}px;height:${raster.rect.height}px;max-width:none;`;
         if (getComputedStyle(liveSvgs[index].parentElement).position === "static") parent.setCssStyles({ position: "relative" });
@@ -121,7 +121,7 @@ export async function capturePortable(element: HTMLElement, { scale = 2, backgro
     }
   });
   // toBlob encodes off the main thread; toDataURL froze the UI on every page.
-  const blob = await new Promise(resolve => canvas.toBlob(resolve, type, quality));
+  const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, type, quality));
   if (!blob) return base64ToBytes(canvas.toDataURL(type, quality).split(",")[1]);
   const bytes = new Uint8Array(await blob.arrayBuffer());
   canvas.width = canvas.height = 0; // release the bitmap now, not at GC (iOS caps canvas memory)

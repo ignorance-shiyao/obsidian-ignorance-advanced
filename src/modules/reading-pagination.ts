@@ -1,5 +1,5 @@
 import type { MarkdownPreviewView, TFile, View } from "obsidian";
-import type { IgnorancePlugin } from "../plugin-types.js";
+import type { IgnorancePlugin, PageState } from "../plugin-types.js";
 import { Component, Notice, MarkdownView } from "obsidian";
 import { waitForStableLayout } from "./layout-stability.js";
 import { createIsolatedStaging, stagingStyleSheet } from "./isolated-staging.js";
@@ -32,19 +32,36 @@ interface BookState {
   staging?: HTMLElement | null;
   filePath?: string;
   renderSignature?: string;
-  blockSignatures?: string[];
+  blockSignatures?: number[];
   pageRanges?: { start: number; end: number }[];
   pages?: HTMLElement[];
 }
+/* One measured top-level block of the staged note, in strip coordinates. */
+interface PageBlock {
+  el: HTMLElement;
+  table: HTMLElement | null;
+  chapter: { element: HTMLElement; top: number; bottom: number; left: number; right: number; tone: string } | null;
+  top: number;
+  bottom: number;
+  layoutTop: number | undefined;
+  layoutBottom: number | undefined;
+  renderTop: number;
+  renderBottom: number;
+  tableRows: { top: number; bottom: number; header: boolean }[];
+  continuationOverhead: number;
+}
 const books = new WeakMap<View, BookState>();
-const interactiveBooks = new WeakSet();
+const interactiveBooks = new WeakSet<HTMLElement>();
+
+/* A reading view carrying the re-render request flag this module sets on it. */
+type PagedView = MarkdownView & { ibpRerender?: boolean };
 
 function stripFrontmatter(text: string) {
   return text.replace(/^---\n[\s\S]*?\n---\n?/, "");
 }
 
-function annotateTaskCheckboxes(staging, text: string) {
-  const checkboxes = [...staging.querySelectorAll("input.task-list-item-checkbox")];
+function annotateTaskCheckboxes(staging: HTMLElement, text: string) {
+  const checkboxes = [...staging.querySelectorAll<HTMLInputElement>("input.task-list-item-checkbox")];
   const tasks = sourceTaskLines(text);
   if (checkboxes.length !== tasks.length) {
     // A mismatched source/render order must not turn a different task in the file.
@@ -60,32 +77,32 @@ function annotateTaskCheckboxes(staging, text: string) {
   });
 }
 
-function setTaskCloneState(inputs, checked: boolean) {
+function setTaskCloneState(inputs: HTMLInputElement[], checked: boolean) {
   for (const input of inputs) {
     input.checked = checked;
-    const item = input.closest("li.task-list-item");
+    const item = input.closest<HTMLElement>("li.task-list-item");
     item?.toggleClass("is-checked", checked);
     if (item) item.dataset.task = checked ? "x" : " ";
   }
 }
 
-function findBookAnchor(book, target: string) {
+function findBookAnchor(book: HTMLElement, target: string) {
   if (!target.startsWith("#")) return null;
   let fragment = target.slice(1);
-  try { fragment = decodeURIComponent(fragment); } catch (_) {}
+  try { fragment = decodeURIComponent(fragment); } catch { /* keep the raw fragment when it is not valid percent-encoding */ }
   if (!fragment || fragment.startsWith("^")) return null;
-  return [...book.querySelectorAll("h1,h2,h3,h4,h5,h6")]
+  return [...book.querySelectorAll<HTMLElement>("h1,h2,h3,h4,h5,h6")]
     .find(heading => heading.dataset.heading === fragment || heading.textContent.trim() === fragment || heading.id === fragment)
-    || [...book.querySelectorAll("[id]")].find(element => element.id === fragment)
+    || [...book.querySelectorAll<HTMLElement>("[id]")].find(element => element.id === fragment)
     || null;
 }
 
-function installBookInteractions(plugin: IgnorancePlugin, view, book) {
+function installBookInteractions(plugin: IgnorancePlugin, view: MarkdownView, book: HTMLElement) {
   if (interactiveBooks.has(book)) return;
   interactiveBooks.add(book);
-  const pendingTasks = new Set();
+  const pendingTasks = new Set<string>();
   book.addEventListener("click", event => {
-    const link = event.target instanceof Element ? event.target.closest("a.internal-link, a.ibm-toc-link") : null;
+    const link = event.target instanceof Element ? event.target.closest<HTMLElement>("a.internal-link, a.ibm-toc-link") : null;
     if (!link || !book.contains(link)) return;
     const target = link.dataset.href || link.getAttribute("href");
     const file = view.file;
@@ -108,7 +125,7 @@ function installBookInteractions(plugin: IgnorancePlugin, view, book) {
       const leaves = workspace.getLeavesOfType("markdown");
       const opened = leaves.find(leaf => !existingLeaves.has(leaf) && (leaf.view as MarkdownView).file?.path === destination.path)
         || leaves.find(leaf => (leaf.view as MarkdownView).file?.path === destination.path);
-      if (opened) await workspace.setActiveLeaf(opened, { focus: true });
+      if (opened) workspace.setActiveLeaf(opened, { focus: true });
     })().catch(error => console.error("Ignorance Advanced: paged link failed —", error));
   });
   book.addEventListener("change", event => {
@@ -124,7 +141,7 @@ function installBookInteractions(plugin: IgnorancePlugin, view, book) {
     }
     const originalChecked = sourceMatch[2].toLowerCase() === "x";
     const wanted = input.checked;
-    const copies = [...book.querySelectorAll("input.task-list-item-checkbox")]
+    const copies = [...book.querySelectorAll<HTMLInputElement>("input.task-list-item-checkbox")]
       .filter(candidate => candidate.dataset.ibpTaskLine === String(lineIndex) && candidate.dataset.ibpTaskSource === sourceLine);
     const key = `${file.path}:${lineIndex}`;
     if (pendingTasks.has(key)) return;
@@ -158,8 +175,8 @@ function installBookInteractions(plugin: IgnorancePlugin, view, book) {
    lines, table rows and list items. */
 const LINE_START_INSET = 2;
 
-function breakPoints(block, stripTop: number) {
-  const points = [];
+function breakPoints(block: HTMLElement, stripTop: number) {
+  const points: number[] = [];
   const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
   const range = document.createRange();
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
@@ -176,11 +193,11 @@ function breakPoints(block, stripTop: number) {
 function paginateStrip(strip: HTMLDivElement, contentHeight: number, mode: string) {
   const stripRect = strip.getBoundingClientRect();
   const stripTop = stripRect.top;
-  const chapterRects = new Map();
-  const blocks = paginationElements(strip as { children: Iterable<HTMLElement> }).map(el => {
+  const chapterRects = new Map<HTMLElement, DOMRect>();
+  const blocks = paginationElements(strip as { children: Iterable<HTMLElement> }).map((el): PageBlock => {
     const r = el.getBoundingClientRect();
     const chapterElement = el.closest<HTMLElement>("[data-ib-auto-chapter]");
-    let chapterRect = chapterElement && chapterRects.get(chapterElement);
+    let chapterRect: DOMRect | null | undefined = chapterElement && chapterRects.get(chapterElement);
     if (chapterElement && !chapterRect) {
       chapterRect = chapterElement.getBoundingClientRect();
       chapterRects.set(chapterElement, chapterRect);
@@ -196,7 +213,7 @@ function paginateStrip(strip: HTMLDivElement, contentHeight: number, mode: strin
     const tableCaption = table?.querySelector(":scope > caption");
     return {
       el, table, chapter, top: r.top - stripTop, bottom: r.bottom - stripTop,
-      layoutTop: undefined as number | undefined, layoutBottom: undefined as number | undefined,
+      layoutTop: undefined, layoutBottom: undefined,
       renderTop: r.top - stripTop, renderBottom: r.bottom - stripTop,
       tableRows: table ? [...table.querySelectorAll("tr")].map(row => {
         const rowRect = row.getBoundingClientRect();
@@ -211,7 +228,7 @@ function paginateStrip(strip: HTMLDivElement, contentHeight: number, mode: strin
   }).filter(block => block.bottom > block.top);
   // Include card padding in page windows while retaining the measured text
   // position. Children remain separate blocks for heading/table break logic.
-  const chapterBlocks = new Map();
+  const chapterBlocks = new Map<HTMLElement, typeof blocks>();
   for (const block of blocks) if (block.chapter) {
     const list = chapterBlocks.get(block.chapter.element) || [];
     list.push(block); chapterBlocks.set(block.chapter.element, list);
@@ -234,10 +251,10 @@ function paginateStrip(strip: HTMLDivElement, contentHeight: number, mode: strin
   return { blocks, windows: paginateStripCoordinates(coordinates, contentHeight, mode) };
 }
 
-const rendering = new WeakSet();
-const readingControllers = new WeakMap();
+const rendering = new WeakSet<View>();
+const readingControllers = new WeakMap<View, AbortController>();
 
-async function renderBook(plugin: IgnorancePlugin, view) {
+async function renderBook(plugin: IgnorancePlugin, view: PagedView) {
   // One render per view at a time; a request arriving mid-render re-runs once
   // it finishes, so the latest settings and text always win.
   if (rendering.has(view)) { view.ibpRerender = true; return; }
@@ -253,10 +270,10 @@ async function renderBook(plugin: IgnorancePlugin, view) {
   }
 }
 
-async function renderBookOnce(plugin: IgnorancePlugin, view) {
+async function renderBookOnce(plugin: IgnorancePlugin, view: PagedView) {
   if (!plugin.state.page.paged || !view.containerEl.isConnected) return;
   const page = plugin.state.page;
-  const preview = view.containerEl.querySelector(".markdown-reading-view .markdown-preview-view");
+  const preview = view.containerEl.querySelector<HTMLElement>(".markdown-reading-view .markdown-preview-view");
   if (!preview || !view.file) return;
   const previous: BookState = books.get(view) || {};
   const text = await plugin.app.vault.cachedRead(view.file);
@@ -327,7 +344,7 @@ async function renderBookOnce(plugin: IgnorancePlugin, view) {
 /* Render a note and lay it out as pages inside `book` (any container that
    inherits the --ibp-* page variables). Returns the staging strip when asked
    to keep it (long-image export), otherwise removes it. */
-function pageBlockRanges(blocks, windows) {
+function pageBlockRanges(blocks: PageBlock[], windows: { start: number; stop: number }[]) {
   let start = 0;
   return windows.map(window => {
     while (start < blocks.length && blocks[start].bottom <= window.start + 0.5) start += 1;
@@ -337,7 +354,7 @@ function pageBlockRanges(blocks, windows) {
   });
 }
 
-function pageBlockSignatures(blocks) {
+function pageBlockSignatures(blocks: { el: HTMLElement }[]) {
   return blocks.map(({ el }) => {
     // Renderer-generated SVG IDs change on each render. Strip identifiers so
     // an unchanged Mermaid block can participate in prefix-page reuse.
@@ -349,13 +366,13 @@ function pageBlockSignatures(blocks) {
   });
 }
 
-function reusablePagePrefix(previous, filePath: string, renderSignature: string, signatures, ranges, page) {
+function reusablePagePrefix(previous: BookState, filePath: string, renderSignature: string, signatures: number[], ranges: { start: number; end: number }[], page: PageState) {
   if (previous.filePath !== filePath || previous.renderSignature !== renderSignature || !previous.pages?.length) return 0;
   const old = previous.blockSignatures || [];
   let common = 0;
   while (common < old.length && common < signatures.length && old[common] === signatures[common]) common += 1;
   const dirtyBlock = common;
-  const pageFor = (pageRanges, blockIndex: number) => {
+  const pageFor = (pageRanges: { start: number; end: number }[], blockIndex: number) => {
     const index = pageRanges.findIndex(range => range.end >= blockIndex && range.start <= blockIndex);
     return index >= 0 ? index : Math.max(0, pageRanges.length - 1);
   };
@@ -366,11 +383,11 @@ function reusablePagePrefix(previous, filePath: string, renderSignature: string,
   return prefix;
 }
 
-function tableForClone(clone) {
+function tableForClone(clone: HTMLElement) {
   return clone.matches("table") ? clone : clone.querySelector("table");
 }
 
-function retainTableRows(block, cloneTable, start: number, stop: number, repeatHeader: boolean) {
+function retainTableRows(block: PageBlock, cloneTable: HTMLElement, start: number, stop: number, repeatHeader: boolean) {
   const clonedRows = [...cloneTable.querySelectorAll("tr")];
   block.tableRows.forEach((row, index: number) => {
     if (repeatHeader && row.header) return;
@@ -387,13 +404,13 @@ function retainTableRows(block, cloneTable, start: number, stop: number, repeatH
     }
     while (columns.children.length < sourceCells.length) columns.appendChild(createEl("col"));
     [...columns.children].slice(sourceCells.length).forEach(column => column.remove());
-    sourceCells.forEach((cell, index) => { columns.children[index].style.width = `${cell.getBoundingClientRect().width}px`; });
+    sourceCells.forEach((cell, index) => { (columns.children[index] as HTMLElement).style.width = `${cell.getBoundingClientRect().width}px`; });
     cloneTable.style.width = `${block.table.getBoundingClientRect().width}px`;
     cloneTable.setCssStyles({ tableLayout: "fixed" });
   }
 }
 
-function makePage(blocks, window, index: number, total: number, page, contentHeight = window.stop - window.start) {
+function makePage(blocks: PageBlock[], window: { start: number; stop: number }, index: number, total: number, page: PageState, contentHeight = window.stop - window.start) {
   const format = PAGE_NUMBER_FORMATS[page.pageNumberFormat] || PAGE_NUMBER_FORMATS.plain;
   const sheet = createDiv();
   sheet.className = "ibp-page";
@@ -402,7 +419,7 @@ function makePage(blocks, window, index: number, total: number, page, contentHei
   body.style.height = `${contentHeight}px`;
   const continuingTable = blocks.find(block => block.table && block.top < window.start - 0.5 && block.bottom > window.start + 0.5);
   const continuationOffset = continuingTable?.continuationOverhead || 0;
-  const cardLayers = new Map();
+  const cardLayers = new Map<HTMLElement, HTMLElement>();
   for (const block of blocks) {
     const chapter = block.chapter;
     if (!chapter || cardLayers.has(chapter.element) || chapter.bottom <= window.start || chapter.top >= window.stop) continue;
@@ -421,10 +438,10 @@ function makePage(blocks, window, index: number, total: number, page, contentHei
   }
   for (const block of blocks) {
     if (block.bottom <= window.start + 0.5 || block.top >= window.stop - 0.5) continue;
-    const clone = block.el.cloneNode(true);
+    const clone = block.el.cloneNode(true) as HTMLElement;
     // Paper language labels are information, not disconnected rename buttons.
-    clone.querySelectorAll('.ibm-block-label.is-editable').forEach((label: HTMLElement) => {
-      const text = createEl('span');
+    clone.querySelectorAll<HTMLElement>('.ibm-block-label.is-editable').forEach((label) => {
+      const text = createSpan();
       text.className = 'ibm-block-label';
       text.textContent = label.textContent;
       label.replaceWith(text);
@@ -463,12 +480,12 @@ function makePage(blocks, window, index: number, total: number, page, contentHei
 
 /* 页眉 = the chapter a page belongs to: the H1/H2 that opens the page, else the
    last one before it. None on the first page, which usually carries the title. */
-function addRunningHeaders(pages, page) {
+function addRunningHeaders(pages: HTMLElement[], page: PageState) {
   let current = "";
   pages.forEach((sheet, index: number) => {
     sheet.querySelector(":scope > .ibp-page-header")?.remove();
-    const headings = [...sheet.querySelectorAll(".ibp-page-body :is(h1, h2)")];
-    const top = heading => parseFloat(heading.closest(".ibp-placed")?.style.top || "0");
+    const headings = [...sheet.querySelectorAll<HTMLElement>(".ibp-page-body :is(h1, h2)")];
+    const top = (heading: HTMLElement) => parseFloat(heading.closest<HTMLElement>(".ibp-placed")?.style.top || "0");
     const opening = headings[0] && top(headings[0]) < 48 ? headings[0].textContent.trim() : "";
     const label = opening || current;
     if (headings.length) current = headings[headings.length - 1].textContent.trim();
@@ -480,11 +497,11 @@ function addRunningHeaders(pages, page) {
   });
 }
 
-async function settleRenderRegion(root: HTMLElement, height: number, signal = null) {
+async function settleRenderRegion(root: HTMLElement, height: number, signal: AbortSignal | null = null) {
   const wait = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms));
   const top = root.getBoundingClientRect().top;
   const inside = (element: HTMLElement) => element.getBoundingClientRect().top < top + height;
-  const images = [...root.querySelectorAll("img")].filter(inside);
+  const images = [...root.querySelectorAll<HTMLImageElement>("img")].filter(inside);
   await Promise.all(images.map(img => img.complete ? null : new Promise<void>(resolve => {
     const timer = window.setTimeout(resolve, 2500);
     img.addEventListener("load", () => { window.clearTimeout(timer); resolve(); }, { once: true });
@@ -496,7 +513,7 @@ async function settleRenderRegion(root: HTMLElement, height: number, signal = nu
     await wait(100);
   }
   for (let i = 0; i < 80; i += 1) {
-    const pending = [...root.querySelectorAll('.ib-echarts-block[data-ib-echarts-state="loading"]')].some(inside);
+    const pending = [...root.querySelectorAll<HTMLElement>('.ib-echarts-block[data-ib-echarts-state="loading"]')].some(inside);
     if (!pending) break;
     await wait(100);
   }
@@ -504,7 +521,16 @@ async function settleRenderRegion(root: HTMLElement, height: number, signal = nu
   await waitForStableLayout(() => [...root.children].filter(inside).reduce((max, element) => Math.max(max, element.getBoundingClientRect().bottom - top), 0), { signal });
 }
 
-async function composePages(plugin: IgnorancePlugin, file: TFile, text: string, book: HTMLDivElement, component, { keepStrip = false, previous = {} as BookState, showProgress = false, expandDetails = false, onProgress = null, signal = null } = {}) {
+interface ComposeOptions {
+  keepStrip?: boolean;
+  previous?: BookState;
+  showProgress?: boolean;
+  expandDetails?: boolean;
+  onProgress?: ((info: { pages: HTMLElement[]; staging: HTMLElement; partial: boolean }) => unknown) | null;
+  signal?: AbortSignal | null;
+}
+
+async function composePages(plugin: IgnorancePlugin, file: TFile, text: string, book: HTMLElement, component: Component, { keepStrip = false, previous = {}, showProgress = false, expandDetails = false, onProgress = null, signal = null }: ComposeOptions = {}) {
   signal?.throwIfAborted();
   const page = plugin.state.page;
   // Measure in the same view context as the final pages so inherited note
@@ -525,7 +551,7 @@ async function composePages(plugin: IgnorancePlugin, file: TFile, text: string, 
     if (opening) {
       const quickComponent = new Component();
       quickComponent.load();
-      let quick;
+      let quick: HTMLDivElement | undefined;
       try {
         quick = await createIsolatedStaging(plugin, stagingParent, quickComponent, signal, sheet);
         quick.style.width = `${bodyBox.width}px`;
@@ -550,7 +576,7 @@ async function composePages(plugin: IgnorancePlugin, file: TFile, text: string, 
           book.replaceChildren(...firstPass.windows.slice(0, earlyCount).map((window, index) => makePage(firstPass.blocks, window, index, earlyCount, page, bodyBox.height)));
           book.dataset.ibpSourcePath = file.path;
           book.dataset.ibpProgress = "partial";
-          await onProgress?.({ pages: [...book.children], staging: quick, partial: true });
+          await onProgress?.({ pages: [...book.children] as HTMLElement[], staging: quick, partial: true });
           await nextFrame();
         }
       } finally {
@@ -574,6 +600,8 @@ async function composePages(plugin: IgnorancePlugin, file: TFile, text: string, 
         element.querySelector(".callout-title")?.setAttribute("aria-expanded", "true");
         const content = element.querySelector<HTMLElement>(".callout-content");
         if (content) {
+          // Obsidian folds the content with an inline display: none.
+          content.style.removeProperty("display");
           content.classList.add("ibp-callout-open");
         }
       });
@@ -640,14 +668,14 @@ function hashText(text: string) {
 
 /* Mermaid and images finish after MarkdownRenderer resolves; wait for them
    so block heights are final before cutting pages. */
-async function settleRender(root: HTMLElement, signal = null) {
+async function settleRender(root: HTMLElement, signal: AbortSignal | null = null) {
   signal?.throwIfAborted();
   const wait = async (ms: number) => {
     signal?.throwIfAborted();
     await new Promise(r => window.setTimeout(r, ms));
     signal?.throwIfAborted();
   };
-  await Promise.all([...root.querySelectorAll("img")].map(img => img.complete ? null : new Promise<void>(resolve => {
+  await Promise.all([...root.querySelectorAll<HTMLImageElement>("img")].map(img => img.complete ? null : new Promise<void>(resolve => {
     const done = () => { window.clearTimeout(timer); img.removeEventListener("load", done); img.removeEventListener("error", done); signal?.removeEventListener("abort", done); resolve(); };
     const timer = window.setTimeout(done, 2500);
     img.addEventListener("load", done, { once: true });

@@ -1,7 +1,7 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Notice, Menu, MarkdownView } from "obsidian";
 import { Decoration, ViewPlugin, WidgetType, EditorView, type DecorationSet, type ViewUpdate } from "@codemirror/view";
-import { StateEffect } from "@codemirror/state";
+import { StateEffect, type Line, type Range, type Text } from "@codemirror/state";
 import { setIcon, UI_ICONS } from "./ui-icons.js";
 import * as MermaidCore from "./mermaid-core.js";
 import { showCopyFeedback } from "./copy-feedback";
@@ -28,7 +28,7 @@ function isTableDelimiter(line: string) {
 
 // Delimiter-row line numbers of the last few documents: every table in a
 // note asks, and rescanning the note for each one was quadratic.
-const delimiterCache = [];
+const delimiterCache: { text: string; lines: number[] }[] = [];
 function delimiterLines(text: string) {
   const hit = delimiterCache.find(entry => entry.text === text);
   if (hit) return hit.lines;
@@ -46,13 +46,13 @@ function tableOrdinal(text: string, lineStart: number) {
   return low;
 }
 
-function headerCells(table) {
+function headerCells(table: HTMLElement): HTMLElement[] {
   const row = table.querySelector("thead > tr") || table.querySelector("tr");
-  return row ? [...row.children] : [];
+  return row ? [...row.children] as HTMLElement[] : [];
 }
 
-function tableRows(table) {
-  return [...table.querySelectorAll(":scope > thead > tr, :scope > tbody > tr, :scope > tr")];
+function tableRows(table: HTMLElement): HTMLElement[] {
+  return [...table.querySelectorAll<HTMLElement>(":scope > thead > tr, :scope > tbody > tr, :scope > tr")];
 }
 
 const MIN_ROW_HEIGHT = 24;
@@ -67,9 +67,16 @@ const MIN_ROW_HEIGHT = 24;
  * enough to bring its sizes back.
  * -------------------------------------------------------------------------- */
 
+// Stored sizes of one table: pixel widths and heights by index, and how many columns it has.
+interface TableSizes {
+  cols?: number[];
+  rows?: number[];
+  columnCount?: number;
+}
+
 class TableSizeStyles {
   el: HTMLStyleElement;
-  sizes: Map<any, any>;
+  sizes: Map<string, { sizes: TableSizes; rowMap: string[] }>;
 
   constructor() {
     this.el = createEl("style");
@@ -78,13 +85,13 @@ class TableSizeStyles {
     this.sizes = new Map();
   }
 
-  set(key: string, sizes, rowMap: string[]) {
+  set(key: string, sizes: TableSizes, rowMap: string[]) {
     this.sizes.set(key, { sizes, rowMap });
     this.render();
   }
 
   render() {
-    const rules = [];
+    const rules: string[] = [];
     for (const [key, { sizes, rowMap }] of this.sizes) {
       const scope = `table[data-ibt-key="${key}"]`;
       // Auto table layout never lets a cell shrink below its content, so a
@@ -100,7 +107,7 @@ class TableSizeStyles {
         if (!width) return;
         rules.push(`${scope} > * > tr > :nth-child(${index + 1}) { width: ${width}px !important; min-width: ${width}px !important; max-width: ${width}px !important; }`);
       });
-      (sizes.rows || []).forEach((height, index: number) => {
+      (sizes.rows || []).forEach((height: number, index: number) => {
         if (!height || !rowMap?.[index]) return;
         rules.push(`${scope} > ${rowMap[index]} { height: ${height}px !important; }`);
       });
@@ -120,10 +127,11 @@ function tableKey(path: string, ordinal: number) {
 }
 
 /* nth-child selectors for each row, so a row rule survives a DOM rebuild. */
-function rowSelectors(table) {
+function rowSelectors(table: HTMLElement) {
   return tableRows(table).map(row => {
-    const section = row.parentElement.tagName.toLowerCase();
-    const index = [...row.parentElement.children].indexOf(row) + 1;
+    const parent = row.parentElement;
+    const section = parent.tagName.toLowerCase();
+    const index = [...parent.children].indexOf(row) + 1;
     return section === "table" ? `tr:nth-child(${index})` : `${section} > tr:nth-child(${index})`;
   });
 }
@@ -160,10 +168,10 @@ class TableResizeLayer {
   table: HTMLTableElement;
   options: TableResizeOptions;
   host: HTMLElement;
-  onEnter: (event: any) => void;
-  touchOff: ((outside: any) => void) | null;
-  touchOffHandler: ((outside: any) => void) | null;
-  onLeave: (event: any) => void;
+  onEnter: (event: PointerEvent) => void;
+  touchOff: ((outside: PointerEvent) => void) | null;
+  touchOffHandler: ((outside: PointerEvent) => void) | null;
+  onLeave: (event: PointerEvent) => void;
   built: boolean;
   layer: HTMLDivElement;
   focus: HTMLDivElement;
@@ -200,7 +208,8 @@ class TableResizeLayer {
       if (event?.pointerType === "touch" && !this.touchOff) {
         this.layer.classList.add("is-touch");
         this.touchOff = outside => {
-          if (this.layer.contains(outside.target) || this.table.contains(outside.target)) return;
+          const target = outside.target as Node | null;
+          if (this.layer.contains(target) || this.table.contains(target)) return;
           this.touchOff = null;
           document.removeEventListener("pointerdown", this.touchOffHandler, true);
           this.layer.classList.remove("is-visible", "is-touch");
@@ -211,7 +220,8 @@ class TableResizeLayer {
     };
     this.onLeave = event => {
       if (this.dragging || !this.layer || this.touchOff) return;
-      if (this.layer.contains(event.relatedTarget) || this.table.contains(event.relatedTarget)) return;
+      const related = event.relatedTarget as Node | null;
+      if (this.layer.contains(related) || this.table.contains(related)) return;
       this.layer.classList.remove("is-visible");
       this.showFocus(null);
     };
@@ -251,7 +261,7 @@ class TableResizeLayer {
     button.addEventListener("click", event => {
       event.preventDefault(); event.stopPropagation();
       const menu = new Menu();
-      const add = (title, icon: string, run) => menu.addItem(item => item.setTitle(title).setIcon(icon).onClick(() => { this.build(); run(); }));
+      const add = (title: string, icon: string, run: () => void) => menu.addItem(item => item.setTitle(title).setIcon(icon).onClick(() => { this.build(); run(); }));
       add("所有列适应内容", "lucide-between-vertical-start", () => this.fitAll());
       add("等分列宽", "lucide-columns-3", () => this.equalize());
       add("撑满正文宽度", "lucide-move-horizontal", () => this.fillWidth());
@@ -263,7 +273,7 @@ class TableResizeLayer {
       // Modifier keys and double-click hints only make sense with a mouse.
       if (!document.body.classList.contains("is-mobile")) {
       menu.addSeparator();
-      menu.addItem(item => item.setTitle("拖边线：吸附内容尺寸 · Alt 自由 · Shift 十像素").setIcon("lucide-info").setDisabled(true));
+      menu.addItem(item => item.setTitle("拖边线：吸附内容尺寸 · ⌥ 自由 · ⇧ 十像素").setIcon("lucide-info").setDisabled(true));
       menu.addItem(item => item.setTitle("双击边线：适应内容").setIcon("lucide-info").setDisabled(true));
       }
       const box = button.getBoundingClientRect();
@@ -410,13 +420,13 @@ class TableResizeLayer {
     if (!row) return MIN_ROW_HEIGHT;
     let tallest = 0;
     for (const cell of row.children) {
-      const style = getComputedStyle(cell as Element);
+      const style = getComputedStyle(cell);
       const range = document.createRange();
       range.selectNodeContents(cell);
       const content = range.getBoundingClientRect().height;
       // Collapsed borders are shared with the neighbouring rows, so each counts half.
-      const extra = ["paddingTop", "paddingBottom"].reduce((sum, name) => sum + (parseFloat(style[name]) || 0), 0)
-        + ["borderTopWidth", "borderBottomWidth"].reduce((sum, name) => sum + (parseFloat(style[name]) || 0), 0) / 2;
+      const extra = (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0)
+        + ((parseFloat(style.borderTopWidth) || 0) + (parseFloat(style.borderBottomWidth) || 0)) / 2;
       tallest = Math.max(tallest, content + extra);
     }
     return Math.max(MIN_ROW_HEIGHT, Math.ceil(tallest));
@@ -472,10 +482,10 @@ class TableResizeLayer {
 
   // A short "thunk" when a drag catches a detent, so the stop is felt as well as seen.
   pulse(handle: HTMLDivElement) {
-    const targets = [this.layer, handle].filter(Boolean);
+    const targets: HTMLElement[] = [this.layer, handle].filter(Boolean);
     targets.forEach(node => { node.classList.remove("is-detent"); void node.offsetWidth; node.classList.add("is-detent"); });
     window.setTimeout(() => targets.forEach(node => node.classList.remove("is-detent")), 320);
-    try { navigator.vibrate?.(8); } catch (_) {}
+    try { navigator.vibrate?.(8); } catch { /* vibration is unsupported or blocked: the stop is still shown */ }
   }
 
   startDrag(event: PointerEvent, axis: Axis, index: number, handle: HTMLDivElement) {
@@ -498,7 +508,7 @@ class TableResizeLayer {
     handle.classList.add("is-dragging");
     this.layer.classList.add("is-visible", "is-dragging");
     document.body.classList.add(axis === "col" ? "ibt-dragging-col" : "ibt-dragging-row");
-    try { handle.setPointerCapture(event.pointerId); } catch (_) {}
+    try { handle.setPointerCapture(event.pointerId); } catch { /* the pointer is already gone: the drag simply gets no capture */ }
 
     let size = Math.round(startSize);
     let frame = 0;
@@ -511,7 +521,7 @@ class TableResizeLayer {
       { value: Math.max(min, this.measureRowFit(index)), label: "适应内容" },
       { value: Math.max(min, ...this.geo.rows.map((_, i: number) => this.measureRowFit(i))), label: "与最高行一致" }
     ];
-    let stuck = null;
+    let stuck: { value: number; label: string } | null = null;
     const render = () => {
       frame = 0;
       this.options.resize(axis, index, size);
@@ -522,13 +532,13 @@ class TableResizeLayer {
       this.readout.style.top = `${Math.max(36, Math.min(window.innerHeight - 36, box.top))}px`;
       this.readout.classList.add("is-visible");
     };
-    const onMove = move => {
+    const onMove = (move: PointerEvent) => {
       const now = axis === "col" ? move.clientX : move.clientY;
       let target = Math.max(min, Math.round(startSize + now - start));
       if (move.altKey) stuck = null;                                   // Alt: free drag, no stops
       else if (move.shiftKey) { target = Math.max(min, Math.round(target / 10) * 10); stuck = null; } // Shift: 10px grid
       else {
-        let caught = null;
+        let caught: { value: number; label: string } | null = null;
         for (const mark of marks) {
           // Sticky: it takes a little more pull to leave a stop than it took to reach it.
           if (Math.abs(target - mark.value) <= (stuck === mark ? DETENT_LEAVE : DETENT_ENTER)) { caught = mark; break; }
@@ -590,12 +600,12 @@ const mermaidHighlighter = ViewPlugin.fromClass(class {
    and reads the fenced lines straight from the document when pressed. */
 const FENCE_OPEN = /^\s*(`{3,}|~{3,})\s*([^\s`]*)/;
 
-function fencedSource(doc, openLine: number) {
+function fencedSource(doc: Text, openLine: number) {
   const opening = FENCE_OPEN.exec(doc.line(openLine).text);
   if (!opening) return null;
   const marker = opening[1];
   const closing = new RegExp(`^\\s*${marker[0] === "`" ? "`" : "~"}{${marker.length},}\\s*$`);
-  const lines = [];
+  const lines: string[] = [];
   for (let n = openLine + 1; n <= doc.lines; n += 1) {
     const text = doc.line(n).text;
     if (closing.test(text)) break;
@@ -606,7 +616,7 @@ function fencedSource(doc, openLine: number) {
 
 class CodeCopyWidget extends WidgetType {
   eq() { return true; }
-  toDOM(view) {
+  toDOM(view: EditorView) {
     const button = createEl("button");
     button.type = "button";
     button.className = "ibm-copy-source ibc-live-copy";
@@ -615,9 +625,10 @@ class CodeCopyWidget extends WidgetType {
     setIcon(button, UI_ICONS.copy);
     // Keep the caret where it is: a click must not move into the fence line.
     button.addEventListener("mousedown", event => { event.preventDefault(); event.stopPropagation(); });
-    button.addEventListener("click", async event => {
+    button.addEventListener("click", event => {
       event.preventDefault();
       event.stopPropagation();
+      void (async () => {
       try {
         const line = view.state.doc.lineAt(view.posAtDOM(button)).number;
         const source = fencedSource(view.state.doc, line);
@@ -625,9 +636,10 @@ class CodeCopyWidget extends WidgetType {
         await navigator.clipboard.writeText(source);
         showCopyFeedback(button, t("copied"));
         new Notice(t("copied"));
-      } catch (_) {
+      } catch {
         new Notice(t("copyFailed"));
       }
+      })();
     });
     const actions = createSpan();
     actions.className = "ibc-live-actions";
@@ -663,7 +675,7 @@ class CodeCopyWidget extends WidgetType {
 // The language icon at the left of a Live Preview code header, opposite the copy and position buttons.
 class CodeLanguageIconWidget extends WidgetType {
   constructor(readonly language: string) { super(); }
-  eq(other) { return other.language === this.language; }
+  eq(other: CodeLanguageIconWidget) { return other.language === this.language; }
   toDOM() {
     const holder = createSpan();
     holder.className = "ibc-live-lang";
@@ -678,7 +690,7 @@ class CodeLanguageIconWidget extends WidgetType {
 // counting rendered lines would restart at 1 whenever a block's opening fence scrolls away.
 class CodeLineNumberWidget extends WidgetType {
   constructor(readonly number: number) { super(); }
-  eq(other) { return other.number === this.number; }
+  eq(other: CodeLineNumberWidget) { return other.number === this.number; }
   toDOM() {
     const span = createSpan();
     span.className = "ibc-live-ln";
@@ -689,10 +701,10 @@ class CodeLineNumberWidget extends WidgetType {
   ignoreEvent() { return true; }
 }
 
-function buildCopyDecorations(view) {
-  const ranges = [];
+function buildCopyDecorations(view: EditorView) {
+  const ranges: Range<Decoration>[] = [];
   const doc = view.state.doc;
-  let open = null, numbered = false, count = 0;
+  let open: string | null = null, numbered = false, count = 0;
   for (let n = 1; n <= doc.lines; n += 1) {
     const text = doc.line(n).text;
     if (!open) {
@@ -726,7 +738,7 @@ const codeCopyButtons = ViewPlugin.fromClass(class {
 
 // Obsidian's own language flair copies the code when clicked; make it a language picker instead.
 function installCodeLanguagePicker(plugin: IgnorancePlugin) {
-  const flairOf = event => event.target instanceof Element ? event.target.closest(".cm-editor .code-block-flair") : null;
+  const flairOf = (event: Event) => event.target instanceof Element ? event.target.closest<HTMLElement>(".cm-editor .code-block-flair") : null;
   plugin.registerDomEvent(document, "mousedown", event => { if (flairOf(event)) event.preventDefault(); }, true);
   plugin.registerDomEvent(document, "mouseover", event => {
     const flair = flairOf(event);
@@ -735,11 +747,11 @@ function installCodeLanguagePicker(plugin: IgnorancePlugin) {
   plugin.registerDomEvent(document, "click", event => {
     const flair = flairOf(event);
     if (!flair) return;
-    const cm = plugin.app.workspace.getLeavesOfType("markdown").map(leaf => (leaf.view as MarkdownView)?.editor?.cm).find(cm => cm?.dom.contains(flair));
+    const cm = plugin.app.workspace.getLeavesOfType("markdown").map(leaf => leaf.view instanceof MarkdownView ? leaf.view.editor.cm : undefined).find(cm => cm?.dom.contains(flair));
     if (!cm) return;
     event.preventDefault(); event.stopImmediatePropagation();
-    let line;
-    try { line = cm.state.doc.lineAt(cm.posAtDOM(flair)); } catch (_) { return; }
+    let line: Line;
+    try { line = cm.state.doc.lineAt(cm.posAtDOM(flair)); } catch { return; }
     if (!FENCE_OPEN.test(line.text)) return;
     openLanguagePicker({
       anchor: flair,
@@ -757,8 +769,8 @@ function installCodeLanguagePicker(plugin: IgnorancePlugin) {
 }
 
 function installQuietTaskToggle(plugin: IgnorancePlugin) {
-  const checkbox = event => event.target instanceof Element
-    ? event.target.closest(".cm-scroller input.task-list-item-checkbox") : null;
+  const checkbox = (event: Event) => event.target instanceof Element
+    ? event.target.closest<HTMLElement>(".cm-scroller input.task-list-item-checkbox") : null;
   plugin.registerDomEvent(document, "mousedown", event => {
     if (checkbox(event)) event.preventDefault();
   }, true);
@@ -769,8 +781,8 @@ function installQuietTaskToggle(plugin: IgnorancePlugin) {
       .find(view => view.editor?.cm?.dom.contains(input));
     const cm = view?.editor?.cm;
     if (!cm) return;
-    let line;
-    try { line = cm.state.doc.lineAt(cm.posAtDOM(input)); } catch (_) { return; }
+    let line: Line;
+    try { line = cm.state.doc.lineAt(cm.posAtDOM(input)); } catch { return; }
     const marker = /^(\s*(?:[-+*]|\d+[.)])\s+\[)([^\]])\]/.exec(line.text);
     if (!marker) return;
     event.preventDefault(); event.stopImmediatePropagation();
@@ -782,7 +794,7 @@ function installQuietTaskToggle(plugin: IgnorancePlugin) {
 
 const writingModeRefresh = StateEffect.define();
 
-function buildWritingFocusDecorations(view, enabled: boolean) {
+function buildWritingFocusDecorations(view: EditorView, enabled: boolean) {
   if (!enabled) return Decoration.none;
   const doc = view.state.doc;
   const cursorLine = doc.lineAt(view.state.selection.main.head).number;
@@ -791,7 +803,7 @@ function buildWritingFocusDecorations(view, enabled: boolean) {
   while (paragraphStart > 1 && doc.line(paragraphStart - 1).text.trim()) paragraphStart -= 1;
   while (paragraphEnd < doc.lines && doc.line(paragraphEnd + 1).text.trim()) paragraphEnd += 1;
 
-  const ranges = [];
+  const ranges: Range<Decoration>[] = [];
   let lastLine = 0;
   for (const visible of view.visibleRanges) {
     const first = doc.lineAt(visible.from).number;
@@ -835,7 +847,7 @@ function writingModesExtension(plugin: IgnorancePlugin) {
       }
     }
 
-    centerCursor(view) {
+    centerCursor(view: EditorView) {
       if (this.frame) window.cancelAnimationFrame(this.frame);
       this.frame = window.requestAnimationFrame(() => {
         this.frame = 0;
@@ -857,7 +869,7 @@ function setWritingMode(plugin: IgnorancePlugin, mode: string, value: boolean) {
   plugin.state.writingModes[mode] = Boolean(value);
   plugin.saveStoredState();
   plugin.app.workspace.iterateAllLeaves(leaf => {
-    const cm = (leaf.view as MarkdownView)?.editor?.cm;
+    const cm = leaf.view instanceof MarkdownView ? leaf.view.editor.cm : undefined;
     if (cm?.dispatch) cm.dispatch({ effects: writingModeRefresh.of(null) });
   });
   document.querySelectorAll(".ibp-toolbar").forEach(toolbar => toolbar.dispatchEvent(new CustomEvent("ibp-refresh")));

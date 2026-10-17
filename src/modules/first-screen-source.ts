@@ -4,7 +4,7 @@
    once all are drawn), so the first page took seconds on a long note. */
 export function firstScreenSource(source: string, maxChars = 6000) {
   if (source.length <= maxChars * 1.5) return null;
-  let fence = null, depth = 0, offset = 0, cut = -1;
+  let fence: string | null = null, depth = 0, offset = 0, cut = -1;
   for (const line of source.split("\n")) {
     const end = offset + line.length + 1;
     const fenceMatch = line.match(/^\s*(`{3,}|~{3,})/);

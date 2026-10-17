@@ -1,13 +1,27 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Component, editorInfoField } from "obsidian";
-import { StateField } from "@codemirror/state";
-import { Decoration, EditorView, WidgetType } from "@codemirror/view";
-import { parseMarkdownContainers } from "./container-source.js";
+import { StateField, type EditorState, type Range } from "@codemirror/state";
+import { Decoration, EditorView, WidgetType, type DecorationSet } from "@codemirror/view";
+import { parseMarkdownContainers, type MarkdownContainer } from "./container-source.js";
 import { renderMarkdownWithContainers } from "./containers.js";
 
 
+// What the field keeps between transactions, so an unchanged document is not parsed again.
+interface ContainerDecorations {
+  source: string | null;
+  sourcePath: string | null;
+  selectionSignature: string;
+  nodes: MarkdownContainer[];
+  decorations: DecorationSet;
+}
+
 class ContainerWidget extends WidgetType {
-  constructor(plugin: IgnorancePlugin, sourcePath: string, source) {
+  plugin: IgnorancePlugin;
+  sourcePath: string;
+  source: string;
+  mounts: WeakMap<HTMLElement, Component>;
+
+  constructor(plugin: IgnorancePlugin, sourcePath: string, source: string) {
     super();
     this.plugin = plugin;
     this.sourcePath = sourcePath;
@@ -15,7 +29,7 @@ class ContainerWidget extends WidgetType {
     this.mounts = new WeakMap();
   }
 
-  eq(other) {
+  eq(other: ContainerWidget) {
     return other.sourcePath === this.sourcePath && other.source === this.source;
   }
 
@@ -35,7 +49,7 @@ class ContainerWidget extends WidgetType {
     return mount;
   }
 
-  destroy(dom) {
+  destroy(dom: HTMLElement) {
     this.mounts.get(dom)?.unload();
     this.mounts.delete(dom);
   }
@@ -43,7 +57,7 @@ class ContainerWidget extends WidgetType {
   ignoreEvent() { return true; }
 }
 
-function buildContainerDecorations(state, plugin: IgnorancePlugin, cached = {}) {
+function buildContainerDecorations(state: EditorState, plugin: IgnorancePlugin, cached: Partial<ContainerDecorations> = {}): ContainerDecorations {
   const file = state.field(editorInfoField, false)?.file;
   const sourcePath = file?.path || null;
   const selectionSignature = state.selection.ranges.map(range => `${range.from}:${range.to}`).join(",");
@@ -52,7 +66,7 @@ function buildContainerDecorations(state, plugin: IgnorancePlugin, cached = {}) 
   const source = state.doc.toString();
   const nodes = cached.source === source ? cached.nodes : parseMarkdownContainers(source);
   const selection = state.selection.ranges;
-  const ranges = [];
+  const ranges: Array<Range<Decoration>> = [];
   for (const node of nodes) {
     const active = selection.some(range => range.empty
       ? range.from >= node.startOffset && range.from < node.closeEnd
@@ -68,7 +82,7 @@ function buildContainerDecorations(state, plugin: IgnorancePlugin, cached = {}) 
 }
 
 function containerEditorExtension(plugin: IgnorancePlugin) {
-  const field = StateField.define({
+  const field = StateField.define<ContainerDecorations>({
     create: state => buildContainerDecorations(state, plugin),
     update(value, transaction) {
       const sourcePath = transaction.state.field(editorInfoField, false)?.file?.path || null;

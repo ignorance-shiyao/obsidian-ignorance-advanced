@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { compactClassNotes, measureClassMembers, withClassNoteLayout } from './class-note-layout';
+import { compactClassNotes, measureClassMembers, withClassNoteLayout, type ClassDiagramData } from './class-note-layout';
+
+interface TestMember { text?: string; parseClassifier(): string }
+const membersOf = (data: ClassDiagramData, index = 0) => (data.nodes?.[index]?.members ?? []) as TestMember[];
 
 describe('class annotation layout', () => {
   it('bounds a note without changing its text, class members or relations', () => {
@@ -21,7 +24,7 @@ describe('class annotation layout', () => {
     expect(compactClassNotes({nodes:[{shape:'note',label:'content'}],config:{class:{wrappingWidth:180}}}).nodes[0].wrappingWidth).toBe(180);
   });
   it('restores the private database method after a failed draw', async () => {
-    class Database { getData(){return {nodes:[{shape:'note',label:'content'}]};} }
+    class Database { getData(this: void): ClassDiagramData {return {nodes:[{shape:'note',label:'content'}]};} }
     const original=Database.prototype.getData,engine={mermaidAPI:{getDiagramFromText:async()=>({type:'classDiagram',db:new Database()})}};
     await expect(withClassNoteLayout(engine,'classDiagram',async()=>{
       expect(new Database().getData().nodes[0].wrappingWidth).toBe(240);
@@ -37,14 +40,14 @@ describe('class annotation layout', () => {
   it('measures complete members while preserving explicit layouts and notes', async () => {
     const member={text:'+requestRefund()',parseClassifier:()=>''};
     const note={shape:'note',label:'Author annotation',cssStyles:['white-space: nowrap']};
-    class Database { getData(){return {nodes:[{shape:'classBox',members:[member]},note],direction:'LR'};} }
+    class Database { getData(this: void): ClassDiagramData {return {nodes:[{shape:'classBox',members:[member]},note],direction:'LR'};} }
     const original=Database.prototype.getData,engine={mermaidAPI:{getDiagramFromText:async()=>({type:'classDiagram',db:new Database()})}};
     for(const source of ['%%{init: {"layout":"elk"}}%%\nclassDiagram','classDiagram\n%% ibm:keep-layout']) {
       await withClassNoteLayout(engine,source,async()=>{
         const data=new Database().getData();
         expect(data.nodes[1]).toBe(note);
         expect(data.direction).toBe('LR');
-        expect(data.nodes[0].members[0].parseClassifier()).toContain('font-family: Menlo');
+        expect(membersOf(data)[0].parseClassifier()).toContain('font-family: Menlo');
       },'Menlo');
       expect(Database.prototype.getData).toBe(original);
     }
@@ -56,10 +59,10 @@ describe('class member measurement font', () => {
     class Member { text='+register()'; parseClassifier(){return 'font-style: italic';} }
     const member=new Member(), data={nodes:[{shape:'classBox',members:[member],methods:[]}],direction:'LR',edges:[]};
     const result=measureClassMembers(data,'Menlo, monospace');
-    expect(result.nodes[0].members[0]).toBeInstanceOf(Member);
-    expect(result.nodes[0].members[0].parseClassifier()).toBe('font-style: italic;font-family: Menlo, monospace');
+    expect(membersOf(result)[0]).toBeInstanceOf(Member);
+    expect(membersOf(result)[0].parseClassifier()).toBe('font-style: italic;font-family: Menlo, monospace');
     expect(member.parseClassifier()).toBe('font-style: italic');
-    expect(result.nodes[0].members[0].text).toBe(member.text);
+    expect(membersOf(result)[0].text).toBe(member.text);
     expect(result.edges).toBe(data.edges);
     expect(result.direction).toBe('LR');
   });
@@ -67,6 +70,6 @@ describe('class member measurement font', () => {
     const member={parseClassifier:()=> 'font-family: serif'};
     const node={shape:'classBox',styles:['font-family: Georgia'],members:[member]};
     expect(measureClassMembers({nodes:[node]},'monospace').nodes[0]).toBe(node);
-    expect(measureClassMembers({nodes:[{shape:'classBox',members:[member]}]},'monospace').nodes[0].members[0].parseClassifier()).toBe('font-family: serif');
+    expect(membersOf(measureClassMembers({nodes:[{shape:'classBox',members:[member]}]},'monospace'))[0].parseClassifier()).toBe('font-family: serif');
   });
 });

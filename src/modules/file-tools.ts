@@ -1,6 +1,7 @@
-import type { TFile, WorkspaceLeaf } from "obsidian";
+import type { Editor, MarkdownFileInfo, MarkdownView, TAbstractFile, TFolder, Vault, WorkspaceLeaf } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { Notice, Setting, Menu, FileView, Modal, htmlToMarkdown, loadPdfJs } from "obsidian";
+import { Notice, Setting, TFile, FileView, Modal, htmlToMarkdown, loadPdfJs } from "obsidian";
+import type { Menu } from "obsidian";
 import { csvToMarkdown, docxToMarkdown, htmlToMarkdown as cleanHtmlToMarkdown, jsonToMarkdown, notionZipToMarkdown, pdfToMarkdown, pptxToMarkdown, xlsxToMarkdown } from "./import-converters.js";
 
 const HTML_READONLY_VIEW = "ignorance-html-readonly";
@@ -10,31 +11,55 @@ function fileToolsDefaults() {
   return { convertPastedImages: true };
 }
 
-function isPastedImageFile(file: TFile) {
+const errorText = (error: unknown): string => (error instanceof Error ? error.message : typeof error === "string" ? error : JSON.stringify(error));
+
+/** The entries of a folder, or null when the path holds a file (or nothing). */
+function folderChildren(entry: TAbstractFile | null): TAbstractFile[] | null {
+  if (!entry || !("children" in entry)) return null;
+  const children: unknown = entry.children;
+  return Array.isArray(children) ? children as TAbstractFile[] : null;
+}
+
+/** A file name without the characters no file system accepts (path separators, wildcards, control characters). */
+function hasInvalidNameChar(name: string): boolean {
+  return /[\\/:*?"<>|]/.test(name) || Array.from(name).some(char => char.charCodeAt(0) <= 0x1f);
+}
+
+type TransferEvent = ClipboardEvent | DragEvent;
+
+/** What the (untyped) Notion converter hands back. */
+interface NotionArchive {
+  root: string;
+  files: Array<{ path: string; content: string }>;
+  assets: Array<{ path: string; bytes: Uint8Array }>;
+}
+
+
+function isPastedImageFile(file: File | null) {
   if (!file || typeof file.size !== "number" || file.size <= 0) return false;
   const type = String(file.type || "").toLowerCase();
   const name = String(file.name || "");
   return type.startsWith("image/") || /\.(?:png|jpe?g|gif|webp|bmp|tiff?|svg|avif|heic)$/i.test(name);
 }
 
-function pastedImageFiles(event) {
+function pastedImageFiles(event: { clipboardData?: DataTransfer | null; dataTransfer?: DataTransfer | null }): File[] {
   const transfer = event.clipboardData || event.dataTransfer;
   if (!transfer) return [];
-  const files = [];
+  const files: File[] = [];
   for (const item of Array.from(transfer.items || [])) {
     if (item.kind !== "file") continue;
     const file = item.getAsFile();
-    if (isPastedImageFile(file)) files.push(file);
+    if (file && isPastedImageFile(file)) files.push(file);
   }
   if (files.length) return files;
   return Array.from(transfer.files || []).filter(isPastedImageFile);
 }
 
-function imageTransferRange(event, editor, kind: string) {
+function imageTransferRange(event: Event & { clientX?: number; clientY?: number }, editor: Editor, kind: string) {
   if (kind !== "drop") return { from: editor.getCursor("from"), to: editor.getCursor("to") };
   const cm = editor.cm;
   if (!cm || typeof cm.posAtCoords !== "function") return null;
-  const offset = cm.posAtCoords({ x: event.clientX, y: event.clientY });
+  const offset = cm.posAtCoords({ x: event.clientX ?? 0, y: event.clientY ?? 0 });
   if (typeof offset !== "number") return null;
   const position = editor.offsetToPos(offset);
   return { from: position, to: position };
@@ -42,7 +67,7 @@ function imageTransferRange(event, editor, kind: string) {
 
 let imageTransferSequence = 0;
 
-function handleImageTransfer(plugin: IgnorancePlugin, event, editor, info, kind: string) {
+function handleImageTransfer(plugin: IgnorancePlugin, event: TransferEvent, editor: Editor, info: MarkdownView | MarkdownFileInfo, kind: string) {
   if (event.defaultPrevented || !plugin.state.fileTools?.convertPastedImages) return;
   const files = pastedImageFiles(event);
   const file = info?.file;
@@ -58,7 +83,7 @@ function handleImageTransfer(plugin: IgnorancePlugin, event, editor, info, kind:
     editor.replaceRange(marker, range.from, range.to);
   } catch (error) {
     console.error("Ignorance Advanced: 图片粘贴插入点创建失败 —", error);
-    new Notice("图片未能插入编辑器：" + (error.message || error), 8000);
+    new Notice("图片未能插入编辑器：" + errorText(error), 8000);
     return;
   }
 
@@ -72,23 +97,23 @@ function handleImageTransfer(plugin: IgnorancePlugin, event, editor, info, kind:
   }).catch(error => {
     replacePendingImageMarker(editor, marker, originalText);
     console.error("Ignorance Advanced: 图片粘贴转换失败 —", error);
-    new Notice("图片处理失败：" + (error.message || error), 8000);
+    new Notice("图片处理失败：" + errorText(error), 8000);
   });
 }
 
-function replacePendingImageMarker(editor, marker, replacement: string) {
+function replacePendingImageMarker(editor: Editor, marker: string, replacement: string) {
   try {
     const content = editor.getValue();
     const start = content.indexOf(marker);
     if (start < 0 || content.indexOf(marker, start + marker.length) !== -1) return false;
     editor.replaceRange(replacement, editor.offsetToPos(start), editor.offsetToPos(start + marker.length));
     return true;
-  } catch (_) {
+  } catch {
     return false;
   }
 }
 
-async function encodePastedImage(file: TFile) {
+async function encodePastedImage(file: File) {
   const type = String(file.type || "").toLowerCase();
   const name = String(file.name || "");
   const preserveGif = type === "image/gif" || /\.gif$/i.test(name);
@@ -101,7 +126,7 @@ async function encodePastedImage(file: TFile) {
   }
 
   if (typeof createImageBitmap !== "function") throw new Error("当前设备无法解码粘贴的图片");
-  let bitmap;
+  let bitmap: ImageBitmap | undefined;
   try {
     bitmap = await createImageBitmap(file);
     const canvas = createEl("canvas");
@@ -110,22 +135,22 @@ async function encodePastedImage(file: TFile) {
     const context = canvas.getContext("2d");
     if (!context || !canvas.width || !canvas.height) throw new Error("图片尺寸无效或无法绘制");
     context.drawImage(bitmap, 0, 0);
-    const blob = await new Promise((resolve, reject) => {
+    const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(result => result ? resolve(result) : reject(new Error("WebP 编码失败")), "image/webp", 0.85);
     });
     if (blob.type !== "image/webp") throw new Error("当前设备不支持 WebP 编码");
     return { extension: "webp", bytes: new Uint8Array(await blob.arrayBuffer()) };
   } finally {
-    bitmap?.close?.();
+    bitmap?.close();
   }
 }
 
-function nextPastedImageSequence(vault, assetDir: string, stem: string) {
-  const folder = vault.getAbstractFileByPath(assetDir);
-  if (!folder || !Array.isArray(folder.children)) return 1;
+function nextPastedImageSequence(vault: Vault, assetDir: string, stem: string) {
+  const children = folderChildren(vault.getAbstractFileByPath(assetDir));
+  if (!children) return 1;
   const prefix = stem + "-";
   let maximum = 0;
-  for (const child of folder.children) {
+  for (const child of children) {
     if (!child.name.startsWith(prefix)) continue;
     const match = child.name.slice(prefix.length).match(/^(\d+)(?:\.[^.]+)?$/);
     if (match) maximum = Math.max(maximum, Number(match[1]));
@@ -133,26 +158,26 @@ function nextPastedImageSequence(vault, assetDir: string, stem: string) {
   return maximum + 1;
 }
 
-async function trashPastedImageFiles(plugin: IgnorancePlugin, files: TFile[], folder) {
+async function trashPastedImageFiles(plugin: IgnorancePlugin, files: TFile[], folder: TAbstractFile | null) {
   for (const file of [...(files || [])].reverse()) {
-    try { await plugin.app.fileManager.trashFile(file); } catch (_) {}
+    try { await plugin.app.fileManager.trashFile(file); } catch { /* best effort: a file that is already gone needs no cleanup */ }
   }
-  if (folder && Array.isArray(folder.children) && folder.children.length === 0) {
-    try { await plugin.app.fileManager.trashFile(folder); } catch (_) {}
+  if (folder && folderChildren(folder)?.length === 0) {
+    try { await plugin.app.fileManager.trashFile(folder); } catch { /* best effort: a folder that is already gone needs no cleanup */ }
   }
 }
 
-async function savePastedImages(plugin: IgnorancePlugin, note, files, editor, marker: string) {
+async function savePastedImages(plugin: IgnorancePlugin, note: TFile, files: File[], editor: Editor, marker: string) {
   const vault = plugin.app.vault;
   const parentPath = note.parent?.path || "";
   const assetDir = [parentPath, "assets"].filter(Boolean).join("/");
   const existingFolder = vault.getAbstractFileByPath(assetDir);
-  if (existingFolder && !Array.isArray(existingFolder.children)) throw new Error("assets 路径已被同名文件占用：" + assetDir);
+  if (existingFolder && !folderChildren(existingFolder)) throw new Error("assets 路径已被同名文件占用：" + assetDir);
   const stem = safeAssetStem(note.basename || "image");
   let sequence = nextPastedImageSequence(vault, assetDir, stem);
-  let createdFolder = null;
-  const createdFiles = [];
-  const markdown = [];
+  let createdFolder: TFolder | null = null;
+  const createdFiles: TFile[] = [];
+  const markdown: string[] = [];
 
   try {
     for (const file of files) {
@@ -164,12 +189,12 @@ async function savePastedImages(plugin: IgnorancePlugin, note, files, editor, ma
           createdFolder = await vault.createFolder(assetDir);
         } catch (error) {
           const racedFolder = vault.getAbstractFileByPath(assetDir);
-          if (!racedFolder || !Array.isArray(racedFolder.children)) throw error;
+          if (!folderChildren(racedFolder)) throw error;
         }
       }
 
-      let savedFile;
-      let assetName;
+      let savedFile: TFile | undefined;
+      let assetName = "";
       while (!savedFile) {
         assetName = stem + "-" + String(sequence).padStart(2, "0") + "." + encoded.extension;
         const assetPath = assetDir + "/" + assetName;
@@ -200,8 +225,8 @@ async function savePastedImages(plugin: IgnorancePlugin, note, files, editor, ma
   }
 }
 
-function addFileToolsMenu(plugin: IgnorancePlugin, menu: Menu, file: TFile) {
-  if (!file || typeof file.path !== "string" || !file.extension) return;
+function addFileToolsMenu(plugin: IgnorancePlugin, menu: Menu, file: TAbstractFile) {
+  if (!(file instanceof TFile) || !file.extension) return;
   if (isMarkdownImportSource(file)) {
     menu.addSeparator();
     menu.addItem(item => item
@@ -211,18 +236,18 @@ function addFileToolsMenu(plugin: IgnorancePlugin, menu: Menu, file: TFile) {
   }
 }
 
-function isMarkdownImportSource(file: TFile) {
+function isMarkdownImportSource(file: TFile | null | undefined) {
   const extension = String(file?.extension || "").toLowerCase();
   return MARKDOWN_IMPORT_EXTS.has(extension);
 }
 
-async function runFileTool(label: string, task) {
+async function runFileTool(label: string, task: () => Promise<string | undefined>) {
   try {
     const result = await task();
     if (result) new Notice(label + "：" + result, 6000);
   } catch (error) {
     console.error("Ignorance Advanced: " + label + "失败 —", error);
-    new Notice(label + "失败：" + (error.message || error), 8000);
+    new Notice(label + "失败：" + errorText(error), 8000);
   }
 }
 
@@ -234,24 +259,25 @@ function htmlReaderDocument(source: string, baseHref: string) {
   const security = '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'none\'; object-src \'none\'; frame-src \'none\'; form-action \'none\'; base-uri app:; img-src app: data: blob: https: http:; style-src \'unsafe-inline\' app: data: https: http:; font-src app: data: https: http:; media-src app: data: blob: https: http:">';
   const head = '<base href="' + escapeHtmlAttribute(baseHref) + '">' + security;
   if (/<head\b[^>]*>/i.test(source)) {
-    return source.replace(/<head\b[^>]*>/i, (match: string) => match + head);
+    return source.replace(/<head\b[^>]*>/i, (match) => match + head);
   }
   if (/<html\b[^>]*>/i.test(source)) {
-    return source.replace(/<html\b[^>]*>/i, (match: string) => match + "<head>" + head + "</head>");
+    return source.replace(/<html\b[^>]*>/i, (match) => match + "<head>" + head + "</head>");
   }
   return "<!doctype html><html><head>" + head + "</head><body>" + source + "</body></html>";
 }
 
 class HtmlReadOnlyView extends FileView {
+  renderToken = 0;
+
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
-    this.renderToken = 0;
   }
 
   getViewType() { return HTML_READONLY_VIEW; }
   getDisplayText() { return this.file?.basename || "HTML"; }
   getIcon() { return "lucide-code-xml"; }
-  canAcceptExtension(extension) { return ["html", "htm"].includes(String(extension).toLowerCase()); }
+  canAcceptExtension(extension: string) { return ["html", "htm"].includes(String(extension).toLowerCase()); }
 
   onload() {
     super.onload();
@@ -275,7 +301,7 @@ class HtmlReadOnlyView extends FileView {
     } catch (error) {
       if (token !== this.renderToken) return;
       iframe.remove();
-      this.contentEl.createDiv({ cls: "ibm-html-reader-error", text: "HTML 预览失败：" + (error.message || error) });
+      this.contentEl.createDiv({ cls: "ibm-html-reader-error", text: "HTML 预览失败：" + errorText(error) });
     }
   }
 
@@ -287,6 +313,10 @@ class HtmlReadOnlyView extends FileView {
 }
 
 class MarkdownImportModal extends Modal {
+  plugin: IgnorancePlugin;
+  file: TFile;
+  noteName: string;
+
   constructor(plugin: IgnorancePlugin, file: TFile) {
     super(plugin.app);
     this.plugin = plugin;
@@ -313,20 +343,22 @@ class MarkdownImportModal extends Modal {
       .addButton(button => button
         .setButtonText("开始导入")
         .setCta()
-        .onClick(async () => {
-          const noteName = this.noteName.trim().replace(/\.md$/i, "");
-          if (!noteName || /[\\/:*?"<>|\u0000-\u001f]/.test(noteName) || noteName === "." || noteName === "..") {
-            new Notice("请填写有效的 Markdown 文件名");
-            return;
-          }
-          this.close();
-          await runFileTool("导入 Markdown", () => importVaultFileAsMarkdown(this.plugin, this.file, noteName));
-        }));
+        .onClick(() => { void this.startImport(); }));
+  }
+
+  private async startImport() {
+    const noteName = this.noteName.trim().replace(/\.md$/i, "");
+    if (!noteName || hasInvalidNameChar(noteName) || noteName === "." || noteName === "..") {
+      new Notice("请填写有效的 Markdown 文件名");
+      return;
+    }
+    this.close();
+    await runFileTool("导入 Markdown", () => importVaultFileAsMarkdown(this.plugin, this.file, noteName));
   }
 }
 
-async function createMissingVaultFolders(vault, targetPaths, created = []) {
-  const folders = new Set();
+async function createMissingVaultFolders(vault: Vault, targetPaths: string[], created: TFolder[] = []) {
+  const folders = new Set<string>();
   for (const target of targetPaths) {
     const segments = String(target).split("/").filter(Boolean);
     segments.pop();
@@ -335,28 +367,28 @@ async function createMissingVaultFolders(vault, targetPaths, created = []) {
   for (const folderPath of [...folders].sort((a, b) => a.split("/").length - b.split("/").length)) {
     const existing = vault.getAbstractFileByPath(folderPath);
     if (existing) {
-      if (!Array.isArray(existing.children)) throw new Error("目標目錄被同名文件占用：" + folderPath);
+      if (!folderChildren(existing)) throw new Error("目標目錄被同名文件占用：" + folderPath);
       continue;
     }
     try {
       created.push(await vault.createFolder(folderPath));
     } catch (error) {
       const racedFolder = vault.getAbstractFileByPath(folderPath);
-      if (!racedFolder || !Array.isArray(racedFolder.children)) throw error;
+      if (!folderChildren(racedFolder)) throw error;
     }
   }
   return created;
 }
 
-async function rollbackImportedFiles(plugin: IgnorancePlugin, files: TFile[], folders = []) {
-  const failures = [];
+async function rollbackImportedFiles(plugin: IgnorancePlugin, files: TAbstractFile[], folders: TAbstractFile[] = []) {
+  const failures: string[] = [];
   for (const file of [...files].reverse()) {
-    try { await plugin.app.fileManager.trashFile(file); } catch (_) { failures.push(file.path); }
+    try { await plugin.app.fileManager.trashFile(file); } catch { failures.push(file.path); }
   }
   for (const folder of [...folders].reverse()) {
     try {
-      if (Array.isArray(folder.children) && folder.children.length === 0) await plugin.app.fileManager.trashFile(folder);
-    } catch (_) { failures.push(folder.path); }
+      if (folderChildren(folder)?.length === 0) await plugin.app.fileManager.trashFile(folder);
+    } catch { failures.push(folder.path); }
   }
   return failures;
 }
@@ -365,7 +397,7 @@ async function openImportedNote(plugin: IgnorancePlugin, note: TFile) {
   try {
     await plugin.app.workspace.getLeaf(false).openFile(note);
   } catch (error) {
-    new Notice("已导入 " + note.path + "，但未能自动打开：" + (error.message || error), 8000);
+    new Notice("已导入 " + note.path + "，但未能自动打开：" + errorText(error), 8000);
   }
 }
 
@@ -403,7 +435,7 @@ async function importVaultFileAsMarkdown(plugin: IgnorancePlugin, file: TFile, n
 
 function normalizeMarkdownImportName(value: string) {
   const name = String(value || "").trim().replace(/\.md$/i, "");
-  if (!name || /[\\/:*?"<>|\u0000-\u001f]/.test(name) || name === "." || name === "..") {
+  if (!name || hasInvalidNameChar(name) || name === "." || name === "..") {
     throw new Error("Markdown 文件名无效");
   }
   return name;
@@ -414,9 +446,9 @@ async function importNotionZipAsMarkdown(plugin: IgnorancePlugin, file: TFile, f
   const parentPath = file.parent?.path || "";
   const importRoot = [parentPath, normalizeMarkdownImportName(folderName)].filter(Boolean).join("/");
   if (vault.getAbstractFileByPath(importRoot)) throw new Error("目标文件夹已存在：" + importRoot);
-  const archive = await notionZipToMarkdown(await vault.readBinary(file), importRoot);
+  const archive = await notionZipToMarkdown(await vault.readBinary(file), importRoot) as NotionArchive;
   const plannedPaths = [...archive.files.map(item => item.path), ...archive.assets.map(item => item.path)];
-  const normalized = new Set();
+  const normalized = new Set<string>();
   const plannedFiles = new Set(plannedPaths.map(target => target.toLowerCase()));
   for (const target of plannedPaths) {
     const key = target.toLowerCase();
@@ -428,10 +460,10 @@ async function importNotionZipAsMarkdown(plugin: IgnorancePlugin, file: TFile, f
     }
   }
 
-  const createdFiles = [];
-  const createdFolders = [];
+  const createdFiles: TFile[] = [];
+  const createdFolders: TFolder[] = [];
   try {
-    const preparedAssets = [];
+    const preparedAssets: Array<{ asset: (typeof archive.assets)[number]; bytes: ArrayBuffer }> = [];
     for (const asset of archive.assets) {
       preparedAssets.push({ asset, bytes: await convertImageToWebp(asset.bytes, asset.path) });
     }
@@ -449,7 +481,7 @@ async function importNotionZipAsMarkdown(plugin: IgnorancePlugin, file: TFile, f
   } catch (error) {
     const rollbackFailures = await rollbackImportedFiles(plugin, createdFiles, createdFolders);
     if (rollbackFailures.length) {
-      throw new Error((error.message || error) + "；部分导入文件未能移入废纸篓：" + rollbackFailures.join("、"));
+      throw new Error(errorText(error) + "；部分导入文件未能移入废纸篓：" + rollbackFailures.join("、"));
     }
     throw error;
   }
@@ -465,7 +497,7 @@ async function convertImageToWebp(bytes: Uint8Array, name: string): Promise<Arra
   let bitmap: ImageBitmap | undefined;
   try {
     const type = /\.svg$/i.test(name) ? "image/svg+xml" : "";
-    bitmap = await createImageBitmap(new Blob([bytes as BlobPart], type ? { type } : {}));
+    bitmap = await createImageBitmap(new Blob([bytes], type ? { type } : {}));
     const canvas = createEl("canvas");
     canvas.width = bitmap.width;
     canvas.height = bitmap.height;
@@ -476,7 +508,7 @@ async function convertImageToWebp(bytes: Uint8Array, name: string): Promise<Arra
     if (!blob || blob.type !== "image/webp") throw new Error("当前 Obsidian 不支持 WebP 编码");
     return await blob.arrayBuffer();
   } catch (error) {
-    throw new Error(name.split("/").pop() + " 转 WebP 失败：" + (error.message || error));
+    throw new Error(name.split("/").pop() + " 转 WebP 失败：" + errorText(error));
   } finally {
     bitmap?.close();
   }
@@ -493,14 +525,16 @@ async function importDocxAsMarkdown(plugin: IgnorancePlugin, file: TFile, noteNa
   if (vault.getAbstractFileByPath(notePath)) throw new Error("目标笔记已存在：" + notePath);
   const assetDir = [parentPath, "assets"].filter(Boolean).join("/");
   const assetFolder = vault.getAbstractFileByPath(assetDir);
-  if (assetFolder && !Array.isArray(assetFolder.children)) throw new Error("assets 路径已被同名文件占用：" + assetDir);
+  if (assetFolder && !folderChildren(assetFolder)) throw new Error("assets 路径已被同名文件占用：" + assetDir);
 
   const placeholder = "ib-docx-media:";
-  const { markdown: converted, images } = await docxToMarkdown(new Uint8Array(await vault.readBinary(file)), placeholder);
+  const docx = await docxToMarkdown(new Uint8Array(await vault.readBinary(file)), placeholder);
+  const converted = docx.markdown;
+  const images = docx.images as Array<{ name: string; bytes: Uint8Array }>;
   if (!converted.trim() && !images.length) throw new Error("文件中没有可导入的内容");
   const stem = safeAssetStem(noteName);
-  const pending = [];
-  const links = new Map();
+  const pending: Array<{ path: string; bytes: ArrayBuffer }> = [];
+  const links = new Map<string, string>();
   for (const [index, image] of images.entries()) {
     const base = stem + "-" + String(index + 1).padStart(2, "0");
     let assetName = base + ".webp";
@@ -513,7 +547,7 @@ async function importDocxAsMarkdown(plugin: IgnorancePlugin, file: TFile, noteNa
   }
   const markdown = converted.replace(/!\[\]\(ib-docx-media:([^)]+)\)/g, (_whole, name: string) => links.has(name) ? `![](${links.get(name)})` : "");
 
-  const createdFiles = [];
+  const createdFiles: TFile[] = [];
   try {
     if (pending.length && !assetFolder) await vault.createFolder(assetDir);
     for (const asset of pending) createdFiles.push(await vault.createBinary(asset.path, asset.bytes));

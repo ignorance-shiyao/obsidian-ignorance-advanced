@@ -18,7 +18,7 @@ export function parseHighlightedCodeLines(fenceLine: string | undefined): number
   return [...lines].sort((a, b) => a - b);
 }
 
-interface CodeFenceEntry { lineStart: number; body: string; alignment: string; highlighted: number[]; }
+interface CodeFenceEntry { lineStart: number; body: string; alignment: string; width: number; highlighted: number[]; }
 const fenceEntriesCache = new Map<string, CodeFenceEntry[]>();
 function parseCodeFenceEntries(markdown: string) {
   const cached = fenceEntriesCache.get(markdown);
@@ -43,7 +43,10 @@ function parseCodeFenceEntries(markdown: string) {
     index = end;
   }
   fenceEntriesCache.set(markdown, entries);
-  if (fenceEntriesCache.size > 4) fenceEntriesCache.delete(fenceEntriesCache.keys().next().value);
+  if (fenceEntriesCache.size > 4) {
+    const oldest = fenceEntriesCache.keys().next().value as string | undefined;
+    if (oldest !== undefined) fenceEntriesCache.delete(oldest);
+  }
   return entries;
 }
 
@@ -57,7 +60,7 @@ export function applyCodeFenceHighlights(root: HTMLElement, markdown: string): v
   for (const code of root.querySelectorAll<HTMLElement>("pre > code")) {
     if (code.closest(".mermaid, .ib-echarts-block")) continue;
     const body = (code.textContent || "").replace(/\r\n?/g, "\n");
-    const matches = fence => fence.body === body || fence.body === body.replace(/\n$/, "");
+    const matches = (fence: CodeFenceEntry) => fence.body === body || fence.body === body.replace(/\n$/, "");
     let index = fences.findIndex((fence, candidate) => candidate >= cursor && matches(fence));
     if (index < 0) index = fences.findIndex((fence, candidate) => candidate >= cursor && fence.body.replace(/\n+$/, "") === body.replace(/\n+$/, ""));
     if (index < 0) index = fences.findIndex(matches);
@@ -126,7 +129,7 @@ export function wrapCodeLines(code: HTMLElement, highlighted: number[] = [], exp
   // Assemble off-DOM and swap in once: appending line by line into a live
   // <code> costs a mutation (and observer work) per line.
   code.replaceChildren();
-  const fragment = document.createDocumentFragment();
+  const fragment = createFragment();
   lines.forEach((nodes, index) => {
     const line = createSpan();
     line.className = "ib-code-line";

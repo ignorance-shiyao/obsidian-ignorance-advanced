@@ -8,12 +8,12 @@ import { setMarkup } from "./dom-markup.js";
 
 const FILE = "language-icons.json";
 let pack: IconPack | null = null;
-let host: any = null;
+let host: IgnorancePlugin | null = null;
 const waiting = new Set<() => void>();
 
 export function setLanguageIconHost(plugin: IgnorancePlugin) { host = plugin; }
 
-export function loadLanguageIcons(plugin = host): Promise<void> {
+export function loadLanguageIcons(plugin: IgnorancePlugin | null = host): Promise<void> {
   if (pack) return Promise.resolve();
   if (!plugin) return Promise.reject(new Error("language icons: no plugin"));
   return loadPack(plugin, FILE).then(loaded => { pack = loaded; waiting.forEach(fill => fill()); waiting.clear(); });

@@ -13,8 +13,8 @@ export async function prepareMarkdownTextForPandoc(text: string, diagrams: strin
     if (match[2].startsWith("/") || /^[A-Za-z]:[\\/]/.test(match[2])) continue;
     text = text.replace(match[0], `![${match[1]}](<${await resolveLocalImage(match[2])}>)`);
   }
-  text = text.replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, "$2").replace(/\[\[([^\]]+)\]\]/g, (_, target) => target.split("#").pop());
-  text = text.replace(/^(\s*>+\s*)\[!(\w+)\][+-]?\s*(.*)$/gm, (_, quote, type, title) => `${quote}**${title || type.charAt(0).toUpperCase() + type.slice(1)}**`);
+  text = text.replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, "$2").replace(/\[\[([^\]]+)\]\]/g, (_: string, target: string) => target.split("#").pop());
+  text = text.replace(/^(\s*>+\s*)\[!(\w+)\][+-]?\s*(.*)$/gm, (_: string, quote: string, type: string, title: string) => `${quote}**${title || type.charAt(0).toUpperCase() + type.slice(1)}**`);
   text = text.replace(/%%[\s\S]*?%%/g, "");
   return text;
 }

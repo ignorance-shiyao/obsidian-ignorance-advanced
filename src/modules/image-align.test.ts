@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { hasImageKeyword, imageAlignment, imageFilter, imageLinkAt, withImageAlignment, withImageFilter, withImageKeyword } from "./image-align-core";
 
-const apply = (text, align) => withImageAlignment(imageLinkAt(text, 0), align);
+const apply = (text: string, align: string) => withImageAlignment(imageLinkAt(text, 0), align);
 
 describe("image alignment", () => {
   it("adds the keyword before the width in markdown links", () => {
@@ -58,7 +58,7 @@ describe("图片八方向缩放", () => {
 });
 
 describe("图片滤镜与点击播放", () => {
-  const link = text => imageLinkAt(text, 0);
+  const link = (text: string) => imageLinkAt(text, 0);
   it("读取与替换滤镜，宽度保持在最后", () => {
     expect(imageFilter(link("![left|gray|400](a.png)"))).toBe("gray");
     expect(withImageFilter(link("![说明|400](a.png)"), "sepia")).toBe("![说明|sepia|400](a.png)");

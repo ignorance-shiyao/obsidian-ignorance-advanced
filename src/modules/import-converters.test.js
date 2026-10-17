@@ -76,7 +76,7 @@ describe("Word converter", () => {
   it("keeps headings, inline styles, lists, tables and pictures", async () => {
     const docx = await import("docx");
     const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, ImageRun } = docx;
-    const png = Uint8Array.from(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64"));
+    const png = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="), char => char.charCodeAt(0));
     const document = new Document({
       numbering: { config: [{ reference: "steps", levels: [{ level: 0, format: "decimal", text: "%1." }] }] },
       sections: [{ children: [
@@ -138,15 +138,15 @@ describe("PDF converter", () => {
     let source = "%PDF-1.4\n";
     const offsets = [0];
     for (let index = 0; index < objects.length; index += 1) {
-      offsets.push(Buffer.byteLength(source, "binary"));
+      offsets.push(source.length); // binary string: one byte per character
       source += `${index + 1} 0 obj\n${objects[index]}\nendobj\n`;
     }
-    const xref = Buffer.byteLength(source, "binary");
+    const xref = source.length;
     source += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
     for (const offset of offsets.slice(1)) source += String(offset).padStart(10, "0") + " 00000 n \n";
     source += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
     const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
-    const markdown = await pdfToMarkdown(new Uint8Array(Buffer.from(source, "binary")), pdfjs);
+    const markdown = await pdfToMarkdown(Uint8Array.from(source, char => char.charCodeAt(0)), pdfjs);
     expect(markdown).toContain("## 第 1 页");
     expect(markdown).toContain("PDF import text");
   });

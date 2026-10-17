@@ -1,6 +1,6 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { MarkdownRenderChild, MarkdownRenderer, Notice } from "obsidian";
-import { EditorView, ViewPlugin } from "@codemirror/view";
+import { ViewPlugin, type EditorView, type ViewUpdate } from "@codemirror/view";
 import { missingBlankLines, wantsLenient, withBlankLines } from "./missing-blank-lines-core.js";
 
 
@@ -22,7 +22,7 @@ export function installLenientBlocks(plugin: IgnorancePlugin) {
   });
 }
 
-function fixDocument(view): number {
+function fixDocument(view: EditorView): number {
   const lines: string[] = [];
   for (let n = 1; n <= view.state.doc.lines; n += 1) lines.push(view.state.doc.line(n).text);
   const at = missingBlankLines(lines);
@@ -39,7 +39,7 @@ function fixDocument(view): number {
 export function lenientBlocksEditorExtension(plugin: IgnorancePlugin) {
   return ViewPlugin.fromClass(class {
     timer = 0;
-    update(update) {
+    update(update: ViewUpdate) {
       if (!update.docChanged || !wantsLenient(plugin)) return;
       if (!update.transactions.some(tr => tr.isUserEvent("input") || tr.isUserEvent("delete")) || update.transactions.some(tr => tr.isUserEvent("input.ibp-blank-line"))) return;
       window.clearTimeout(this.timer);

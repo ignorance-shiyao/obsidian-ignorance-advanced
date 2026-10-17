@@ -15,7 +15,7 @@ export function colorValue(text: string): string | null {
 export function inlineCodeSpans(line: string): Array<[number, number, string]> {
   const spans: Array<[number, number, string]> = [];
   const pattern = /(`+)([^`]|[^`][\s\S]*?[^`])\1(?!`)/g;
-  for (let match; (match = pattern.exec(line));) {
+  for (let match: RegExpExecArray | null; (match = pattern.exec(line));) {
     const from = match.index + match[1].length;
     spans.push([from, from + match[2].length, match[2]]);
   }
@@ -26,7 +26,7 @@ export function inlineCodeSpans(line: string): Array<[number, number, string]> {
 export function hexColorTags(line: string): Array<[number, string]> {
   const tags: Array<[number, string]> = [];
   const pattern = /(^|[^\w&/#])#([0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{4}|[0-9a-f]{3})(?![\w/-])/gi;
-  for (let match; (match = pattern.exec(line));) tags.push([match.index + match[1].length, `#${match[2]}`]);
+  for (let match: RegExpExecArray | null; (match = pattern.exec(line));) tags.push([match.index + match[1].length, `#${match[2]}`]);
   return tags;
 }
 

@@ -15,7 +15,7 @@ import { languageIconSvg } from "./language-icons.js";
 import { setMarkup } from "./dom-markup.js";
 
 function escapeHtml(value: string) {
-  return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[char]);
+  return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" } as Record<string, string>)[char]);
 }
 
 const clip = (text: string, length = 48) => {
@@ -32,11 +32,15 @@ function captionFor(element: HTMLElement, fallback: string) {
   return text && text.trim().length <= 60 ? clip(text) : fallback;
 }
 
+// One line of a navigation list: the id of the element and the label shown for it.
+interface IndexEntry { id: string; label: string }
+type ContentLists = Record<"images" | "tables" | "code" | "charts", IndexEntry[]>;
+
 /* Tag figures, tables, code and diagrams with ids and return the index lists
    for the navigation center. `content` is the cloned note (detached DOM). */
-export function indexContent(content) {
-  const lists = { images: [], tables: [], code: [], charts: [] };
-  const headings = [...content.querySelectorAll("h1, h2, h3, h4, h5, h6")];
+export function indexContent(content: HTMLElement): ContentLists {
+  const lists: ContentLists = { images: [], tables: [], code: [], charts: [] };
+  const headings = [...content.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6")];
   // The heading an element sits under, for labels like "图表 3 · 序列图".
   const sectionOf = (element: HTMLElement) => {
     let found = "";
@@ -49,14 +53,14 @@ export function indexContent(content) {
   // Headings that already carry a number ("1.", "一、", "第 2 章") skip the skin's automatic one.
   headings.forEach(heading => { if (/^\s*(?:第\s*[\d一二三四五六七八九十百]+\s*[章节部篇]|[\d一二三四五六七八九十]+(?:\.\d+)*\s*[.、．:：)\s])/.test(heading.textContent)) heading.setAttribute("data-ib-numbered", ""); });
   const withSection = (base: string, element: HTMLElement) => { const section = sectionOf(element); return section ? `${base} · ${section}` : base; };
-  const chartHosts = [...content.querySelectorAll("[data-reader-chart]")];
+  const chartHosts = [...content.querySelectorAll<HTMLElement>("[data-reader-chart]")];
   chartHosts.forEach((el, index) => {
     el.id ||= `reader-chart-${index + 1}`;
     lists.charts.push({ id: el.id, label: captionFor(el, withSection(`图表 ${index + 1}`, el)) });
   });
-  const images = [...content.querySelectorAll("img")].filter(img => !img.closest("[data-reader-chart]"));
+  const images = [...content.querySelectorAll<HTMLImageElement>("img")].filter(img => !img.closest("[data-reader-chart]"));
   const doc = content.ownerDocument;
-  const el = (tag: string, cls: string, text: string) => { const node = doc.createElement(tag); if (cls) node.className = cls; if (text) node.textContent = text; return node; };
+  const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls: string, text = "") => { const node = createEl(tag); if (cls) node.className = cls; if (text) node.textContent = text; return node; };
   const toolButton = (action: string, label: string, name: string) => { const button = el("button", "ib-tool"); button.type = "button"; button.dataset.tool = action; button.dataset.tip = label; button.setAttribute("aria-label", label); setMarkup(button, icon(name)); return button; };
 
   // Images: numbered; a caption from meaningful alt text (Obsidian never shows alt).
@@ -76,7 +80,7 @@ export function indexContent(content) {
   });
 
   // Tables: a frame with the number and tools (冻结首列 / 换行 / 全屏).
-  [...content.querySelectorAll("table")].forEach((table, index) => {
+  [...content.querySelectorAll<HTMLTableElement>("table")].forEach((table, index) => {
     table.id ||= `reader-table-${index + 1}`;
     const head = [...table.querySelectorAll("tr:first-child > *")].map(cell => cell.textContent.trim()).filter(Boolean).slice(0, 3).join(" · ");
     lists.tables.push({ id: table.id, label: captionFor(table, head ? `表 ${index + 1}：${clip(head, 36)}` : withSection(`表 ${index + 1}`, table)) });
@@ -93,10 +97,10 @@ export function indexContent(content) {
   });
 
   // Code: language, copy, and long blocks folded.
-  [...content.querySelectorAll("pre")].forEach((pre, index) => {
+  [...content.querySelectorAll<HTMLElement>("pre")].forEach((pre, index) => {
     pre.id ||= `reader-code-${index + 1}`;
     const language = pre.getAttribute("data-lang") || "";
-    const first = pre.textContent.split("\n").map((line: number) => line.trim()).find(Boolean) || "";
+    const first = pre.textContent.split("\n").map((line: string) => line.trim()).find(Boolean) || "";
     lists.code.push({ id: pre.id, label: `${language ? `${language} · ` : ""}${clip(first, 40) || `代码 ${index + 1}`}` });
     // Keep separators for exact copying; normal whitespace on the wrapper
     // prevents them from creating extra visual lines between block spans.
@@ -124,7 +128,8 @@ export function indexContent(content) {
   return lists;
 }
 
-const TABS = [
+type NavTab = "toc" | "images" | "tables" | "code" | "charts";
+const TABS: [NavTab, string, string][] = [
   ["toc", "目录", "list"],
   ["images", "图片", "image"],
   ["tables", "表格", "table"],
@@ -133,12 +138,12 @@ const TABS = [
 ];
 
 // The aside: tab strip, filter box, one panel per tab (目录 keeps .ib-reader-toc nav).
-export function navigationMarkup(tocHtml: string, lists) {
-  const counts = { toc: tocHtml ? 1 : 0, images: lists.images.length, tables: lists.tables.length, code: lists.code.length, charts: lists.charts.length };
+export function navigationMarkup(tocHtml: string, lists: ContentLists) {
+  const counts: Record<NavTab, number> = { toc: tocHtml ? 1 : 0, images: lists.images.length, tables: lists.tables.length, code: lists.code.length, charts: lists.charts.length };
   const tabs = TABS.filter(([key]) => key === "toc" || counts[key]);
   const strip = tabs.map(([key, label, name], index) =>
     `<button type="button" class="ib-nav-tab" role="tab" data-tab="${key}" aria-selected="${index === 0}" data-tip="${label}">${icon(name)}<span>${label}</span>${key === "toc" ? "" : `<em>${counts[key]}</em>`}</button>`).join("");
-  const item = entry => `<a href="#${entry.id}">${escapeHtml(entry.label)}</a>`;
+  const item = (entry: IndexEntry) => `<a href="#${entry.id}">${escapeHtml(entry.label)}</a>`;
   const panels = tabs.map(([key], index) => {
     const body = key === "toc" ? (tocHtml || `<div class="ib-reader-empty">本文没有标题</div>`) : lists[key].map(item).join("");
     return `<nav class="ib-nav-panel" data-panel="${key}"${index === 0 ? "" : " hidden"}>${key === "toc" ? '<span class="ib-toc-indicator" aria-hidden="true" hidden></span>' : ""}${body}</nav>`;

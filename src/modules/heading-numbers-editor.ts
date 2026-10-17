@@ -1,14 +1,16 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { editorInfoField } from "obsidian";
-import { Decoration, ViewPlugin, WidgetType } from "@codemirror/view";
+import { Decoration, ViewPlugin, WidgetType, type DecorationSet, type EditorView, type ViewUpdate } from "@codemirror/view";
+import type { Range } from "@codemirror/state";
 /* The same heading numbers in Live Preview: a small widget in front of each heading's text. The numbers come
    from the document itself, so they stay right while the note is edited. */
 import { numberWithOptions, numberingOptions, scanHeadings, unpublishedIndexes } from "./heading-numbers.js";
 
 
 class NumberWidget extends WidgetType {
+  readonly text: string;
   constructor(text: string) { super(); this.text = text; }
-  eq(other) { return other.text === this.text; }
+  eq(other: NumberWidget) { return other.text === this.text; }
   toDOM() {
     const span = createSpan({ cls: "ib-heading-number ib-heading-number--editor", text: this.text });
     span.setAttribute("aria-hidden", "true");
@@ -17,7 +19,7 @@ class NumberWidget extends WidgetType {
   ignoreEvent() { return true; }
 }
 
-function wanted(plugin: IgnorancePlugin, view) {
+function wanted(plugin: IgnorancePlugin, view: EditorView) {
   const file = view.state.field(editorInfoField, false)?.file;
   const frontmatter = file && plugin.app.metadataCache.getFileCache(file)?.frontmatter;
   const classes = [frontmatter?.cssclasses, frontmatter?.cssclass].flat().filter(Boolean).map(String);
@@ -25,7 +27,7 @@ function wanted(plugin: IgnorancePlugin, view) {
   return plugin.state?.headingNumbers === true || classes.includes("ib-numbered");
 }
 
-function build(view, plugin: IgnorancePlugin) {
+function build(view: EditorView, plugin: IgnorancePlugin) {
   if (!wanted(plugin, view)) return Decoration.none;
   const doc = view.state.doc;
   const lines: string[] = [];
@@ -34,7 +36,7 @@ function build(view, plugin: IgnorancePlugin) {
   const hidden = unpublishedIndexes(all);
   const headings = all.filter((_, index) => !hidden.has(index));
   const numbers = numberWithOptions(headings, numberingOptions(plugin));
-  const ranges = [];
+  const ranges: Range<Decoration>[] = [];
   for (const heading of headings) {
     const text = numbers.get(heading.line);
     if (!text) continue;
@@ -46,7 +48,8 @@ function build(view, plugin: IgnorancePlugin) {
 
 export function headingNumbersEditorExtension(plugin: IgnorancePlugin) {
   return ViewPlugin.fromClass(class {
-    constructor(view) { this.decorations = build(view, plugin); }
-    update(update) { if (update.docChanged || update.viewportChanged || update.transactions.some(tr => tr.reconfigured)) this.decorations = build(update.view, plugin); }
+    decorations: DecorationSet;
+    constructor(view: EditorView) { this.decorations = build(view, plugin); }
+    update(update: ViewUpdate) { if (update.docChanged || update.viewportChanged || update.transactions.some(tr => tr.reconfigured)) this.decorations = build(update.view, plugin); }
   }, { decorations: value => value.decorations });
 }

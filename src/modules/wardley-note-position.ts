@@ -1,6 +1,9 @@
 // Test the actual segment rather than its bounding rectangle: diagonal links
 // leave substantial usable space on either side.
-export function segmentCrossesBox(segment, box, gap = 0) {
+export interface Box { x: number; y: number; width: number; height: number }
+export interface Segment { x1: number; y1: number; x2: number; y2: number }
+
+export function segmentCrossesBox(segment: Segment, box: Box, gap = 0) {
   const left = box.x - gap, right = box.x + box.width + gap;
   const top = box.y - gap, bottom = box.y + box.height + gap;
   const dx = segment.x2 - segment.x1, dy = segment.y2 - segment.y1;
@@ -14,9 +17,9 @@ export function segmentCrossesBox(segment, box, gap = 0) {
   return true;
 }
 
-export function wardleyNotePosition(label: string, obstacles, segments, bounds, gap = 8) {
-  const fits = box => box.x >= bounds.x && box.y >= bounds.y && box.x + box.width <= bounds.x + bounds.width && box.y + box.height <= bounds.y + bounds.height
-    && !obstacles.some((node: HTMLElement) => box.x < node.x + node.width + gap && box.x + box.width > node.x - gap && box.y < node.y + node.height + gap && box.y + box.height > node.y - gap)
+export function wardleyNotePosition(label: Box, obstacles: Box[], segments: Segment[], bounds: Box, gap = 8): Box | null {
+  const fits = (box: Box) => box.x >= bounds.x && box.y >= bounds.y && box.x + box.width <= bounds.x + bounds.width && box.y + box.height <= bounds.y + bounds.height
+    && !obstacles.some(node => box.x < node.x + node.width + gap && box.x + box.width > node.x - gap && box.y < node.y + node.height + gap && box.y + box.height > node.y - gap)
     && !segments.some(segment => segmentCrossesBox(segment, box, gap));
   if (fits(label)) return label;
   const maxX = bounds.x + bounds.width - label.width, maxY = bounds.y + bounds.height - label.height;

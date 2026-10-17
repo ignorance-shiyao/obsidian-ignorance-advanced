@@ -168,7 +168,7 @@ function scaleToFit(el: HTMLElement, maxH: number): void {
   const h = el.offsetHeight
   if (maxH <= 0 || h <= maxH) return
   const scale = Math.max(0.4, maxH / h)
-  const wrapper = createEl('div')
+  const wrapper = createDiv()
   wrapper.className = 'slide-scale-fit'
   wrapper.style.cssText = `height:${maxH}px;overflow:hidden;`
   el.before(wrapper)
@@ -249,7 +249,7 @@ export function paginateSlideSections(slides: HTMLElement): boolean {
       ns.dataset.slidevLayout = ns.classList.contains('slidev-layout-default')
         ? 'default'
         : sec.dataset.slidevLayout ?? ''
-      const ninner = createEl('div')
+      const ninner = createDiv()
       ninner.className = 'slide-inner'
       const pageRoot = wrappedRoot ? wrappedRoot.cloneNode(false) as HTMLElement : ninner
       if (wrappedRoot) {
@@ -285,7 +285,7 @@ function firstPageSourceLine(page: HTMLElement[], sec: HTMLElement): number | nu
     const source = el.matches('[data-source-line]')
       ? el
       : el.querySelector<HTMLElement>('[data-source-line]')
-    const local = Number((source as HTMLElement | null)?.dataset.sourceLine)
+    const local = Number(source?.dataset.sourceLine)
     if (Number.isFinite(local)) return base + directiveOffset + local
   }
   return Number.isFinite(base) ? base : null

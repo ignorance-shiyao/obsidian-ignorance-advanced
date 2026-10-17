@@ -1,17 +1,21 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { Component, MarkdownRenderer } from "obsidian";
+import { Component, MarkdownRenderChild, MarkdownRenderer } from "obsidian";
+import type { MarkdownPostProcessorContext } from "obsidian";
 import { applyStagedChartAlignment } from "./chart-alignment.js";
-import { CONTAINER_KINDS, parseMarkdownContainers } from "./container-source.js";
+import { parseMarkdownContainers, type MarkdownContainer } from "./container-source.js";
 import { setMarkup } from "./dom-markup.js";
 
 import { wantsLenient, withBlankLines } from "./missing-blank-lines-core.js";
-const parsedSources = new Map();
+/** A parsed container plus the colour tone given to chapter cards. */
+type ContainerNode = MarkdownContainer & { chapterTone?: number };
+
+const parsedSources = new Map<string, { source: string; containers: ContainerNode[] }>();
 const processing = new WeakSet();
 
-function chapterContainers(source: string) {
+function chapterContainers(source: string): ContainerNode[] {
   const nodes = parseMarkdownContainers(source);
   let index = 0;
-  const walk = items => items.forEach((node: HTMLElement) => {
+  const walk = (items: ContainerNode[]) => items.forEach(node => {
     if (node.kind === "chapter") node.chapterTone = index++ % 3;
     walk(node.children);
   });
@@ -24,11 +28,11 @@ function sourceContainers(sourcePath: string, source: string) {
   if (cached?.source === source) return cached.containers;
   const containers = chapterContainers(source);
   parsedSources.set(sourcePath, { source, containers });
-  if (parsedSources.size > 32) parsedSources.delete(parsedSources.keys().next().value);
+  if (parsedSources.size > 32) for (const oldest of parsedSources.keys()) { parsedSources.delete(oldest); break; }
   return containers;
 }
 
-function containingNode(nodes, lineStart: number, lineEnd: number) {
+function containingNode(nodes: ContainerNode[], lineStart: number, lineEnd: number): ContainerNode | null {
   for (const node of nodes) {
     if (lineStart > node.startLine && lineStart <= node.endLine && lineEnd <= node.endLine) return node;
     const nested = containingNode(node.children, lineStart, lineEnd);
@@ -37,7 +41,7 @@ function containingNode(nodes, lineStart: number, lineEnd: number) {
   return null;
 }
 
-function makeContainer(node: HTMLElement) {
+function makeContainer(node: ContainerNode) {
   const element = createEl(node.kind === "details" ? "details" : "div");
   element.className = `ibc-container ibc-container--${node.kind}`;
   element.dataset.ibcKind = node.kind;
@@ -96,7 +100,7 @@ function finishMatrix(container: HTMLElement) {
    switcher and lay every panel out in order with its title. */
 let tabGroups = 0;
 function finishTabs(container: HTMLElement, interactive: boolean) {
-  const panels = [...container.querySelectorAll(":scope > .ibc-container--tab")];
+  const panels = [...container.querySelectorAll<HTMLElement>(":scope > .ibc-container--tab")];
   if (!panels.length) return;
   if (!interactive || panels.length < 2) { container.classList.add("ibc-tabs--static"); return; }
   const group = `ibc-tabs-${++tabGroups}`;
@@ -129,7 +133,7 @@ function finishCompare(container: HTMLElement, interactive: boolean) {
     frame.appendChild(img.closest(".internal-embed") || img);
     return frame;
   });
-  container.querySelectorAll(":scope > p").forEach(p => { if (!p.textContent.trim() && !p.querySelector("img")) p.remove(); });
+  container.querySelectorAll(":scope > p").forEach(p => { if (!(p.textContent ?? "").trim() && !p.querySelector("img")) p.remove(); });
   container.append(...frames);
   if (!interactive) { container.classList.add("ibc-compare--static"); return; }
   const input = createEl("input");
@@ -168,16 +172,16 @@ function finishContainer(container: HTMLElement, interactive = false) {
     }
     return figure;
   });
-  container.querySelectorAll(":scope > p").forEach(p => { if (!p.textContent.trim() && !p.querySelector("img")) p.remove(); });
+  container.querySelectorAll(":scope > p").forEach(p => { if (!(p.textContent ?? "").trim() && !p.querySelector("img")) p.remove(); });
   container.append(...figures);
 }
 
-async function renderFragment(plugin: IgnorancePlugin, sourcePath: string, source: string, target: HTMLElement, component) {
+async function renderFragment(plugin: IgnorancePlugin, sourcePath: string, source: string, target: HTMLElement, component: Component) {
   if (!source.trim()) return;
   await MarkdownRenderer.render(plugin.app, source, target, sourcePath, component);
 }
 
-async function renderRange(plugin: IgnorancePlugin, sourcePath: string, source: string, start: number, end: number, nodes, target: HTMLElement, component, interactive = false) {
+async function renderRange(plugin: IgnorancePlugin, sourcePath: string, source: string, start: number, end: number, nodes: ContainerNode[], target: HTMLElement, component: Component, interactive = false) {
   let cursor = start;
   for (const node of nodes) {
     if (node.startOffset < start || node.closeEnd > end) continue;
@@ -191,7 +195,7 @@ async function renderRange(plugin: IgnorancePlugin, sourcePath: string, source: 
   await renderFragment(plugin, sourcePath, source.slice(cursor, end), target, component);
 }
 
-async function renderMarkdownWithContainers(plugin: IgnorancePlugin, sourcePath: string, source: string, target: HTMLElement, component, interactive = false) {
+async function renderMarkdownWithContainers(plugin: IgnorancePlugin, sourcePath: string, source: string, target: HTMLElement, component: Component, interactive = false) {
   // A table typed right under a paragraph still counts as a table in pages, slides and exports.
   if (wantsLenient(plugin)) source = withBlankLines(source);
   const containers = chapterContainers(source);
@@ -214,8 +218,8 @@ async function renderMarkdownWithContainers(plugin: IgnorancePlugin, sourcePath:
   await applyStagedChartAlignment(plugin, target, sourcePath, source);
 }
 
-async function renderContainer(plugin: IgnorancePlugin, element: HTMLElement, context, source, node: HTMLElement) {
-  const component = new Component();
+async function renderContainer(plugin: IgnorancePlugin, element: HTMLElement, context: MarkdownPostProcessorContext, source: string, node: ContainerNode) {
+  const component = new MarkdownRenderChild(element);
   component.load();
   const container = makeContainer(node);
   const originalHtml = element.innerHTML;
@@ -237,7 +241,7 @@ async function renderContainer(plugin: IgnorancePlugin, element: HTMLElement, co
   }
 }
 
-function renderContainerBlocks(plugin: IgnorancePlugin, element: HTMLElement, context) {
+function renderContainerBlocks(plugin: IgnorancePlugin, element: HTMLElement, context: MarkdownPostProcessorContext | undefined) {
   if (!element || element.closest?.(".ibc-container")) return;
   // The reading view reuses section elements and resets their content to the
   // raw markup before post-processing again, so "already handled" is judged by
@@ -249,7 +253,7 @@ function renderContainerBlocks(plugin: IgnorancePlugin, element: HTMLElement, co
   const containers = sourceContainers(sourcePath, info.text);
   if (!containers.length) return;
 
-  const start = containers.find((node: HTMLElement) => node.startLine === info.lineStart);
+  const start = containers.find(node => node.startLine === info.lineStart);
   if (start) {
     processing.add(element);
     return renderContainer(plugin, element, context, info.text, start).finally(() => processing.delete(element));

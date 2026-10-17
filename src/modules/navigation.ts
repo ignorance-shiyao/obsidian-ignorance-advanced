@@ -17,7 +17,7 @@ export function buildNavItems(source: string, headings: Array<{ text: string; le
   const items: NavItem[] = headings.map(heading => ({ kind: "heading", label: heading.text, line: heading.line, level: heading.level }));
   const captions = new Map(parseCaptions(source).map(entry => [entry.line, entry]));
   let fence = "", fenceLanguage = "", fenceStart = 0;
-  let tableCount = 0, figureCount = 0;
+  let tableCount = 0;
   let lastTable: NavItem | null = null;
   lines.forEach((line, index) => {
     const marker = /^\s*(`{3,}|~{3,})\s*([\w+-]*)/.exec(line);
@@ -34,13 +34,12 @@ export function buildNavItems(source: string, headings: Array<{ text: string; le
     const caption = captions.get(index);
     if (caption) {
       const label = `${caption.label} ${caption.text}`;
-      if (caption.kind === "fig") { figureCount += 1; items.push({ kind: "figure", label, line: index }); }
+      if (caption.kind === "fig") { items.push({ kind: "figure", label, line: index }); }
       else if (caption.kind === "tab" && lastTable) lastTable.label = label; // the caption line names the table above it
       return;
     }
     const image = /!\[\[([^\]|]+)|!\[[^\]]*\]\(([^)]+)\)/.exec(line);
     if (image && IMAGE_EXTENSION.test((image[1] || image[2] || "").split("?")[0])) {
-      figureCount += 1;
       items.push({ kind: "figure", label: `图片 ${(image[1] || image[2]).split("/").pop()}`, line: index });
       return;
     }
@@ -65,18 +64,18 @@ export function openNavigation(plugin: IgnorancePlugin) {
     const items = buildNavItems(source, headings);
     if (!items.length) { new Notice("这篇笔记里没有可跳转的内容"); return; }
     const ICON = NAV_ICONS;
-    class NavigationModal extends SuggestModal {
+    class NavigationModal extends SuggestModal<NavItem> {
       getSuggestions(query: string) {
         const needle = query.trim().toLowerCase();
         return needle ? items.filter(item => item.label.toLowerCase().includes(needle) || ICON[item.kind] === needle) : items;
       }
-      renderSuggestion(item, el: HTMLElement) {
+      renderSuggestion(item: NavItem, el: HTMLElement) {
         el.addClass("ib-nav-item");
         el.createSpan({ cls: "ib-nav-item__icon", text: ICON[item.kind] });
         el.createSpan({ cls: "ib-nav-item__label", text: item.label }).style.setProperty("--ib-nav-indent", `${Math.max(0, (item.level || 1) - 1)}em`);
         el.createSpan({ cls: "ib-nav-item__line", text: `第 ${item.line + 1} 行` });
       }
-      onChooseSuggestion(item) { view.setEphemeralState({ line: item.line }); }
+      onChooseSuggestion(item: NavItem) { view.setEphemeralState({ line: item.line }); }
     }
     const modal = new NavigationModal(app);
     modal.setPlaceholder("搜索标题、图表、表格、代码…");

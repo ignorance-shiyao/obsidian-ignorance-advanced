@@ -60,7 +60,7 @@ function isFlatRecord(value) {
 function jsonToMarkdown(text) {
   let parsed;
   try { parsed = JSON.parse(String(text ?? "")); }
-  catch (_) { throw new Error("JSON 文件格式无效，未导入"); }
+  catch { throw new Error("JSON 文件格式无效，未导入"); }
   if (Array.isArray(parsed) && parsed.length && parsed.every(isFlatRecord)) {
     const keys = [...new Set(parsed.flatMap(record => Object.keys(record)))];
     return rowsToTable([keys, ...parsed.map(record => keys.map(key => record[key]))]);
@@ -307,10 +307,6 @@ function decodeXml(value) {
     .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
 }
 
-function safeMarkdownHeading(value) {
-  return String(value).replace(/[\r\n]+/g, " ").replace(/[#\\]/g, "\\$&").trim();
-}
-
 async function pptxToMarkdown(bytes) {
   const archive = await JSZip.loadAsync(bytes);
   const slides = Object.keys(archive.files).filter(name => /^ppt\/slides\/slide\d+\.xml$/.test(name))
@@ -396,7 +392,7 @@ function stripNotionHash(name) {
 }
 
 function safePathSegment(segment) {
-  const clean = stripNotionHash(segment).replace(/[<>:"|?*\u0000-\u001f]/g, "-").trim().replace(/[. ]+$/g, "");
+  const clean = Array.from(stripNotionHash(segment), char => char.charCodeAt(0) < 32 || "<>:\"|?*".includes(char) ? "-" : char).join("").trim().replace(/[. ]+$/g, "");
   if (!clean || clean === "." || clean === "..") return "_";
   return clean.slice(0, 180);
 }
@@ -418,7 +414,7 @@ function commonZipRoot(paths) {
 
 function cleanRelativeZipPath(value, currentPath) {
   let decoded = decodeEntities(String(value).replace(/^<|>$/g, "")).replace(/\\/g, "/");
-  try { decoded = decodeURIComponent(decoded); } catch (_) {}
+  try { decoded = decodeURIComponent(decoded); } catch { /* keep the undecoded path */ }
   decoded = decoded.split(/[?#]/, 1)[0];
   if (!decoded || /^(?:[a-z][a-z0-9+.-]*:|\/)/i.test(decoded)) return null;
   const stack = currentPath.split("/").slice(0, -1);

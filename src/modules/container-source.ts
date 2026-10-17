@@ -33,7 +33,7 @@ function lineStartsFor(source: string, lines: string[]): number[] {
 }
 
 function fencedLines(lines: string[]): boolean[] {
-  const fenced = new Array(lines.length).fill(false);
+  const fenced: boolean[] = new Array<boolean>(lines.length).fill(false);
   let marker = "";
   let markerLength = 0;
   for (let index = 0; index < lines.length; index += 1) {

@@ -9,8 +9,8 @@ describe("标题字体", () => {
   });
 
   it("从自定义字体切回主题时移除旧覆盖", () => {
-    const values = new Map();
-    const body = { style: { setProperty: (name, value) => values.set(name, value), removeProperty: name => values.delete(name) } };
+    const values = new Map<string, string>();
+    const body = { style: { setProperty: (name: string, value: string) => values.set(name, value), removeProperty: (name: string) => values.delete(name) } };
     applyFontPreferences(body, { fontHeading: "system-sans" });
     expect(values.size).toBe(8);
     applyFontPreferences(body, { fontHeading: "theme" });
@@ -31,10 +31,10 @@ describe("标题字体", () => {
 });
 
 describe("旧字体设置迁移", () => {
-  const fakeApp = (config = {}) => ({
+  const fakeApp = (config: Record<string, string> = {}) => ({
     config,
-    vault: { getConfig: key => config[key] || "", setConfig: (key, value) => { config[key] = value; } },
-    workspace: { trigger: () => {} }
+    vault: { getConfig: (key: string) => config[key] || "", setConfig: (key: string, value: string) => { config[key] = value; } },
+    workspace: { trigger: () => { /* no listeners in the test */ } }
   });
 
   it("把非默认的正文/等宽预设写入 Obsidian 设置一次", () => {

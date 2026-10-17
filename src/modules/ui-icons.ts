@@ -1,3 +1,4 @@
+import { setIcon as setObsidianIcon } from "obsidian";
 import { setMarkup } from "./dom-markup.js";
 /* Shared Lucide vector icons for plugin controls and the offline reader. No emoji icons. */
 export const UI_ICONS = {
@@ -34,6 +35,7 @@ export const UI_ICONS = {
   "splitVertical": "lucide-columns-2",
   "splitHorizontal": "lucide-rows-2"
 } as const;
+const iconId = (name: string): string => ((UI_ICONS as Record<string, string>)[name] || name).replace(/^lucide-/, "");
 const BODIES: Record<string, string> = {
   "align-center": "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M17 12H7m12 6H5M21 6H3\"/>",
   "align-left": "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M15 12H3m14 6H3M21 6H3\"/>",
@@ -69,13 +71,13 @@ const BODIES: Record<string, string> = {
   "x": "<path fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M18 6L6 18M6 6l12 12\"/>"
 };
 export function iconMarkup(name: string, className = "ib-icon") {
-  const id = (UI_ICONS[name] || name).replace(/^lucide-/, "");
+  const id = iconId(name);
   if (!BODIES[id]) throw new Error(`Unknown shared UI icon: ${name}`);
   return `<svg class="${className} svg-icon lucide-${id}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${BODIES[id]}</svg>`;
 }
 export function setIcon(element: HTMLElement, name: string) {
   if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error("UI icons must use named vector icons");
-  const id = (UI_ICONS[name] || name).replace(/^lucide-/, "");
+  const id = iconId(name);
   if (BODIES[id]) setMarkup(element, iconMarkup(id));
-  else require("obsidian").setIcon(element, name);
+  else setObsidianIcon(element, name);
 }

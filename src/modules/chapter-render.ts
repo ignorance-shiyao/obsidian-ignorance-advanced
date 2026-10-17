@@ -19,13 +19,11 @@ export function groupRenderedChapters(root: HTMLElement, source: string): number
   let count = 0;
   for (const block of blocks) {
     if (starts.has(block)) {
-      card = root.ownerDocument.createElement("div");
-      card.className = "ibc-container ibc-container--chapter";
+      card = createDiv({ cls: "ibc-container ibc-container--chapter" });
       card.dataset.ibcKind = "chapter";
       card.dataset.ibcTone = String(count % 3);
       card.dataset.ibAutoChapter = "";
-      const rail = root.ownerDocument.createElement("span");
-      rail.className = "ibc-chapter__rail";
+      const rail = createSpan({ cls: "ibc-chapter__rail" });
       rail.setAttribute("aria-hidden", "true");
       card.appendChild(rail);
       root.insertBefore(card, block);

@@ -1,5 +1,5 @@
-import type { IgnorancePlugin } from "../plugin-types.js";
-import { Menu, Platform } from "obsidian";
+import type { IgnorancePlugin, PageState } from "../plugin-types.js";
+import { MarkdownView, Menu, Platform } from "obsidian";
 import type { TFile } from "obsidian";
 import { setDocSheet, removeDocSheet } from "./doc-sheets.js";
 import { setIcon } from "./ui-icons.js";
@@ -11,9 +11,10 @@ import { FOOTER_CHOICES, promptFooter } from "./page-footer.js";
 import { HEADING_FONT_OPTIONS } from "./fonts.js";
 import { applyAppearancePreferences } from "./appearance.js";
 
-let refreshReadingPages = () => {};
+type PageRefreshHandler = (plugin: IgnorancePlugin, force?: boolean) => void;
+let refreshReadingPages: PageRefreshHandler = () => {};
 
-export function setPageRefreshHandler(handler) {
+export function setPageRefreshHandler(handler: PageRefreshHandler) {
   refreshReadingPages = typeof handler === "function" ? handler : () => {};
 }
 
@@ -21,11 +22,12 @@ const MM = 96 / 25.4;
 // Full width is Obsidian's own "Readable line length" switched off; these
 // presets are the share of the window the page takes while it is on.
 // Each preset also has a line-length cap in pixels: on a wide monitor a bare share gives lines too long to read.
+const MARGIN_KEYS: [keyof PageState["margins"], string][] = [["t", "上"], ["b", "下"], ["l", "左"], ["r", "右"]];
 const WIDTH_PRESETS: [string, string, number, number][] = [["narrow", "窄", 55, 720], ["standard", "标准", 70, 900], ["wide", "宽", 88, 1200]];
 const ZOOM_MIN = 0.5, ZOOM_MAX = 3;
 const PAGE_GAP = 24;
 
-function pageDefaults() {
+function pageDefaults(): PageState {
   return {
     width: "standard", customWidth: 80, zoom: 1, paged: false,
     paper: "A4", customPaper: { w: 210, h: 297 }, landscape: false,
@@ -34,16 +36,20 @@ function pageDefaults() {
   };
 }
 
-// The note's cssclasses as a list (the property may be a string or a list).
+// A cssclasses value as a list (the property may be a string or a list).
+function classList(value: unknown): string[] {
+  const items: unknown[] = Array.isArray(value) ? value : typeof value === "string" ? value.split(/[\s,]+/) : [];
+  return items.map(item => String(item as string)).filter(Boolean);
+}
+
+// The note's cssclasses as a list.
 function noteClasses(plugin: IgnorancePlugin, file: TFile): string[] {
-  const value = plugin.app.metadataCache.getFileCache(file)?.frontmatter?.cssclasses;
-  return (Array.isArray(value) ? value : typeof value === "string" ? value.split(/[\s,]+/) : []).map(String).filter(Boolean);
+  return classList(plugin.app.metadataCache.getFileCache(file)?.frontmatter?.cssclasses);
 }
 
 async function setNoteWidthClass(plugin: IgnorancePlugin, file: TFile, cls: string) {
-  await plugin.app.fileManager.processFrontMatter(file, frontmatter => {
-    const value = frontmatter.cssclasses;
-    const list = (Array.isArray(value) ? value : typeof value === "string" ? value.split(/[\s,]+/) : []).map(String).filter(name => name && name !== "ib-wide" && name !== "ib-narrow");
+  await plugin.app.fileManager.processFrontMatter(file, (frontmatter: Record<string, unknown>) => {
+    const list = classList(frontmatter.cssclasses).filter(name => name !== "ib-wide" && name !== "ib-narrow");
     if (cls) list.push(cls);
     if (list.length) frontmatter.cssclasses = list;
     else delete frontmatter.cssclasses;
@@ -110,7 +116,7 @@ export function initPageState(plugin: IgnorancePlugin) {
   plugin.pageStateReady = true;
   // Page layout is per device: data.json syncs with the vault, and a paged A4
   // layout chosen on a desktop must not follow the vault onto a phone.
-  const local = plugin.app.loadLocalStorage?.("ibp-page");
+  const local = plugin.app.loadLocalStorage("ibp-page") as Partial<PageState> | null;
   plugin.state.page = Object.assign(pageDefaults(), local || plugin.state.page || {});
   plugin.state.page.margins = Object.assign({ ...MARGIN_PRESETS.normal }, plugin.state.page.margins || {});
   // Widths used to be pixels; a custom width above 100 is one of those.
@@ -128,12 +134,12 @@ export function initPageState(plugin: IgnorancePlugin) {
   applyPageSettings(plugin);
 }
 
-function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
+function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: IgnorancePlugin, view: MarkdownView, event: MouseEvent) => void) {
   initPageState(plugin);
   const save = () => { applyPageSettings(plugin); plugin.app.saveLocalStorage?.("ibp-page", plugin.state.page); };
   save();
   const page = () => plugin.state.page;
-  let popover = null;
+  let popover: HTMLElement | null = null;
   const closePopover = () => { popover?.remove(); popover = null; };
 
   const openWidthMenu = (event: MouseEvent) => {
@@ -170,16 +176,17 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
     input.focus();
   };
 
-  const placePopover = anchor => {
+  const placePopover = (anchor: Element) => {
     const box = anchor.getBoundingClientRect();
     popover.style.top = `${Math.round(box.bottom + 6)}px`;
     popover.style.left = `${Math.round(Math.min(box.left, window.innerWidth - popover.offsetWidth - 12))}px`;
     window.setTimeout(() => plugin.registerDomEvent(document, "mousedown", event => {
-      if (popover && !popover.contains(event.target) && !anchor.contains(event.target)) closePopover();
+      const target = event.target as Node;
+      if (popover && !popover.contains(target) && !anchor.contains(target)) closePopover();
     }));
   };
 
-  const numberField = (parent: HTMLElement, label: string, value, onChange, unit = "mm") => {
+  const numberField = (parent: HTMLElement, label: string, value: number, onChange: (value: number) => void, unit = "mm") => {
     const field = parent.createDiv({ cls: "ibp-field" });
     field.createSpan({ text: label });
     const input = field.createEl("input", { attr: { type: "number", step: "0.1", min: "0" } });
@@ -193,13 +200,13 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
     closePopover();
     const p = page();
     const menu = new Menu();
-    const submenu = (parent: HTMLElement, label: string, icon: string, fill) => parent.addItem(item => {
+    const submenu = (parent: Menu, label: string, icon: string, fill: (menu: Menu) => void) => parent.addItem(item => {
       item.setTitle(label).setIcon(icon);
       fill(item.setSubmenu());
     });
-    const choice = (parent: HTMLElement, label: string, checked: boolean, action) => parent.addItem(item =>
+    const choice = (parent: Menu, label: string, checked: boolean, action: () => void) => parent.addItem(item =>
       item.setTitle(label).setChecked(checked).onClick(action));
-    const customFields = (title: string, fields) => {
+    const customFields = (title: string, fields: [string, number, (value: number) => void][]) => {
       closePopover();
       popover = document.body.createDiv({ cls: "ibp-popover" });
       popover.createDiv({ cls: "ibp-title", text: title });
@@ -209,7 +216,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
       placePopover(anchor);
     };
     submenu(menu, "字体", "type", fonts => {
-      submenu(fonts, "标题字体", "heading", (heading: HTMLElement) => {
+      submenu(fonts, "标题字体", "heading", (heading: Menu) => {
         for (const [value, label] of HEADING_FONT_OPTIONS) choice(heading, label, plugin.state.appearance.fontHeading === value, () => {
           plugin.state.appearance.fontHeading = value;
           applyAppearancePreferences(plugin);
@@ -222,16 +229,17 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
         plugin.app.setting.openTabById("appearance");
       }));
     });
-    submenu(menu, "版式预设", "layout-template", (presets: HTMLElement) => {
+    submenu(menu, "版式预设", "layout-template", (presets: Menu) => {
       for (const preset of PAGE_PRESETS) choice(presets, preset.label, false, () => { applyPagePreset(p, preset.id); save(); });
     });
-    submenu(menu, "阅读布局", "book-open", (layout: HTMLElement) => {
-      for (const [value, label] of [[false, "连续阅读（与实时预览一致）"], [true, "分页阅读（纸张布局）"]]) choice(layout, label, p.paged === value, () => { p.paged = value; save(); });
+    submenu(menu, "阅读布局", "book-open", (layout: Menu) => {
+      const layoutChoices: [boolean, string][] = [[false, "连续阅读（与实时预览一致）"], [true, "分页阅读（纸张布局）"]];
+      for (const [value, label] of layoutChoices) choice(layout, label, p.paged === value, () => { p.paged = value; save(); });
     });
     submenu(menu, "纸张", "file", papers => {
       for (const [id, paper] of Object.entries(PAPERS)) choice(papers, paper.label, p.paper === id, () => {
         p.paper = id;
-        if (paper.margins) { p.marginPreset = "gov"; p.margins = paperMarginsForPreset("gov", id); }
+        if ("margins" in paper) { p.marginPreset = "gov"; p.margins = paperMarginsForPreset("gov", id); }
         else if (p.marginPreset !== "custom") p.margins = paperMarginsForPreset(p.marginPreset, id) || p.margins;
         save();
       });
@@ -240,35 +248,36 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
         ["高", p.customPaper.h, (value: number) => { p.paper = "CUSTOM"; p.customPaper.h = value || 297; save(); }]
       ]); });
       papers.addSeparator();
-      submenu(papers, "方向", "rotate-cw", (direction: HTMLElement) => {
-        for (const [value, label] of [[false, "纵向"], [true, "横向"]]) choice(direction, label, p.landscape === value, () => { p.landscape = value; save(); });
+      submenu(papers, "方向", "rotate-cw", (direction: Menu) => {
+        const directionChoices: [boolean, string][] = [[false, "纵向"], [true, "横向"]];
+        for (const [value, label] of directionChoices) choice(direction, label, p.landscape === value, () => { p.landscape = value; save(); });
       });
     });
-    submenu(menu, "页边距", "scan", (margins: HTMLElement) => {
+    submenu(menu, "页边距", "scan", (margins: Menu) => {
       for (const [id, preset] of Object.entries(MARGIN_PRESETS)) choice(margins, preset.label, p.marginPreset === id, () => {
         p.marginPreset = id;
         p.margins = paperMarginsForPreset(id, p.paper) || { t: preset.t, r: preset.r, b: preset.b, l: preset.l };
         save();
       });
       choice(margins, "自定义页边距…", p.marginPreset === "custom", () => customFields("自定义页边距（mm）",
-        [["t", "上"], ["b", "下"], ["l", "左"], ["r", "右"]].map(([key, label]) =>
+        MARGIN_KEYS.map(([key, label]): [string, number, (value: number) => void] =>
           [label, p.margins[key], value => { p.marginPreset = "custom"; p.margins[key] = value; save(); }])));
     });
-    submenu(menu, "跨页方式", "split", (breaks: HTMLElement) => {
+    submenu(menu, "跨页方式", "split", (breaks: Menu) => {
       for (const [id, label] of [["whitespace", "留白：整块移到下一页"], ["cut", "截断：在页底切开续排"]]) choice(breaks, label, p.breakMode === id, () => { p.breakMode = id; save(); });
     });
-    submenu(menu, "页码", "list-ordered", (numbers: HTMLElement) => {
-      submenu(numbers, "位置", "align-center", (position: HTMLElement) => {
+    submenu(menu, "页码", "list-ordered", (numbers: Menu) => {
+      submenu(numbers, "位置", "align-center", (position: Menu) => {
         for (const [id, label] of [["none", "不显示"], ["center", "底部居中"], ["right", "底部右侧"]]) choice(position, label, p.pageNumber === id, () => { p.pageNumber = id; save(); });
       });
-      submenu(numbers, "格式", "hash", (format: HTMLElement) => {
+      submenu(numbers, "格式", "hash", (format: Menu) => {
         for (const [id, label] of [["plain", "1"], ["total", "1 / 5"], ["gov", "- 1 -"], ["zh", "第 1 页"]]) choice(format, label, p.pageNumberFormat === id, () => { p.pageNumberFormat = id; save(); });
       });
     });
-    submenu(menu, "页眉", "panel-top", (headers: HTMLElement) => {
+    submenu(menu, "页眉", "panel-top", (headers: Menu) => {
       for (const [id, label] of [["none", "不显示"], ["chapter", "章节名"]]) choice(headers, label, (p.runningHeader || "none") === id, () => { p.runningHeader = id; save(); });
     });
-    submenu(menu, "页脚", "panel-bottom", (footers: HTMLElement) => {
+    submenu(menu, "页脚", "panel-bottom", (footers: Menu) => {
       for (const [template, label] of FOOTER_CHOICES) choice(footers, label, (p.footerText || "") === template, () => { p.footerText = template; save(); });
       const custom = !FOOTER_CHOICES.some(([template]) => template === (p.footerText || ""));
       choice(footers, custom ? `自定义：${p.footerText}` : "自定义…", custom, () => promptFooter(plugin, p.footerText || "", value => { p.footerText = value.trim(); save(); }));
@@ -277,11 +286,11 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
     menu.showAtPosition({ x: box.left, y: box.bottom + 6 });
   };
 
-  const buildToolbar = view => {
+  const buildToolbar = (view: MarkdownView) => {
     const host = view.containerEl;
     if (host.querySelector(".ibp-toolbar")) return;
     const bar = createDiv({ cls: "ibp-toolbar" });
-    const button = (icon: string, label: string, onClick) => {
+    const button = (icon: string, label: string, onClick: (event: MouseEvent) => void) => {
       const el = bar.createDiv({ cls: "clickable-icon ibp-button", attr: { "aria-label": label } });
       setIcon(el, icon);
       el.addEventListener("click", onClick);
@@ -308,8 +317,8 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
       void view.setState(state, { history: false });
     });
     bar.createDiv({ cls: "ibp-sep" });
-    button("lucide-presentation", "演示", () => openPresentation(plugin, view.file, view.leaf));
-    const exportButton = button("lucide-share", "导出", event => showExportMenu(plugin, view, event));
+    button("lucide-presentation", "演示", () => { void openPresentation(plugin, view.file, view.leaf); });
+    button("lucide-share", "导出", event => showExportMenu(plugin, view, event));
     bar.createDiv({ cls: "ibp-sep" });
     button("lucide-columns-2", "左右分屏", () => { if (view.file) void plugin.app.workspace.getLeaf("split", "vertical").openFile(view.file); });
     button("lucide-rows-2", "上下分屏", () => { if (view.file) void plugin.app.workspace.getLeaf("split", "horizontal").openFile(view.file); });
@@ -327,7 +336,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
       focus.toggleClass("is-active", Boolean(plugin.state.writingModes?.focusMode));
       focus.setAttr("aria-pressed", String(Boolean(plugin.state.writingModes?.focusMode)));
       const size = paperSize(p);
-      const name = p.paper === "CUSTOM" ? `${size.w}×${size.h}` : PAPERS[p.paper]?.label.replace(/（.*）/, "") || "A4";
+      const name = p.paper === "CUSTOM" ? `${size.w}×${size.h}` : PAPERS[p.paper as keyof typeof PAPERS]?.label.replace(/（.*）/, "") || "A4";
       settings.setAttr("aria-label", `页面设置（${name}${p.landscape ? " 横向" : ""}）`);
     };
     bar.addEventListener("ibp-refresh", refresh);
@@ -343,8 +352,8 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
 
   // Drag the page edge to set its width. The handle appears when the pointer is near either edge
   // of the page; dragging is symmetric because the page stays centred, and it switches to a custom width.
-  const installWidthHandle = view => {
-    const content = view.containerEl.querySelector(":scope > .view-content");
+  const installWidthHandle = (view: MarkdownView) => {
+    const content = view.containerEl.querySelector<HTMLElement>(":scope > .view-content");
     if (!content || Platform.isMobile || content.querySelector(":scope > .ibp-width-handle")) return;
     const handle = content.createDiv({ cls: "ibp-width-handle", attr: { "aria-label": "拖动调整正文宽度" } });
     const usable = () => !view.containerEl.hasClass("ibp-book-host") && !view.containerEl.hasClass("ibp-source-fixed-width");
@@ -373,7 +382,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
       const box = sizer.getBoundingClientRect(), area = content.getBoundingClientRect();
       const centre = box.left + box.width / 2;
       // The share is of the sizer's container (the scroller minus its padding and scrollbar), not of the whole view.
-      const parent = sizer.parentElement!, pad = getComputedStyle(parent);
+      const parent = sizer.parentElement, pad = getComputedStyle(parent);
       const room = parent.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
       const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(page().zoom) || 1));
       const move = (e: PointerEvent) => {
@@ -401,7 +410,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
   const syncWidthFlags = () => document.querySelectorAll<HTMLElement>('.workspace-leaf-content[data-type="markdown"]').forEach(leaf =>
     leaf.toggleClass("ibp-source-fixed-width", Boolean(leaf.querySelector(".markdown-source-view.mod-cm6:not(.is-readable-line-width)"))));
   const sweep = () => {
-    for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) buildToolbar(leaf.view);
+    for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) if (leaf.view instanceof MarkdownView) buildToolbar(leaf.view);
     syncWidthFlags();
     refreshPageNumbers(plugin);
   };

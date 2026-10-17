@@ -57,14 +57,14 @@ function replaceTable(view: EditorView, range: PipeTableRange, action: TableEdit
   return true;
 }
 
-export function applyTableEdit(view, action: TableEditAction) {
+export function applyTableEdit(view: EditorView, action: TableEditAction) {
   if (!view?.state?.facet(EditorView.editable)) return false;
   const table = tableAtCursor(view);
   if (!table) return false;
   return replaceTable(view, table.range, action, table.rowIndex, table.columnIndex);
 }
 
-export function canEditTable(view) {
+export function canEditTable(view: EditorView) {
   return Boolean(view?.state?.facet(EditorView.editable) && tableAtCursor(view));
 }
 
@@ -100,7 +100,7 @@ function moveAcrossCells(view: EditorView, direction: -1 | 1) {
   return moveToCell(view, table.range, targetRow, targetColumn);
 }
 
-function moveToNextRow(view) {
+function moveToNextRow(view: EditorView) {
   if (!view?.state?.facet(EditorView.editable)) return false;
   const table = tableAtCursor(view);
   if (!table) return false;

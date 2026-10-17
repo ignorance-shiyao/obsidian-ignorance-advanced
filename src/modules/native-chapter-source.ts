@@ -35,7 +35,10 @@ export function installNativeChapterSource(plugin: IgnorancePlugin) {
       const ends = ranges.map(range => { let end = range.endLine - 1; while (end > range.startLine && !lines[end]?.trim()) end--; return end; });
       entry = { source: info.text, ranges, ends };
       cache.set(context.sourcePath, entry);
-      if (cache.size > 32) cache.delete(cache.keys().next().value);
+      if (cache.size > 32) {
+        const [oldest] = cache.keys();
+        if (oldest !== undefined) cache.delete(oldest);
+      }
     }
     const index = chapterForSection(entry.ranges, info.lineStart, info.lineEnd);
     if (index < 0 || element.querySelector(".ibc-container--chapter")) return;

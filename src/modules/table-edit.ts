@@ -35,12 +35,12 @@ export function displayWidth(value: string) {
   let width = 0;
   const text = String(value ?? "");
   for (let index = 0; index < text.length;) {
-    const codePoint = text.codePointAt(index)!;
+    const codePoint = text.codePointAt(index);
     const char = String.fromCodePoint(codePoint);
     index += char.length;
     if (char === "\\" && index < text.length) {
-      const next = String.fromCodePoint(text.codePointAt(index)!);
-      if (/[|\\`*_{}\[\]()#+\-.!<>]/.test(next)) index += next.length;
+      const next = String.fromCodePoint(text.codePointAt(index));
+      if (/[|\\`*_{}[\]()#+\-.!<>]/.test(next)) index += next.length;
       width += 1;
       continue;
     }
@@ -110,7 +110,7 @@ export function isTableDelimiter(line: string) {
 }
 
 function fenceLines(lines: string[]) {
-  const inside = new Array(lines.length).fill(false);
+  const inside = new Array<boolean>(lines.length).fill(false);
   let fence: { char: string; length: number } | null = null;
   for (let index = 0; index < lines.length; index += 1) {
     const match = lines[index].match(/^\s{0,3}(`{3,}|~{3,})/);
@@ -155,11 +155,11 @@ function parseTable(lines: string[]): ParsedTable | null {
   if (lines.length < 2 || !isTableDelimiter(lines[1])) return null;
   const parsed = lines.map(parsePipeRow);
   if (parsed.some(row => !row)) return null;
-  const columnCount = Math.max(...parsed.map(row => row!.length));
-  const rows = [parsed[0]!, ...parsed.slice(2).map(row => row!)].map(row =>
+  const columnCount = Math.max(...parsed.map(row => row.length));
+  const rows = [parsed[0], ...parsed.slice(2).map(row => row)].map(row =>
     Array.from({ length: columnCount }, (_, index) => row[index]?.value || "")
   );
-  const alignments = parsed[1]!.map(cell => {
+  const alignments = parsed[1].map(cell => {
     const left = cell.value.startsWith(":");
     const right = cell.value.endsWith(":");
     return left && right ? "center" : left ? "left" : right ? "right" : "none";
@@ -205,7 +205,7 @@ export function editTableLines(lines: string[], action: TableEditAction, rowInde
     const insertAt = action === "row-add-above"
       ? row < 2 ? 1 : row - 1
       : row < 2 ? 1 : row;
-    rows.splice(insertAt, 0, Array(alignments.length).fill(""));
+    rows.splice(insertAt, 0, new Array<string>(alignments.length).fill(""));
     targetRow = insertAt + 1;
   } else if (action === "row-delete") {
     if (row < 2 || rows.length <= 1) return null;

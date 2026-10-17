@@ -1,8 +1,41 @@
 /* Mermaid uses shared DOM ids while drawing, so keep one render in flight.
    Obsidian passes a hidden scratch div rather than the real note block. Match
    the pending source block once and recheck its position before each draw. */
-export function mermaidRenderTargets(document: Document, text: string, container: HTMLElement) {
-  const targets = new Set();
+// The parts of the DOM the priority logic reads, so real elements and test doubles both fit.
+interface TargetBox { top: number; bottom: number; left: number; right: number; width: number; height: number }
+interface TargetStyle { visibility?: string; display?: string; opacity?: string; overflowX?: string; overflowY?: string }
+export interface PriorityTarget {
+  isConnected: boolean;
+  parentElement: PriorityTarget | null;
+  getClientRects(): ArrayLike<unknown>;
+  getBoundingClientRect(): TargetBox;
+}
+export interface PriorityDocument {
+  body: unknown;
+  defaultView: { innerHeight: number; innerWidth: number; getComputedStyle(node: PriorityTarget): TargetStyle; setTimeout(handler: () => void, timeout: number): number } | null;
+}
+export interface TargetsDocument {
+  body: unknown;
+  querySelectorAll(selector: string): Iterable<{ textContent: string | null; parentElement: PriorityTarget | null }>;
+}
+interface RenderContainer { style?: { width?: string }; parentElement?: unknown; getBoundingClientRect?: unknown }
+export interface MermaidDrawResult { svg: string; [key: string]: unknown }
+type DrawArgs = [id: string, text: string, container?: RenderContainer, ...rest: unknown[]];
+type DrawFunction = (...args: DrawArgs) => Promise<MermaidDrawResult>;
+interface PendingJob {
+  key: string;
+  args: DrawArgs;
+  targets: Set<unknown>;
+  resolve: (result: MermaidDrawResult) => void;
+  reject: (error: unknown) => void;
+}
+interface InflightJob { id: string; promise: Promise<MermaidDrawResult>; targets: Set<unknown> }
+
+const isPriorityTarget = (value: unknown): value is PriorityTarget =>
+  typeof value === "object" && value !== null && "getBoundingClientRect" in value && "isConnected" in value;
+
+export function mermaidRenderTargets(document: TargetsDocument, text: string, container: RenderContainer) {
+  const targets = new Set<unknown>();
   if (container?.parentElement !== document.body && container?.getBoundingClientRect) targets.add(container);
   if (typeof text === "string") {
     const source = text.trim();
@@ -13,18 +46,18 @@ export function mermaidRenderTargets(document: Document, text: string, container
   return targets;
 }
 
-export function mermaidTargetPriority(targets, document: Document) {
+export function mermaidTargetPriority(targets: Iterable<unknown>, document: PriorityDocument) {
   let best = Infinity;
   const win = document.defaultView;
   for (const target of targets) {
-    if (!target?.isConnected || !target.getClientRects().length) continue;
+    if (!isPriorityTarget(target) || !target.isConnected || !target.getClientRects().length) continue;
     const rect = target.getBoundingClientRect();
     if (!rect.width || !rect.height) continue;
     let top = 0, bottom = win.innerHeight, left = 0, right = win.innerWidth;
     // Clip to scrollable ancestors, including a hidden reading view beneath
     // the paged book. offsetParent alone cannot detect visibility:hidden.
     let hidden = false;
-    for (let node = target; node && node !== document.body; node = node.parentElement) {
+    for (let node: PriorityTarget | null = target; node && node !== document.body; node = node.parentElement) {
       const style = win.getComputedStyle(node);
       if (style.visibility === "hidden" || style.display === "none" || style.opacity === "0") { hidden = true; break; }
       if (/(auto|scroll|hidden|clip)/.test(`${style.overflowX} ${style.overflowY}`)) {
@@ -41,16 +74,24 @@ export function mermaidTargetPriority(targets, document: Document) {
   return best;
 }
 
-export function createMermaidRenderQueue(draw, {
+interface QueueOptions {
+  document?: PriorityDocument & TargetsDocument & { body: { classList?: DOMTokenList; dataset?: DOMStringMap } };
+  yieldToMain?: () => Promise<void>;
+  targetsFor?: (text: string, container: RenderContainer) => Set<unknown>;
+  priorityFor?: (targets: Set<unknown>) => number;
+  isDark?: () => boolean;
+}
+
+export function createMermaidRenderQueue(draw: DrawFunction, {
   document = typeof window === "undefined" ? undefined : window.document,
-  yieldToMain = () => new Promise(resolve => document.defaultView.setTimeout(resolve, 0)),
-  targetsFor = (text: string, container: HTMLElement) => mermaidRenderTargets(document, text, container),
-  priorityFor = targets => mermaidTargetPriority(targets, document),
+  yieldToMain = () => new Promise<void>(resolve => document.defaultView.setTimeout(resolve, 0)),
+  targetsFor = (text: string, container: RenderContainer) => mermaidRenderTargets(document, text, container),
+  priorityFor = (targets: Set<unknown>) => mermaidTargetPriority(targets, document),
   isDark = () => document.body.classList.contains("theme-dark")
-} = {}) {
-  const cache = new Map();
-  const pending = [];
-  const inflight = new Map();
+}: QueueOptions = {}) {
+  const cache = new Map<string, MermaidDrawResult & { id: string }>();
+  const pending: PendingJob[] = [];
+  const inflight = new Map<string, InflightJob>();
   let running = false;
   const drain = async () => {
     if (running) return;
@@ -70,7 +111,7 @@ export function createMermaidRenderQueue(draw, {
           const result = await draw(...job.args);
           if (typeof result?.svg === "string" && result.svg.length < 250000 && !/\bclick\s/i.test(job.args[1])) {
             cache.set(job.key, { ...result, id: job.args[0] });
-            while (cache.size > 64) cache.delete(cache.keys().next().value);
+            while (cache.size > 64) cache.delete(cache.keys().next().value as string);
           }
           // Obsidian inserts and enhances the returned SVG in its promise
           // continuation. Do not combine that layout with Mermaid's draw task.
@@ -81,7 +122,7 @@ export function createMermaidRenderQueue(draw, {
       }
     } finally { running = false; }
   };
-  return (id: string, text: string, container: HTMLElement, ...rest) => {
+  return (id: string, text: string, container?: RenderContainer, ...rest: unknown[]): Promise<MermaidDrawResult> => {
     const key = `${container?.style?.width || ""}\n${isDark()}\n${document?.body?.dataset?.ibThemeStamp || ""}\n${typeof text === "string" ? text.trim() : text}`;
     const cached = cache.get(key);
     if (cached) { cache.delete(key); cache.set(key, cached); const { id: originalId, ...result } = cached; return Promise.resolve({ ...result, svg: result.svg.split(originalId).join(id) }); }
@@ -93,8 +134,8 @@ export function createMermaidRenderQueue(draw, {
         ? { ...result, svg: result.svg.split(shared.id).join(id) }
         : result);
     }
-    let resolve, reject;
-    const promise = new Promise((done, fail) => { resolve = done; reject = fail; });
+    let resolve: PendingJob["resolve"], reject: PendingJob["reject"];
+    const promise = new Promise<MermaidDrawResult>((done, fail) => { resolve = done; reject = fail; });
     pending.push({ key, args: [id, text, container, ...rest], targets, resolve, reject });
     if (typeof text === "string") {
       inflight.set(key, { id, promise, targets });

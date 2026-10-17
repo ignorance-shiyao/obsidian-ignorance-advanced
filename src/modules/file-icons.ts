@@ -2,12 +2,23 @@ import type { IgnorancePlugin } from "../plugin-types.js";
 // File-type icons in the file explorer, from the same Material Icon Theme set as the language
 // icons. The theme's Lucide masks stay as the fallback until the icon file has loaded.
 import { iconMarkup, loadPack, type IconPack } from "./icon-library.js";
+import { TFolder } from "obsidian";
 import { setMarkup } from "./dom-markup.js";
 
 const FILE = "file-icons.json";
 
-export function fileIconName(pack: IconPack, path: string): string | null {
-  const base = path.split("/").pop()!.toLowerCase();
+// What file-icons.json adds to the shared pack: icon names by file name and by extension, plus the
+// generic file and folder icons.
+interface FileIconPack extends IconPack {
+  names: Record<string, string>;
+  ext: Record<string, string>;
+  file?: string;
+  folder?: string;
+  folderOpen?: string;
+}
+
+export function fileIconName(pack: FileIconPack, path: string): string | null {
+  const base = path.split("/").pop().toLowerCase();
   if (pack.names[base]) return pack.names[base];
   // "a.test.ts" tries "test.ts", then "ts".
   const parts = base.split(".");
@@ -19,7 +30,7 @@ export function fileIconName(pack: IconPack, path: string): string | null {
 }
 
 export function installFileIcons(plugin: IgnorancePlugin) {
-  let pack: IconPack | null = null, loading = false, frame = 0;
+  let pack: FileIconPack | null = null, loading = false, frame = 0;
   const pending = new Set<Element>();
 
   const decorateFolder = (title: Element) => {
@@ -43,10 +54,10 @@ export function installFileIcons(plugin: IgnorancePlugin) {
 
   // An empty folder gets its own ghosted look, whether it is open or closed.
   const setEmpty = (holder: HTMLElement, path: string) => {
-    const folder: any = plugin.app.vault.getAbstractFileByPath(path);
-    holder.classList.toggle("is-empty", Array.isArray(folder?.children) && folder.children.length === 0);
+    const folder = plugin.app.vault.getAbstractFileByPath(path);
+    holder.classList.toggle("is-empty", folder instanceof TFolder && folder.children.length === 0);
   };
-  const refreshFolders = () => document.querySelectorAll<HTMLElement>(".nav-folder-title[data-path] > .ib-file-icon").forEach(holder => setEmpty(holder, holder.dataset.path!));
+  const refreshFolders = () => document.querySelectorAll<HTMLElement>(".nav-folder-title[data-path] > .ib-file-icon").forEach(holder => setEmpty(holder, holder.dataset.path));
 
   const decorate = (title: Element) => {
     if (title.matches(".nav-folder-title")) return decorateFolder(title);
@@ -69,7 +80,7 @@ export function installFileIcons(plugin: IgnorancePlugin) {
     if (!pack) {
       if (loading) return;
       loading = true;
-      loadPack(plugin, FILE).then(loaded => { pack = loaded; document.querySelectorAll(".nav-file-title[data-path], .nav-folder-title[data-path]").forEach(decorate); }).catch(() => { loading = false; });
+      loadPack(plugin, FILE).then(loaded => { pack = loaded as FileIconPack; document.querySelectorAll(".nav-file-title[data-path], .nav-folder-title[data-path]").forEach(decorate); }).catch(() => { loading = false; });
       return;
     }
     pending.forEach(decorate);
@@ -92,6 +103,9 @@ export function installFileIcons(plugin: IgnorancePlugin) {
     observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-path"] });
     if (document.querySelector(".nav-file-title, .nav-folder-title")) { document.querySelectorAll(".nav-file-title[data-path], .nav-folder-title[data-path]").forEach(title => pending.add(title)); schedule(); }
   });
-  for (const event of ["create", "delete", "rename"]) plugin.registerEvent(plugin.app.vault.on(event, () => window.setTimeout(refreshFolders, 50)));
+  const refreshSoon = () => window.setTimeout(refreshFolders, 50);
+  plugin.registerEvent(plugin.app.vault.on("create", refreshSoon));
+  plugin.registerEvent(plugin.app.vault.on("delete", refreshSoon));
+  plugin.registerEvent(plugin.app.vault.on("rename", refreshSoon));
   plugin.register(() => { observer.disconnect(); window.cancelAnimationFrame(frame); });
 }

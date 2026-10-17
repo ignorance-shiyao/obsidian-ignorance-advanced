@@ -3,7 +3,10 @@ import { DIAGRAM_HEADER_HEIGHT,HALF_A4_HEIGHT,diagramFit } from "../modules/diag
 import { measureDiagramFont } from "../modules/diagram-readable-scale.js";
 import { clearPaint,diagramLabel,measureDrawnSize,measureRenderedContent,paintDiagram,t } from "../modules/mermaid-core.js";
 import { UI_ICONS,setIcon } from "../modules/ui-icons.js";
-import type { DiagramState, IgnorancePlugin } from "../plugin-types.js";
+import type { DiagramState, IgnorancePlugin, RetightenJob } from "../plugin-types.js";
+
+// A queued refit job, with the fit scale measured for it along the way.
+interface RefitJob extends RetightenJob { fit?: number }
 
 // Raw viewBox plus the label text identify a diagram across renders (ids and styles vary).
 function diagramHeightKey(svg: SVGSVGElement, viewBox: string) {
@@ -14,15 +17,15 @@ function diagramHeightKey(svg: SVGSVGElement, viewBox: string) {
 /* Diagram enhancement: wrap each rendered Mermaid / ECharts block in a pan-and-zoom canvas, then fit, tighten and size it to the page. */
 
 export function enhanceAll(plugin: IgnorancePlugin, root: HTMLElement) {
-  const diagrams = [];
+  const diagrams: HTMLElement[] = [];
   if (root.matches?.(".mermaid")) diagrams.push(root);
-  root.querySelectorAll?.(".mermaid").forEach((element: HTMLElement) => diagrams.push(element));
+  root.querySelectorAll?.<HTMLElement>(".mermaid").forEach(element => diagrams.push(element));
   plugin.enhanceDiagrams(diagrams);
 }
 
 /* Measuring happens in flushRetighten, batched per frame: measuring here
    forced a full layout of the note for every rendered diagram. */
-export function enhanceDiagrams(plugin: IgnorancePlugin, diagrams) {
+export function enhanceDiagrams(plugin: IgnorancePlugin, diagrams: HTMLElement[]) {
   for (const diagram of diagrams) {
     if (diagram.classList.contains("ibm-mermaid-enhanced") && !diagram.querySelector(":scope > svg")) continue;
     // A deck mounts every slide at once; enhancing each synchronously held the thread for seconds.
@@ -189,8 +192,8 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
      - touch, two fingers: pinch zooms around the midpoint and pans;
      - trackpad: pinch (ctrl+wheel) zooms, a horizontal swipe pans sideways,
        a vertical swipe keeps scrolling the page. */
-  const pointers = new Map();
-  let pinch = null;
+  const pointers = new Map<number, { x: number; y: number; sx: number; sy: number }>();
+  let pinch: { x: number; y: number; d: number; scale: number } | null = null;
   let dragging = false;
   let lastDragEnd = 0;
   const DRAG_SLOP = 4;
@@ -205,8 +208,8 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
     container.classList.remove("is-panning");
   };
 
-  const onPointerDown = event => {
-    if (event.target.closest(".ibm-mermaid-toolbar, .ibm-block-header")) return;
+  const onPointerDown = (event: PointerEvent) => {
+    if ((event.target as Element).closest(".ibm-mermaid-toolbar, .ibm-block-header")) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     pointers.set(event.pointerId, { x: event.clientX, y: event.clientY, sx: event.clientX, sy: event.clientY });
     if (pointers.size === 2) {
@@ -215,7 +218,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
       container.classList.add("is-panning");
     }
   };
-  const onPointerMove = event => {
+  const onPointerMove = (event: PointerEvent) => {
     const p = pointers.get(event.pointerId);
     if (!p) return;
     const dx = event.clientX - p.x;
@@ -249,7 +252,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
       }
       dragging = true;
       container.classList.add("is-panning");
-      try { container.setPointerCapture(event.pointerId); } catch (_) {}
+      try { container.setPointerCapture(event.pointerId); } catch { /* the pointer is already gone: the pan simply gets no capture */ }
     }
     event.preventDefault();
     if (state.readableScroll) {
@@ -261,7 +264,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
     state.y += dy;
     apply();
   };
-  const onPointerUp = event => {
+  const onPointerUp = (event: PointerEvent) => {
     if (!pointers.delete(event.pointerId)) return;
     if (container.hasPointerCapture?.(event.pointerId)) container.releasePointerCapture(event.pointerId);
     if (pointers.size < 2) pinch = null;
@@ -269,7 +272,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
     else for (const q of pointers.values()) { q.sx = q.x; q.sy = q.y; }
   };
   // A drag that ended on the diagram should not also count as a click.
-  const onClickCapture = event => {
+  const onClickCapture = (event: MouseEvent) => {
     if (performance.now() - lastDragEnd < 250) {
       event.stopPropagation();
       event.preventDefault();
@@ -279,7 +282,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
     if (!dragging) return;
     lastDragEnd = performance.now();
   };
-  const onWheel = event => {
+  const onWheel = (event: WheelEvent) => {
     if (event.ctrlKey || event.metaKey) {
       event.preventDefault();
       // A trackpad fires many notches per swipe, so keep each one small and
@@ -298,15 +301,15 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
     }
   };
   // Double-click refits instead of toggling a mode.
-  const onDoubleClick = event => {
-    if (event.target.closest(".ibm-mermaid-toolbar, .ibm-block-header")) return;
+  const onDoubleClick = (event: MouseEvent) => {
+    if ((event.target as Element).closest(".ibm-mermaid-toolbar, .ibm-block-header")) return;
     event.preventDefault();
     plugin.fitDiagram(container, state);
   };
   const onPointerUpCapture = () => markDrag();
   // Once the diagram owns a touch gesture (horizontal pan or pinch), keep
   // the page from scrolling underneath it.
-  const onTouchMove = event => {
+  const onTouchMove = (event: TouchEvent) => {
     if (dragging || pointers.size >= 2) event.preventDefault();
   };
   container.addEventListener("touchmove", onTouchMove, { passive: false });
@@ -334,7 +337,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
   const column = () => plugin.bleedTarget(container).parentElement;
   // Recorded on the observer's first call, when layout is already clean;
   // reading it here forced a layout of the note per diagram.
-  let lastParentWidth: number = null;
+  let lastParentWidth: number | null = null;
   const resizeObserver = new ResizeObserver(() => {
     const nextParentWidth = column()?.clientWidth || 0;
     if (lastParentWidth === null) { lastParentWidth = nextParentWidth; return; }
@@ -343,7 +346,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
     if (!container.classList.contains("is-panning")) plugin.scheduleRetighten(container, state, svg);
   });
   if (column()) resizeObserver.observe(column());
-  const pane = container.closest(".markdown-preview-view, .cm-scroller");
+  const pane = container.closest<HTMLElement>(".markdown-preview-view, .cm-scroller");
   if (pane) resizeObserver.observe(pane);
 
   state.apply = apply;
@@ -383,7 +386,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
   window.requestAnimationFrame(retighten);
   // Font loading is the actual late geometry change. Fixed retries refitted
   // every SVG twice even when no geometry had changed.
-  if (document.fonts?.status === "loading") document.fonts.ready.then(() => { if (container.isConnected) retighten(); });
+  if (document.fonts?.status === "loading") void document.fonts.ready.then(() => { if (container.isConnected) retighten(); });
   // Geometry fixes that run once the diagram is measurable (see
   // whenMeasurable) change the viewBox after this fit; refit when they do.
   svg.addEventListener("ibm-geometry-change", onGeometryChange);
@@ -407,7 +410,7 @@ export function maxCanvasHeight(plugin: IgnorancePlugin) {
 
 /* Refit a bounded group in phases — all writes, then all reads — instead
    of fitting every diagram synchronously in one frame. */
-export function scheduleRetighten(plugin: IgnorancePlugin, container: HTMLElement, state, svg: SVGSVGElement) {
+export function scheduleRetighten(plugin: IgnorancePlugin, container: HTMLElement, state: DiagramState, svg: SVGSVGElement) {
   if (!plugin.retightenQueue) plugin.retightenQueue = new Map();
   plugin.retightenQueue.set(container, { state, svg });
   if (plugin.retightenFrame) return;
@@ -442,27 +445,27 @@ export function flushRetighten(plugin: IgnorancePlugin) {
   finally { plugin.baseWidths = null; }
 }
 
-export async function settleDiagramFits(plugin: IgnorancePlugin, root: HTMLElement, signal) {
+export async function settleDiagramFits(plugin: IgnorancePlugin, root: HTMLElement, signal?: AbortSignal) {
   while (root.isConnected) {
     signal?.throwIfAborted();
-    const pending = [...root.querySelectorAll(".mermaid")].some(container => {
+    const pending = [...root.querySelectorAll<HTMLElement>(".mermaid")].some(container => {
       if (plugin.diagramEnhancements?.has(container)) return true;
       const state = plugin.diagramStates.get(container);
       return state && !state.disposed && (!state.fitted || plugin.retightenQueue?.has(container));
     });
     if (!pending) return;
-    await new Promise(resolve => window.requestAnimationFrame(resolve));
+    await new Promise<void>(resolve => { window.requestAnimationFrame(() => resolve()); });
   }
 }
 
-export function refitJobs(plugin: IgnorancePlugin, jobs) {
+export function refitJobs(plugin: IgnorancePlugin, jobs: RefitJob[]) {
   // Background geometry updates must not undo a reader's internal scroll.
   // Explicit fitDiagram calls still reset the viewport through applyFit.
   const scrollPositions = new Map(jobs.filter(job => job.state.fitted).map(job => [job.state, {
     left: job.state.canvas.scrollLeft, top: job.state.canvas.scrollTop
   }]));
   for (const job of jobs) {
-    try { plugin.measuredBounds.set(job.svg, measureRenderedContent(job.svg)); } catch (_) {}
+    try { plugin.measuredBounds.set(job.svg, measureRenderedContent(job.svg)); } catch { /* not measurable yet: tightenViewBox measures again */ }
   }
   for (const { svg, state } of jobs) {
     plugin.tightenViewBox(svg);
@@ -498,11 +501,11 @@ export function refitJobs(plugin: IgnorancePlugin, jobs) {
   }
 }
 
-export function fitDiagram(plugin: IgnorancePlugin, container: HTMLElement, state) {
+export function fitDiagram(plugin: IgnorancePlugin, container: HTMLElement, state: DiagramState) {
   plugin.applyFit(state, plugin.measureFit(container, state));
 }
 
-export function applyFit(plugin: IgnorancePlugin, state, scale) {
+export function applyFit(plugin: IgnorancePlugin, state: DiagramState, scale: number) {
   state.lockFrame = false;
   state.scale = scale;
   state.x = 0;
@@ -515,7 +518,7 @@ export function applyFit(plugin: IgnorancePlugin, state, scale) {
   if (key) plugin.heightMemory?.set(key, parseFloat(state.container.style.getPropertyValue("--ibm-mermaid-canvas-height")));
 }
 
-export function measureFit(plugin: IgnorancePlugin, container: HTMLElement, state) {
+export function measureFit(plugin: IgnorancePlugin, container: HTMLElement, state: DiagramState) {
   const { width, height } = plugin.getDiagramSize(state.svg);
   // Width: the text column plus whatever spare page width sits beside it.
   const bleed = Number(plugin.bleedTarget(container).dataset.ibmBleed || 0);
@@ -595,7 +598,7 @@ export function tightenViewBox(plugin: IgnorancePlugin, svg: SVGSVGElement) {
     // the drawing then shrinks inside it on top of our own zoom. Only an
     // inline !important outranks those.
     svg.classList.add("ibm-unclamp");
-  } catch (_) {
+  } catch {
     // Some transient Mermaid SVGs are not measurable until the next render.
   }
 }
@@ -603,7 +606,7 @@ export function tightenViewBox(plugin: IgnorancePlugin, svg: SVGSVGElement) {
 /* The element that sits in the text column: Live Preview wraps the block
    in .cm-embed-block, which carries the visible frame there. */
 export function bleedTarget(plugin: IgnorancePlugin, container: HTMLElement) {
-  return container.closest(".cm-embed-block") || container;
+  return container.closest<HTMLElement>(".cm-embed-block") || container;
 }
 
 /* How far the block may grow past the readable line width on each side:
@@ -616,7 +619,7 @@ export function maxBleed(plugin: IgnorancePlugin, container: HTMLElement) {
   if (container.dataset.ibChartWidth) return 0;
   const target = plugin.bleedTarget(container);
   const column = target.parentElement;
-  const pane = container.closest(".markdown-preview-view, .cm-scroller");
+  const pane = container.closest<HTMLElement>(".markdown-preview-view, .cm-scroller");
   if (!column || !pane) return 0;
   const paneRect = pane.getBoundingClientRect();
   const colRect = column.getBoundingClientRect();
@@ -643,7 +646,7 @@ export function setBleed(plugin: IgnorancePlugin, container: HTMLElement, perSid
   }
 }
 
-export function sizeCanvas(plugin: IgnorancePlugin, container: HTMLElement, state) {
+export function sizeCanvas(plugin: IgnorancePlugin, container: HTMLElement, state: DiagramState) {
   const { width, height } = plugin.getDiagramSize(state.svg);
   const gutter = 8;
   const contentWidth = width * state.scale;

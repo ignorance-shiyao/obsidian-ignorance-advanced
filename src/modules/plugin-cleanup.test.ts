@@ -3,7 +3,7 @@ import { guardedCleanup, restoreGlobalProperty } from "./plugin-cleanup";
 
 describe("卸载清理与全局属性恢复", () => {
   it("非配置全局变量仍能清空值，不抛异常", () => {
-    const target = {};
+    const target: { loader?: unknown } = {};
     Object.defineProperty(target, "loader", { value: {}, writable: true, configurable: false });
     expect(() => restoreGlobalProperty(target, "loader", undefined)).not.toThrow();
     expect(target.loader).toBeUndefined();

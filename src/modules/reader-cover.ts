@@ -7,17 +7,22 @@ import { requestUrl, TFile } from "obsidian";
 import { bytesToBase64 } from "./bytes.js";
 
 
-function escapeHtml(value: string) {
-  return String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[char]);
+// Frontmatter values are arbitrary YAML: only scalars become text.
+function text(value: unknown): string {
+  return typeof value === "string" ? value : typeof value === "number" || typeof value === "boolean" ? String(value) : "";
 }
 
-const list = (value: string) => (Array.isArray(value) ? value : value == null || value === "" ? [] : [value]).map(item => String(item).trim()).filter(Boolean);
-const unlink = (value: string) => value.replace(/^\[\[([^\]|]+)(?:\|([^\]]+))?\]\]$/, (_, target: HTMLElement, alias) => alias || target);
+function escapeHtml(value: string) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" } as Record<string, string>)[char]);
+}
 
-function formatDate(value) {
+const list = (value: unknown): string[] => (Array.isArray(value) ? value as unknown[] : value == null || value === "" ? [] : [value]).map(item => text(item).trim()).filter(Boolean);
+const unlink = (value: string) => value.replace(/^\[\[([^\]|]+)(?:\|([^\]]+))?\]\]$/, (_, target: string, alias?: string) => alias || target);
+
+function formatDate(value: unknown) {
   if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
+  const date = new Date(value as string | number | Date);
+  if (Number.isNaN(date.getTime())) return text(value);
   return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月 ${date.getDate()} 日`;
 }
 
@@ -29,7 +34,7 @@ export function readingStats(text: string) {
   return { count: cjk + words, minutes };
 }
 
-async function coverImage(plugin: IgnorancePlugin, file: TFile, value: string) {
+async function coverImage(plugin: IgnorancePlugin, file: TFile, value: unknown) {
   const raw = list(value)[0];
   if (!raw) return "";
   const target = unlink(raw.replace(/^!\[\[|\]\]$/g, "").replace(/^!?\[[^\]]*\]\(([^)]+)\)$/, "$1"));
@@ -41,9 +46,9 @@ async function coverImage(plugin: IgnorancePlugin, file: TFile, value: string) {
     }
     const image = plugin.app.metadataCache.getFirstLinkpathDest(decodeURIComponent(target), file.path);
     if (!(image instanceof TFile)) return "";
-    const type = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", gif: "image/gif", svg: "image/svg+xml", avif: "image/avif" }[image.extension.toLowerCase()];
+    const type = ({ png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", gif: "image/gif", svg: "image/svg+xml", avif: "image/avif" } as Record<string, string>)[image.extension.toLowerCase()];
     return type ? `data:${type};base64,${bytesToBase64(new Uint8Array(await plugin.app.vault.readBinary(image)))}` : "";
-  } catch (_) {
+  } catch {
     return "";
   }
 }
@@ -51,11 +56,11 @@ async function coverImage(plugin: IgnorancePlugin, file: TFile, value: string) {
 /* Returns { cover, colophon } HTML. Drops the note's own first H1 when it only
    repeats the title shown in the cover. */
 export async function buildCover(plugin: IgnorancePlugin, file: TFile, content: HTMLElement) {
-  const fm = plugin.app.metadataCache.getFileCache(file)?.frontmatter || {};
-  const title = String(fm.title || file.basename).trim();
+  const fm: Record<string, unknown> = plugin.app.metadataCache.getFileCache(file)?.frontmatter || {};
+  const title = text(fm.title || file.basename).trim();
   const firstHeading = content.querySelector("h1");
   if (firstHeading && firstHeading.textContent.trim() === title && !firstHeading.previousElementSibling?.textContent.trim()) firstHeading.setAttribute("data-reader-duplicate-title", "");
-  const description = String(fm.description || fm.summary || fm.subtitle || "").trim();
+  const description = text(fm.description || fm.summary || fm.subtitle || "").trim();
   const authors = list(fm.author || fm.authors).map(unlink);
   const published = formatDate(fm.published || fm.date);
   const created = formatDate(fm.created);
@@ -64,7 +69,7 @@ export async function buildCover(plugin: IgnorancePlugin, file: TFile, content: 
   const image = await coverImage(plugin, file, fm.cover || fm.banner || fm.image);
   const { count, minutes } = readingStats(content.textContent || "");
   let host = "";
-  try { host = source ? new URL(source).hostname.replace(/^www\./, "") : ""; } catch (_) {}
+  try { host = source ? new URL(source).hostname.replace(/^www\./, "") : ""; } catch { /* an unparseable source URL just shows the generic label */ }
 
   const meta = [
     authors.length ? `<span class="ib-cover-meta-item" data-kind="author">${escapeHtml(authors.join("、"))}</span>` : "",

@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { runInNewContext } from "node:vm";
+import { Platform } from "obsidian";
 import { readerAppScript } from "./reader-app";
+
+// The reader script runs in a Node VM context; loaded on demand because Node built-ins are desktop-only.
+const vm = Platform.isDesktop ? await import("node:vm") : null;
 
 // Execute the emitted reader initialization, not a second implementation.
 function initialTheme(exported: string | undefined, saved: string | null | Record<string, string>, systemDark: boolean, preferenceId?: string) {
   const shell = { dataset: { theme: exported, preferenceId } };
   const script = readerAppScript();
   const initialization = script.slice(0, script.indexOf("    const toggleTheme=")) + "})()";
-  runInNewContext(initialization, {
+  vm.runInNewContext(initialization, {
     document: { querySelector: () => shell },
     localStorage: { getItem: (key: string) => typeof saved === "object" && saved !== null ? saved[key] ?? null : saved },
     matchMedia: () => ({ matches: systemDark })

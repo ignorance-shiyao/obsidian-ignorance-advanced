@@ -15,7 +15,7 @@ const tokens = {
 describe("ECharts 主题与配置", () => {
   it("为标题、副标题和顶部图例分配独立区域，且不修改源配置", () => {
     const option = { title: { text: "数据集", subtext: "dataset" }, legend: { top: 30 }, grid: { top: 80 } };
-    const result = normalizeEChartsOption(option, "canvas");
+    const result = normalizeEChartsOption(option, "canvas") as { legend: { top: number }; grid: { top: number } };
     expect(result.legend.top).toBe(58);
     expect(result.grid.top).toBe(96);
     expect(option.legend.top).toBe(30);
@@ -46,7 +46,7 @@ describe("ECharts 主题与配置", () => {
 
   it("仅在 SVG 渲染时关闭 lines 动效，并保持原配置不变", () => {
     const option = { series: [{ type: "lines", effect: { show: true, period: 4 } }, { type: "line", data: [1, 2] }] };
-    const svg = normalizeEChartsOption(option, "svg");
+    const svg = normalizeEChartsOption(option, "svg") as { series: { effect: unknown }[] };
     expect(svg.series[0].effect).toEqual({ show: false, period: 4 });
     expect(svg.series[1]).toBe(option.series[1]);
     expect(option.series[0].effect.show).toBe(true);
@@ -58,7 +58,7 @@ it("fills anonymous force graphs with readable defaults while retaining authored
   for (const renderer of ["svg", "canvas"] as const) {
     const authored = { type: "graph", layout: "force", force: {edgeLength: 44, repulsion: 90}, label: {show:false}, data:[{name:"A"}] };
     const original = structuredClone(authored);
-    const result: any = normalizeEChartsOption({series:[authored,{type:"graph",layout:"circular"}]},renderer);
+    const result = normalizeEChartsOption({series:[authored,{type:"graph",layout:"circular"}]},renderer) as { series: { force: { initLayout: string }; label: { show: boolean } }[] };
     expect(result.series[0].force).toMatchObject(original.force);
     expect(result.series[0].force.initLayout).toBe("circular");
     expect(result.series[0].label.show).toBe(false);

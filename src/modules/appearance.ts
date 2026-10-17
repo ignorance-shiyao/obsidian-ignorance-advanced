@@ -1,5 +1,6 @@
-import type { IgnorancePlugin } from "../plugin-types.js";
-import { Notice, Menu, Platform, Setting } from "obsidian";
+import type { IgnorancePlugin, AppearanceState, TabState } from "../plugin-types.js";
+import { Menu, Platform, Setting } from "obsidian";
+import type { App } from "obsidian";
 import { setIcon } from "./ui-icons.js";
 import { THEME_PRESETS, THEME_TOKEN_NAMES, composeThemeTokens } from "./theme-presets.js";
 import { applyFontPreferences, clearFontPreferences, migrateLegacyFonts } from "./fonts.js";
@@ -8,7 +9,7 @@ import { applyLineHeightPreference, clearLineHeightPreference } from "./line-hei
 const ACCENT_PRESETS = THEME_PRESETS.map(preset => ({ value: preset.id, label: preset.label, color: preset.accent }));
 const CUSTOM_ACCENT = "ib-accent-custom";
 // Earlier accents and presets, folded into the nearest of the eight palettes.
-const LEGACY_PRESETS = {
+const LEGACY_PRESETS: Record<string, string> = {
   none: "azure",
   indigo: "azure",
   "ib-accent-indigo": "azure",
@@ -36,17 +37,16 @@ function presetId(value: string) {
 }
 
 function selectedPresetId(plugin: IgnorancePlugin) {
-  const appearance = plugin.state.appearance || {};
   return plugin.state.accent === CUSTOM_ACCENT
-    ? presetId(appearance.themePreset || "azure")
+    ? presetId(plugin.state.appearance?.themePreset || "azure")
     : presetId(plugin.state.accent || "none");
 }
 
-function currentThemeMode() {
+function currentThemeMode(): "dark" | "light" {
   return document.body.classList.contains("theme-dark") ? "dark" : "light";
 }
 
-function writeThemePalette(preset: string, mode, accentOverride: string) {
+function writeThemePalette(preset: string, mode: "dark" | "light", accentOverride?: string) {
   for (const [name, value] of Object.entries(composeThemeTokens(preset, mode, accentOverride))) {
     document.body.style.setProperty(name, value);
   }
@@ -57,14 +57,14 @@ function writeCustomPalette(hex: string, preset = "azure") {
   writeThemePalette(preset, currentThemeMode(), hex);
 }
 
-function appearanceDefaults() {
+function appearanceDefaults(): AppearanceState {
   return {
     hideHeadingLabels: false, headingBadge: false, decorations: true, tableAlignment: "left", cardRadius: 8, themePreset: "azure",
     fontHeading: "theme", lineHeight: "theme"
   };
 }
 
-function tabDefaults() {
+function tabDefaults(): TabState {
   return { openInNewTab: true, deduplicateTabs: true, deduplicateAcrossTabGroups: true };
 }
 
@@ -78,7 +78,7 @@ function applyAppearancePreferences(plugin: IgnorancePlugin) {
   plugin.state.appearance = appearance;
   const selected = selectedPresetId(plugin);
   const custom = plugin.state.accent === CUSTOM_ACCENT;
-  delete appearance.followAccent;
+  delete (appearance as { followAccent?: unknown }).followAccent;
   const accentOverride = custom ? plugin.state.customAccent : undefined;
   writeThemePalette(selected, currentThemeMode(), accentOverride);
   applyFontPreferences(body, appearance);
@@ -124,7 +124,7 @@ function applyAccent(plugin: IgnorancePlugin, value: string) {
   plugin.saveStoredState();
 }
 
-function addDropdownSetting(container: HTMLElement, name: string, description, value, options, onChange) {
+function addDropdownSetting(container: HTMLElement, name: string, description: string, value: string | number, options: [string, string][], onChange: (value: string) => void) {
   new Setting(container).setName(name).setDesc(description).addDropdown(dropdown => {
     for (const [optionValue, label] of options) dropdown.addOption(optionValue, label);
     dropdown.setValue(String(value));
@@ -133,12 +133,15 @@ function addDropdownSetting(container: HTMLElement, name: string, description, v
 }
 
 
-function themeMode(app) {
-  return app.vault.getConfig("theme") === "system" ? "system" : (app.isDarkMode() ? "dark" : "light");
+// Theme switching lives on the app object but is missing from the published typings.
+type ThemeApp = App & { changeTheme?(theme: string): void; updateTheme?(): void };
+
+function themeMode(app: ThemeApp) {
+  return app.vault.getConfig("theme") === "system" ? "system" : currentThemeMode();
 }
 
-function setThemeMode(app, mode: string) {
-  app.changeTheme(mode === "system" ? "system" : (mode === "dark" ? "obsidian" : "moonstone"));
+function setThemeMode(app: ThemeApp, mode: string) {
+  app.changeTheme?.(mode === "system" ? "system" : (mode === "dark" ? "obsidian" : "moonstone"));
   app.updateTheme?.();
 }
 
@@ -223,8 +226,9 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
     popover.style.left = `${Math.round(box.left)}px`;
     popover.style.bottom = `${Math.round(window.innerHeight - box.top + 8)}px`;
     window.setTimeout(() => {
-      const outside = event => {
-        if (!popover || popover.contains(event.target) || anchor.contains(event.target)) return;
+      const outside = (event: MouseEvent) => {
+        const target = event.target as Node;
+        if (!popover || popover.contains(target) || anchor.contains(target)) return;
         closePopover();
       };
       plugin.registerDomEvent(document, "mousedown", outside);

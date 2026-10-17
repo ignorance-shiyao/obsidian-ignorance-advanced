@@ -4,17 +4,18 @@ import { DENSITIES,writingModeDefaults } from "../modules/editor-tools.js";
 import { fileToolsDefaults } from "../modules/file-tools.js";
 import { t } from "../modules/mermaid-core.js";
 import { normalizePresentationSkin } from "../modules/skin-choice.js";
-import type { IgnorancePlugin } from "../plugin-types.js";
+import type { IgnorancePlugin, PluginState } from "../plugin-types.js";
 import { mergeReadingPositions } from "../modules/reading-position.js";
 
 /* Settings and per-note state: load, save (debounced), and the body classes that follow them. */
 
 export async function loadStoredState(plugin: IgnorancePlugin) {
-  const stored = await plugin.loadData();
+  const stored: unknown = await plugin.loadData();
+  const loaded = typeof stored === "object" && stored !== null ? stored as Partial<PluginState> : {};
   plugin.state = Object.assign({
     density: "normal", tables: {}, accent: "none", customAccent: "#4D81EF", presentation: { skin: "none", animation: "none", canvas: "16:9" },
     appearance: appearanceDefaults(), tabs: tabDefaults(), smartPunctuation: false
-  }, stored || {});
+  }, loaded) as PluginState;
   plugin.state.presentation = { ...plugin.state.presentation, skin: normalizePresentationSkin(plugin.state.presentation?.skin) };
   delete plugin.state.htmlSkin;
   plugin.state.appearance = Object.assign(appearanceDefaults(), plugin.state.appearance || {});
@@ -46,9 +47,9 @@ export async function loadStoredState(plugin: IgnorancePlugin) {
 
 // Called by Obsidian when data.json was changed by sync from another device.
 export async function mergeExternalState(plugin: IgnorancePlugin) {
-  const stored = await plugin.loadData();
-  if (!stored || !plugin.state) return;
-  mergeReadingPositions(plugin, stored.readingPositions);
+  const stored: unknown = await plugin.loadData();
+  if (typeof stored !== "object" || stored === null || !plugin.state) return;
+  mergeReadingPositions(plugin, (stored as Partial<PluginState>).readingPositions);
 }
 
 export function saveStoredState(plugin: IgnorancePlugin) {
@@ -56,7 +57,7 @@ export function saveStoredState(plugin: IgnorancePlugin) {
   // Page layout lives in per-device local storage, never in synced data.
   plugin.saveTimer = window.setTimeout(() => {
     const { page, ...synced } = plugin.state;
-    plugin.saveData(synced);
+    void plugin.saveData(synced);
   }, 250);
 }
 

@@ -11,7 +11,7 @@ export function installTableCrosshair(plugin: IgnorancePlugin) {
   };
   const enabled = (table: Element) => plugin.state?.tableCrosshair === true || Boolean(table.closest(".ib-crosshair"));
   plugin.registerDomEvent(document, "mouseover", (event: MouseEvent) => {
-    const cell = (event.target as HTMLElement | null)?.closest?.("td, th") as HTMLTableCellElement | null;
+    const cell = event.target instanceof Element ? event.target.closest<HTMLTableCellElement>("td, th") : null;
     const table = cell?.closest("table");
     if (!cell || !table || !table.closest(".markdown-preview-view") || !enabled(table)) { if (current) clear(); return; }
     clear();

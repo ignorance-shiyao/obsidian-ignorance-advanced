@@ -12,9 +12,11 @@ const intervals: [number, string][] = [
 
 // Use parsed task dates, including dependencies and exclusions, rather than
 // guessing the author's date format from source text.
-export function ganttTickInterval(tasks, plotWidth: number, authoredInterval?) {
+export interface GanttTask { startTime: unknown; endTime: unknown }
+
+export function ganttTickInterval(tasks: GanttTask[], plotWidth: number, authoredInterval?: unknown) {
   if (authoredInterval) return null;
-  const dates = tasks.flatMap(task => [+task.startTime, +task.endTime]).filter(Number.isFinite);
+  const dates = tasks.flatMap(task => [Number(task.startTime), Number(task.endTime)]).filter(Number.isFinite);
   if (!dates.length) return null;
   const span = Math.max(...dates) - Math.min(...dates);
   if (span <= 0) return null;

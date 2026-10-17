@@ -18,7 +18,7 @@ describe("Markdown 表格纯函数", () => {
   it("中日韩宽字符按两格计算，格式化后各列对齐", () => {
     expect(displayWidth("姓名")).toBe(4);
     expect(displayWidth("产品 A")).toBe(6);
-    const formatted = formatTableLines(table)!;
+    const formatted = formatTableLines(table);
     expect(formatted).toEqual([
       "| 姓名 | Name  |",
       "| ---- | :---: |",
@@ -28,7 +28,7 @@ describe("Markdown 表格纯函数", () => {
   });
 
   it("保留代码跨度与转义管道符中的竖线", () => {
-    const cells = parsePipeRow("| `a|b` | left\\|right | end | ")!;
+    const cells = parsePipeRow("| `a|b` | left\\|right | end | ");
     expect(cells.map(cell => cell.value)).toEqual(["`a|b`", "left\\|right", "end"]);
   });
 
@@ -38,25 +38,25 @@ describe("Markdown 表格纯函数", () => {
     expect(inserted?.rowIndex).toBe(3);
     expect(parsePipeRow(inserted?.lines[3] || "")?.[0].value).toBe("");
 
-    const moved = editTableLines(table, "row-move-down", 2, 0)!;
+    const moved = editTableLines(table, "row-move-down", 2, 0);
     expect(parsePipeRow(moved.lines[2])?.[0].value).toBe("李四");
     expect(parsePipeRow(moved.lines[3])?.[0].value).toBe("张三");
 
-    const deleted = editTableLines(table, "row-delete", 3, 0)!;
+    const deleted = editTableLines(table, "row-delete", 3, 0);
     expect(deleted.lines).toHaveLength(3);
     expect(deleted.lines.join("\n")).not.toContain("李四");
   });
 
   it("增删和移动列时同步更新表头、分隔线与数据", () => {
-    const added = editTableLines(table, "column-add-right", 2, 0)!;
+    const added = editTableLines(table, "column-add-right", 2, 0);
     expect(parsePipeRow(added.lines[0])?.map(cell => cell.value)).toEqual(["姓名", "", "Name"]);
     expect(parsePipeRow(added.lines[2])?.map(cell => cell.value)).toEqual(["张三", "", "Amy"]);
 
-    const moved = editTableLines(table, "column-move-right", 2, 0)!;
+    const moved = editTableLines(table, "column-move-right", 2, 0);
     expect(parsePipeRow(moved.lines[0])?.map(cell => cell.value)).toEqual(["Name", "姓名"]);
     expect(parsePipeRow(moved.lines[2])?.map(cell => cell.value)).toEqual(["Amy", "张三"]);
 
-    const deleted = editTableLines(table, "column-delete", 2, 1)!;
+    const deleted = editTableLines(table, "column-delete", 2, 1);
     expect(parsePipeRow(deleted.lines[0])?.map(cell => cell.value)).toEqual(["姓名"]);
     expect(editTableLines(["| only |", "| --- |"], "column-delete", 2, 0)).toBeNull();
   });

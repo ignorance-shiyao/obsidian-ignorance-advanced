@@ -71,16 +71,27 @@ export function echartsThemeName(tokens: EChartsThemeTokens): string {
 export function parseEChartsOption(source: string): Record<string, unknown> {
   let option: unknown;
   try { option = JSON.parse(source.trim()); }
-  catch (error) { throw new Error(`图表配置必须是有效 JSON：${error.message}`); }
+  catch (error) { throw new Error(`图表配置必须是有效 JSON：${error instanceof Error ? error.message : String(error)}`); }
   if (!option || typeof option !== "object" || Array.isArray(option)) throw new Error("图表配置根节点必须是 JSON 对象");
   return option as Record<string, unknown>;
 }
 
-export function normalizeEChartsOption(option: Record<string, unknown>, renderer: "canvas" | "svg") {
+interface TextStyleOption { lineHeight?: number; fontSize?: number }
+interface TitleOption {
+  show?: boolean; top?: unknown; bottom?: unknown; text?: string; subtext?: string; itemGap?: number;
+  padding?: number | number[]; textStyle?: TextStyleOption; subtextStyle?: TextStyleOption;
+}
+interface LegendOption {
+  show?: boolean; top?: unknown; bottom?: unknown; orient?: string; itemHeight?: number; textStyle?: TextStyleOption;
+}
+interface GridOption { top?: unknown }
+interface SeriesOption { type?: unknown; layout?: unknown; force?: object; label?: object; effect?: unknown }
+
+export function normalizeEChartsOption(option: Record<string, unknown>, renderer: "canvas" | "svg"): Record<string, unknown> {
   // Reserve separate rows for a conventional top title, subtitle and legend.
   // Custom side/bottom layouts and multiple components keep their coordinates.
-  const title = option.title as any;
-  const legend = option.legend as any;
+  const title = option.title as TitleOption;
+  const legend = option.legend as LegendOption;
   const topPixels = (value: unknown, fallback: number) => value == null ? fallback : typeof value === "number" ? value : NaN;
   if (title && !Array.isArray(title) && title.show !== false && title.bottom == null && title.text &&
       legend && !Array.isArray(legend) && legend.show !== false && legend.bottom == null && legend.orient !== "vertical") {
@@ -94,17 +105,22 @@ export function normalizeEChartsOption(option: Record<string, unknown>, renderer
     if (Number.isFinite(legendTop) && Number.isFinite(safeTop) && legendTop < safeTop) {
       option = { ...option, legend: { ...legend, top: safeTop } };
     }
-    const grid = option.grid as any;
+    const grid = option.grid as GridOption;
     const actualLegendTop = Math.max(legendTop, safeTop);
     if (grid && !Array.isArray(grid) && Number.isFinite(actualLegendTop)) {
       const safeGridTop = actualLegendTop + Math.max(14, Number(legend.itemHeight || 14), Number(legend.textStyle?.fontSize || 12)) + 24;
       if (topPixels(grid.top, 60) < safeGridTop) option = { ...option, grid: { ...grid, top: safeGridTop } };
     }
   }
+  const seriesList: unknown[] | null = Array.isArray(option.series) ? option.series as unknown[] : null;
   // Native force defaults use 30px edges and hide node names, leaving a
   // small anonymous cluster in a full chart canvas. Authored values win.
-  if (Array.isArray(option.series) && option.series.some((series: any) => series?.type === "graph" && series.layout === "force")) option = { ...option, series: option.series.map((series: any) => {
-    if (!series || series.type !== "graph" || series.layout !== "force") return series;
+  const isForceGraph = (series: unknown): series is SeriesOption => {
+    const item = series as SeriesOption | null;
+    return Boolean(item) && item.type === "graph" && item.layout === "force";
+  };
+  if (seriesList && seriesList.some(isForceGraph)) option = { ...option, series: seriesList.map(series => {
+    if (!isForceGraph(series)) return series;
     return { ...series,
       force: { repulsion: 406.25, edgeLength: 125, initLayout: "circular", ...series.force },
       label: { show: true, position: "right", ...series.label }
@@ -113,7 +129,7 @@ export function normalizeEChartsOption(option: Record<string, unknown>, renderer
   if (renderer !== "svg" || !Array.isArray(option.series)) return option;
   return {
     ...option,
-    series: option.series.map(item => {
+    series: (option.series as unknown[]).map(item => {
       if (!item || typeof item !== "object") return item;
       const series = item as Record<string, unknown>;
       if (series.type !== "lines" || !series.effect || typeof series.effect !== "object") return series;

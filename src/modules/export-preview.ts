@@ -9,7 +9,7 @@ import { composePages } from "./reading-pagination.js";
 import { stageSlide } from "./offscreen-capture.js";
 
 
-const TITLES = {
+const TITLES: Record<string, string> = {
   pdf: "导出 PDF",
   word: "导出 Word",
   html: "导出 HTML 阅读器",
@@ -21,7 +21,7 @@ const TITLES = {
   zhihu: "复制为知乎格式"
 };
 
-const NOTES = {
+const NOTES: Record<string, string> = {
   word: "Word 的最终版式由 Word 决定，这里是按内容排版的近似效果。",
   "pptx-editable": "文字、表格与图片会成为 PowerPoint 里可编辑的对象，背景与装饰保持为图片。",
   wechat: "粘贴到公众号编辑器后的内容与样式。",
@@ -36,7 +36,7 @@ export interface ExportPreviewDeps {
   buildDeck(plugin: IgnorancePlugin, file: TFile, component: Component): Promise<{ reveal: HTMLElement; entries: { el: HTMLElement }[]; width: number; height: number } | null>;
 }
 
-class ExportPreviewModal extends Modal {
+export class ExportPreviewModal extends Modal {
   plugin: IgnorancePlugin;
   file: TFile;
   kind: string;
@@ -118,7 +118,7 @@ class ExportPreviewModal extends Modal {
       console.error("Ignorance Advanced: export preview failed —", error);
       if (!this.status.isConnected) this.viewport.appendChild(this.status);
       this.summary.setText("");
-      this.status.setText(`预览生成失败：${error.message || error}。仍可直接导出。`);
+      this.status.setText(`预览生成失败：${error instanceof Error ? error.message : typeof error === "string" ? error : JSON.stringify(error)}。仍可直接导出。`);
       this.confirm.disabled = false;
     });
   }
@@ -194,7 +194,7 @@ class ExportPreviewModal extends Modal {
     await new Promise((resolve, reject) => {
       const signal = this.controller.signal;
       const cleanup = () => { window.clearTimeout(timer); frame.onload = frame.onerror = null; signal.removeEventListener("abort", aborted); };
-      const aborted = () => { cleanup(); reject(signal.reason); };
+      const aborted = () => { cleanup(); reject(signal.reason instanceof Error ? signal.reason : new Error("预览已取消")); };
       const timer = window.setTimeout(() => { cleanup(); reject(new Error("预览页面加载超时")); }, 10000);
       signal.addEventListener("abort", aborted, { once: true });
       frame.onload = () => { cleanup(); frame.contentWindow?.scrollTo(0, scrollTop); resolve(undefined); };

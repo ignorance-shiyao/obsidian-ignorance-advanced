@@ -5,8 +5,11 @@
 export const IMAGE_ALIGNMENTS = ["left", "center", "right"] as const;
 const KEYWORDS = new Set(["left", "center", "right"]);
 
+/** One image link found in text: `inner` is the part between the brackets (wiki) or the alt text (markdown). */
+export interface ImageLink { from: number; to: number; kind: string; inner: string; url?: string }
+
 // The image link that starts at `from` in `text`, or null.
-export function imageLinkAt(text: string, from: number) {
+export function imageLinkAt(text: string, from: number): ImageLink | null {
   const rest = text.slice(from);
   const wiki = /^!\[\[([^\]\n]+)\]\]/.exec(rest);
   if (wiki) return { from, to: from + wiki[0].length, kind: "wiki", inner: wiki[1] };
@@ -15,18 +18,18 @@ export function imageLinkAt(text: string, from: number) {
   return null;
 }
 
-export function imageAlignment(link) {
+export function imageAlignment(link: ImageLink) {
   const segments = link.kind === "wiki" ? link.inner.split("|").slice(1) : link.inner.split("|");
-  return segments.find((segment: string) => KEYWORDS.has(segment.trim()))?.trim() || "center";
+  return segments.find((segment) => KEYWORDS.has(segment.trim()))?.trim() || "center";
 }
 
-export function withImageAlignment(link, align: string) {
+export function withImageAlignment(link: ImageLink, align: string) {
   const parts = link.inner.split("|");
   const head = link.kind === "wiki" ? [parts.shift()] : [];
-  const kept = parts.filter((segment: string) => segment.trim() && !KEYWORDS.has(segment.trim()));
+  const kept = parts.filter((segment) => segment.trim() && !KEYWORDS.has(segment.trim()));
   if (align !== "center") {
     // Keep the width last, as Obsidian expects: caption|align|width.
-    const widthAt = kept.findIndex((segment: string) => /^\d+(x\d+)?$/.test(segment.trim()));
+    const widthAt = kept.findIndex((segment) => /^\d+(x\d+)?$/.test(segment.trim()));
     kept.splice(widthAt === -1 ? kept.length : widthAt, 0, align);
   }
   const inner = [...head, ...kept].join("|");
@@ -34,15 +37,15 @@ export function withImageAlignment(link, align: string) {
 }
 
 // The link without its width (Obsidian's "reset size").
-export function withoutImageWidth(link) {
+export function withoutImageWidth(link: ImageLink) {
   const parts = link.inner.split("|");
   const head = link.kind === "wiki" ? [parts.shift()] : [];
-  const kept = parts.filter((segment: string) => !/^\s*\d+(x\d+)?\s*$/.test(segment));
+  const kept = parts.filter((segment) => !/^\s*\d+(x\d+)?\s*$/.test(segment));
   const inner = [...head, ...kept].join("|");
   return link.kind === "wiki" ? `![[${inner}]]` : `![${inner}](${link.url})`;
 }
 
-export function withImageSize(link, width: number, height: number) {
+export function withImageSize(link: ImageLink, width: number, height: number) {
   const clean = withoutImageWidth(link);
   const parsed = imageLinkAt(clean, 0);
   const inner = `${parsed.inner}|${Math.round(width)}x${Math.round(height)}`;
@@ -61,11 +64,11 @@ export function resizedImageBox(width: number, height: number, dx: number, dy: n
 
 // The link pointing at another file, keeping its caption and alignment. Sizes written as WxH are
 // dropped (a crop changes the proportions); a plain width stays.
-export function withImageTarget(link, target: string) {
+export function withImageTarget(link: ImageLink, target: string) {
   const parts = link.inner.split("|");
   const head = link.kind === "wiki" ? [target] : [];
   if (link.kind === "wiki") parts.shift();
-  const kept = parts.filter((segment: string) => !/^\s*\d+x\d+\s*$/.test(segment));
+  const kept = parts.filter((segment) => !/^\s*\d+x\d+\s*$/.test(segment));
   const inner = [...head, ...kept].join("|");
   return link.kind === "wiki" ? `![[${inner}]]` : `![${inner}](${encodeURI(target)})`;
 }
@@ -73,34 +76,34 @@ export function withImageTarget(link, target: string) {
 /* Style keywords in the same slot as alignment: ![gray|left|400](a.png), ![[a.gif|click]]. */
 export const IMAGE_FILTERS = ["gray", "sepia", "invert", "dark-invert", "blur"] as const;
 
-const wordsOf = (link) => (link.kind === "wiki" ? link.inner.split("|").slice(1) : link.inner.split("|")).map((segment: string) => segment.trim());
+const wordsOf = (link: ImageLink) => (link.kind === "wiki" ? link.inner.split("|").slice(1) : link.inner.split("|")).map((segment) => segment.trim());
 
 // The filter keyword written in the link, or null.
-export function imageFilter(link) {
-  return wordsOf(link).find((word: string) => (IMAGE_FILTERS as readonly string[]).includes(word.toLowerCase()))?.toLowerCase() || null;
+export function imageFilter(link: ImageLink) {
+  return wordsOf(link).find((word) => (IMAGE_FILTERS as readonly string[]).includes(word.toLowerCase()))?.toLowerCase() || null;
 }
 
-export function hasImageKeyword(link, keyword: string) {
-  return wordsOf(link).some((word: string) => word.toLowerCase() === keyword);
+export function hasImageKeyword(link: ImageLink, keyword: string) {
+  return wordsOf(link).some((word) => word.toLowerCase() === keyword);
 }
 
 // Swap the keywords in `group` for `keyword` (or none), keeping the width last.
-function withKeyword(link, group: readonly string[], keyword: string | null) {
+function withKeyword(link: ImageLink, group: readonly string[], keyword: string | null) {
   const parts = link.inner.split("|");
   const head = link.kind === "wiki" ? [parts.shift()] : [];
-  const kept = parts.filter((segment: string) => segment.trim() && !group.includes(segment.trim().toLowerCase()));
+  const kept = parts.filter((segment) => segment.trim() && !group.includes(segment.trim().toLowerCase()));
   if (keyword) {
-    const widthAt = kept.findIndex((segment: string) => /^\d+(x\d+)?$/.test(segment.trim()));
+    const widthAt = kept.findIndex((segment) => /^\d+(x\d+)?$/.test(segment.trim()));
     kept.splice(widthAt === -1 ? kept.length : widthAt, 0, keyword);
   }
   const inner = [...head, ...kept].join("|");
   return link.kind === "wiki" ? `![[${inner}]]` : `![${inner}](${link.url})`;
 }
 
-export function withImageFilter(link, filter: string | null) {
+export function withImageFilter(link: ImageLink, filter: string | null) {
   return withKeyword(link, IMAGE_FILTERS, filter);
 }
 
-export function withImageKeyword(link, keyword: string, on: boolean) {
+export function withImageKeyword(link: ImageLink, keyword: string, on: boolean) {
   return withKeyword(link, [keyword], on ? keyword : null);
 }

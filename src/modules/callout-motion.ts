@@ -1,7 +1,7 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
 /* 原生折叠会动画尺寸；主题限制属性，插件只协调用户触发的状态。 */
 export function installCalloutMotion(plugin: IgnorancePlugin) {
-  const states = new Map<HTMLElement, { originalCollapsed: boolean; originalDisplay: string; timer?: ReturnType<typeof setTimeout> }>();
+  const states = new Map<HTMLElement, { originalCollapsed: boolean; originalDisplay: string; timer?: number }>();
   const clearMotion = (content: HTMLElement) => {
     content.classList.remove("ib-callout-opening", "ib-callout-closing");
     content.style.removeProperty("--ib-callout-opacity");
@@ -10,8 +10,8 @@ export function installCalloutMotion(plugin: IgnorancePlugin) {
     if (event.button !== 0 || event.defaultPrevented || !(event.target instanceof Element)) return;
     const title = event.target.closest(".callout.is-collapsible > .callout-title");
     if (!title || event.target.closest("a, button, input, textarea, select") || title.closest(".ibp-book, .ibp-staging, .ibp-export, .ibp-export-preview__book, .ibp-export-preview__slides")) return;
-    const callout = title.parentElement as HTMLElement;
-    const content = callout.querySelector(":scope > .callout-content") as HTMLElement;
+    const callout = title.parentElement;
+    const content = callout.querySelector<HTMLElement>(":scope > .callout-content");
     if (!content) return;
     // 阻止原生处理器写入高度/边距动画；保留其初始折叠状态供卸载恢复。
     event.preventDefault(); event.stopImmediatePropagation();
@@ -33,7 +33,7 @@ export function installCalloutMotion(plugin: IgnorancePlugin) {
   plugin.register(() => {
     for (const [callout, state] of states) {
       window.clearTimeout(state.timer);
-      const content = callout.querySelector(":scope > .callout-content") as HTMLElement;
+      const content = callout.querySelector<HTMLElement>(":scope > .callout-content");
       if (content) { clearMotion(content); content.style.display = state.originalDisplay; }
       callout.classList.toggle("is-collapsed", state.originalCollapsed);
       callout.querySelector(":scope > .callout-title > .callout-fold")?.classList.toggle("is-collapsed", state.originalCollapsed);

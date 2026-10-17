@@ -139,6 +139,6 @@ function enhanceGroups(table: HTMLTableElement) {
 
 export function installTableExtras(plugin: IgnorancePlugin) {
   plugin.registerMarkdownPostProcessor(element => {
-    element.querySelectorAll("table").forEach(table => enhanceTable(table as HTMLTableElement));
+    element.querySelectorAll("table").forEach(table => enhanceTable(table));
   });
 }

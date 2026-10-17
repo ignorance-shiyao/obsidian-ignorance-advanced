@@ -15,7 +15,22 @@ import {
   WidthType
 } from "docx";
 
-const HEADING_LEVELS = {
+type Token = ReturnType<MarkdownIt["parse"]>[number];
+type DocxElement = Paragraph | Table;
+interface WordStyle { fontFamily: string; headingFamily: string; codeFamily: string; fontSize: number; lineHeight: number }
+interface RunFlags { bold?: boolean; italics?: boolean; strike?: boolean; superScript?: boolean; subScript?: boolean; code?: boolean }
+export interface WordImage { type: string; data: Uint8Array | ArrayBuffer }
+export interface StructuredDocxOptions {
+  title?: string;
+  style?: Partial<WordStyle>;
+  resolveImage?: (source: string) => Promise<WordImage | null | undefined>;
+}
+interface DocxContext { style: WordStyle; resolveImage?: StructuredDocxOptions["resolveImage"]; indent?: number }
+interface ParagraphChoices { indent?: number; quote?: boolean; heading?: number; code?: boolean }
+type ParagraphOptions = { -readonly [K in keyof Exclude<ConstructorParameters<typeof Paragraph>[0], string>]: Exclude<ConstructorParameters<typeof Paragraph>[0], string>[K] };
+type ImageType = "png" | "jpg" | "gif" | "bmp";
+
+const HEADING_LEVELS: Record<number, (typeof HeadingLevel)[keyof typeof HeadingLevel]> = {
   1: HeadingLevel.HEADING_1,
   2: HeadingLevel.HEADING_2,
   3: HeadingLevel.HEADING_3,
@@ -24,7 +39,7 @@ const HEADING_LEVELS = {
   6: HeadingLevel.HEADING_6
 };
 
-const DEFAULT_WORD_STYLE = {
+const DEFAULT_WORD_STYLE: WordStyle = {
   fontFamily: "Arial",
   headingFamily: "Arial",
   codeFamily: "Consolas",
@@ -39,8 +54,8 @@ function stripFrontmatter(source: string) {
 function markdownForStructuredWord(source: string) {
   source = stripFrontmatter(source);
   const lines = source.split(/\r?\n/);
-  const result = [];
-  let fence = null;
+  const result: string[] = [];
+  let fence: string | null = null;
   for (const line of lines) {
     const marker = line.match(/^\s*(`{3,}|~{3,})/);
     if (!fence && marker) fence = marker[1][0];
@@ -67,7 +82,7 @@ function flattenInlineComponents(source: string) {
     .replace(/\(\(([^()|:]+?)\s*\|\s*([^()]+?)\)\)/g, "$1：$2");
 }
 
-function imageDimensions(data, type: string) {
+function imageDimensions(data: Uint8Array | ArrayBuffer, type: string) {
   // Plain byte views, so this also runs on mobile where Node's Buffer is absent.
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -90,7 +105,7 @@ function imageDimensions(data, type: string) {
   return null;
 }
 
-function fitImage(image, maxWidth = 468, maxHeight = 640) {
+function fitImage(image: WordImage, maxWidth = 468, maxHeight = 640) {
   const dimensions = imageDimensions(image.data, image.type);
   const width = Math.max(1, dimensions?.width || maxWidth);
   const height = Math.max(1, dimensions?.height || Math.round(maxWidth * 0.62));
@@ -98,7 +113,7 @@ function fitImage(image, maxWidth = 468, maxHeight = 640) {
   return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
 }
 
-function runStyle(style, tpl) {
+function runStyle(style: RunFlags, tpl: WordStyle) {
   return {
     font: style.code ? tpl.codeFamily : tpl.fontFamily,
     size: style.code ? 20 : tpl.fontSize * 2,
@@ -110,9 +125,9 @@ function runStyle(style, tpl) {
   };
 }
 
-async function inlineTokensToRuns(tokens, context, inherited = {}) {
-  const runs = [];
-  const stack = [{ ...inherited }];
+async function inlineTokensToRuns(tokens: Token[], context: DocxContext, inherited: RunFlags = {}): Promise<Array<TextRun | ImageRun | ExternalHyperlink>> {
+  const runs: Array<TextRun | ImageRun | ExternalHyperlink> = [];
+  const stack: RunFlags[] = [{ ...inherited }];
   const current = () => stack[stack.length - 1];
 
   for (let index = 0; index < tokens.length; index += 1) {
@@ -154,10 +169,10 @@ async function inlineTokensToRuns(tokens, context, inherited = {}) {
       }
       const transformation = fitImage(image);
       runs.push(new ImageRun({
-        type: image.type,
+        type: image.type as ImageType,
         data: image.data,
         transformation,
-        altText: { title: token.content || "图片", description: token.content || "" }
+        altText: { name: token.content || "图片", title: token.content || "图片", description: token.content || "" }
       }));
       continue;
     }
@@ -184,9 +199,9 @@ async function inlineTokensToRuns(tokens, context, inherited = {}) {
   return runs.length ? runs : [new TextRun({ text: "", ...runStyle(current(), context.style) })];
 }
 
-function paragraphFromRuns(runs, context, options = {}) {
+function paragraphFromRuns(runs: Array<TextRun | ImageRun | ExternalHyperlink>, context: DocxContext, options: ParagraphChoices = {}) {
   const indent = options.indent ?? context.indent ?? (options.quote ? 720 : 0);
-  const paragraphOptions = {
+  const paragraphOptions: ParagraphOptions = {
     children: runs,
     spacing: { line: Math.round(context.style.lineHeight * 240), after: 100 },
     autoSpaceEastAsianText: true,
@@ -207,10 +222,10 @@ function paragraphFromRuns(runs, context, options = {}) {
   return new Paragraph(paragraphOptions);
 }
 
-async function listToDocx(tokens, start: number, context, depth = 0) {
+async function listToDocx(tokens: Token[], start: number, context: DocxContext, depth = 0): Promise<{ elements: DocxElement[]; next: number }> {
   const ordered = tokens[start].type === "ordered_list_open";
   const first = Number(tokens[start].attrGet?.("start") || 1);
-  const output = [];
+  const output: DocxElement[] = [];
   let itemNumber = first;
   let index = start + 1;
 
@@ -253,15 +268,15 @@ async function listToDocx(tokens, start: number, context, depth = 0) {
   return { elements: output, next: index + 1 };
 }
 
-function codeBlockParagraphs(source, context, indent = 0) {
+function codeBlockParagraphs(source: string, context: DocxContext, indent = 0) {
   const lines = source.replace(/\n$/, "").split("\n");
-  return (lines.length ? lines : [""]).map((line: number) => paragraphFromRuns([
+  return (lines.length ? lines : [""]).map((line: string) => paragraphFromRuns([
     new TextRun({ text: line || " ", font: context.style.codeFamily, size: 18 })
   ], context, { code: true, indent }));
 }
 
-function tableCells(tokens, start: number, context, isHeader: boolean, count: number) {
-  const rows = [];
+function tableCells(tokens: Token[], start: number, context: DocxContext, isHeader: boolean, count: number) {
+  const rows: Array<{ token: Token; inline: Token; isHeader: boolean }> = [];
   let index = start + 1;
   while (index < tokens.length && tokens[index].type !== "tr_close") {
     const token = tokens[index];
@@ -286,8 +301,8 @@ function tableCells(tokens, start: number, context, isHeader: boolean, count: nu
   return { cells: Promise.all(cells), next: index + 1 };
 }
 
-async function tableToDocx(tokens, start: number, context) {
-  const rows = [];
+async function tableToDocx(tokens: Token[], start: number, context: DocxContext) {
+  const rows: TableRow[] = [];
   let columnCount = 0;
   for (let cursor = start + 1; cursor < tokens.length && tokens[cursor].type !== "table_close"; cursor += 1) {
     if (tokens[cursor].type !== "tr_open") continue;
@@ -333,8 +348,8 @@ async function tableToDocx(tokens, start: number, context) {
   }) : null, next: index + 1 };
 }
 
-async function blocksToDocx(tokens, context, quoteDepth = 0) {
-  const elements = [];
+async function blocksToDocx(tokens: Token[], context: DocxContext, quoteDepth = 0): Promise<DocxElement[]> {
+  const elements: DocxElement[] = [];
   let index = 0;
   while (index < tokens.length) {
     const token = tokens[index];
@@ -394,8 +409,8 @@ async function blocksToDocx(tokens, context, quoteDepth = 0) {
   return elements;
 }
 
-export async function createStructuredDocxBuffer(source: string, options = {}) {
-  const style = { ...DEFAULT_WORD_STYLE, ...options.style };
+export async function createStructuredDocxBuffer(source: string, options: StructuredDocxOptions = {}) {
+  const style: WordStyle = { ...DEFAULT_WORD_STYLE, ...options.style };
   const context = { style, resolveImage: options.resolveImage };
   const markdown = new MarkdownIt({ html: false, linkify: false, typographer: false });
   const tokens = markdown.parse(markdownForStructuredWord(source), {});
@@ -403,10 +418,7 @@ export async function createStructuredDocxBuffer(source: string, options = {}) {
   const doc = new Document({
     title: options.title || "Markdown 导出",
     styles: {
-      default: { document: { run: { font: style.fontFamily, size: style.fontSize * 2 } } },
-      heading1: { run: { font: style.headingFamily, size: 44, bold: true } },
-      heading2: { run: { font: style.headingFamily, size: 34, bold: true } },
-      heading3: { run: { font: style.headingFamily, size: 28, bold: true } }
+      default: { document: { run: { font: style.fontFamily, size: style.fontSize * 2 } } }
     },
     sections: [{ children: elements.length ? elements : [new Paragraph({ text: "" })] }]
   });

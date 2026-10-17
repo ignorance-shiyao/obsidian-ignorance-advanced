@@ -1,5 +1,6 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { MarkdownView } from "obsidian";
+import type { MarkdownPreviewView } from "obsidian";
 /* Reading position, kept as a source line so it survives every view:
    - switching Live Preview / source / reading / paged reading lands on the same place;
    - reopening a note later continues where it was left (synced with plugin data).
@@ -9,28 +10,45 @@ import { nextFrame } from "./export.js";
 
 
 const MAX_REMEMBERED = 500;
-const tracked = new WeakMap();
+/* What is tracked per open view. */
+interface TrackedView {
+  path: string;
+  mode: string;
+  line: number;
+  restoring: boolean;
+  timer: number;
+  restoreGeneration?: number;
+}
+const tracked = new WeakMap<MarkdownView, TrackedView>();
 
-function scroller(view) {
+/* The native reading renderer's scroll-restore hooks (not in the public typings). */
+interface NativeRenderer {
+  previewEl: HTMLElement;
+  applyScroll(line: number, options: unknown): boolean;
+  applyScrollDelayed?: (line: number, options: unknown, done?: () => void) => void;
+  onRendered(callback: () => void): void;
+}
+
+function scroller(view: MarkdownView): HTMLElement | null | undefined {
   return view.getMode?.() === "preview"
-    ? view.containerEl.querySelector(".markdown-reading-view .markdown-preview-view")
+    ? view.containerEl.querySelector<HTMLElement>(".markdown-reading-view .markdown-preview-view")
     : view.editor?.cm?.scrollDOM;
 }
 
-function book(view) {
-  const found = view.containerEl.querySelector(".markdown-reading-view .ibp-has-book .ibp-book");
+function book(view: MarkdownView) {
+  const found = view.containerEl.querySelector<HTMLElement>(".markdown-reading-view .ibp-has-book .ibp-book");
   return found?.childElementCount ? found : null;
 }
 
 // The note's headings in source order, with the rendered book headings they match.
-function bookHeadings(view, bookEl) {
+function bookHeadings(view: MarkdownView, bookEl: HTMLElement) {
   const headings = view.app.metadataCache.getFileCache(view.file)?.headings || [];
-  const rendered = [...bookEl.querySelectorAll(".ibp-placed:is(h1,h2,h3,h4,h5,h6), .ibp-placed :is(h1,h2,h3,h4,h5,h6)")];
-  const seen = new Set();
-  const pairs = [];
+  const rendered = [...bookEl.querySelectorAll<HTMLElement>(".ibp-placed:is(h1,h2,h3,h4,h5,h6), .ibp-placed :is(h1,h2,h3,h4,h5,h6)")];
+  const seen = new Set<HTMLElement>();
+  const pairs: { line: number; el: HTMLElement }[] = [];
   let from = 0;
   for (const heading of headings) {
-    const index = rendered.findIndex((el, i) => i >= from && !seen.has(el) && el.textContent.trim() === heading.heading.trim());
+    const index = rendered.findIndex((el, i) => i >= from && !seen.has(el) && el.textContent?.trim() === heading.heading.trim());
     if (index === -1) continue;
     seen.add(rendered[index]);
     from = index + 1;
@@ -39,23 +57,25 @@ function bookHeadings(view, bookEl) {
   return pairs;
 }
 
-export function currentLine(view) {
+export function currentLine(view: MarkdownView) {
   const bookEl = view.getMode?.() === "preview" ? book(view) : null;
   if (bookEl) {
-    const top = scroller(view).getBoundingClientRect().top + 8;
+    const top = (scroller(view)?.getBoundingClientRect().top ?? 0) + 8;
     const passed = bookHeadings(view, bookEl).filter(pair => pair.el.getBoundingClientRect().top <= top);
     return passed.length ? passed[passed.length - 1].line : 0;
   }
-  const line = view.getEphemeralState?.().scroll;
+  const ephemeral: unknown = view.getEphemeralState?.();
+  const line = typeof ephemeral === "object" && ephemeral && "scroll" in ephemeral ? ephemeral.scroll : undefined;
   return typeof line === "number" && isFinite(line) ? line : 0;
 }
 
-export function scrollToLine(view, line: number) {
+export function scrollToLine(view: MarkdownView, line: number) {
   const bookEl = view.getMode?.() === "preview" ? book(view) : null;
   if (bookEl) {
     const pairs = bookHeadings(view, bookEl).filter(pair => pair.line <= line + 0.5);
     const target = pairs[pairs.length - 1];
     const box = scroller(view);
+    if (!box) return;
     if (!target) { box.scrollTop = 0; return; }
     box.scrollTop += target.el.getBoundingClientRect().top - box.getBoundingClientRect().top - 16;
     return;
@@ -78,7 +98,7 @@ function remember(plugin: IgnorancePlugin, path: string, line: number) {
 }
 
 // Run `restore` until the paged book (rendered asynchronously) has pages.
-async function whenSettled(view, restore) {
+async function whenSettled(view: MarkdownView, restore: () => void) {
   for (let i = 0; i < 60; i += 1) {
     await nextFrame();
     const reading = view.getMode?.() === "preview";
@@ -91,16 +111,16 @@ async function whenSettled(view, restore) {
 
 export function installReadingPosition(plugin: IgnorancePlugin) {
   const { workspace } = plugin.app;
-  const views = () => workspace.getLeavesOfType("markdown").map(leaf => leaf.view).filter(view => view instanceof MarkdownView && view.file);
-  const guardedRenderers = new WeakSet();
-  const guardNativeRestore = view => {
-    const renderer = view.previewMode?.renderer;
+  const views = () => workspace.getLeavesOfType("markdown").flatMap(leaf => leaf.view instanceof MarkdownView && leaf.view.file ? [leaf.view] : []);
+  const guardedRenderers = new WeakSet<NativeRenderer>();
+  const guardNativeRestore = (view: MarkdownView) => {
+    const renderer = (view.previewMode as MarkdownPreviewView & { renderer?: NativeRenderer }).renderer;
     if (!renderer || guardedRenderers.has(renderer) || typeof renderer.applyScrollDelayed !== "function") return;
     guardedRenderers.add(renderer);
     const original = renderer.applyScrollDelayed;
     // Native restoration can wait for asynchronous sections. A scroll made
     // after that request must win over the position captured before rendering.
-    const guarded = function(line: number, options, done) {
+    const guarded = function(this: NativeRenderer, line: number, options: unknown, done?: () => void) {
       if (this.applyScroll(line, options)) { done?.(); return; }
       const box = this.previewEl;
       const start = box.scrollTop;
@@ -123,7 +143,7 @@ export function installReadingPosition(plugin: IgnorancePlugin) {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const view = views().find(view => view.containerEl.contains(target) && scroller(view) === target);
-    if (!view) return;
+    if (!view?.file) return;
     const state = tracked.get(view);
     if (!state || state.restoring || state.path !== view.file.path) return;
     window.clearTimeout(state.timer);
@@ -135,7 +155,7 @@ export function installReadingPosition(plugin: IgnorancePlugin) {
   }, true);
 
   // A pending asynchronous restore must not override a newer user action.
-  for (const type of ["wheel", "touchstart", "pointerdown", "keydown"]) plugin.registerDomEvent(document, type, event => {
+  for (const type of ["wheel", "touchstart", "pointerdown", "keydown"] as const) plugin.registerDomEvent(document, type, event => {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const view = views().find(view => view.containerEl.contains(target));
@@ -145,10 +165,10 @@ export function installReadingPosition(plugin: IgnorancePlugin) {
     state.restoring = false;
   }, true);
 
-  const restoreTo = (view, state, line: number) => {
+  const restoreTo = (view: MarkdownView, state: TrackedView, line: number) => {
     const generation = state.restoreGeneration = (state.restoreGeneration || 0) + 1;
     state.restoring = true;
-    whenSettled(view, () => {
+    void whenSettled(view, () => {
       if (tracked.get(view) !== state || state.path !== view.file?.path || generation !== state.restoreGeneration) return;
       scrollToLine(view, line);
       state.line = line;
@@ -164,7 +184,7 @@ export function installReadingPosition(plugin: IgnorancePlugin) {
       if (!state || state.path !== view.file.path) {
         // A newly opened note: continue from the remembered line unless the
         // opening already went somewhere (a heading link, a search hit…).
-        const next = { path: view.file.path, mode, line: 0, restoring: false, timer: 0 };
+        const next: TrackedView = { path: view.file.path, mode, line: 0, restoring: false, timer: 0 };
         tracked.set(view, next);
         const saved = plugin.state.readingPositions?.[view.file.path];
         if (saved) {
@@ -200,7 +220,7 @@ export function installReadingPosition(plugin: IgnorancePlugin) {
 }
 
 // Keep the viewport still while `change` rewrites the note (e.g. image alignment).
-export async function keepViewport(view, change) {
+export async function keepViewport(view: MarkdownView, change: () => unknown) {
   const state = tracked.get(view);
   const box = scroller(view);
   const top = box?.scrollTop;

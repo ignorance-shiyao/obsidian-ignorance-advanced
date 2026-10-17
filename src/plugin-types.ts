@@ -2,7 +2,8 @@
 export type IgnorancePlugin = import("./main.js").IgnoranceBlueMermaidPlugin;
 
 export interface PageState {
-  width: "standard" | "full" | "custom" | string;
+  /** "standard", "full", "custom", or a named preset width. */
+  width: string;
   customWidth: number;
   zoom: number;
   paged: boolean;
@@ -57,7 +58,7 @@ export interface PluginState {
   captions: boolean;
   grayDates: string;
   writingModes: { typewriterScroll: boolean; focusMode: boolean };
-  fileTools: { apps: string[]; convertPastedImages: boolean };
+  fileTools: { convertPastedImages: boolean; /** Removed setting, deleted on load. */ apps?: unknown };
   webClip: { watchClipboard: boolean; folder: string; byDomain: boolean };
   readingTime: { enabled: boolean };
   introShown: boolean;
@@ -65,6 +66,27 @@ export interface PluginState {
   readingPositions?: Record<string, number>;
   htmlSkin?: unknown;
   pageDefaults?: unknown;
+}
+
+/** Where a rendered block's source sits in its note. */
+export interface BlockSource {
+  path: string;
+  lineStart: number;
+  lineEnd: number;
+}
+
+/** The column-resize layer attached to one table (see src/plugin/table-sizes.ts). */
+export interface TableLayer {
+  table: HTMLTableElement;
+  seenConnected?: boolean;
+  destroy(): void;
+}
+
+/** A diagram waiting for its view box to be tightened again. */
+export interface RetightenJob {
+  container?: HTMLElement;
+  state: DiagramState;
+  svg: SVGSVGElement;
 }
 
 /** Pan / zoom state of one enhanced diagram (see src/plugin/diagram-layout.ts). */

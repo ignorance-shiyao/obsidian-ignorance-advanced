@@ -1,7 +1,7 @@
 import { setIcon, UI_ICONS } from "./ui-icons.js";
 import { setMarkup } from "./dom-markup.js";
 /* 复制状态由插件提供，动效与时长由主题提供。 */
-const feedback = new WeakMap<HTMLButtonElement, { timer: ReturnType<typeof setTimeout>; markup: string; label: string | null }>();
+const feedback = new WeakMap<HTMLButtonElement, { timer: number; markup: string; label: string | null }>();
 
 export function showCopyFeedback(button: HTMLButtonElement, copiedLabel: string) {
   const previous = feedback.get(button);

@@ -36,7 +36,7 @@ describe("PPTX 样式换算", () => {
 
   it("相邻、同父、同样式、左对齐且只隔段间距的文本块合并", () => {
     const parent = {};
-    const block = (y, h, extra = {}) => ({ key: "p|16|333", parent, rect: { x: 1, y, w: 8, h }, lineHeight: 0.3, ...extra });
+    const block = (y: number, h: number, extra: Record<string, unknown> = {}) => ({ key: "p|16|333", parent, rect: { x: 1, y, w: 8, h }, lineHeight: 0.3, ...extra });
     expect(groupAdjacentBlocks([block(1, 0.3), block(1.45, 0.6), block(2.2, 0.3)])).toEqual([[0, 1, 2]]);
     // 样式不同、父元素不同、间距过大、缩进不同都断开。
     expect(groupAdjacentBlocks([block(1, 0.3), block(1.45, 0.3, { key: "h2|24|000" })])).toEqual([[0], [1]]);

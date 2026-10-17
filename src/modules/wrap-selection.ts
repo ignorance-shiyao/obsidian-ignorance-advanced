@@ -1,6 +1,6 @@
 import { EditorSelection, Prec } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { WRAP_MARKERS, wrapMarkerPair, wrapSelectionChange } from "./wrap-selection-core.js";
+import { WRAP_MARKERS, wrapMarkerPair } from "./wrap-selection-core.js";
 
 
 function wrapSelectedText(view: EditorView, marker: string) {

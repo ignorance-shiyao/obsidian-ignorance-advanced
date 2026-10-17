@@ -11,7 +11,7 @@ describe('Wardley authored font configuration', () => {
     let config={'wardley-beta':{labelFontSize:16,axisFontSize:14}};
     const renderer={draw:async()=>{expect(config['wardley-beta'].labelFontSize).toBe(12);throw Error('draw failure');}};
     const original=renderer.draw;
-    const engine={mermaidAPI:{getDiagramFromText:async()=>({renderer}),getConfig:()=>structuredClone(config),setConfig:value=>{config={...config,'wardley-beta':{...config['wardley-beta'],...value['wardley-beta']}};}}};
+    const engine={mermaidAPI:{getDiagramFromText:async()=>({renderer}),getConfig:()=>structuredClone(config),setConfig:(value:Record<string,unknown>)=>{config={...config,'wardley-beta':{...config['wardley-beta'],...(value['wardley-beta'] as typeof config['wardley-beta'])}};}}};
     await expect(withWardleyFontConfig(engine,'%%{init: {"wardley-beta":{"labelFontSize":12}}}%%\nwardley-beta',()=>renderer.draw(),JSON.parse)).rejects.toThrow('draw failure');
     expect(renderer.draw).toBe(original);
     expect(config['wardley-beta']).toEqual({labelFontSize:16,axisFontSize:14});

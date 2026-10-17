@@ -1,11 +1,12 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { Menu, Notice, MarkdownView } from "obsidian";
+import { Menu, Notice, MarkdownView, TFile } from "obsidian";
 import MarkdownIt from "markdown-it";
 import { setIcon, UI_ICONS } from "./ui-icons.js";
 import { saveErrorMessage, holdScrollPosition, replaceRangeQuietly } from "./quiet-edit.js";
 const marker = /^\s*<!--\s*ib-table-align:(left|center|right)\s*-->\s*$/;
-function tables(source: string) { return new MarkdownIt().parse(source, {}).filter(t => t.type === "table_open"); }
-function metadata(lines, start: number) {
+interface TableToken { type: string; map: [number, number] }
+function tables(source: string): TableToken[] { return new MarkdownIt().parse(source, {}).filter(t => t.type === "table_open"); }
+function metadata(lines: string[], start: number) {
   let line = start - 1;
   while (line >= 0 && !lines[line].trim()) line--;
   const match = marker.exec(lines[line] || "");
@@ -22,7 +23,7 @@ function setAlignment(table: HTMLElement, value: string | null) {
 }
 export function applyTableSourceAlignment(root: HTMLElement, source: string) {
   const entries = tables(source), lines = source.split("\n");
-  [...root.querySelectorAll("table")].forEach((table: HTMLElement, index) => {
+  [...root.querySelectorAll<HTMLElement>("table")].forEach((table, index) => {
     if (table.closest(".markdown-embed, .internal-embed")) return;
     const value = entries[index] ? metadata(lines, entries[index].map[0]).alignment : null;
     setAlignment(table, value);
@@ -31,8 +32,8 @@ export function applyTableSourceAlignment(root: HTMLElement, source: string) {
 // Obsidian reuses an already rendered table section when only the marker comment above it changed
 // (set from Live Preview), so a table in reading view kept its old position. Re-read the markers
 // from the source whenever a reading view could be showing stale ones.
-export async function syncPreviewTableAlignment(plugin: IgnorancePlugin, view) {
-  const file = view?.file, preview = view?.containerEl?.querySelector(".markdown-preview-view");
+export async function syncPreviewTableAlignment(plugin: IgnorancePlugin, view: MarkdownView | null) {
+  const file = view?.file, preview = view?.containerEl?.querySelector<HTMLElement>(".markdown-preview-view");
   if (!file || !preview || view.getMode?.() !== "preview") return;
   const source = await plugin.app.vault.cachedRead(file);
   applyTableSourceAlignment(preview, source);
@@ -43,13 +44,14 @@ export function tableAlignmentControl(plugin: IgnorancePlugin, table: HTMLElemen
     const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
     const editor = view?.file?.path === path && view.getMode() === "source" ? view.editor : null;
     const file = plugin.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof TFile)) throw Error("未找到表格源码位置");
     const source = editor ? editor.getValue() : await plugin.app.vault.cachedRead(file);
     const entry = tables(source)[ordinal];
     if (!entry) throw Error("表格已发生变化，请重新打开位置菜单");
     const lines = source.split("\n"), start = entry.map[0];
     return { editor, file, source, lines, start, ...metadata(lines, start) };
   };
-  void locate().then(found => { if (found.alignment) setAlignment(table, found.alignment); }).catch(() => {});
+  void locate().then(found => { if (found.alignment) setAlignment(table, found.alignment); }).catch(() => { /* the saved position is only a hint; the menu reports real failures */ });
   return (host: HTMLElement) => {
     const button = host.createEl("button", {cls:"ibt-align",attr:{type:"button",title:"表格位置","aria-label":"表格位置"}});
     setIcon(button, UI_ICONS.alignCenter);
@@ -57,7 +59,7 @@ export function tableAlignmentControl(plugin: IgnorancePlugin, table: HTMLElemen
     button.addEventListener("click", event => {
       event.preventDefault();event.stopPropagation();
       const menu = new Menu();
-      for (const [id,label] of [["default","跟随默认"],["left","居左"],["center","居中"],["right","居右"]]) menu.addItem(item => item.setTitle(label).setChecked((table.dataset.ibTableAlign || "default") === id).onClick(async () => {
+      const apply = async (id: string) => {
         const previous = table.dataset.ibTableAlign || "default";
         // Position is pure CSS: show it at once, then persist the marker. Saving re-renders the
         // note, so the reading position is held until that settles.
@@ -83,7 +85,8 @@ export function tableAlignmentControl(plugin: IgnorancePlugin, table: HTMLElemen
           setAlignment(table, previous === "default" ? null : previous);
           new Notice(`表格位置未保存：${saveErrorMessage(error)}`);
         }
-      }));
+      };
+      for (const [id,label] of [["default","跟随默认"],["left","居左"],["center","居中"],["right","居右"]]) menu.addItem(item => item.setTitle(label).setChecked((table.dataset.ibTableAlign || "default") === id).onClick(() => { void apply(id); }));
       const box=button.getBoundingClientRect();menu.showAtPosition({x:box.left,y:box.bottom+4});
     });
   };

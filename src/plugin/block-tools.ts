@@ -1,4 +1,5 @@
-import { Component,MarkdownRenderer,MarkdownView,Notice } from "obsidian";
+import { MarkdownRenderChild,MarkdownRenderer,MarkdownView,Notice,TFile } from "obsidian";
+import type { MarkdownPostProcessorContext } from "obsidian";
 import { chartAlignment,mountChartAlignment } from "../modules/chart-alignment.js";
 import { fencedCodeContent,parseHighlightedCodeLines,wrapCodeLines } from "../modules/code-lines.js";
 import { showCopyFeedback } from "../modules/copy-feedback";
@@ -10,10 +11,19 @@ import { anchorBlockTop } from "../modules/quiet-edit.js";
 import { UI_ICONS,setIcon } from "../modules/ui-icons.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 
+// Options of the header built over a rendered block.
+interface BlockHeaderOptions {
+  label: string;
+  language?: string;
+  withZoom?: boolean;
+  withEdit?: boolean;
+  onRename?: (label: HTMLElement) => void;
+}
+
 /* Block tools: the header on rendered code / diagram / chart blocks (language, copy, edit), and finding a block's source in the note. */
 
-export function enhanceCodeBlocks(plugin: IgnorancePlugin, root: HTMLElement, context) {
-  for (const code of root.querySelectorAll("pre > code")) {
+export function enhanceCodeBlocks(plugin: IgnorancePlugin, root: HTMLElement, context?: MarkdownPostProcessorContext) {
+  for (const code of root.querySelectorAll<HTMLElement>("pre > code")) {
     const pre = code.parentElement;
     // Front matter is shown as the Properties box; its raw <pre> stays hidden.
     if (code.closest(".mermaid") || pre.matches(".frontmatter")) continue;
@@ -38,7 +48,7 @@ export function enhanceCodeBlocks(plugin: IgnorancePlugin, root: HTMLElement, co
       language,
       withZoom: false,
       withEdit: false,
-      onRename: (label: string) => plugin.editLanguage(label, pre, context, language)
+      onRename: (label: HTMLElement) => plugin.editLanguage(label, pre, context, language)
     });
     mountChartAlignment(plugin, pre, actions);
     const wrap = createEl("button");
@@ -57,9 +67,9 @@ export function enhanceCodeBlocks(plugin: IgnorancePlugin, root: HTMLElement, co
   }
 }
 
-export async function renderMarkdownPreviewBlock(plugin: IgnorancePlugin, source: string, element: HTMLElement, context) {
+export async function renderMarkdownPreviewBlock(plugin: IgnorancePlugin, source: string, element: HTMLElement, context: MarkdownPostProcessorContext) {
   plugin.rememberSource(element, context);
-  const component = new Component();
+  const component = new MarkdownRenderChild(element);
   component.load();
   context.addChild(component);
 
@@ -82,7 +92,7 @@ export async function renderMarkdownPreviewBlock(plugin: IgnorancePlugin, source
   }
 }
 
-export function rememberSource(plugin: IgnorancePlugin, element: HTMLElement, context) {
+export function rememberSource(plugin: IgnorancePlugin, element: HTMLElement, context?: MarkdownPostProcessorContext) {
   const info = context?.getSectionInfo?.(element);
   if (!info || !context?.sourcePath) return;
   if (!plugin.blockSources) plugin.blockSources = new WeakMap();
@@ -95,23 +105,23 @@ export function rememberSource(plugin: IgnorancePlugin, element: HTMLElement, co
   });
 }
 
-export function editLanguage(plugin: IgnorancePlugin, label: string, pre, context, current: string) {
+export function editLanguage(plugin: IgnorancePlugin, label: HTMLElement, pre: HTMLElement, context: MarkdownPostProcessorContext | undefined, current: string) {
   openLanguagePicker({
     anchor: label,
     current,
-    onPick: async language => {
+    onPick: language => {
       if (language.toLowerCase() === current.toLowerCase()) return;
-      await plugin.writeFenceLanguage(pre, context, language);
+      void plugin.writeFenceLanguage(pre, context, language);
     }
   });
 }
 
-export async function writeFenceLanguage(plugin: IgnorancePlugin, pre, context, language: string) {
+export async function writeFenceLanguage(plugin: IgnorancePlugin, pre: HTMLElement, context: MarkdownPostProcessorContext | undefined, language: string) {
   const info = context?.getSectionInfo?.(pre);
   const file = context?.sourcePath
     ? plugin.app.vault.getAbstractFileByPath(context.sourcePath)
     : null;
-  if (!info || !file) return false;
+  if (!info || !(file instanceof TFile)) return false;
 
   const rewrite = (data: string) => {
     const lines = data.split("\n");
@@ -130,9 +140,10 @@ export async function writeFenceLanguage(plugin: IgnorancePlugin, pre, context, 
    blocks alike. */
 export function collapseSelectionAfterEdit(plugin: IgnorancePlugin) {
   const BLOCKS = ".cm-embed-block, .cm-html-embed, .cm-callout, [class*=\"ibc-container\"]";
-  const handler = event => {
-    if (!event.target.closest?.(".edit-block-button, .ibm-edit-source")) return;
-    plugin.anchorEditedBlock(event.target);
+  const handler = (event: MouseEvent) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target?.closest(".edit-block-button, .ibm-edit-source")) return;
+    plugin.anchorEditedBlock(target);
     window.setTimeout(() => {
       const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
       const editor = view?.editor;
@@ -141,19 +152,20 @@ export function collapseSelectionAfterEdit(plugin: IgnorancePlugin) {
     }, 0);
   };
   // A plain click on a rendered block can also reveal its source; hold the page still then too.
-  const press = event => {
-    const block = event.target instanceof Element ? event.target.closest(BLOCKS) : null;
-    if (block && !event.target.closest(".edit-block-button, .ibm-edit-source")) plugin.anchorEditedBlock(block);
+  const press = (event: MouseEvent) => {
+    const target = event.target instanceof Element ? event.target : null;
+    const block = target?.closest<HTMLElement>(BLOCKS);
+    if (block && !target.closest(".edit-block-button, .ibm-edit-source")) plugin.anchorEditedBlock(block);
   };
   document.addEventListener("click", handler, true);
   document.addEventListener("mousedown", press, true);
   plugin.register(() => { document.removeEventListener("click", handler, true); document.removeEventListener("mousedown", press, true); });
 }
 
-export function anchorEditedBlock(plugin: IgnorancePlugin, target: HTMLElement) {
-  const block = target.closest?.(".cm-embed-block, .cm-html-embed, .cm-callout, [class*=\"ibc-container\"]");
+export function anchorEditedBlock(plugin: IgnorancePlugin, target: Element) {
+  const block = target.closest<HTMLElement>(".cm-embed-block, .cm-html-embed, .cm-callout, [class*=\"ibc-container\"]");
   if (!block) return;
-  const cm = plugin.app.workspace.getLeavesOfType("markdown").map(leaf => leaf.view?.editor?.cm).find(cm => cm?.dom.contains(block));
+  const cm = plugin.app.workspace.getLeavesOfType("markdown").map(leaf => leaf.view instanceof MarkdownView ? leaf.view.editor.cm : undefined).find(cm => cm?.dom.contains(block));
   if (cm) anchorBlockTop(cm, block);
 }
 
@@ -164,7 +176,7 @@ export function anchorEditedBlock(plugin: IgnorancePlugin, target: HTMLElement) 
 /* One header for both block kinds. The only difference is whether the zoom
    group is present, so the slots — label, zoom, copy, edit — are always laid
    out the same way and nothing shifts between a diagram and a code block. */
-export function buildBlockHeader(plugin: IgnorancePlugin, container: HTMLElement, options) {
+export function buildBlockHeader(plugin: IgnorancePlugin, container: HTMLElement, options: BlockHeaderOptions) {
   const header = createDiv();
   header.className = "ibm-block-header";
 
@@ -176,11 +188,11 @@ export function buildBlockHeader(plugin: IgnorancePlugin, container: HTMLElement
   else setIcon(icon, options.withZoom ? UI_ICONS.chart : UI_ICONS.code);
   title.appendChild(icon);
 
-  const label = createEl(options.onRename ? "button" : "span");
+  const label = options.onRename ? createEl("button") : createSpan();
   label.className = "ibm-block-label";
   label.textContent = options.label;
   if (options.onRename) {
-    label.type = "button";
+    (label as HTMLButtonElement).type = "button";
     label.classList.add("is-editable");
     label.title = t("changeLanguage");
     label.addEventListener("click", () => options.onRename(label));
@@ -192,7 +204,7 @@ export function buildBlockHeader(plugin: IgnorancePlugin, container: HTMLElement
   actions.className = "ibm-block-actions";
   header.appendChild(actions);
 
-  let toolbar = null;
+  let toolbar: HTMLDivElement | null = null;
   if (options.withZoom) {
     toolbar = createDiv();
     toolbar.className = "ibm-mermaid-toolbar";
@@ -230,7 +242,7 @@ export function createEditButton(plugin: IgnorancePlugin, container: HTMLElement
 
 export function editBlock(plugin: IgnorancePlugin, container: HTMLElement) {
   const host = container.closest(".cm-embed-block, .cm-preview-code-block, .el-pre, .el-div");
-  const native = host?.querySelector(".edit-block-button");
+  const native = host?.querySelector<HTMLElement>(".edit-block-button");
   if (native) {
     native.click();
     return;
@@ -247,7 +259,7 @@ export function editBlock(plugin: IgnorancePlugin, container: HTMLElement) {
   const state = view.getState();
   state.mode = "source";
   state.source = false;
-  view.setState(state, { history: false }).then(() => {
+  void view.setState(state, { history: false }).then(() => {
     const position = { line: Math.min(stored.lineStart + 1, stored.lineEnd), ch: 0 };
     view.editor.setCursor(position);
     view.editor.scrollIntoView({ from: position, to: position }, true);
@@ -274,15 +286,17 @@ export function createCopyButton(plugin: IgnorancePlugin, container: HTMLElement
   button.setAttribute("aria-label", t("copySource"));
   button.setCssProps({ "--no-tooltip": "true" });
   setIcon(button, UI_ICONS.copy);
-  button.addEventListener("click", async () => {
-    const source = await plugin.sourceForBlock(container);
-    if (source === null) {
-      new Notice(t("copyFailed"));
-      return;
-    }
-    await navigator.clipboard.writeText(source);
-    showCopyFeedback(button, t("copied"));
-    new Notice(t("copied"));
+  button.addEventListener("click", () => {
+    void (async () => {
+      const source = await plugin.sourceForBlock(container);
+      if (source === null) {
+        new Notice(t("copyFailed"));
+        return;
+      }
+      await navigator.clipboard.writeText(source);
+      showCopyFeedback(button, t("copied"));
+      new Notice(t("copied"));
+    })();
   });
   return button;
 }
@@ -290,7 +304,7 @@ export function createCopyButton(plugin: IgnorancePlugin, container: HTMLElement
 /* The fenced source behind a rendered block. Reading view gives us the
    section info up front; in Live Preview the block is a CodeMirror widget, so
    ask the editor where the element sits and read the fence around it. */
-export async function sourceForBlock(plugin: IgnorancePlugin, element: HTMLElement) {
+export async function sourceForBlock(plugin: IgnorancePlugin, element: HTMLElement): Promise<string | null> {
   const echartsSource = plugin.echartsSources?.get(element);
   if (echartsSource !== undefined) return echartsSource;
   // A code block carries its own source; no need to go back to the file.
@@ -300,7 +314,7 @@ export async function sourceForBlock(plugin: IgnorancePlugin, element: HTMLEleme
   const stored = plugin.storedSourceFor(element);
   if (stored) {
     const file = plugin.app.vault.getAbstractFileByPath(stored.path);
-    if (file) {
+    if (file instanceof TFile) {
       const text = await plugin.app.vault.cachedRead(file);
       return text.split("\n").slice(stored.lineStart + 1, stored.lineEnd).join("\n");
     }
@@ -313,21 +327,21 @@ export async function sourceForBlock(plugin: IgnorancePlugin, element: HTMLEleme
     const position = cm.posAtDOM(element);
     const doc = cm.state.doc;
     let line = doc.lineAt(position).number;
-    const isFence = number => /^\s*(?:`{3,}|~{3,})/.test(doc.line(number).text);
+    const isFence = (number: number) => /^\s*(?:`{3,}|~{3,})/.test(doc.line(number).text);
     let start = line;
     while (start > 1 && !isFence(start)) start -= 1;
     let end = start + 1;
     while (end < doc.lines && !isFence(end)) end += 1;
-    const lines = [];
+    const lines: string[] = [];
     for (let number = start + 1; number < end; number += 1) lines.push(doc.line(number).text);
     return lines.join("\n");
-  } catch (_) {
+  } catch {
     return null;
   }
 }
 
 export function sweepBlocks(plugin: IgnorancePlugin) {
-  for (const container of document.querySelectorAll(".mermaid")) {
+  for (const container of document.querySelectorAll<HTMLElement>(".mermaid")) {
     plugin.enhanceDiagram(container);
   }
 }

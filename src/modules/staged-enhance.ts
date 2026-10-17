@@ -77,7 +77,7 @@ function applyCaptions(root: HTMLElement, source: string) {
     const wantedEntries = entries.filter(entry => entry.kind === kind);
     const pattern = captionPattern(kind);
     const paragraphs = [...root.querySelectorAll("p")].filter(paragraph => pattern?.test(paragraph.textContent || "") && followsBlock(paragraph, kind));
-    if (wantedEntries.length === paragraphs.length) wantedEntries.forEach((entry, index) => captionParagraph(paragraphs[index] as HTMLElement, entry));
+    if (wantedEntries.length === paragraphs.length) wantedEntries.forEach((entry, index) => captionParagraph(paragraphs[index], entry));
   }
   resolveRefs(root, entries);
 }

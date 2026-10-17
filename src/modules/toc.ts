@@ -1,16 +1,17 @@
-import type { TFile } from "obsidian";
+import { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { editorInfoField, MarkdownView } from "obsidian";
-import { Decoration, ViewPlugin, WidgetType } from "@codemirror/view";
-import { extractTocHeadings, isTocDirective } from "./toc-headings.js";
+import { Decoration, ViewPlugin, WidgetType, type DecorationSet, type EditorView, type ViewUpdate } from "@codemirror/view";
+import type { Range } from "@codemirror/state";
+import { extractTocHeadings, isTocDirective, type TocItem } from "./toc-headings.js";
 
 function tocHeadings(plugin: IgnorancePlugin, sourcePath: string) {
   const file = plugin.app.vault.getAbstractFileByPath(sourcePath);
-  const headings = (file && plugin.app.metadataCache.getFileCache(file)?.headings) || [];
+  const headings = (file instanceof TFile && plugin.app.metadataCache.getFileCache(file)?.headings) || [];
   return extractTocHeadings(headings);
 }
 
-function buildTocList(plugin: IgnorancePlugin, sourcePath: string, onPick) {
+function buildTocList(plugin: IgnorancePlugin, sourcePath: string, onPick: (heading: TocItem) => void) {
   const headings = tocHeadings(plugin, sourcePath);
   const nav = createDiv({ cls: "ibm-toc" });
   nav.createDiv({ cls: "ibm-toc-title", text: "目录" });
@@ -32,22 +33,22 @@ function buildTocList(plugin: IgnorancePlugin, sourcePath: string, onPick) {
   return nav;
 }
 
-function jumpToHeading(plugin: IgnorancePlugin, sourcePath: string, heading) {
+function jumpToHeading(plugin: IgnorancePlugin, sourcePath: string, heading: TocItem) {
   const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
   if (view?.file?.path === sourcePath && view.getState?.().mode === "preview") {
-    const target = [...view.containerEl.querySelectorAll("h1,h2,h3,h4,h5,h6")]
+    const target = [...view.containerEl.querySelectorAll<HTMLElement>("h1,h2,h3,h4,h5,h6")]
       .find(element => element.dataset.heading === heading.text || element.textContent.trim() === heading.text);
     if (target) {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
   }
-  plugin.app.workspace.openLinkText(`#${heading.text}`, sourcePath, false);
+  void plugin.app.workspace.openLinkText(`#${heading.text}`, sourcePath, false);
 }
 
 function renderTocBlocks(plugin: IgnorancePlugin, element: HTMLElement, sourcePath: string) {
   for (const p of element.querySelectorAll("p")) {
-    const link = p.children.length === 1 ? p.firstElementChild : null;
+    const link = p.children.length === 1 ? p.firstElementChild as HTMLElement : null;
     const isWikiToc = link?.matches("a.internal-link")
       && link.dataset.href?.trim().toLowerCase() === "toc"
       && link.textContent.trim().toLowerCase() === "toc";
@@ -57,14 +58,17 @@ function renderTocBlocks(plugin: IgnorancePlugin, element: HTMLElement, sourcePa
 }
 
 class TocWidget extends WidgetType {
+  plugin: IgnorancePlugin;
+  sourcePath: string;
+  signature: string;
   constructor(plugin: IgnorancePlugin, sourcePath: string, signature: string) {
     super();
     this.plugin = plugin;
     this.sourcePath = sourcePath;
     this.signature = signature;
   }
-  eq(other) { return other.signature === this.signature && other.sourcePath === this.sourcePath; }
-  toDOM(view) {
+  eq(other: TocWidget) { return other.signature === this.signature && other.sourcePath === this.sourcePath; }
+  toDOM(view: EditorView) {
     const nav = buildTocList(this.plugin, this.sourcePath, h => {
       const line = view.state.doc.line(Math.min(view.state.doc.lines, h.line + 1));
       view.dispatch({ selection: { anchor: line.from }, scrollIntoView: true });
@@ -77,12 +81,12 @@ class TocWidget extends WidgetType {
 }
 
 function tocExtension(plugin: IgnorancePlugin) {
-  const build = view => {
+  const build = (view: EditorView) => {
     const file = view.state.field(editorInfoField, false)?.file;
     if (!file) return Decoration.none;
     const signature = JSON.stringify(tocHeadings(plugin, file.path));
     const cursorLines = new Set(view.state.selection.ranges.map(r => view.state.doc.lineAt(r.head).number));
-    const ranges = [];
+    const ranges: Range<Decoration>[] = [];
     for (const { from, to } of view.visibleRanges) {
       for (let pos = from; pos <= to;) {
         const line = view.state.doc.lineAt(pos);
@@ -95,18 +99,20 @@ function tocExtension(plugin: IgnorancePlugin) {
     return Decoration.set(ranges);
   };
   return ViewPlugin.fromClass(class {
-    constructor(view) {
+    decorations: DecorationSet;
+    onMeta: (file: TFile) => void;
+    constructor(view: EditorView) {
       this.decorations = build(view);
       // Headings change after the metadata cache catches up with an edit.
       this.onMeta = (file: TFile) => {
         if (view.state.field(editorInfoField, false)?.file === file) {
           this.decorations = build(view);
-          try { view.dispatch({}); } catch (_) { /* view already gone */ }
+          try { view.dispatch({}); } catch { /* view already gone */ }
         }
       };
       plugin.app.metadataCache.on("changed", this.onMeta);
     }
-    update(update) {
+    update(update: ViewUpdate) {
       if (update.docChanged || update.selectionSet || update.viewportChanged) this.decorations = build(update.view);
     }
     destroy() { plugin.app.metadataCache.off("changed", this.onMeta); }

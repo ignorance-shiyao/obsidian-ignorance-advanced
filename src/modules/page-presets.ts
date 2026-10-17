@@ -15,12 +15,15 @@ export const PAGE_PRESETS: PagePreset[] = [
     settings: { width: "standard", paged: false, marginPreset: "normal", pageNumber: "none", runningHeader: "none" } }
 ];
 
+const textOf = (value: unknown) => (typeof value === "string" ? value : "");
+
 /** Fill the page settings from a preset (the margins follow the paper size). Returns false for an unknown id. */
-export function applyPagePreset(page: Record<string, any>, id: string): boolean {
+export function applyPagePreset(page: object, id: string): boolean {
   const preset = PAGE_PRESETS.find(item => item.id === id);
   if (!preset) return false;
   Object.assign(page, preset.settings);
-  const margins = paperMarginsForPreset(String(page.marginPreset), String(page.paper));
-  if (margins) page.margins = margins;
+  const settings = page as Record<string, unknown>;
+  const margins = paperMarginsForPreset(textOf(settings.marginPreset), textOf(settings.paper));
+  if (margins) settings.margins = margins;
   return true;
 }

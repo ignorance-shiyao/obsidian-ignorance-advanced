@@ -1,35 +1,64 @@
 import { describe, expect, it } from "vitest";
+import type { IgnorancePlugin } from "../plugin-types.js";
 import { installTabOpening } from "./tab-opening.js";
+
+interface Root { name: string }
+interface FakeFile { path: string }
+interface FakeLeaf {
+  root: Root;
+  parent: Root;
+  detached: boolean;
+  getRoot(): Root;
+  detach(): void;
+  view: { getViewType(): string; file?: FakeFile; leaf?: FakeLeaf };
+  getViewState(): { type: string; state: { file?: string } };
+  openFile(file: FakeFile): Promise<void>;
+}
+interface FakeWorkspace {
+  rootSplit: Root;
+  rightSplit: Root;
+  leftSplit: Root;
+  getActiveViewOfType(): FakeLeaf["view"];
+  getLeaf(newLeaf?: boolean): FakeLeaf;
+  iterateAllLeaves(callback: (leaf: FakeLeaf) => void): void;
+  setActiveLeaf(): void;
+}
 
 function setup(opts: { activeRoot?: "main" | "right"; activeType?: string; tabs?: Record<string, boolean> } = {}) {
   const rootSplit = { name: "root" }, rightSplit = { name: "right" }, leftSplit = { name: "left" };
-  const leaves: any[] = [];
-  const makeLeaf = (root, type = "markdown", file?) => {
-    const leaf: any = {
+  const leaves: FakeLeaf[] = [];
+  const opened: string[] = [];
+  // Every leaf shares one prototype, standing in for Obsidian's WorkspaceLeaf.
+  const leafPrototype = { openFile(file: FakeFile) { opened.push(file.path); return Promise.resolve(); } };
+  const makeLeaf = (root: Root, type = "markdown", file?: FakeFile) => {
+    const leaf: FakeLeaf = Object.assign(Object.create(leafPrototype) as FakeLeaf, {
       root, parent: root, detached: false,
       getRoot: () => root, detach() { leaf.detached = true; },
       view: { getViewType: () => type, file },
       getViewState: () => ({ type, state: { file: file?.path } }),
-    };
+    });
+    leaf.view.leaf = leaf;
     leaves.push(leaf);
     return leaf;
   };
-  const created: any[] = [];
+  const created: FakeLeaf[] = [];
   const active = makeLeaf(opts.activeRoot === "right" ? rightSplit : rootSplit, opts.activeType ?? "markdown");
-  const Leaf = function () {} as any;
-  const opened: string[] = [];
-  Leaf.prototype.openFile = function (file) { opened.push(file.path); return Promise.resolve(); };
-  Object.setPrototypeOf(active, Leaf.prototype);
-  const workspace: any = {
-    rootSplit, rightSplit, leftSplit, activeLeaf: active,
+  const workspace: FakeWorkspace = {
+    rootSplit, rightSplit, leftSplit,
+    getActiveViewOfType: () => active.view,
     getLeaf(newLeaf) {
-      if (newLeaf === true) { const l = makeLeaf(active.root); Object.setPrototypeOf(l, Leaf.prototype); created.push(l); return l; }
+      if (newLeaf === true) { const l = makeLeaf(active.root); created.push(l); return l; }
       return makeLeaf(rootSplit);
     },
     iterateAllLeaves(cb) { [...leaves].filter(l => !l.detached).forEach(cb); },
-    setActiveLeaf() {},
+    setActiveLeaf() { /* focus does not matter here */ },
   };
-  const plugin: any = { app: { workspace }, state: { tabs: { openInNewTab: true, deduplicateTabs: true, deduplicateAcrossTabGroups: true, ...opts.tabs } }, register() {} };
+  // Only the members the module reads exist on this stand-in for the plugin.
+  const plugin = Object.assign(Object.create(null) as IgnorancePlugin, {
+    app: { workspace },
+    state: { tabs: { openInNewTab: true, deduplicateTabs: true, deduplicateAcrossTabGroups: true, ...opts.tabs } },
+    register() { /* no teardown in the test */ },
+  });
   return { plugin, workspace, leaves, created, active, makeLeaf, opened, rightSplit };
 }
 

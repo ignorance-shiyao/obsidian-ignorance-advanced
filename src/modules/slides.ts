@@ -1,4 +1,6 @@
 import type { MarkdownView, WorkspaceLeaf } from "obsidian";
+import type { RevealApi } from "reveal.js";
+import type PptxGenJS from "pptxgenjs";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Component, ItemView, Menu, Notice, Platform, TFile } from "obsidian";
 import { setIcon } from "./ui-icons.js";
@@ -32,14 +34,18 @@ const CANVASES: [string, number, number][] = [
 // A 1280px canvas fitted into a 390px phone screen is drawn at under a third of
 // its size and the text is unreadable; phones get their own portrait default,
 // kept apart from the desktop choice because the settings file is synced.
-function canvasId(settings) {
-  return (Platform.isPhone ? settings?.phoneCanvas || "9:16" : settings?.canvas || "16:9");
+type PresentationSettings = IgnorancePlugin["state"]["presentation"];
+function textOr(value: unknown, fallback: string): string {
+  return typeof value === "string" && value ? value : fallback;
 }
-function canvasEntry(settings: IgnorancePlugin["state"]["presentation"]) {
+function canvasId(settings: PresentationSettings | undefined): string {
+  return Platform.isPhone ? textOr(settings?.phoneCanvas, "9:16") : textOr(settings?.canvas, "16:9");
+}
+function canvasEntry(settings: PresentationSettings | undefined) {
   const id = canvasId(settings);
   return CANVASES.find(([entry]) => entry === id) || CANVASES[0];
 }
-const ANIMATIONS = [
+const ANIMATIONS: [string, string, string][] = [
   ["none", "无", "不加动效"],
   ["smooth", "淡入上移", "整页轻轻升起"],
   ["fade", "淡入", "整页渐显"],
@@ -56,6 +62,11 @@ function presentationDefaults() {
 
 function stripFrontmatter(markdown: string) {
   return String(markdown).replace(/^\uFEFF?---\r?\n[\s\S]*?\r?\n---\s*(?:\r?\n|$)/, "");
+}
+
+function errorText(error: unknown): string {
+  if (error instanceof Error) return error.message || error.name;
+  return typeof error === "string" ? error : "未知错误";
 }
 
 function delay(ms: number) {
@@ -79,7 +90,7 @@ async function renderSlideDiagrams(root: HTMLElement, width: number) {
       const diagram = createDiv({ cls: "mermaid" });
       setMarkup(diagram, svg);
       pre.replaceWith(diagram);
-    } catch (_) {
+    } catch {
       // Leave the source; Obsidian shows its own error if it draws it.
     } finally {
       holder.remove();
@@ -130,7 +141,7 @@ function setDefaultSkinVariables(root: HTMLElement) {
    tokens the note and the exports use, so a deck matches its document. */
 const PALETTE_SKIN = /^palette-([a-z]+)-(light|dark)$/;
 
-function applySkin(root: HTMLElement, skinId) {
+function applySkin(root: HTMLElement, skinId: string) {
   [...root.classList].filter(name => name.startsWith("skin-")).forEach(name => root.classList.remove(name));
   for (const name of THEME_TOKEN_NAMES) root.style.removeProperty(name);
   delete root.dataset.ibMode;
@@ -145,7 +156,7 @@ function applySkin(root: HTMLElement, skinId) {
 
 }
 
-function addToolbarButton(parent: HTMLElement, icon: string, label: string, action, data = {}) {
+function addToolbarButton(parent: HTMLElement, icon: string, label: string, action: (event: MouseEvent) => void, data: Record<string, string> = {}) {
   const button = parent.createEl("button", { cls: "ibp-presentation-action", attr: { type: "button", "aria-label": label, "data-tooltip-position": "top" } });
   setIcon(button, icon);
   button.addEventListener("click", action);
@@ -153,7 +164,7 @@ function addToolbarButton(parent: HTMLElement, icon: string, label: string, acti
   return button;
 }
 
-let openToolbarPopover = null;
+let openToolbarPopover: (() => void) | null = null;
 function closeToolbarPopover() {
   openToolbarPopover?.();
   openToolbarPopover = null;
@@ -161,7 +172,7 @@ function closeToolbarPopover() {
 
 // A card panel under a toolbar button, for choices that read better with a
 // preview than as a text menu. `fill` draws the content; `pick` closes it.
-function openPopoverUnder(button: HTMLButtonElement, cls: string, fill) {
+function openPopoverUnder(button: HTMLButtonElement, cls: string, fill: (panel: HTMLElement, close: () => void) => void) {
   closeToolbarPopover();
   const doc = button.ownerDocument;
   const panel = doc.body.createDiv({ cls: `ibp-popover ${cls}` });
@@ -170,8 +181,8 @@ function openPopoverUnder(button: HTMLButtonElement, cls: string, fill) {
   const width = panel.offsetWidth;
   panel.style.left = `${Math.max(8, Math.min(box.left, doc.defaultView.innerWidth - width - 8))}px`;
   panel.style.top = `${box.bottom + 6}px`;
-  const onDown = event => { if (!panel.contains(event.target) && !button.contains(event.target)) closeToolbarPopover(); };
-  const onKey = event => { if (event.key === "Escape") closeToolbarPopover(); };
+  const onDown = (event: PointerEvent) => { const target = event.target as Node; if (!panel.contains(target) && !button.contains(target)) closeToolbarPopover(); };
+  const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") closeToolbarPopover(); };
   doc.addEventListener("pointerdown", onDown, true);
   doc.addEventListener("keydown", onKey, true);
   openToolbarPopover = () => {
@@ -183,7 +194,7 @@ function openPopoverUnder(button: HTMLButtonElement, cls: string, fill) {
 
 // Theme picker: one card per palette showing its paper, ink and accent in
 // light and dark; picking a half applies that palette in that mode.
-function addThemePicker(parent: HTMLElement, plugin: IgnorancePlugin, onFollow, onPalette) {
+function addThemePicker(parent: HTMLElement, plugin: IgnorancePlugin, onFollow: () => void, onPalette: (id: string, mode: "light" | "dark") => void) {
   const button = parent.createEl("button", { cls: "ibp-presentation-picker", attr: { type: "button", "aria-label": "主题（所有视图）", "aria-haspopup": "dialog", "data-tooltip-position": "top" } });
   const text = button.createSpan({ cls: "ibp-presentation-picker-label" });
   setIcon(button.createSpan({ cls: "ibp-presentation-picker-chevron" }), "lucide-chevron-down");
@@ -200,7 +211,7 @@ function addThemePicker(parent: HTMLElement, plugin: IgnorancePlugin, onFollow, 
       const card = grid.createDiv({ cls: "ibp-theme-card" });
       card.createDiv({ cls: "ibp-theme-name", text: preset.label });
       const halves = card.createDiv({ cls: "ibp-theme-halves" });
-      for (const mode of ["light", "dark"]) {
+      for (const mode of ["light", "dark"] as const) {
         const half = halves.createEl("button", { cls: "ibp-theme-half", attr: { type: "button", "aria-label": `${preset.label} · ${mode === "light" ? "浅色" : "深色"}` } });
         const paper = mode === "light" ? preset.lightPaper : preset.darkPaper;
         const ink = mode === "light" ? preset.lightInk : preset.darkInk;
@@ -221,7 +232,7 @@ function addThemePicker(parent: HTMLElement, plugin: IgnorancePlugin, onFollow, 
 }
 
 // Animation picker: every row replays its motion on a small page while hovered.
-function addAnimationPicker(parent: HTMLElement, options, current, onPick) {
+function addAnimationPicker(parent: HTMLElement, options: [string, string, string][], current: () => string, onPick: (value: string) => void) {
   const button = parent.createEl("button", { cls: "ibp-presentation-picker", attr: { type: "button", "aria-label": "进入动效", "aria-haspopup": "dialog", "data-tooltip-position": "top" } });
   const text = button.createSpan({ cls: "ibp-presentation-picker-label" });
   setIcon(button.createSpan({ cls: "ibp-presentation-picker-chevron" }), "lucide-chevron-down");
@@ -248,7 +259,7 @@ function addAnimationPicker(parent: HTMLElement, options, current, onPick) {
 
 // A button that opens Obsidian's own menu (styled by the theme) instead of a
 // <select>, whose popup is drawn by the operating system.
-function addToolbarPicker(parent: HTMLElement, label: string, options, current, onPick) {
+function addToolbarPicker(parent: HTMLElement, label: string, options: [string | null, string][], current: () => string, onPick: (value: string) => void) {
   const button = parent.createEl("button", { cls: "ibp-presentation-picker", attr: { type: "button", "aria-label": label, "aria-haspopup": "menu", "data-tooltip-position": "top" } });
   const text = button.createSpan({ cls: "ibp-presentation-picker-label" });
   setIcon(button.createSpan({ cls: "ibp-presentation-picker-chevron" }), "lucide-chevron-down");
@@ -297,7 +308,7 @@ function makeDataUri(svg: SVGSVGElement) {
    canvas size, long pages split automatically, then structured. Shared by the
    presentation view and PPTX export straight from a note. Returns null when
    `isCurrent()` turns false (a newer render started). */
-export async function buildDeck(plugin: IgnorancePlugin, file: TFile, component, isCurrent = () => true, { limit = Infinity } = {}) {
+export async function buildDeck(plugin: IgnorancePlugin, file: TFile, component: Component, isCurrent = () => true, { limit = Infinity } = {}) {
   const markdown = await plugin.app.vault.cachedRead(file);
   if (!isCurrent()) return null;
   const settings = plugin.state.presentation || presentationDefaults();
@@ -308,14 +319,14 @@ export async function buildDeck(plugin: IgnorancePlugin, file: TFile, component,
   measure.style.width = `${width}px`;
   measure.style.height = `${height}px`;
   applySkin(measure, settings.skin || "none");
-  const rows = [];
+  const rows: { vertical: boolean; pages: HTMLElement[] }[] = [];
   const chrome = false;
   let badgeIndex = 0;
   try {
     // Let input and painting run between slides; a long deck is otherwise one long task per slide.
     const pause = renderBudget(undefined, 16);
     for (const column of columns) {
-      const row = [];
+      const row: HTMLElement[] = [];
       for (const source of column) {
         await pause();
         const parsed = parseSlideLayout(source);
@@ -364,7 +375,7 @@ export async function buildDeck(plugin: IgnorancePlugin, file: TFile, component,
               continue;
             }
           }
-          const carry = [];
+          const carry: Element[] = [];
           const frame = body?.parentElement;
           const floor = () => {
             const box = frame.getBoundingClientRect();
@@ -392,7 +403,7 @@ export async function buildDeck(plugin: IgnorancePlugin, file: TFile, component,
             if (page.dataset.slideTag) next.dataset.slideTag = page.dataset.slideTag;
             const nextInner = next.createDiv({ cls: "slide-inner" });
             if (repeat) { repeat.dataset.autoRepeat = "1"; nextInner.appendChild(repeat); }
-            carry.forEach(block => nextInner.appendChild(block));
+            carry.forEach(block => { nextInner.appendChild(block); });
             page.after(next);
             queue.splice(q + 1, 0, next);
           }
@@ -413,7 +424,7 @@ export async function buildDeck(plugin: IgnorancePlugin, file: TFile, component,
     if (!Platform.isPhone && settings.animation && settings.animation !== "none") reveal.classList.add(`slide-anim-${settings.animation}`);
     applySkin(reveal, settings.skin || "none");
     const slides = reveal.createDiv({ cls: "slides" });
-    const entries = [];
+    const entries: SlideEntry[] = [];
     let horizontalIndex = 0;
     for (const row of rows) {
       if (row.vertical) {
@@ -437,14 +448,16 @@ export async function buildDeck(plugin: IgnorancePlugin, file: TFile, component,
   }
 }
 
+interface SlideEntry { el: HTMLElement; h: number; v: number }
+
 class PresentationView extends ItemView {
   plugin: IgnorancePlugin;
   filePath: string;
   renderToken: number;
-  // The reveal.js instance (the library ships no types).
-  deck: any;
+  // The reveal.js instance.
+  deck: RevealApi | null;
   renderComponent: Component | null;
-  slideEntries: { el: HTMLElement; h: number; v: number }[];
+  slideEntries: SlideEntry[];
   preferredIndices: number[];
   returnMode: string;
   stage: HTMLDivElement;
@@ -461,7 +474,7 @@ class PresentationView extends ItemView {
   fullscreenNext: HTMLButtonElement;
   lastSlideH: number;
   stepMode: boolean;
-  pointerTool: string;
+  pointerTool: string | null;
   root: HTMLElement;
   declare titleEl: HTMLElement;
 
@@ -489,9 +502,10 @@ class PresentationView extends ItemView {
   getIcon() { return "lucide-presentation"; }
   getState() { return { filePath: this.filePath, returnMode: this.returnMode }; }
 
-  async setState(state) {
-    this.filePath = typeof state?.filePath === "string" ? state.filePath : "";
-    this.returnMode = state?.returnMode === "preview" ? "preview" : "source";
+  async setState(state: unknown) {
+    const saved = (state ?? {}) as { filePath?: unknown; returnMode?: unknown };
+    this.filePath = typeof saved.filePath === "string" ? saved.filePath : "";
+    this.returnMode = saved.returnMode === "preview" ? "preview" : "source";
     await this.renderSlides();
   }
 
@@ -504,12 +518,12 @@ class PresentationView extends ItemView {
     this.buildToolbar();
     this.registerDomEvent(window, "ib-theme-change" as keyof WindowEventMap, () => {
       if (document.body.dataset.ibThemeCapture) return;
-      if (this.deck?.getIndices) { const index = this.deck.getIndices(); this.preferredIndices = [index.h, index.v]; }
+      if (this.deck) { const index = this.deck.getIndices(); this.preferredIndices = [index.h, index.v]; }
       this.plugin.state.presentation.skin = "none";
       void this.renderSlides();
     });
     this.installWheelPaging();
-    this.resizeObserver = new ResizeObserver(() => this.deck?.layout?.());
+    this.resizeObserver = new ResizeObserver(() => this.deck?.layout());
     this.resizeObserver.observe(this.stage);
     if (this.filePath) await this.renderSlides();
   }
@@ -517,9 +531,9 @@ class PresentationView extends ItemView {
   async onClose() {
     this.renderToken += 1;
     this.resizeObserver?.disconnect();
-    this.deck?.destroy?.();
+    this.deck?.destroy();
     this.deck = null;
-    this.renderComponent?.unload?.();
+    this.renderComponent?.unload();
     this.renderComponent = null;
   }
 
@@ -560,8 +574,8 @@ class PresentationView extends ItemView {
     });
     this.exportButton = addToolbarButton(this.toolbar, "lucide-file-down", "导出 PPTX", () => {
       const menu = new Menu();
-      menu.addItem(item => item.setTitle("PPTX（可编辑）").setIcon("lucide-presentation").onClick(() => this.previewPptx("editable")));
-      menu.addItem(item => item.setTitle("PPTX（图片版，高保真、不可编辑）").setIcon("lucide-image").onClick(() => this.previewPptx("image")));
+      menu.addItem(item => item.setTitle("演示文稿（可编辑）").setIcon("lucide-presentation").onClick(() => this.previewPptx("editable")));
+      menu.addItem(item => item.setTitle("演示文稿（图片版，高保真、不可编辑）").setIcon("lucide-image").onClick(() => this.previewPptx("image")));
       const box = this.exportButton.getBoundingClientRect();
       menu.showAtPosition({ x: box.left, y: box.bottom + 4 });
     });
@@ -576,7 +590,7 @@ class PresentationView extends ItemView {
     await this.leaf.setViewState({ type: "markdown", active: true, state }, { focus: true });
   }
 
-  split(direction) {
+  split(direction: "vertical" | "horizontal") {
     const leaf = this.app.workspace.getLeaf("split", direction);
     void leaf.setViewState({ type: VIEW_TYPE, active: true, state: { filePath: this.filePath } });
   }
@@ -622,7 +636,7 @@ class PresentationView extends ItemView {
 
   /* Fullscreen shows only the Reveal element, so it carries its own quiet page
      control: shown while the pointer moves, faded out after a short idle. */
-  buildFullscreenNav(reveal) {
+  buildFullscreenNav(reveal: HTMLElement) {
     const nav = reveal.createDiv({ cls: "ibp-fullscreen-nav" });
     this.fullscreenPrev = addToolbarButton(nav, "lucide-chevron-left", "上一页", () => this.goPrev());
     this.fullscreenCounter = nav.createDiv({ cls: "ibp-presentation-counter" });
@@ -646,7 +660,7 @@ class PresentationView extends ItemView {
 
   /* Laser pointer and spotlight: an overlay inside the Reveal element (so it also shows in fullscreen) that
      follows the pointer. Only one tool is active at a time; the choice survives re-renders of the deck. */
-  buildPointerOverlay(reveal) {
+  buildPointerOverlay(reveal: HTMLElement) {
     const overlay = reveal.createDiv({ cls: "ibp-pointer-overlay" });
     overlay.setAttribute("aria-hidden", "true");
     overlay.createDiv({ cls: "ibp-spot" });
@@ -662,19 +676,19 @@ class PresentationView extends ItemView {
 
   /* Step-by-step reveal: the blocks of a slide appear one at a time (the unrevealed ones stay dimmed), so
      "next" first shows the next block and only then moves to the next slide. */
-  slideBlocks(section) {
+  slideBlocks(section: HTMLElement | null | undefined): HTMLElement[] {
     const host = section?.querySelector(".slide-body") || section?.querySelector(":scope > .slide-inner");
-    return host ? [...host.children].filter(element => element instanceof HTMLElement) : [];
+    return host ? [...host.children].filter((element): element is HTMLElement => element.instanceOf(HTMLElement)) : [];
   }
 
-  showSteps(section, shown: number) {
+  showSteps(section: HTMLElement, shown: number) {
     const blocks = this.slideBlocks(section);
     section.dataset.ibShown = String(shown);
     blocks.forEach((block, index) => block.classList.toggle("ibp-step-hidden", index >= shown));
   }
 
   stepForward() {
-    const section = this.deck?.getCurrentSlide?.();
+    const section = this.deck?.getCurrentSlide();
     const blocks = this.slideBlocks(section);
     if (blocks.length < 2) return false;
     const shown = Number(section.dataset.ibShown || 1);
@@ -684,7 +698,7 @@ class PresentationView extends ItemView {
   }
 
   stepBack() {
-    const section = this.deck?.getCurrentSlide?.();
+    const section = this.deck?.getCurrentSlide();
     const shown = Number(section?.dataset.ibShown || 0);
     if (!section || shown <= 1) return false;
     this.showSteps(section, shown - 1);
@@ -694,11 +708,11 @@ class PresentationView extends ItemView {
   goNext() { if (!(this.stepMode && this.stepForward())) this.deck?.next(); }
   goPrev() { if (!(this.stepMode && this.stepBack())) this.deck?.prev(); }
 
-  onSlideChanged(event) {
+  onSlideChanged(event: { indexh?: number } | undefined) {
     const forward = (event?.indexh ?? 0) >= (this.lastSlideH ?? 0);
     this.lastSlideH = event?.indexh ?? 0;
     if (!this.stepMode) return;
-    const section = this.deck?.getCurrentSlide?.();
+    const section = this.deck?.getCurrentSlide();
     if (section) this.showSteps(section, forward ? 1 : this.slideBlocks(section).length);
   }
 
@@ -712,11 +726,11 @@ class PresentationView extends ItemView {
     for (const button of this.stepButtons || []) button.classList.toggle("is-active", Boolean(this.stepMode));
     if (!this.root) return;
     if (this.stepMode) {
-      const section = this.deck?.getCurrentSlide?.();
+      const section = this.deck?.getCurrentSlide();
       if (section) this.showSteps(section, 1);
     } else {
-      this.root.querySelectorAll(".ibp-step-hidden").forEach((element: HTMLElement) => element.classList.remove("ibp-step-hidden"));
-      this.root.querySelectorAll("[data-ib-shown]").forEach((element: HTMLElement) => element.removeAttribute("data-ib-shown"));
+      this.root.querySelectorAll(".ibp-step-hidden").forEach(element => element.classList.remove("ibp-step-hidden"));
+      this.root.querySelectorAll("[data-ib-shown]").forEach(element => element.removeAttribute("data-ib-shown"));
     }
   }
 
@@ -733,7 +747,7 @@ class PresentationView extends ItemView {
 
   updateCounter() {
     const total = this.slideEntries.length;
-    const indices = this.deck?.getIndices?.();
+    const indices = this.deck?.getIndices();
     const current = indices ? this.slideEntries.findIndex(entry => entry.h === indices.h && entry.v === (indices.v || 0)) : -1;
     const text = total ? `${Math.max(0, current) + 1} / ${total}` : "– / –";
     for (const [counter, prev, next] of [[this.counter, this.prevButton, this.nextButton], [this.fullscreenCounter, this.fullscreenPrev, this.fullscreenNext]]) {
@@ -748,13 +762,13 @@ class PresentationView extends ItemView {
     const token = ++this.renderToken;
     if (this.deck) {
       try {
-        const indices = this.deck.getIndices?.();
+        const indices = this.deck.getIndices();
         if (indices) this.preferredIndices = [indices.h || 0, indices.v || 0];
         this.deck.destroy();
-      } catch (_) { /* the view may be closing */ }
+      } catch { /* the view may be closing */ }
       this.deck = null;
     }
-    this.renderComponent?.unload?.();
+    this.renderComponent?.unload();
     this.renderComponent = null;
     this.stage.empty();
     this.slideEntries = [];
@@ -781,14 +795,14 @@ class PresentationView extends ItemView {
     } catch (error) {
       if (current()) {
         this.stage.empty();
-        this.stage.createDiv({ cls: "ibp-presentation-error", text: `演示排版失败：${error.message || error}` });
+        this.stage.createDiv({ cls: "ibp-presentation-error", text: `演示排版失败：${errorText(error)}` });
       }
     }
   }
 
-  async mountDeck({ reveal, entries, width, height }, token: number) {
+  async mountDeck({ reveal, entries, width, height }: { reveal: HTMLElement; entries: SlideEntry[]; width: number; height: number }, token: number) {
     if (this.deck) {
-      try { this.deck.destroy(); } catch (_) { /* already gone */ }
+      try { this.deck.destroy(); } catch { /* already gone */ }
       this.deck = null;
     }
     this.stage.empty();
@@ -823,8 +837,8 @@ class PresentationView extends ItemView {
     if (token !== this.renderToken) { deck.destroy(); return; }
     deck.layout();
     deck.slide(this.preferredIndices[0], this.preferredIndices[1]);
-    deck.on("slidechanged", event => { this.onSlideChanged(event); this.updateCounter(); });
-    this.lastSlideH = deck.getIndices?.().h ?? 0;
+    deck.on("slidechanged", (event: Event) => { this.onSlideChanged(event as Event & { indexh?: number }); this.updateCounter(); });
+    this.lastSlideH = deck.getIndices().h ?? 0;
     // Capture phase, so a step is taken before Reveal sees the key.
     reveal.addEventListener("keydown", event => {
       if (!this.stepMode || event.altKey || event.ctrlKey || event.metaKey) return;
@@ -866,13 +880,13 @@ class PresentationView extends ItemView {
 }
 
 // Picture version: the whole slide as one image, charts laid over as SVG.
-async function addImageSlide(pptx, surface, slideWidth: number, slideHeight: number, capture) {
+async function addImageSlide(pptx: PptxGenJS, surface: HTMLElement, slideWidth: number, slideHeight: number, capture: (surface: HTMLElement) => Promise<Uint8Array>) {
   const surfaceRect = surface.getBoundingClientRect();
-  const charts = [...surface.querySelectorAll(".mermaid svg, .ib-echarts-block svg, [data-ib-echarts-state] svg")].map(svg => {
+  const charts = [...surface.querySelectorAll<SVGSVGElement>(".mermaid svg, .ib-echarts-block svg, [data-ib-echarts-state] svg")].map(svg => {
     const rect = svg.getBoundingClientRect();
     return { svg, x: rect.left - surfaceRect.left, y: rect.top - surfaceRect.top, w: rect.width, h: rect.height, visible: svg.style.visibility };
   });
-  let png;
+  let png: Uint8Array;
   try {
     charts.forEach(chart => { chart.svg.setCssStyles({ visibility: "hidden" }); });
     png = await capture(surface);
@@ -905,7 +919,9 @@ function choosePptxPath(file: TFile, targetPath = "") {
    updates in place. */
 // The staged slide sits far off-screen; bring it to the origin
 // underneath the app (so nothing flashes) while html2canvas paints it.
-async function capturePortableStage(staged) {
+interface StagedSlide { stage: HTMLElement; surface: HTMLElement; remove(): void }
+
+async function capturePortableStage(staged: StagedSlide) {
   const { stage } = staged;
   const previous = { left: stage.style.left, zIndex: stage.style.zIndex };
   stage.setCssStyles({ left: "0px" });
@@ -918,7 +934,7 @@ async function capturePortableStage(staged) {
   }
 }
 
-async function exportDeckPptx(deck, filePath: string, mode = "editable") {
+async function exportDeckPptx(deck: { plugin: IgnorancePlugin; reveal: HTMLElement; entries: SlideEntry[]; width: number; height: number }, filePath: string, mode = "editable") {
   const { reveal, entries, width: canvasWidth, height: canvasHeight } = deck;
   const { PptxGenJS } = await loadChunk("chunk-pptx.cjs");
   const pptx = new PptxGenJS();
@@ -930,7 +946,7 @@ async function exportDeckPptx(deck, filePath: string, mode = "editable") {
   const progress = new Notice(`正在导出 PPTX：0 / ${total} 页`, 0);
   try {
     for (const [index, entry] of entries.entries()) {
-      const staged = stageSlide(reveal, entry.el, canvasWidth, canvasHeight);
+      const staged = stageSlide(reveal, entry.el, canvasWidth, canvasHeight) as StagedSlide;
       try {
         await Promise.all([...staged.surface.querySelectorAll("img")].map(img => img.decode().catch(() => null)));
         await nextFrame();
@@ -948,12 +964,13 @@ async function exportDeckPptx(deck, filePath: string, mode = "editable") {
     // pptxgenjs's writeFile() imports node:fs dynamically; take the bytes
     // and write them through the vault instead.
     const bytes = await pptx.write({ outputType: "uint8array" });
+    if (!(bytes instanceof Uint8Array)) throw new Error("PPTX 输出格式不正确");
     const savedPath = await saveExportToVault(deck.plugin, filePath.replace(VAULT_TARGET, ""), bytes);
     progress.hide();
     new Notice(`PPTX 已导出：${savedPath}`, 7000);
   } catch (error) {
     progress.hide();
-    new Notice(`PPTX 导出失败：${error.message || error}`, 7000);
+    new Notice(`PPTX 导出失败：${errorText(error)}`, 7000);
   } finally {
     progress.hide();
   }
@@ -973,7 +990,7 @@ export async function exportNotePptx(plugin: IgnorancePlugin, file: TFile, mode 
     preparing.hide();
     if (deck) await exportDeckPptx({ ...deck, plugin }, filePath, mode);
   } catch (error) {
-    new Notice(`PPTX 导出失败：${error.message || error}`, 7000);
+    new Notice(`PPTX 导出失败：${errorText(error)}`, 7000);
   } finally {
     preparing.hide();
     component.unload();

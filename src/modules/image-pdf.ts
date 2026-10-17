@@ -2,7 +2,7 @@
    is missing. Text is not selectable, but the pages match the paged view.
    JPEG goes in as-is (DCTDecode), so no image library is needed. */
 
-function jpegSize(bytes) {
+function jpegSize(bytes: Uint8Array) {
   // Walk the markers to the first SOFn frame header.
   for (let i = 2; i < bytes.length - 8;) {
     if (bytes[i] !== 0xFF) { i += 1; continue; }
@@ -17,13 +17,13 @@ function jpegSize(bytes) {
 }
 
 // pages: [{ jpeg: Uint8Array }], size in millimetres (every page the same paper).
-export function buildImagePdf(pages, { widthMm, heightMm }) {
+export function buildImagePdf(pages: Array<{ jpeg: Uint8Array }>, { widthMm, heightMm }: { widthMm: number; heightMm: number }) {
   const encoder = new TextEncoder();
   const chunks: Uint8Array[] = [];
-  const offsets = [];
+  const offsets: number[] = [];
   let length = 0;
-  const push = (part: string) => { const bytes = typeof part === "string" ? encoder.encode(part) : part; chunks.push(bytes); length += bytes.length; };
-  const object = (id: string, body: string, stream) => {
+  const push = (part: string | Uint8Array) => { const bytes = typeof part === "string" ? encoder.encode(part) : part; chunks.push(bytes); length += bytes.length; };
+  const object = (id: number, body: string, stream?: Uint8Array) => {
     offsets[id] = length;
     push(`${id} 0 obj\n${body}\n`);
     if (stream) { push("stream\n"); push(stream); push("\nendstream\n"); }

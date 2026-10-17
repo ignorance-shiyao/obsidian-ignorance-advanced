@@ -29,6 +29,12 @@ describe('paper table column allocation', () => {
       getBoundingClientRect: () => { events.push(`read-${id}`); return { width: 400 }; },
       insertBefore: () => events.push(`write-${id}`)
     });
+    const fakeEl = (tag: string) => document.createElement(tag) as { createEl?: unknown };
+    vi.stubGlobal('createEl', (tag: string) => {
+      const element = fakeEl(tag);
+      element.createEl = fakeEl;
+      return element;
+    });
     vi.stubGlobal('getComputedStyle', () => ({ font: '14px sans-serif', paddingLeft: '4', paddingRight: '4' }));
     try {
       preparePaperTableColumns({ ownerDocument: document, querySelectorAll: () => [table(1), table(2)] } as unknown as HTMLElement);

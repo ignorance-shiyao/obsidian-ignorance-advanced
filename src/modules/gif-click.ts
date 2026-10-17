@@ -7,7 +7,7 @@ const wantsClick = (alt: string) => alt.split("|").some(part => part.trim().toLo
 
 export function installGifClick(plugin: IgnorancePlugin) {
   plugin.registerMarkdownPostProcessor(async (element, context) => {
-    for (const holder of element.querySelectorAll(".internal-embed")) {
+    for (const holder of element.querySelectorAll<HTMLElement>(".internal-embed")) {
       const src = holder.getAttribute("src") || "";
       if (holder.dataset.ibGifDone || !/\.gif$/i.test(src.split("#")[0]) || !wantsClick(holder.getAttribute("alt") || "")) continue;
       holder.dataset.ibGifDone = "1";
@@ -24,14 +24,14 @@ async function firstFrame(plugin: IgnorancePlugin, file: TFile) {
   const canvas = createEl("canvas");
   canvas.width = bitmap.width;
   canvas.height = bitmap.height;
-  canvas.getContext("2d").drawImage(bitmap, 0, 0);
+  canvas.getContext("2d")?.drawImage(bitmap, 0, 0);
   bitmap.close?.();
   return canvas.toDataURL("image/png");
 }
 
-async function arm(plugin: IgnorancePlugin, holder: Element, file: TFile) {
+async function arm(plugin: IgnorancePlugin, holder: HTMLElement, file: TFile) {
   let poster = "";
-  try { poster = await firstFrame(plugin, file); } catch (_) { return; }
+  try { poster = await firstFrame(plugin, file); } catch { return; }
   // The <img> appears inside the placeholder a moment after post-processing.
   for (let tries = 0; tries < 60 && !holder.querySelector("img"); tries += 1) await new Promise(resolve => window.requestAnimationFrame(resolve));
   const image = holder.querySelector("img");

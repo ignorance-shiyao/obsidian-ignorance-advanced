@@ -1,4 +1,4 @@
-import type { TFile } from "obsidian";
+import { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import MarkdownIt from "markdown-it";
 import { preloadEChartsPreview } from "./echarts-renderer.js";
@@ -21,7 +21,7 @@ export function installChartPreload(plugin: IgnorancePlugin) {
       try {
         if (/^echarts\b/i.test(fence.info)) await preloadEChartsPreview(plugin, fence.content.trim());
         else { const engine = await plugin.ensureMermaid(); await engine.render(`ibpreload${++serial}`, fence.content.trim()); }
-      } catch (_) { /* Invalid authored diagrams remain visible as normal renderer errors. */ }
+      } catch { /* Invalid authored diagrams remain visible as normal renderer errors. */ }
     }
   };
   const schedule = (file: TFile) => {
@@ -33,8 +33,10 @@ export function installChartPreload(plugin: IgnorancePlugin) {
     idleId = window.setTimeout(run, 1200);
   };
   plugin.registerEvent(plugin.app.workspace.on("file-open", schedule));
-  plugin.registerDomEvent(window, "ib-theme-change", () => schedule(plugin.app.workspace.getActiveFile()));
-  plugin.registerEvent(plugin.app.vault.on("modify", file => { if (file === plugin.app.workspace.getActiveFile()) schedule(file); }));
+  const onThemeChange = () => schedule(plugin.app.workspace.getActiveFile());
+  window.addEventListener("ib-theme-change", onThemeChange);
+  plugin.register(() => window.removeEventListener("ib-theme-change", onThemeChange));
+  plugin.registerEvent(plugin.app.vault.on("modify", file => { if (file instanceof TFile && file === plugin.app.workspace.getActiveFile()) schedule(file); }));
   plugin.app.workspace.onLayoutReady(() => schedule(plugin.app.workspace.getActiveFile()));
   plugin.register(() => { generation++; window.clearTimeout(idleId); });
 }

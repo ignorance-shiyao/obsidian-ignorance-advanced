@@ -1,53 +1,88 @@
 // Class notes use Mermaid's markdown label renderer, but its default nowrap
 // style prevents that renderer from bounding a long annotation's width.
-export function compactClassNotes(data, defaultWidth = 240) {
+
+/** One node of Mermaid's class-diagram data (only the fields read here). */
+export interface ClassNode {
+  shape?: string;
+  label?: unknown;
+  wrappingWidth?: number;
+  cssStyles?: string[];
+  styles?: string[];
+  members?: unknown[];
+  methods?: unknown[];
+  [key: string]: unknown;
+}
+
+export interface ClassDiagramData {
+  nodes?: ClassNode[];
+  config?: { class?: { wrappingWidth?: unknown } };
+  [key: string]: unknown;
+}
+
+/** A class member whose style Mermaid computes through parseClassifier(). */
+interface ClassifierMember {
+  parseClassifier?: (...args: unknown[]) => string;
+}
+
+export function compactClassNotes(data: ClassDiagramData, defaultWidth = 240): ClassDiagramData {
   if (!Array.isArray(data?.nodes)) return data;
   const authored = Number(data.config?.class?.wrappingWidth);
   const width = authored > 0 ? authored : defaultWidth;
   let changed = false;
-  const nodes = data.nodes.map((node: HTMLElement) => {
+  const nodes = data.nodes.map((node): ClassNode => {
     if (node.shape !== "note" || node.wrappingWidth > 0 || typeof node.label !== "string" || /<br\b|\n/i.test(node.label)) return node;
     changed = true;
     return { ...node, wrappingWidth: width,
-      cssStyles: (node.cssStyles || []).map((style: string) => /^\s*white-space\s*:\s*nowrap\s*;?\s*$/i.test(style) ? "white-space: normal" : style) };
+      cssStyles: (node.cssStyles || []).map(style => /^\s*white-space\s*:\s*nowrap\s*;?\s*$/i.test(style) ? "white-space: normal" : style) };
   });
   return changed ? { ...data, nodes } : data;
 }
 
 // Classifier styles are installed before Mermaid measures each member label.
 // Applying the member font after layout clips HTML labels measured in sans.
-export function measureClassMembers(data, font: string) {
+export function measureClassMembers(data: ClassDiagramData, font: string): ClassDiagramData {
   if (!font || !Array.isArray(data?.nodes)) return data;
-  return { ...data, nodes: data.nodes.map((node: HTMLElement) => {
+  const measure = (members: unknown[] | undefined) => (members || []).map(entry => {
+    const member = entry as ClassifierMember | null;
+    if (typeof member?.parseClassifier !== "function") return entry;
+    const clone: ClassifierMember = Object.create(Object.getPrototypeOf(member) as object) as ClassifierMember;
+    Object.assign(clone, member);
+    clone.parseClassifier = function(this: unknown, ...args: unknown[]) {
+      const style = Reflect.apply<unknown, unknown[], string>(member.parseClassifier, this, args);
+      return /font-family\s*:/i.test(style) ? style : `${style};font-family: ${font}`;
+    };
+    return clone;
+  });
+  return { ...data, nodes: data.nodes.map((node): ClassNode => {
     if (node.shape !== "classBox" || [...(node.styles || []), ...(node.cssStyles || [])].some(style => /font-family\s*:/i.test(style))) return node;
-    return { ...node, ...Object.fromEntries(["members", "methods"].map(key => [key, (node[key] || []).map(member => {
-      if (typeof member?.parseClassifier !== "function") return member;
-      const clone = Object.assign(Object.create(Object.getPrototypeOf(member)), member);
-      clone.parseClassifier = function(...args) {
-        const style = member.parseClassifier.apply(this, args);
-        return /font-family\s*:/i.test(style) ? style : `${style};font-family: ${font}`;
-      };
-      return clone;
-    })])) };
+    return { ...node, members: measure(node.members), methods: measure(node.methods) };
   }) };
 }
 
-export async function withClassNoteLayout(engine, source: string, draw, memberFont = "") {
+type GetData = (this: unknown, ...args: unknown[]) => ClassDiagramData;
+
+/** The slice of Mermaid's private engine this module adapts. */
+export interface ClassNoteEngine {
+  mermaidAPI?: { getDiagramFromText(text: string): Promise<{ type?: string; db: object } | undefined | void> };
+}
+
+export async function withClassNoteLayout<R>(engine: ClassNoteEngine, source: string, draw: () => Promise<R>, memberFont = ""): Promise<R> {
   if (!/^\s*classDiagram(?:-v2)?\b/m.test(source)) return draw();
   const preserveLayout = /%%\s*ibm:keep-layout/.test(source) || /["']?layout["']?\s*:/.test(source);
-  let proto, original;
+  let proto: { getData: GetData };
+  let original: GetData;
   try {
     const diagram = await engine.mermaidAPI?.getDiagramFromText(source);
-    if (diagram?.type !== "classDiagram") return draw();
-    proto = Object.getPrototypeOf(diagram.db);
+    if (!diagram || diagram.type !== "classDiagram") return draw();
+    proto = Object.getPrototypeOf(diagram.db) as { getData: GetData };
     original = proto?.getData;
     const descriptor = Object.getOwnPropertyDescriptor(proto, "getData");
     if (typeof original !== "function" || !descriptor?.writable) return draw();
-  } catch (_) { return draw(); }
+  } catch { return draw(); }
   // Only the private engine's draw is adapted. Restore even on parse/render
   // errors; authored source and the class database remain unchanged.
-  const adapted = function(...args) {
-    const data = original.apply(this, args);
+  const adapted = function(this: unknown, ...args: unknown[]) {
+    const data: ClassDiagramData = Reflect.apply<unknown, unknown[], ClassDiagramData>(original, this, args);
     return measureClassMembers(preserveLayout ? data : compactClassNotes(data), memberFont);
   };
   proto.getData = adapted;

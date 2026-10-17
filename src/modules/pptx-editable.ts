@@ -1,4 +1,5 @@
 import { requestUrl } from "obsidian";
+import type PptxGenJS from "pptxgenjs";
 import { bytesToBase64 } from "./bytes.js";
 /* Editable PPTX: rebuild a rendered slide as native PowerPoint objects.
    Text blocks, lists, tables and code become text boxes / tables with the
@@ -11,10 +12,11 @@ import { collapseWhitespace, cssColor, fontFace, fontPoints, groupAdjacentBlocks
 /* Whether a font is installed and draws the given sample itself: text drawn in
    "font, fallback" measures differently from the fallback alone only when the
    font supplied the glyphs. Checked against two fallbacks to avoid false hits. */
-const fontCache = new Map();
+const fontCache = new Map<string, boolean>();
 function fontDraws(name: string, sample: string) {
   const key = `${name}\u0000${sample}`;
-  if (fontCache.has(key)) return fontCache.get(key);
+  const cached = fontCache.get(key);
+  if (cached !== undefined) return cached;
   const ctx = createEl("canvas").getContext("2d");
   const width = (font: string) => { ctx.font = `40px ${font}`; return ctx.measureText(sample).width; };
   const quoted = `"${name.replace(/"/g, "")}"`;
@@ -37,17 +39,21 @@ function isInline(el: HTMLElement) {
 }
 
 function hasOwnText(el: HTMLElement) {
-  return [...el.childNodes].some(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
+  return [...el.childNodes].some(node => node.nodeType === Node.TEXT_NODE && node.textContent?.trim());
 }
 
+type PointsFn = (px: number) => number;
+type Run = { text: string; options: PptxGenJS.TextPropsOptions };
+type Box = { x: number; y: number; w: number; h: number };
+
 // Everything on the slide that becomes a native object, in document order.
-export function collectSlideObjects(surface) {
-  const charts = [...surface.querySelectorAll(CHART_SVG)].filter(svg => !svg.parentElement.closest("svg"));
-  const images = [...surface.querySelectorAll("img")].filter(img => !img.closest(".mermaid, .ib-echarts-block") && img.naturalWidth > 0);
-  const tables = [...surface.querySelectorAll("table")].filter(el => !el.parentElement.closest(OPAQUE));
-  const codes = [...surface.querySelectorAll("pre")].filter(el => !el.parentElement.closest(OPAQUE));
-  const lists = [...surface.querySelectorAll("ul, ol")].filter(el => !el.parentElement.closest(OPAQUE) && !el.closest("li"));
-  const texts = [...surface.querySelectorAll("*")].filter(el => {
+export function collectSlideObjects(surface: HTMLElement) {
+  const charts = [...surface.querySelectorAll<SVGSVGElement>(CHART_SVG)].filter(svg => !svg.parentElement?.closest("svg"));
+  const images = [...surface.querySelectorAll<HTMLImageElement>("img")].filter(img => !img.closest(".mermaid, .ib-echarts-block") && img.naturalWidth > 0);
+  const tables = [...surface.querySelectorAll<HTMLTableElement>("table")].filter(el => !el.parentElement?.closest(OPAQUE));
+  const codes = [...surface.querySelectorAll<HTMLElement>("pre")].filter(el => !el.parentElement?.closest(OPAQUE));
+  const lists = [...surface.querySelectorAll<HTMLElement>("ul, ol")].filter(el => !el.parentElement?.closest(OPAQUE) && !el.closest("li"));
+  const texts = [...surface.querySelectorAll<HTMLElement>("*")].filter(el => {
     if (el.closest(OPAQUE) || isInline(el)) return false;
     if (el.matches(TEXT_BLOCKS)) return el.textContent.trim().length > 0 && !(el.querySelector("img") && !el.textContent.trim());
     return hasOwnText(el);
@@ -55,9 +61,9 @@ export function collectSlideObjects(surface) {
   return { charts, images, tables, codes, lists, texts };
 }
 
-export function makeGeometry(surface, slideWidth: number, slideHeight: number, canvasWidth: number) {
+export function makeGeometry(surface: HTMLElement, slideWidth: number, slideHeight: number, canvasWidth: number) {
   const frame = surface.getBoundingClientRect();
-  const box = (el: HTMLElement) => {
+  const box = (el: Element) => {
     const r = el.getBoundingClientRect();
     return {
       x: (r.left - frame.left) / frame.width * slideWidth,
@@ -71,7 +77,7 @@ export function makeGeometry(surface, slideWidth: number, slideHeight: number, c
   return { box, points, inches };
 }
 
-function runOptions(el: HTMLElement, points, text = "") {
+function runOptions(el: HTMLElement, points: PointsFn, text = "") {
   const css = getComputedStyle(el);
   const color = cssColor(css.color);
   const link = el.closest("a[href]");
@@ -90,13 +96,13 @@ function runOptions(el: HTMLElement, points, text = "") {
 }
 
 // Inline text of a block as pptxgenjs runs; nested blocks are left to their own objects.
-export function textRuns(block: HTMLElement, points) {
-  const runs = [];
+export function textRuns(block: HTMLElement, points: PointsFn) {
+  const runs: Run[] = [];
   const walk = (node: HTMLElement) => {
-    for (const child of node.childNodes) {
+    for (const child of Array.from(node.childNodes)) {
       if (child.nodeType === Node.TEXT_NODE) {
-        const text = collapseWhitespace(child.textContent);
-        if (text) runs.push({ text, options: runOptions(child.parentElement, points, text) });
+        const text = collapseWhitespace(child.textContent ?? "");
+        if (text && child.parentElement) runs.push({ text, options: runOptions(child.parentElement, points, text) });
       } else if (child.instanceOf(HTMLBRElement)) {
         runs.push({ text: "", options: { breakLine: true } });
       } else if (child.instanceOf(HTMLElement) && isInline(child) && !child.matches("svg, img")) {
@@ -112,14 +118,14 @@ export function textRuns(block: HTMLElement, points) {
   return runs.filter(run => run.text || run.options.breakLine);
 }
 
-function paragraphOptions(el: HTMLElement, points) {
+function paragraphOptions(el: HTMLElement, points: PointsFn) {
   const css = getComputedStyle(el);
   const size = parseFloat(css.fontSize) || 16;
   const lineHeight = parseFloat(css.lineHeight);
   const fill = cssColor(css.backgroundColor);
   return {
     align: textAlign(css.textAlign),
-    valign: "top",
+    valign: "top" as const,
     margin: 0,
     fontFace: faceFor(css.fontFamily, el.textContent),
     fontSize: points(size),
@@ -131,10 +137,10 @@ function paragraphOptions(el: HTMLElement, points) {
 }
 
 // List items → paragraphs with bullets / numbers and nesting levels.
-export function listRuns(list, points, level = 0) {
-  const runs = [];
+export function listRuns(list: HTMLElement, points: PointsFn, level = 0): Run[] {
+  const runs: Run[] = [];
   const ordered = list.tagName === "OL";
-  for (const item of list.children) {
+  for (const item of Array.from(list.children) as HTMLElement[]) {
     if (item.tagName !== "LI") continue;
     const own = textRuns(item, points);
     if (own.length) {
@@ -142,13 +148,13 @@ export function listRuns(list, points, level = 0) {
       own[own.length - 1].options.breakLine = true;
       runs.push(...own);
     }
-    for (const nested of item.querySelectorAll(":scope > ul, :scope > ol")) runs.push(...listRuns(nested, points, level + 1));
+    for (const nested of Array.from(item.querySelectorAll<HTMLElement>(":scope > ul, :scope > ol"))) runs.push(...listRuns(nested, points, level + 1));
   }
   return runs;
 }
 
-function tableRows(table, points) {
-  return [...table.rows].map(row => [...row.cells].map(cell => {
+function tableRows(table: HTMLTableElement, points: PointsFn) {
+  return Array.from(table.rows).map(row => Array.from(row.cells).map(cell => {
     const css = getComputedStyle(cell);
     const fill = cssColor(css.backgroundColor) || cssColor(getComputedStyle(row).backgroundColor);
     const color = cssColor(css.color);
@@ -161,7 +167,7 @@ function tableRows(table, points) {
         fontFace: faceFor(css.fontFamily, cell.textContent),
         fontSize: points(parseFloat(css.fontSize) || 14),
         align: textAlign(css.textAlign),
-        valign: "middle"
+        valign: "middle" as const
       }
     };
   }));
@@ -169,16 +175,16 @@ function tableRows(table, points) {
 
 // An <img> as a data URI. Web images drawn onto a canvas taint it, so those
 // are fetched as bytes instead (requestUrl is not bound by CORS).
-async function imageData(img) {
+async function imageData(img: HTMLImageElement) {
   const src = img.currentSrc || img.src;
   if (src.startsWith("data:")) return src;
   try {
     const canvas = createEl("canvas");
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
-    canvas.getContext("2d").drawImage(img, 0, 0);
+    canvas.getContext("2d")?.drawImage(img, 0, 0);
     return canvas.toDataURL("image/png");
-  } catch (_) {}
+  } catch { /* a tainted canvas cannot be read back; fetch the bytes below */ }
   const response = await requestUrl({ url: src, throw: false });
   if (response.status !== 200) throw new Error(`图片下载失败：${src}`);
   const type = response.headers?.["content-type"] || "image/png";
@@ -186,22 +192,22 @@ async function imageData(img) {
 }
 
 function svgData(svg: SVGSVGElement) {
-  const clone = svg.cloneNode(true);
+  const clone = svg.cloneNode(true) as SVGSVGElement;
   clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
   return `data:image/svg+xml;base64,${bytesToBase64(new TextEncoder().encode(new XMLSerializer().serializeToString(clone)))}`;
 }
 
 /* Adds one editable slide. `capture(el)` returns the PNG of the surface. */
-export async function addEditableSlide(pptx, surface, size, capture) {
+export async function addEditableSlide(pptx: PptxGenJS, surface: HTMLElement, size: { slideWidth: number; slideHeight: number; canvasWidth: number }, capture: (el: HTMLElement) => Promise<Uint8Array>) {
   const { slideWidth, slideHeight, canvasWidth } = size;
   const { box, points, inches } = makeGeometry(surface, slideWidth, slideHeight, canvasWidth);
   const objects = collectSlideObjects(surface);
   const hidden = [...objects.charts, ...objects.images, ...objects.tables, ...objects.codes, ...objects.lists, ...objects.texts];
   const placed = hidden.map(el => ({ el, rect: box(el) }));
-  const rectOf = (el: HTMLElement) => placed.find(item => item.el === el).rect;
+  const rectOf = (el: HTMLElement | SVGSVGElement) => placed.find(item => item.el === el)?.rect ?? { x: 0, y: 0, w: 0, h: 0 };
   // Measure everything first; the background is captured with it all hidden.
   const previous = hidden.map(el => el.style.visibility);
-  let background;
+  let background: Uint8Array;
   try {
     hidden.forEach(el => { el.setCssStyles({ visibility: "hidden" }); });
     background = await capture(surface);
@@ -210,7 +216,7 @@ export async function addEditableSlide(pptx, surface, size, capture) {
   }
   const slide = pptx.addSlide();
   slide.addImage({ data: `data:image/png;base64,${bytesToBase64(background)}`, x: 0, y: 0, w: slideWidth, h: slideHeight });
-  const slack = rect => ({ ...rect, w: Math.min(rect.w * 1.04 + 0.02, slideWidth - rect.x) });
+  const slack = (rect: Box) => ({ ...rect, w: Math.min(rect.w * 1.04 + 0.02, slideWidth - rect.x) });
 
   for (const img of objects.images) slide.addImage({ data: await imageData(img), ...rectOf(img) });
   for (const svg of objects.charts) {
@@ -219,13 +225,13 @@ export async function addEditableSlide(pptx, surface, size, capture) {
   }
   for (const table of objects.tables) {
     const rect = rectOf(table);
-    const widths = [...(table.rows[0]?.cells || [])].map(cell => box(cell).w);
+    const widths = Array.from(table.rows[0]?.cells || []).map(cell => box(cell).w);
     slide.addTable(tableRows(table, points), { x: rect.x, y: rect.y, w: rect.w, colW: widths.length ? widths : undefined, margin: 0.05, border: { type: "solid", pt: 0.5, color: "D0D0D0" } });
   }
   for (const pre of objects.codes) {
     const code = pre.querySelector("code") || pre;
-    const lines = [...code.querySelectorAll(".code-text")];
-    const text = lines.length ? lines.map(line => line.textContent).join("\n") : code.textContent.replace(/\n$/, "");
+    const lines = [...code.querySelectorAll<HTMLElement>(".code-text")];
+    const text = lines.length ? lines.map(line => line.textContent).join("\n") : (code.textContent ?? "").replace(/\n$/, "");
     const options = paragraphOptions(code, points);
     const fill = cssColor(getComputedStyle(pre).backgroundColor);
     slide.addText(text, { ...options, ...slack(rectOf(pre)), fill: fill ? { color: fill.hex } : undefined, margin: 0.08 });
@@ -248,7 +254,7 @@ export async function addEditableSlide(pptx, surface, size, capture) {
   });
   for (const group of groupAdjacentBlocks(candidates)) {
     const members = group.map(index => texts[index]);
-    const runs = [];
+    const runs: Run[] = [];
     members.forEach((member, index) => {
       const own = member.runs.map(run => ({ text: run.text, options: { ...run.options } }));
       if (index < members.length - 1) own[own.length - 1].options.breakLine = true;

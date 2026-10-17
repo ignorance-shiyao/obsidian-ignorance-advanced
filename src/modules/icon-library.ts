@@ -7,7 +7,9 @@ export interface IconPack {
   icons: Record<string, string>;
   vb: Record<string, string>;
   light: Record<string, string>;
-  [table: string]: any;
+  lang?: Record<string, string>;
+  // Further tables a specific pack adds (see file-icons.ts).
+  [table: string]: Record<string, string> | string | undefined;
 }
 
 const packs = new Map<string, Promise<IconPack>>();
@@ -17,7 +19,7 @@ export function loadPack(plugin: IgnorancePlugin, file: string): Promise<IconPac
     job.catch(() => packs.delete(file));
     packs.set(file, job);
   }
-  return packs.get(file)!;
+  return packs.get(file);
 }
 
 const svg = (viewBox: string, body: string, cls = "") =>
@@ -29,8 +31,8 @@ export function iconMarkup(pack: IconPack, name: string | undefined | null): str
   const body = name && pack.icons[name];
   if (!body) return null;
   const view = (n: string) => pack.vb[n] || "0 0 24 24";
-  const lightName = pack.light[name!];
+  const lightName = pack.light[name];
   const lightBody = lightName && pack.icons[lightName];
-  if (!lightBody) return svg(view(name!), body);
-  return svg(view(name!), body, "ib-li-dark") + svg(view(lightName), lightBody, "ib-li-light");
+  if (!lightBody) return svg(view(name), body);
+  return svg(view(name), body, "ib-li-dark") + svg(view(lightName), lightBody, "ib-li-light");
 }

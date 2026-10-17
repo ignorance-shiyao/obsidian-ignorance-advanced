@@ -2,26 +2,29 @@
 // Obsidian's editor.replaceRange makes CodeMirror scroll the cursor into view, so a block adjusted
 // far from the cursor threw the reader back to it, and saving re-renders the note on top of that.
 
+import type { Editor } from "obsidian";
+import type { EditorView } from "@codemirror/view";
+
 // Rewrites a range without letting CodeMirror scroll the cursor into view.
-export function replaceOffsetsQuietly(cm, from: number, to: number, insert: string) {
+export function replaceOffsetsQuietly(cm: EditorView, from: number, to: number, insert: string) {
   cm.dispatch({ changes: { from, to, insert }, scrollIntoView: false, userEvent: "input.ib-block" });
 }
 
-export function replaceRangeQuietly(editor, from: { line: number; ch: number }, to: { line: number; ch: number }, text: string) {
+export function replaceRangeQuietly(editor: Editor, from: { line: number; ch: number }, to: { line: number; ch: number }, text: string) {
   const cm = editor.cm;
   if (cm?.state?.doc && typeof editor.posToOffset === "function") {
     replaceOffsetsQuietly(cm, editor.posToOffset(from), editor.posToOffset(to), text);
   } else editor.replaceRange(text, from, to);
 }
 
-export function replaceLineQuietly(editor, line: number, text: string) {
+export function replaceLineQuietly(editor: Editor, line: number, text: string) {
   replaceRangeQuietly(editor, { line, ch: 0 }, { line, ch: editor.getLine(line).length }, text);
 }
 
 // A save re-renders the note, which can reset or shift the scroller. Keep the position the reader
 // had until the render settles, unless they scroll, type or press something themselves.
 export function holdScrollPosition(from: HTMLElement, duration = 1500) {
-  const scroller = from.closest(".cm-scroller, .markdown-preview-view") as HTMLElement | null;
+  const scroller = from.closest<HTMLElement>(".cm-scroller, .markdown-preview-view");
   if (!scroller) return () => {};
   const doc = scroller.ownerDocument, top = scroller.scrollTop, events = ["wheel", "touchstart", "keydown", "pointerdown"];
   const until = performance.now() + duration;
@@ -43,8 +46,8 @@ export function holdScrollPosition(from: HTMLElement, duration = 1500) {
 }
 
 // Saving fails with a raw errno when the note is read-only on disk; say what to do instead.
-export function saveErrorMessage(error): string {
-  const text = String(error?.message || error);
+export function saveErrorMessage(error: unknown): string {
+  const text = error instanceof Error ? error.message : typeof error === "string" ? error : JSON.stringify(error);
   if (/EACCES|EPERM|EROFS/.test(text)) return "文件在磁盘上是只读的，请先解除只读（访达 → 显示简介 → 取消“已锁定”或修改权限）";
   return text;
 }
@@ -52,11 +55,11 @@ export function saveErrorMessage(error): string {
 // Clicking a rendered block (diagram, container, table…) to edit its source swaps the widget for
 // source lines of a different height, and the editor then scrolls the caret into view. Keep the
 // block's first line where the block's top was, so the page does not jump under the pointer.
-export function anchorBlockTop(cm, block: HTMLElement, duration = 700) {
+export function anchorBlockTop(cm: EditorView, block: HTMLElement, duration = 700) {
   let pos: number, top: number;
-  try { pos = cm.posAtDOM(block); } catch (_) { return () => {}; }
+  try { pos = cm.posAtDOM(block); } catch { return () => {}; }
   top = block.getBoundingClientRect().top;
-  const scroller = cm.scrollDOM as HTMLElement, doc = scroller.ownerDocument, events = ["wheel", "touchstart", "keydown"];
+  const scroller = cm.scrollDOM, doc = scroller.ownerDocument, events = ["wheel", "touchstart", "keydown"];
   const until = performance.now() + duration;
   let frame = 0, done = false, settled = 0;
   const stop = () => {

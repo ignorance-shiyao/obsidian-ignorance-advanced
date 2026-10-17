@@ -1,4 +1,3 @@
-import type { IgnorancePlugin } from "../plugin-types.js";
 /* Large runtime libraries (Mermaid, ECharts, the import converters…) are compressed and embedded in
    main.js at build time, and unpacked the first time a feature needs one. Nothing is downloaded and
    no code is fetched from the network: Obsidian installs main.js, manifest.json and styles.css,
@@ -21,10 +20,10 @@ export function hasAsset(name: string) { return name in assets; }
 export function readAssetBytes(name: string): Promise<Uint8Array> {
   if (!hasAsset(name)) return Promise.reject(new Error(`Unknown embedded asset: ${name}`));
   if (!bytesCache.has(name)) bytesCache.set(name, gunzip(assets[name].data));
-  return bytesCache.get(name)!;
+  return bytesCache.get(name);
 }
 
 // Kept as (plugin, name) so every caller reads the same way; the plugin argument is no longer needed.
-export async function readAsset(_plugin, name: string): Promise<string> {
+export async function readAsset(_plugin: unknown, name: string): Promise<string> {
   return new TextDecoder().decode(await readAssetBytes(name));
 }

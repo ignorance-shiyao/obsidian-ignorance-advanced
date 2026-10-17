@@ -1,5 +1,5 @@
-import type { TFile } from "obsidian";
-import { MarkdownView,Notice,Platform,View } from "obsidian";
+import type { Editor, TAbstractFile } from "obsidian";
+import { MarkdownView,Notice,Platform,TFile,View } from "obsidian";
 import { createAfterPaintQueue } from "../modules/after-paint-queue.js";
 import { applyAppearancePreferences,clearAppearancePreferences,installAppearanceControls } from "../modules/appearance.js";
 import { BlockHeightMemory } from "../modules/block-height-memory.js";
@@ -57,9 +57,9 @@ import { installTableExtras } from "../modules/table-merge.js";
 import { renderTocBlocks,tocExtension } from "../modules/toc.js";
 import { installWebClip } from "../modules/web-clip.js";
 import { wrapSelectionExtension } from "../modules/wrap-selection.js";
-import type { IgnorancePlugin } from "../plugin-types.js";
+import type { IgnorancePlugin, TableLayer } from "../plugin-types.js";
 
-function insertSnippet(editor, snippet) {
+function insertSnippet(editor: Editor, snippet: (typeof SNIPPET_TEMPLATES)[number]) {
   const from = editor.getCursor("from");
   const to = editor.getCursor("to");
   const start = editor.getRange({ line: 0, ch: 0 }, from).length;
@@ -154,7 +154,7 @@ export async function onload(plugin: IgnorancePlugin) {
   // slides and the exports that work there from the note's "⋯" menu.
   if (Platform.isMobile) {
     plugin.registerEvent(plugin.app.workspace.on("file-menu", (menu, file, source) => {
-      if (source !== "more-options" || file?.extension !== "md") return;
+      if (source !== "more-options" || !(file instanceof TFile) || file.extension !== "md") return;
       // Phones have no outline pane beside the note; the jump list (headings, diagrams, tables, code) stands in.
       if (Platform.isPhone) menu.addItem(item => item.setTitle("跳到标题、图表或表格").setIcon("lucide-list-tree").setSection("ibp-export").onClick(() => openNavigation(plugin)));
       menu.addItem(item => item.setTitle("演示").setIcon("lucide-presentation").setSection("ibp-export").onClick(() => { void openPresentation(plugin, file); }));
@@ -171,7 +171,7 @@ export async function onload(plugin: IgnorancePlugin) {
   plugin.register(() => {
     plugin.tableStyles.destroy();
     for (const layer of plugin.tableLayers) layer.destroy();
-    document.querySelectorAll("table.ibt-enhanced").forEach(table => {
+    document.querySelectorAll<HTMLElement>("table.ibt-enhanced").forEach(table => {
       table.classList.remove("ibt-enhanced");
       delete table.dataset.ibtKey;
     });
@@ -187,8 +187,8 @@ export async function onload(plugin: IgnorancePlugin) {
 
   plugin.observer = new MutationObserver(mutations => {
     // Gather first, then enhance once: a render adds many nodes per batch.
-    const diagrams = new Set();
-    const removedDiagrams = new Set();
+    const diagrams = new Set<Element>();
+    const removedDiagrams = new Set<Element>();
     for (const mutation of mutations) {
       for (const node of mutation.removedNodes) {
         if (!(node.instanceOf(Element)) || node.matches(".ibp-book") || node.closest(".ibp-book")) continue;
@@ -206,15 +206,15 @@ export async function onload(plugin: IgnorancePlugin) {
         if (node.closest(".ibp-book") || node.classList.contains("ib-code-line")) continue;
         if (node.matches(".mermaid")) diagrams.add(node);
         node.querySelectorAll(".mermaid").forEach(element => diagrams.add(element));
-        const tables = node.matches(".cm-table-widget table") ? [node] : [...node.querySelectorAll(".cm-table-widget table")];
+        const tables = node.matches(".cm-table-widget table") && node.instanceOf(HTMLTableElement) ? [node] : [...node.querySelectorAll<HTMLTableElement>(".cm-table-widget table")];
         for (const table of tables) plugin.enhanceLiveTable(table);
         // …and the container is then an ancestor, not this node or below it.
         const owner = node.parentElement?.closest?.(".mermaid");
         if (owner) diagrams.add(owner);
       }
     }
-    for (const diagram of removedDiagrams) { if (!diagram.isConnected) plugin.disposeDiagram(diagram); }
-    if (diagrams.size) plugin.enhanceDiagrams([...diagrams]);
+    for (const diagram of removedDiagrams) { if (diagram.instanceOf(HTMLElement) && !diagram.isConnected) plugin.disposeDiagram(diagram); }
+    if (diagrams.size) plugin.enhanceDiagrams([...diagrams].filter((diagram): diagram is HTMLElement => diagram.instanceOf(HTMLElement)));
   });
   plugin.observer.observe(document.body, { childList: true, subtree: true });
   plugin.register(() => plugin.observer.disconnect());
@@ -229,10 +229,11 @@ export async function onload(plugin: IgnorancePlugin) {
 
   // A sweep on layout changes catches any diagram the observer missed.
   // Reading view renders a moment after the mode switch or the save, so look again a few times.
-  const syncTablePositions = (file?: TFile) => [150, 700, 1800].forEach(delay => window.setTimeout(() => {
+  const syncTablePositions = (file?: TAbstractFile) => [150, 700, 1800].forEach(delay => window.setTimeout(() => {
     for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) {
-      if (file && leaf.view.file?.path !== file.path) continue;
-      void syncPreviewTableAlignment(plugin, leaf.view).catch(() => {});
+      const view = leaf.view;
+      if (!(view instanceof MarkdownView) || (file && view.file?.path !== file.path)) continue;
+      void syncPreviewTableAlignment(plugin, view).catch(() => {});
     }
   }, delay));
   plugin.registerEvent(plugin.app.workspace.on("layout-change", () => { markContext(document.body); plugin.sweepBlocks(); syncTablePositions(); }));
@@ -264,7 +265,9 @@ export async function onload(plugin: IgnorancePlugin) {
     applyAppearancePreferences(plugin);
     plugin.repaintAll();
   });
-  plugin.registerDomEvent(window, "ib-theme-change", () => plugin.repaintAll(true));
+  const onThemeChange = () => plugin.repaintAll(true);
+  window.addEventListener("ib-theme-change", onThemeChange);
+  plugin.register(() => window.removeEventListener("ib-theme-change", onThemeChange));
   plugin.themeObserver.observe(document.body, { attributes: true, attributeFilter: ["class"] });
   plugin.register(() => plugin.themeObserver.disconnect());
 
@@ -293,7 +296,10 @@ export async function onload(plugin: IgnorancePlugin) {
         if (entry) { entry.sizes.cols.length = 0; entry.sizes.rows.length = 0; }
       }
       plugin.tableStyles.render();
-      for (const layer of plugin.tableLayers) if (layer.built) layer.build();
+      for (const layer of plugin.tableLayers) {
+        const buildable = layer as TableLayer & { built?: boolean; build?: () => void };
+        if (buildable.built) buildable.build?.();
+      }
       new Notice(t("widthsReset"));
     }
   });
@@ -342,7 +348,7 @@ export async function onload(plugin: IgnorancePlugin) {
       callback: () => {
         const file = plugin.app.workspace.getActiveFile();
         if (!isMarkdownImportSource(file)) {
-          new Notice("请先打开或选中支持的本地文件（DOCX、PDF、XLSX、PPTX、CSV、TSV、JSON、HTML 或 Notion ZIP）");
+          new Notice("请先打开或选中支持导入的本地文件（如 PDF、CSV、JSON、HTML）");
           return;
         }
         new MarkdownImportModal(plugin, file).open();
@@ -381,7 +387,7 @@ export async function onload(plugin: IgnorancePlugin) {
     callback: () => {
       const container = plugin.app.workspace.getActiveViewOfType(View)?.containerEl;
       if (!container) return;
-      container.querySelectorAll(".mermaid.ibm-mermaid-enhanced").forEach(element => {
+      container.querySelectorAll<HTMLElement>(".mermaid.ibm-mermaid-enhanced").forEach(element => {
         const state = plugin.diagramStates.get(element);
         if (state) plugin.fitDiagram(element, state);
       });
@@ -397,13 +403,13 @@ export function onunload(plugin: IgnorancePlugin) {
     }, "代码块清理")();
   });
 
-  document.querySelectorAll(".mermaid.ibm-mermaid-enhanced").forEach(element => {
+  document.querySelectorAll<HTMLElement>(".mermaid.ibm-mermaid-enhanced").forEach(element => {
     guardedCleanup(() => {
     const state = plugin.diagramStates.get(element);
     state?.cleanup?.();
     element.classList.remove("ibm-mermaid-enhanced", "is-panning", "is-interactive");
     element.querySelector(":scope > .ibm-block-header")?.remove();
-    const svg = element.querySelector(".ibm-mermaid-canvas > svg, :scope > svg");
+    const svg = element.querySelector<SVGSVGElement>(".ibm-mermaid-canvas > svg, :scope > svg");
     if (svg) {
       clearPaint(svg);
       svg.style.removeProperty("transform");

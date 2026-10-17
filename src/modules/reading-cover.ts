@@ -4,19 +4,21 @@ import type { IgnorancePlugin } from "../plugin-types.js";
    description, author, date / created / published, tags. */
 export interface CoverFields { title: string; subtitle: string; authors: string[]; date: string; tags: string[] }
 
+const scalar = (value: unknown): string => (typeof value === "string" || typeof value === "number" || typeof value === "boolean" ? String(value) : "");
+
 const list = (value: unknown): string[] => (Array.isArray(value) ? value : value ? [value] : [])
-  .map(item => String(item).replace(/^\[\[|\]\]$/g, "").trim()).filter(Boolean);
+  .map(item => scalar(item).replace(/^\[\[|\]\]$/g, "").trim()).filter(Boolean);
 
 const dateText = (value: unknown) => {
-  const text = value instanceof Date ? value.toISOString() : String(value ?? "");
+  const text = value instanceof Date ? value.toISOString() : scalar(value);
   return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 10) : text;
 };
 
-export function coverFields(frontmatter: Record<string, any> | undefined, basename: string): CoverFields {
+export function coverFields(frontmatter: Record<string, unknown> | undefined, basename: string): CoverFields {
   const properties = frontmatter || {};
   return {
-    title: String(properties.title || basename),
-    subtitle: String(properties.subtitle || properties.description || ""),
+    title: scalar(properties.title) || basename,
+    subtitle: scalar(properties.subtitle) || scalar(properties.description),
     authors: list(properties.author),
     date: dateText(properties.date || properties.created || properties.published),
     tags: list(properties.tags).map(tag => tag.replace(/^#/, ""))

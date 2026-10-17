@@ -4,7 +4,7 @@ export function paperColumnShares(rows: string[][], minimumShares: number[] = []
   if (!count || rows.some(row => row.length !== count)) return [];
   const lengths = Array.from({ length: count }, (_, index) => Math.max(...rows.map(row => {
     // CJK characters occupy roughly twice the Latin advance in body fonts.
-    return Array.from(row[index]).reduce((sum, char) => sum + (/[^\x00-\x7f]/.test(char) ? 2 : 1), 0);
+    return Array.from(row[index]).reduce((sum, char) => sum + ((char.codePointAt(0) ?? 0) > 0x7f ? 2 : 1), 0);
   })));
   const weights = lengths.map(length => Math.min(4, Math.max(1, Math.sqrt(length / 24))));
   const total = weights.reduce((sum, weight) => sum + weight, 0);
@@ -24,7 +24,7 @@ export function paperColumnShares(rows: string[][], minimumShares: number[] = []
 }
 
 export function preparePaperTableColumns(root: HTMLElement) {
-  const context = root.ownerDocument.createElement('canvas').getContext('2d');
+  const context = createEl('canvas').getContext('2d');
   // Read every table before inserting columns: inserting one colgroup changes
   // layout, so measuring the next table would otherwise force another pass.
   const plans = [...root.querySelectorAll<HTMLTableElement>('table')].flatMap(table => {
@@ -47,11 +47,10 @@ export function preparePaperTableColumns(root: HTMLElement) {
     return shares.length ? [{ table, shares }] : [];
   });
   for (const { table, shares } of plans) {
-    const group = table.ownerDocument.createElement('colgroup');
+    const group = createEl('colgroup');
     shares.forEach(share => {
-      const column = table.ownerDocument.createElement('col');
+      const column = group.createEl('col');
       column.style.width = `${share}%`;
-      group.appendChild(column);
     });
     table.insertBefore(group, table.querySelector(':scope > thead, :scope > tbody, :scope > tr'));
   }

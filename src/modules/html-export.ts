@@ -21,6 +21,8 @@ import {
   saveExportToVault
 } from "./export.js";
 
+type SvgPaints = Awaited<ReturnType<typeof snapshotSvgPaints>>;
+
 const OMIT_FROM_HTML = new Set(["SCRIPT", "STYLE", "BUTTON", "TEXTAREA", "SELECT", "IFRAME", "OBJECT", "EMBED", "SOURCE", "META", "LINK", "BASE", "FORM"]);
 const OMIT_HTML_SELECTOR = ".ibm-block-header, .ibm-mermaid-toolbar, .ibp-page-number, .ib-table-resize-layer, .ibt-layer, .ib-image-actions, .ib-image-resize-layer, .copy-button";
 const COLOR_PROPERTIES = new Set([
@@ -36,7 +38,16 @@ const HTML_STYLE_PROPERTIES = [
 ];
 const SVG_STYLE_PROPERTIES = [...HTML_STYLE_PROPERTIES, "rx", "ry"];
 
-async function setBodyThemeMode(plugin: IgnorancePlugin, mode: string, root: HTMLElement, signal) {
+// Resolved colors back to their theme token names, plus the per-element
+// tokens of diagram paints that differ between light and dark.
+interface ColorTokens extends Map<string, string> {
+  diagramPaints?: WeakMap<Element, Map<string, string>>;
+}
+interface ThemeSnapshot { values: Record<string, string>; colors: ColorTokens }
+type Checkpoint = () => Promise<void>;
+type StyledElement = Element & ElementCSSInlineStyle;
+
+async function setBodyThemeMode(plugin: IgnorancePlugin, mode: string, root: HTMLElement, signal?: AbortSignal | null) {
   const body = document.body;
   body.toggleClass("theme-dark", mode === "dark");
   body.toggleClass("theme-light", mode === "light");
@@ -49,10 +60,10 @@ async function setBodyThemeMode(plugin: IgnorancePlugin, mode: string, root: HTM
   }
 }
 
-function snapshotThemeTokens() {
+function snapshotThemeTokens(): ThemeSnapshot {
   const body = document.body;
   const bodyStyle = getComputedStyle(body);
-  const values = {};
+  const values: Record<string, string> = {};
   // Interaction tokens come from the theme, independent of static capture.
   for (const name of [
     "--ib-dur-fast", "--ib-dur-base", "--ib-dur-slow", "--ib-ease-out", "--ib-ease-in",
@@ -76,7 +87,7 @@ function snapshotThemeTokens() {
     const value = bodyStyle.getPropertyValue(name).trim();
     if (value) values[name] = value;
   }
-  const colors = new Map();
+  const colors: ColorTokens = new Map<string, string>();
   const probe = createSpan();
   probe.setCssStyles({ position: "fixed" });
   probe.setCssStyles({ visibility: "hidden" });
@@ -102,7 +113,7 @@ const SIZED_ELEMENTS = new Set(["IMG", "SVG", "CANVAS", "VIDEO", "IFRAME", "svg"
 // Values that equal what the element gets with no style at all: CSS initial
 // values the browser's own stylesheet does not override for that element.
 // Writing them onto every element was most of the exported file.
-const DEFAULT_VALUES = {
+const DEFAULT_VALUES: Record<string, string> = {
   "grid-template-columns": "none", "grid-template-rows": "none", "grid-area": "auto",
   "justify-content": "normal", "align-items": "normal", "column-count": "auto", "object-fit": "fill",
   "flex": "0 1 auto", "flex-flow": "row", "gap": "normal", "filter": "none", "opacity": "1",
@@ -114,7 +125,7 @@ const UA_DECORATED = new Set(["A", "INS", "U", "S", "DEL", "STRIKE"]);
 const UA_BACKGROUND = new Set(["MARK", "TH", "TD", "TR", "THEAD", "TBODY", "TABLE", "CODE", "PRE", "KBD"]);
 const UA_VERTICAL_ALIGN = new Set(["TD", "TH", "TR", "THEAD", "TBODY", "TFOOT", "SUB", "SUP", "IMG", "svg"]);
 
-function isDefaultValue(name: string, value: string, source: Element, computed) {
+function isDefaultValue(name: string, value: string, source: Element, computed: CSSStyleDeclaration) {
   if (DEFAULT_VALUES[name] === value) return true;
   const tag = source.tagName;
   switch (name) {
@@ -129,7 +140,7 @@ function isDefaultValue(name: string, value: string, source: Element, computed) 
   }
 }
 
-function inlineStandaloneStyles(source: Element, target: HTMLElement, colors) {
+function inlineStandaloneStyles(source: Element, target: StyledElement, colors: ColorTokens) {
   const computed = getComputedStyle(source);
   const sized = SIZED_ELEMENTS.has(source.tagName);
   const diagramPaints = colors.diagramPaints?.get(source);
@@ -160,10 +171,10 @@ function safeAttribute(name: string, value: string) {
 }
 
 function decodeHash(value: string) {
-  try { return decodeURIComponent(value); } catch (_) { return value; }
+  try { return decodeURIComponent(value); } catch { return value; }
 }
 
-function copyAttributes(source: Element, target: HTMLElement, headingIds) {
+function copyAttributes(source: Element, target: HTMLElement, headingIds: Map<string, string>) {
   for (const attribute of [...source.attributes]) {
     const name = attribute.name.toLowerCase();
     if (name === "class" || name === "style" || name === "src" || name === "id" || !safeAttribute(name, attribute.value)) continue;
@@ -179,11 +190,11 @@ function copyAttributes(source: Element, target: HTMLElement, headingIds) {
   }
 }
 
-async function cloneSvgNode(source, colors, checkpoint) {
+async function cloneSvgNode(source: Node, colors: ColorTokens, checkpoint: Checkpoint): Promise<Node | null> {
   await checkpoint();
   if (source.nodeType === Node.TEXT_NODE) return document.createTextNode(source.nodeValue || "");
-  if (!(source instanceof Element) || ["SCRIPT", "STYLE"].includes(source.tagName.toUpperCase())) return null;
-  const clone = document.createElementNS(source.namespaceURI || "http://www.w3.org/2000/svg", source.tagName.toLowerCase());
+  if (!source.instanceOf(Element) || ["SCRIPT", "STYLE"].includes(source.tagName.toUpperCase())) return null;
+  const clone = document.createElementNS(source.namespaceURI || "http://www.w3.org/2000/svg", source.tagName.toLowerCase()) as SVGElement;
   for (const attribute of [...source.attributes]) {
     const name = attribute.name.toLowerCase();
     if (/^on/i.test(name) || name === "style") continue;
@@ -199,7 +210,7 @@ async function cloneSvgNode(source, colors, checkpoint) {
   return clone;
 }
 
-async function imageAsPng(source, colors, alt = "") {
+async function imageAsPng(source: HTMLImageElement | HTMLCanvasElement, colors: ColorTokens, alt = "") {
   const rect = source.getBoundingClientRect();
   const image = createEl("img");
   if (source instanceof HTMLCanvasElement) {
@@ -232,12 +243,12 @@ async function remoteImageDataUri(source: HTMLImageElement) {
     const type = String(response.headers?.["content-type"] || "").split(";")[0];
     if (!type.startsWith("image/")) return null;
     return `data:${type};base64,${bytesToBase64(new Uint8Array(response.arrayBuffer))}`;
-  } catch (_) {
+  } catch {
     return null;
   }
 }
 
-async function imageDataUri(plugin: IgnorancePlugin, source: HTMLImageElement, imageIndex) {
+async function imageDataUri(plugin: IgnorancePlugin, source: HTMLImageElement, imageIndex: Map<string, TFile>) {
   const src = source.currentSrc || source.getAttribute("src") || "";
   if (/^data:image\//i.test(src)) return src;
   const file = imageIndex.get(src) || imageIndex.get(resourcePathKey(src));
@@ -249,10 +260,10 @@ async function imageDataUri(plugin: IgnorancePlugin, source: HTMLImageElement, i
   return null;
 }
 
-async function cloneHtmlNode(source, plugin: IgnorancePlugin, imageIndex, colors, headingIds, checkpoint, preview = false) {
+async function cloneHtmlNode(source: Node, plugin: IgnorancePlugin, imageIndex: Map<string, TFile>, colors: ColorTokens, headingIds: Map<string, string>, checkpoint: Checkpoint, preview = false): Promise<Node | null> {
   await checkpoint();
   if (source.nodeType === Node.TEXT_NODE) return document.createTextNode(source.nodeValue || "");
-  if (!(source instanceof Element) || OMIT_FROM_HTML.has(source.tagName) || source.matches(OMIT_HTML_SELECTOR)) return null;
+  if (!source.instanceOf(Element) || OMIT_FROM_HTML.has(source.tagName) || source.matches(OMIT_HTML_SELECTOR)) return null;
 
   if (source.instanceOf(HTMLInputElement)) {
     if (source.type !== "checkbox") return null;
@@ -271,7 +282,7 @@ async function cloneHtmlNode(source, plugin: IgnorancePlugin, imageIndex, colors
   }
 
   if (source.instanceOf(SVGElement)) {
-    const svg = await cloneSvgNode(source, colors, checkpoint);
+    const svg = await cloneSvgNode(source, colors, checkpoint) as SVGElement | null;
     svg?.setAttribute("xmlns", "http://www.w3.org/2000/svg");
     if (svg) {
       // ECharts' SVG renderer sets only width/height. Once max-width or
@@ -354,7 +365,7 @@ async function cloneHtmlNode(source, plugin: IgnorancePlugin, imageIndex, colors
     return fallback;
   }
 
-  const copy = createEl(source.tagName.toLowerCase());
+  const copy = createEl(source.tagName.toLowerCase() as keyof HTMLElementTagNameMap);
   copyAttributes(source, copy, headingIds);
   inlineStandaloneStyles(source, copy, colors);
   for (const name of ["data-ib-table-align", "data-ib-chart-align"]) {
@@ -365,7 +376,7 @@ async function cloneHtmlNode(source, plugin: IgnorancePlugin, imageIndex, colors
   if (/^fn(?:ref)?[-:]/.test(source.id)) copy.id = headingIds.get(source.id) || "";
   if (source.classList.contains("ibc-container--chapter")) {
     copy.setAttribute("data-ib-chapter", "");
-    copy.setAttribute("data-ib-chapter-tone", source.dataset.ibcTone || "0");
+    copy.setAttribute("data-ib-chapter-tone", source.getAttribute("data-ibc-tone") || "0");
     copy.setCssStyles({ position: "relative" });
   }
   if (source.classList.contains("ibc-chapter__rail")) {
@@ -421,14 +432,14 @@ const INHERITED_PROPERTIES = [
 const KEEP_FULL_STYLE = new Set(["TABLE", "PRE", "IMG", "FIGURE", "svg", "SVG"]);
 
 
-async function dropInheritedDuplicates(root: HTMLElement, checkpoint) {
+async function dropInheritedDuplicates(root: HTMLElement, checkpoint: Checkpoint) {
   // Children first, while each parent still holds the values they compare to.
-  const visit = async (element: HTMLElement) => {
+  const visit = async (element: StyledElement): Promise<void> => {
     await checkpoint();
     // Diagram styles have been removed during cloning; identical inherited
     // SVG values can safely come from their parent just like HTML text.
-    for (const child of element.children) await visit(child);
-    const parent = element.parentElement;
+    for (const child of Array.from(element.children) as StyledElement[]) await visit(child);
+    const parent = element.parentElement as StyledElement | null;
     if (!parent || parent === root || element === root || KEEP_FULL_STYLE.has(element.tagName)) return;
     const own = element.style, inherited = parent.style;
     for (const name of INHERITED_PROPERTIES) {
@@ -439,21 +450,25 @@ async function dropInheritedDuplicates(root: HTMLElement, checkpoint) {
       if (value && value === inherited.getPropertyValue(name) && own.getPropertyPriority(name) === inherited.getPropertyPriority(name)) own.removeProperty(name);
     }
   };
-  for (const child of root.children) await visit(child);
+  for (const child of Array.from(root.children) as StyledElement[]) await visit(child);
 }
 
 function escapeHtml(value: string) {
-  return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[char]);
+  return value.replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" } as Record<string, string>)[char]);
 }
 
-function tokenDeclarations(snapshot) {
+function tokenDeclarations(snapshot: ThemeSnapshot) {
   return Object.entries(snapshot.values).map(([name, value]) => `${name}:${value}`).join(";");
 }
+
+// The members of the CSSOM rule kinds this walk tells apart by shape.
+interface LooseCssRule { selectorText?: string; name?: string; cssText: string; cssRules?: CSSRuleList; conditionText?: string }
 
 function readerThemeCss() {
   // Transfer only offline-reader rules; keep theme CSS as their source.
   const readerSelector = /\.ib-(?:reader|nav|toc|code-frame|tool|dock)(?:[-\s.:[#]|$)/;
-  const collect = rules => [...rules].map(rule => {
+  const collect = (rules: CSSRuleList): string => [...rules].map(entry => {
+    const rule = entry as LooseCssRule;
     if (rule.selectorText) return readerSelector.test(rule.selectorText) ? rule.cssText : "";
       if (["ib-copy-confirm", "ib-callout-open", "ib-callout-close"].includes(rule.name)) return rule.cssText;
     if (rule.cssRules && rule.conditionText) {
@@ -463,11 +478,11 @@ function readerThemeCss() {
     return "";
   }).filter(Boolean).join("\n");
   return [...document.styleSheets].map(sheet => {
-    try { return collect(sheet.cssRules); } catch (_) { return ""; }
+    try { return collect(sheet.cssRules); } catch { return ""; }
   }).filter(Boolean).join("\n");
 }
 
-function buildReaderCss(light, dark) {
+function buildReaderCss(light: ThemeSnapshot, dark: ThemeSnapshot) {
   return `
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; color-scheme: light; background: ${light.values["--ib-bg-primary"] || "#fff"}; }
@@ -517,7 +532,7 @@ function buildReaderCss(light, dark) {
   `;
 }
 
-async function buildHtmlReader(plugin: IgnorancePlugin, file: TFile, content: HTMLElement, sourceHeadings, headingIds, light, dark, initialMode: string, checkpoint, preferenceId: string) {
+async function buildHtmlReader(plugin: IgnorancePlugin, file: TFile, content: HTMLElement, sourceHeadings: Element[], headingIds: Map<string, string>, light: ThemeSnapshot, dark: ThemeSnapshot, initialMode: string, checkpoint: Checkpoint, preferenceId: string) {
     await dropInheritedDuplicates(content, checkpoint);
     // The cover shows the title; a first H1 that only repeats it is hidden and left out of the navigation.
     const { cover, colophon, title } = await buildCover(plugin, file, content);
@@ -548,17 +563,17 @@ async function buildHtmlReader(plugin: IgnorancePlugin, file: TFile, content: HT
 /* `cover` hides the window behind the stage while the theme is switched to
    read both palettes; the preview window covers it itself, and a full-screen
    stage over it made the preview look like a frozen white screen. */
-async function prepareHtmlDocument(plugin: IgnorancePlugin, file: TFile, { cover = true, onProgress = null, signal = null } = {}) {
+async function prepareHtmlDocument(plugin: IgnorancePlugin, file: TFile, { cover = true, onProgress = null, signal = null }: { cover?: boolean; onProgress?: ((html: string) => unknown) | null; signal?: AbortSignal | null } = {}): Promise<string> {
   // The reader inlines language icons into each code header, so they must be loaded first.
   await loadLanguageIcons(plugin).catch(() => {});
-  const checkpoint = renderBudget(signal);
+  const checkpoint = renderBudget(signal ?? undefined);
   const initialMode = document.body.hasClass("theme-dark") ? "dark" : "light";
   const preferenceId = readerPreferenceId(file.path, initialMode, snapshotThemeTokens().values);
-  const progress = onProgress ? async ({ staging }) => {
+  const progress = onProgress ? async ({ staging }: { staging: HTMLElement }) => {
     signal?.throwIfAborted();
     const light = snapshotThemeTokens();
     const sourceHeadings = [...staging.querySelectorAll("h1,h2,h3,h4,h5,h6")];
-    const headingIds = new Map(sourceHeadings.filter(h => h.id).map((h, i) => [h.id, `reader-section-${i + 1}`]));
+    const headingIds = new Map<string, string>(sourceHeadings.filter(h => h.id).map((h, i): [string, string] => [h.id, `reader-section-${i + 1}`]));
     [...staging.querySelectorAll('[id^="fn-"] , [id^="fnref-"]')].forEach((node, i) => headingIds.set(node.id, `reader-footnote-${i + 1}`));
     const content = createDiv();
     const imageIndex = vaultImageIndex(plugin);
@@ -568,7 +583,7 @@ async function prepareHtmlDocument(plugin: IgnorancePlugin, file: TFile, { cover
     }
     await onProgress(await buildHtmlReader(plugin, file, content, sourceHeadings, headingIds, light, light, initialMode, checkpoint, preferenceId));
   } : null;
-  return withExportStage(plugin, file, { keepStrip: true, visible: cover, onProgress: progress, signal }, async (stage, { pages, staging }) => {
+  return withExportStage(plugin, file, { keepStrip: true, visible: cover, onProgress: progress, signal }, async (stage: HTMLElement, { pages, staging }: { pages: HTMLElement[]; staging: HTMLElement }) => {
     pages.forEach(page => page.remove());
     staging.removeClass("ibp-staging");
     const holder = stage.createDiv({ cls: "ibp-long-sheet" });
@@ -577,7 +592,8 @@ async function prepareHtmlDocument(plugin: IgnorancePlugin, file: TFile, { cover
     // The stage starts in the app's mode and the clone below must be taken in
     // light. A dark app reads dark first and switches once; a light app reads
     // light, visits dark and returns. Each switch re-renders every chart.
-    let light, dark, darkPaints, lightPaints;
+    let light: ThemeSnapshot, dark: ThemeSnapshot;
+    let darkPaints: SvgPaints, lightPaints: SvgPaints;
     if (initialMode === "dark") {
       await setBodyThemeMode(plugin, "dark", staging, signal);
       await nextFrame();
@@ -608,7 +624,7 @@ async function prepareHtmlDocument(plugin: IgnorancePlugin, file: TFile, { cover
     light.colors.diagramPaints = svgPaintTokens(lightPaints, darkPaints, light.values, dark.values);
 
     const sourceHeadings = [...staging.querySelectorAll("h1,h2,h3,h4,h5,h6")];
-    const headingIds = new Map(sourceHeadings.filter(heading => heading.id).map((heading, index) => [heading.id, `reader-section-${index + 1}`]));
+    const headingIds = new Map<string, string>(sourceHeadings.filter(heading => heading.id).map((heading, index): [string, string] => [heading.id, `reader-section-${index + 1}`]));
     [...staging.querySelectorAll('[id^="fn-"] , [id^="fnref-"]')].forEach((node, i) => headingIds.set(node.id, `reader-footnote-${i + 1}`));
     const imageIndex = vaultImageIndex(plugin);
     const content = createDiv();

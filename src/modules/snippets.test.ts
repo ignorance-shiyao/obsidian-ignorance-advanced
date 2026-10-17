@@ -6,11 +6,11 @@ describe("块与图表起手模板", () => {
     const ids = SNIPPET_TEMPLATES.map(template => template.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const template of SNIPPET_TEMPLATES) {
-      let resolved;
+      let resolved: ReturnType<typeof resolveSnippet>;
       try {
         resolved = resolveSnippet(template.body);
       } catch (error) {
-        throw new Error(template.id + ": " + error.message);
+        throw new Error(template.id + ": " + (error instanceof Error ? error.message : String(error)));
       }
       expect(resolved.text).not.toContain("⟦");
       expect(resolved.text).not.toContain("⟧");
@@ -33,7 +33,7 @@ describe("块与图表起手模板", () => {
     for (const template of charts) {
       const resolved = resolveSnippet(template.body).text;
       const json = resolved.slice((fence + "echarts\n").length, -("\n" + fence).length);
-      expect(() => JSON.parse(json), template.id).not.toThrow();
+      expect(() => { JSON.parse(json); }, template.id).not.toThrow();
     }
   });
 

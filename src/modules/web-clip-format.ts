@@ -14,7 +14,7 @@ function yamlString(value: string) {
   return JSON.stringify(String(value ?? ""));
 }
 
-export function frontmatter({ title, url, author, published, description, tag = CLIP_TAG }) {
+export function frontmatter({ title, url, author, published, description, tag = CLIP_TAG }: { title: string; url: string; author?: string; published?: string; description?: string; tag?: string }) {
   const lines = ["---", `title: ${yamlString(title)}`, `source: ${yamlString(url)}`];
   if (author) lines.push("author:", `  - ${yamlString(`[[${author}]]`)}`);
   if (published) lines.push(`published: ${published}`);
@@ -25,11 +25,11 @@ export function frontmatter({ title, url, author, published, description, tag = 
 }
 
 // WeChat styles headings with <strong> and pads lines with &nbsp;.
-export function tidyMarkdown(markdown) {
+export function tidyMarkdown(markdown: string) {
   return markdown
     .replace(/\u00a0/g, " ")
     .replace(/^(#{1,6}) +\*\*(.+?)\*\* *$/gm, "$1 $2")
-    .split("\n").map((line: number) => line.replace(/[ \t]+$/, "").replace(/^ +(?=\S)(?![-*+] |\d+\. )/, "")).join("\n")
+    .split("\n").map(line => line.replace(/[ \t]+$/, "").replace(/^ +(?=\S)(?![-*+] |\d+\. )/, "")).join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }

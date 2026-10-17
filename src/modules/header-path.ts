@@ -1,4 +1,4 @@
-import type { TFile, WorkspaceLeaf } from "obsidian";
+import type { MenuItem, TFile, TFolder, WorkspaceLeaf } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Menu, Platform, setTooltip } from "obsidian";
 import { setIcon } from "./ui-icons.js";
@@ -12,21 +12,28 @@ import { setIcon } from "./ui-icons.js";
 
 const BUTTON = "ib-path-toggle";
 const SHOWN = "ib-path-shown";
-const observed = new WeakMap();
+const observed = new WeakMap<Element, ResizeObserver>();
+
+// The view of a note tab: the published View type does not list its file.
+interface NoteView { containerEl: HTMLElement; file?: TFile | null }
+// The file explorer view can scroll a folder into sight.
+interface ExplorerView { revealInFolder?(folder: TFolder): void }
+// Per tab, the path state the user chose by hand with the folder button.
+const overrides = new WeakMap<WorkspaceLeaf, { path: string; shown: boolean }>();
 
 // Show the path when it fits, unless the user toggled this note by hand.
 function fit(leaf: WorkspaceLeaf) {
-  const view = leaf.view;
+  const view = leaf.view as NoteView;
   const root = view?.containerEl;
   const container = root?.querySelector(".view-header-title-container");
   const file = view?.file;
   if (!container || !file) return;
-  const override = leaf._ibPathOverride;
+  const override = overrides.get(leaf);
   if (override && override.path === file.path) {
     root.toggleClass(SHOWN, override.shown);
     return;
   }
-  delete leaf._ibPathOverride;
+  overrides.delete(leaf);
   if (!ancestors(file).length) { root.removeClass(SHOWN); return; }
   root.addClass(SHOWN);
   // Measure with the path laid out; the title area clips what does not fit.
@@ -35,43 +42,46 @@ function fit(leaf: WorkspaceLeaf) {
 }
 
 function ancestors(file: TFile) {
-  const chain = [];
+  const chain: TFolder[] = [];
   for (let folder = file?.parent; folder && !folder.isRoot(); folder = folder.parent) chain.unshift(folder);
   return chain;
 }
 
-async function revealFolder(plugin: IgnorancePlugin, folder) {
+async function revealFolder(plugin: IgnorancePlugin, folder: TFolder) {
   const { workspace } = plugin.app;
-  let leaf = workspace.getLeavesOfType("file-explorer")[0];
+  const leaf = workspace.getLeavesOfType("file-explorer")[0];
   if (!leaf) return;
   await workspace.revealLeaf?.(leaf);
-  leaf.view?.revealInFolder?.(folder);
+  (leaf.view as ExplorerView)?.revealInFolder?.(folder);
 }
 
-function showTree(plugin: IgnorancePlugin, file: TFile, event) {
+function showTree(plugin: IgnorancePlugin, file: TFile, event: MouseEvent) {
   const menu = new Menu();
   const chain = ancestors(file);
   // Indent whole rows (icon included) so the path reads as a tree.
-  const indent = (item, depth: number) => { if (item.dom) item.dom.style.paddingInlineStart = `calc(var(--size-4-2) + ${depth * 16}px)`; };
+  const indent = (item: MenuItem, depth: number) => {
+    const dom = (item as MenuItem & { dom?: HTMLElement }).dom;
+    if (dom) dom.style.paddingInlineStart = `calc(var(--size-4-2) + ${depth * 16}px)`;
+  };
   chain.forEach((folder, depth) => {
     menu.addItem(item => {
       item.setTitle(folder.name).setIcon(depth === chain.length - 1 ? "lucide-folder-open" : "lucide-folder")
-        .onClick(() => revealFolder(plugin, folder));
+        .onClick(() => { void revealFolder(plugin, folder); });
       indent(item, depth);
     });
   });
   menu.addItem(item => {
-    item.setTitle(file.basename).setIcon("lucide-file-text").setChecked(true).onClick(() => {});
+    item.setTitle(file.basename).setIcon("lucide-file-text").setChecked(true).onClick(() => { /* the current note: nothing to reveal */ });
     indent(item, chain.length);
   });
   menu.showAtMouseEvent(event);
 }
 
 function decorate(plugin: IgnorancePlugin, leaf: WorkspaceLeaf) {
-  const view = leaf.view;
-  const container = view?.containerEl?.querySelector(".view-header-title-container");
+  const view = leaf.view as NoteView;
+  const container = view?.containerEl?.querySelector<HTMLElement>(".view-header-title-container");
   if (!container) return;
-  let button = container.querySelector(`:scope > .${BUTTON}`);
+  let button = container.querySelector<HTMLElement>(`:scope > .${BUTTON}`);
   const file = view.file;
   const hasPath = Boolean(file && ancestors(file).length);
   if (!hasPath) { button?.remove(); return; }
@@ -82,11 +92,11 @@ function decorate(plugin: IgnorancePlugin, leaf: WorkspaceLeaf) {
     button.addEventListener("click", event => {
       event.preventDefault();
       event.stopPropagation();
-      const current = leaf.view?.file;
+      const current = (leaf.view as NoteView)?.file;
       if (!current) return;
       if (Platform.isMobile) { showTree(plugin, current, event); return; }
       const shown = !view.containerEl.hasClass(SHOWN);
-      leaf._ibPathOverride = { path: current.path, shown };
+      overrides.set(leaf, { path: current.path, shown });
       view.containerEl.toggleClass(SHOWN, shown);
       setTooltip(button, tooltip(leaf, current), { placement: "bottom" });
     });

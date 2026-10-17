@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { graphPixelBounds, fitDefaultGraph } from './echarts-graph';
-const chart = (option = {}) => {
- const model = {option:{zoom:1,...option},subType:'graph',getData:()=>({count:()=>2,getItemLayout:(i:number)=>i?[20,20]:[0,0],getItemVisual:()=>10}),get:(key:string)=>model.option[key]};
- const events:any[]=[];
- return {getModel:()=>({getSeriesByIndex:()=>model}),convertToPixel:(_finder:any,p:number[])=>p,getWidth:()=>100,getHeight:()=>100,dispatchAction:(event:any)=>events.push(event),events};
+import { graphPixelBounds, fitDefaultGraph, type GraphChart } from './echarts-graph';
+const chart = (option: Record<string, unknown> = {}) => {
+ const model: ReturnType<ReturnType<GraphChart['getModel']>['getSeriesByIndex']> = {option:{zoom:1,...option},subType:'graph',getData:()=>({count:()=>2,getItemLayout:(i:number)=>i?[20,20]:[0,0],getItemVisual:()=>10}),get:(key:string): unknown=>model.option[key]};
+ const events:Array<Record<string, unknown>>=[];
+ return {getModel:()=>({getSeriesByIndex:()=>model}),convertToPixel:(_finder:unknown,p:number[])=>p,getWidth:()=>100,getHeight:()=>100,dispatchAction:(event:Record<string, unknown>)=>{events.push(event);},events};
 };
 describe('graph 节点范围及默认视图',()=>{
  it('按真实像素转换和节点直径计算包围盒面积',()=>{

@@ -1,6 +1,6 @@
-import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ARCHITECTURE_ALIASES, mapArchitectureIcons } from "./architecture-icons";
+import lucideIcons from "../../vendor/lucide-icons.json";
 
 describe("Mermaid 架构图图标别名", () => {
   it("把常见服务名映射为图标包名称，保留内置图标", () => {
@@ -28,10 +28,8 @@ describe("Mermaid 架构图图标别名", () => {
   });
 
   it("所有别名目标都存在于随插件发布的 Lucide 图标包", () => {
-    // The standalone repository keeps it in vendor/; the vault checkout next to the plugin.
-    const bundled = [new URL("../../vendor/lucide-icons.json", import.meta.url), new URL("../../../../.obsidian/plugins/ignorance-advanced/lucide-icons.json", import.meta.url)]
-      .find(url => existsSync(url));
-    const raw = JSON.parse(readFileSync(bundled, "utf8"));
+    // The bundled pack lives in vendor/ of this repository.
+    const raw: { icons: Record<string, unknown>; aliases?: Record<string, unknown> } = lucideIcons;
     const names = new Set([...Object.keys(raw.icons), ...Object.keys(raw.aliases || {})]);
     expect(Object.entries(ARCHITECTURE_ALIASES).filter(([, icon]) => !names.has(icon))).toEqual([]);
   });

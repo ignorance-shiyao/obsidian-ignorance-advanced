@@ -5,7 +5,7 @@ export interface LanguageEntry { id: string; label: string; aliases?: string[] }
 import LIST from "./language-list.json";
 
 // [id, label, aliases…]. Icons are resolved separately (language-icons.ts).
-export const LANGUAGES: LanguageEntry[] = (LIST as string[][]).map(([id, label, ...aliases]) => ({ id, label, aliases }));
+export const LANGUAGES: LanguageEntry[] = LIST.map(([id, label, ...aliases]) => ({ id, label, aliases }));
 const isSubsequence = (needle: string, hay: string) => {
   let i = 0;
   for (const ch of hay) if (ch === needle[i] && ++i === needle.length) return true;
@@ -48,7 +48,7 @@ export function fenceLanguage(fence: string): string {
 export function openLanguagePicker({ anchor, current, onPick }: { anchor: HTMLElement; current: string; onPick: (language: string) => void }) {
   document.querySelectorAll(".ib-lang-picker").forEach(node => node.remove());
   const picker = document.body.createDiv({ cls: "ib-lang-picker" });
-  const input = picker.createEl("input", { cls: "ib-lang-input", attr: { type: "text", placeholder: "输入语言，如 js、py、sql", spellcheck: "false", "aria-label": "搜索代码语言" } });
+  const input = picker.createEl("input", { cls: "ib-lang-input", attr: { type: "text", placeholder: "输入语言，如 js、py、SQL", spellcheck: "false", "aria-label": "搜索代码语言" } });
   const list = picker.createEl("ul", { cls: "ib-lang-list", attr: { role: "listbox" } });
   let items: LanguageEntry[] = [], active = 0, done = false;
   const close = () => { if (done) return; done = true; picker.remove(); document.removeEventListener("pointerdown", outside, true); };

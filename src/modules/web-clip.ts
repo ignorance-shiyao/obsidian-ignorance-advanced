@@ -1,5 +1,6 @@
+import type { TAbstractFile, Vault } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { Modal, Notice, Setting, TFile, htmlToMarkdown, normalizePath, requestUrl } from "obsidian";
+import { Modal, Notice, TFile, htmlToMarkdown, normalizePath, requestUrl } from "obsidian";
 import { setIcon } from "./ui-icons.js";
 /* Clip a web page into the clipping folder the way the Web Clipper template does:
    title / source / author / published / created / description / tags, the
@@ -43,7 +44,14 @@ function scriptVar(html: string, name: string) {
   return match ? match[1] : "";
 }
 
-function toDate(value) {
+// What a site adapter extracts from a page.
+interface Article { title: string; author: string; published: string; description: string; body: Element }
+
+function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : typeof error === "string" ? error : "";
+}
+
+function toDate(value: string) {
   if (!value) return "";
   const date = /^\d{9,11}$/.test(value) ? new Date(Number(value) * 1000) : new Date(value);
   return Number.isNaN(date.getTime()) ? "" : day(date);
@@ -51,7 +59,7 @@ function toDate(value) {
 
 /* --- site adapters: { title, author, published, description, body } -------- */
 
-function wechat(doc: Document, html: string) {
+function wechat(doc: Document, html: string): Article | null {
   const body = doc.querySelector("#js_content");
   if (!body) return null;
   body.removeAttribute("style");
@@ -61,7 +69,7 @@ function wechat(doc: Document, html: string) {
     img.setAttribute("src", src.replace(/^\/\//, "https://"));
   });
   // Decorative empty sections and the "写留言" style widgets carry no text.
-  body.querySelectorAll("mp-style-type, script, style, .js_uneditable, mpvoice, mpprofile").forEach((el: HTMLElement) => el.remove());
+  body.querySelectorAll("mp-style-type, script, style, .js_uneditable, mpvoice, mpprofile").forEach(el => el.remove());
   return {
     title: meta(doc, "og:title") || scriptVar(html, "msg_title"),
     author: meta(doc, "og:article:author", "author") || scriptVar(html, "nickname"),
@@ -75,8 +83,8 @@ function wechat(doc: Document, html: string) {
 function mainBlock(doc: Document) {
   const direct = doc.querySelector("article, [itemprop='articleBody'], main, .post-content, .article-content, .entry-content, .RichText");
   if (direct) return direct;
-  let best = doc.body, score = 0;
-  doc.querySelectorAll("div, section").forEach((el: HTMLElement) => {
+  let best: Element = doc.body, score = 0;
+  doc.querySelectorAll("div, section").forEach(el => {
     const text = el.textContent?.length || 0;
     const paragraphs = el.querySelectorAll(":scope > p").length;
     const value = paragraphs * 200 + text / 10;
@@ -85,9 +93,9 @@ function mainBlock(doc: Document) {
   return best;
 }
 
-function generic(doc: Document) {
+function generic(doc: Document): Article {
   const body = mainBlock(doc);
-  body.querySelectorAll("script, style, noscript, nav, header, footer, aside, form, iframe, button").forEach((el: HTMLElement) => el.remove());
+  body.querySelectorAll("script, style, noscript, nav, header, footer, aside, form, iframe, button").forEach(el => el.remove());
   body.querySelectorAll("img").forEach(img => {
     const src = img.getAttribute("data-src") || img.getAttribute("data-original") || img.getAttribute("src") || "";
     if (src) img.setAttribute("src", src);
@@ -103,37 +111,37 @@ function generic(doc: Document) {
 
 /* --- page → note ------------------------------------------------------------ */
 
-async function fetchArticle(url: string) {
+async function fetchArticle(url: string): Promise<Article> {
   const response = await requestUrl({ url, headers: { "User-Agent": BROWSER_UA, "Accept-Language": "zh-CN,zh;q=0.9" }, throw: false });
   if (response.status >= 400) throw new Error(`网页返回 ${response.status}`);
   const html = response.text;
   if (FAILED_CLIP.test(html) && !/id="js_content"/.test(html)) throw new Error("网站要求验证，暂时无法抓取");
   const doc = new DOMParser().parseFromString(html, "text/html");
   // Relative links and images resolve against the page.
-  const base = doc.createElement("base");
+  const base = createEl("base");
   base.href = response.headers?.["location"] || url;
   doc.head.prepend(base);
   const article = (isWeChat(url) && wechat(doc, html)) || generic(doc);
   if (!article.body || !article.body.textContent.trim()) throw new Error("没有找到正文");
   article.body.querySelectorAll("img[src]").forEach(img => { img.setAttribute("src", new URL(img.getAttribute("src"), base.href).href); });
-  article.body.querySelectorAll("a[href]").forEach(a => { try { a.setAttribute("href", new URL(a.getAttribute("href"), base.href).href); } catch (_) {} });
+  article.body.querySelectorAll("a[href]").forEach(a => { try { a.setAttribute("href", new URL(a.getAttribute("href"), base.href).href); } catch { /* an unparseable link stays as written */ } });
   return article;
 }
 
 // Download every image into <folder>/assets/, rewrite the <img> to point there.
-async function saveImages(plugin: IgnorancePlugin, body, folder, stem: string, progress) {
+async function saveImages(plugin: IgnorancePlugin, body: Element, folder: string, stem: string, progress?: (done: number, total: number) => void) {
   const vault = plugin.app.vault;
   const assetDir = normalizePath([folder, "assets"].filter(Boolean).join("/"));
-  const images = [...body.querySelectorAll("img[src]")].filter(img => /^https?:/.test(img.getAttribute("src")));
+  const images = [...body.querySelectorAll<HTMLImageElement>("img[src]")].filter(img => /^https?:/.test(img.getAttribute("src")));
   let sequence = nextPastedImageSequence(vault, assetDir, stem);
   for (const [index, img] of images.entries()) {
     progress?.(index + 1, images.length);
     try {
       const response = await requestUrl({ url: img.getAttribute("src"), headers: { "User-Agent": BROWSER_UA } });
       const type = response.headers?.["content-type"] || "image/jpeg";
-      const encoded = await encodePastedImage(new Blob([response.arrayBuffer], { type }));
-      if (!vault.getAbstractFileByPath(assetDir)) await vault.createFolder(assetDir).catch(() => {});
-      let name;
+      const encoded = await encodePastedImage(new File([response.arrayBuffer], "", { type }));
+      if (!vault.getAbstractFileByPath(assetDir)) await vault.createFolder(assetDir).catch(() => undefined);
+      let name: string;
       do { name = `${stem}-${pad(sequence)}.${encoded.extension}`; sequence += 1; } while (vault.getAbstractFileByPath(`${assetDir}/${name}`));
       await vault.createBinary(`${assetDir}/${name}`, encoded.bytes.buffer.slice(encoded.bytes.byteOffset, encoded.bytes.byteOffset + encoded.bytes.byteLength));
       img.setAttribute("src", `./assets/${name}`); // stems are space-free (safeAssetStem)
@@ -145,11 +153,11 @@ async function saveImages(plugin: IgnorancePlugin, body, folder, stem: string, p
   }
 }
 
-function safeNoteName(title) {
+function safeNoteName(title: string) {
   return String(title || "未命名剪藏").replace(/[\\/:*?"<>|#^[\]]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 120) || "未命名剪藏";
 }
 
-function uniquePath(vault, folder, name: string, except: HTMLElement) {
+function uniquePath(vault: Vault, folder: string, name: string, except?: TAbstractFile) {
   let path = normalizePath(`${folder}/${name}.md`);
   for (let index = 1; vault.getAbstractFileByPath(path) && vault.getAbstractFileByPath(path) !== except; index += 1) path = normalizePath(`${folder}/${name} ${index}.md`);
   return path;
@@ -158,11 +166,11 @@ function uniquePath(vault, folder, name: string, except: HTMLElement) {
 /* Clip `url`; into `target` (an existing note, renamed after the article) or a
    new note in the clipping folder. Returns the note. */
 /** Sub-folder named after the site, for "sort clippings by site". */
-export function siteFolder(url) {
-  try { return new URL(url).hostname.replace(/^www\./, "").replace(/[\\/:*?"<>|]/g, "-"); } catch (_) { return ""; }
+export function siteFolder(url: string) {
+  try { return new URL(url).hostname.replace(/^www\./, "").replace(/[\\/:*?"<>|]/g, "-"); } catch { return ""; }
 }
 
-export async function clipUrl(plugin: IgnorancePlugin, url: string, target: HTMLElement = null) {
+export async function clipUrl(plugin: IgnorancePlugin, url: string, target: TFile | null = null): Promise<TFile> {
   const vault = plugin.app.vault;
   const notice = new Notice("正在剪藏…", 0);
   try {
@@ -173,8 +181,8 @@ export async function clipUrl(plugin: IgnorancePlugin, url: string, target: HTML
     const inPlace = Boolean(target?.parent?.path && target.parent.path !== "/");
     const site = !inPlace && plugin.state.webClip?.byDomain ? siteFolder(url) : "";
     const folder = inPlace ? target.parent.path : site ? `${base}/${site}` : base;
-    for (const path of [base, folder]) if (!vault.getAbstractFileByPath(path)) await vault.createFolder(path).catch(() => {});
-    await saveImages(plugin, article.body, folder, safeAssetStem(name), (i: number, n) => notice.setMessage(`正在剪藏：保存图片 ${i} / ${n}`));
+    for (const path of [base, folder]) if (!vault.getAbstractFileByPath(path)) await vault.createFolder(path).catch(() => undefined);
+    await saveImages(plugin, article.body, folder, safeAssetStem(name), (i: number, n: number) => notice.setMessage(`正在剪藏：保存图片 ${i} / ${n}`));
     const markdown = tidyMarkdown(htmlToMarkdown(article.body.innerHTML));
     const text = `${frontmatter({ ...article, title, url, tag: (inPlace ? folder : base).split("/").pop() })}${markdown}\n`;
     let note = target;
@@ -190,7 +198,7 @@ export async function clipUrl(plugin: IgnorancePlugin, url: string, target: HTML
     return note;
   } catch (error) {
     notice.hide();
-    new Notice(`剪藏失败：${error.message || error}`, 8000);
+    new Notice(`剪藏失败：${errorText(error)}`, 8000);
     throw error;
   }
 }
@@ -198,8 +206,8 @@ export async function clipUrl(plugin: IgnorancePlugin, url: string, target: HTML
 /* --- entry points ----------------------------------------------------------- */
 
 function sourceOf(plugin: IgnorancePlugin, file: TFile, text: string) {
-  const fm = plugin.app.metadataCache.getFileCache(file)?.frontmatter || {};
-  const declared = [fm.source, fm.url, fm.link].find(value => typeof value === "string" && /^https?:/.test(value));
+  const fm: Record<string, unknown> = plugin.app.metadataCache.getFileCache(file)?.frontmatter || {};
+  const declared = [fm.source, fm.url, fm.link].find((value): value is string => typeof value === "string" && /^https?:/.test(value));
   return declared || text.match(URL_PATTERN)?.[0] || "";
 }
 
@@ -207,6 +215,10 @@ function sourceOf(plugin: IgnorancePlugin, file: TFile, text: string) {
    (the system paste menu needs no permission), and a readable clipboard only
    pre-fills it in the background. A pasted link starts the clip at once. */
 class ClipModal extends Modal {
+  plugin: IgnorancePlugin;
+  busy: boolean;
+  input: HTMLInputElement;
+  confirm: HTMLButtonElement;
   constructor(plugin: IgnorancePlugin) { super(plugin.app); this.plugin = plugin; this.busy = false; }
   onOpen() {
     this.modalEl.addClass("ib-clip-modal");
@@ -223,13 +235,13 @@ class ClipModal extends Modal {
     const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
     footer.createEl("button", { text: "取消" }).addEventListener("click", () => this.close());
     this.confirm = footer.createEl("button", { cls: "mod-cta", text: "剪藏" });
-    this.confirm.addEventListener("click", () => this.submit());
-    input.addEventListener("keydown", event => { if (event.key === "Enter") this.submit(); });
-    input.addEventListener("paste", () => window.setTimeout(() => { if (URL_PATTERN.test(input.value)) this.submit(); }, 0));
+    this.confirm.addEventListener("click", () => { void this.submit(); });
+    input.addEventListener("keydown", event => { if (event.key === "Enter") void this.submit(); });
+    input.addEventListener("paste", () => window.setTimeout(() => { if (URL_PATTERN.test(input.value)) void this.submit(); }, 0));
     window.setTimeout(() => input.focus(), 50);
     // Fill from the clipboard only if it is readable without asking and the box is still empty.
     const reading = clipboardUrl();
-    const timeout = new Promise(resolve => window.setTimeout(() => resolve(""), 800));
+    const timeout = new Promise<string>(resolve => window.setTimeout(() => resolve(""), 800));
     void Promise.race([reading, timeout]).then(url => { if (url && !input.value) { input.value = url; input.select(); } });
   }
   async submit() {
@@ -238,7 +250,7 @@ class ClipModal extends Modal {
     if (!url) { new Notice("请粘贴网页链接", 3000); this.input.focus(); return; }
     this.busy = true;
     this.close();
-    const note = await clipUrl(this.plugin, url).catch(() => null);
+    const note = await clipUrl(this.plugin, url).catch((): TFile | null => null);
     if (note) await this.plugin.app.workspace.getLeaf(false).openFile(note);
   }
   onClose() { this.contentEl.empty(); }
@@ -247,6 +259,11 @@ class ClipModal extends Modal {
 /* Several links at once: one per line (or pasted as a block of text). Links already clipped, recognised by the
    `source` property of a note in the vault, are skipped; failures are counted and the rest carry on. */
 class BatchClipModal extends Modal {
+  plugin: IgnorancePlugin;
+  busy: boolean;
+  area: HTMLTextAreaElement;
+  status: HTMLElement;
+  start: HTMLButtonElement;
   constructor(plugin: IgnorancePlugin) { super(plugin.app); this.plugin = plugin; this.busy = false; }
   onOpen() {
     this.titleEl.setText("批量剪藏网页");
@@ -266,12 +283,15 @@ class BatchClipModal extends Modal {
     this.busy = true;
     this.start.setAttr("disabled", "true");
     const { app } = this.plugin;
-    const known = new Set(app.vault.getMarkdownFiles().map((file: TFile) => app.metadataCache.getFileCache(file)?.frontmatter?.source).filter(Boolean));
+    const known = new Set(app.vault.getMarkdownFiles().map(file => {
+      const source: unknown = app.metadataCache.getFileCache(file)?.frontmatter?.source;
+      return typeof source === "string" ? source : "";
+    }).filter(Boolean));
     let done = 0, skipped = 0, failed = 0;
     for (const [index, url] of urls.entries()) {
       this.status.setText(`第 ${index + 1} / ${urls.length} 篇`);
       if (known.has(url)) { skipped += 1; continue; }
-      const note = await clipUrl(this.plugin, url).catch(() => null);
+      const note = await clipUrl(this.plugin, url).catch((): TFile | null => null);
       if (note) done += 1; else failed += 1;
     }
     new Notice(`批量剪藏完成：成功 ${done}，跳过 ${skipped}，失败 ${failed}`, 8000);
@@ -281,7 +301,10 @@ class BatchClipModal extends Modal {
 }
 
 class ConfirmClipModal extends Modal {
-  constructor(plugin: IgnorancePlugin, message: string, url: string, action) { super(plugin.app); this.message = message; this.url = url; this.action = action; }
+  message: string;
+  url: string;
+  action: () => void;
+  constructor(plugin: IgnorancePlugin, message: string, url: string, action: () => void) { super(plugin.app); this.message = message; this.url = url; this.action = action; }
   onOpen() {
     this.titleEl.setText("剪藏");
     this.contentEl.createEl("p", { text: this.message });
@@ -294,7 +317,7 @@ class ConfirmClipModal extends Modal {
 }
 
 async function clipboardUrl() {
-  try { return (await navigator.clipboard.readText()).match(URL_PATTERN)?.[0] || ""; } catch (_) { return ""; }
+  try { return (await navigator.clipboard.readText()).match(URL_PATTERN)?.[0] || ""; } catch { return ""; }
 }
 
 export function installWebClip(plugin: IgnorancePlugin) {
@@ -318,11 +341,16 @@ export function installWebClip(plugin: IgnorancePlugin) {
       const file = app.workspace.getActiveFile();
       if (!file || file.extension !== "md") return false;
       if (checking) return true;
-      void app.vault.read(file).then(text => {
-        const url = sourceOf(plugin, file, text);
-        if (url) return clipUrl(plugin, url, file);
-        return clipboardUrl().then(copied => copied ? clipUrl(plugin, copied, file) : new Notice("这篇笔记没有来源链接，剪贴板里也没有链接", 5000));
-      }).catch(() => {});
+      void (async () => {
+        try {
+          const text = await app.vault.read(file);
+          const url = sourceOf(plugin, file, text);
+          if (url) { await clipUrl(plugin, url, file); return; }
+          const copied = await clipboardUrl();
+          if (copied) await clipUrl(plugin, copied, file);
+          else new Notice("这篇笔记没有来源链接，剪贴板里也没有链接", 5000);
+        } catch { /* clipUrl already told the user why it failed */ }
+      })();
       return true;
     }
   });
@@ -350,9 +378,9 @@ export function installWebClip(plugin: IgnorancePlugin) {
   // The share extension saves the note while the app (and this plugin) is
   // usually not running, so look again on startup and whenever the app comes
   // back to the foreground, as well as on files created while it runs.
-  const repairing = new Set();
-  const told = new Set();
-  const repair = async (file: TFile) => {
+  const repairing = new Set<string>();
+  const told = new Set<string>();
+  const repair = async (file: TAbstractFile) => {
     if (!(file instanceof TFile) || file.extension !== "md" || repairing.has(file.path)) return;
     if (Date.now() - (file.stat?.ctime || 0) > 24 * 60 * 60 * 1000 || (file.stat?.size || 0) > 20000) return;
     const text = await app.vault.read(file).catch(() => "");
@@ -361,7 +389,7 @@ export function installWebClip(plugin: IgnorancePlugin) {
     if (url) {
       if (!isWeChat(url) || (!FAILED_CLIP.test(text) && body.length > 80)) return;
       repairing.add(file.path);
-      try { await clipUrl(plugin, url, file); } catch (_) {} finally { repairing.delete(file.path); }
+      try { await clipUrl(plugin, url, file); } catch { /* clipUrl already told the user why it failed */ } finally { repairing.delete(file.path); }
       return;
     }
     // Obsidian's share extension keeps only the verification page, not the

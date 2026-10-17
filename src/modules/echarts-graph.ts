@@ -1,20 +1,45 @@
+/** The slice of an ECharts graph series model that is read here. */
+interface GraphSeriesModel {
+  subType?: string;
+  option: Record<string, unknown>;
+  getData(): {
+    count(): number;
+    getItemLayout(index: number): unknown;
+    getItemVisual(index: number, key: string): unknown;
+    getItemGraphicEl?(index: number): { getComputedTransform?(): number[] | null } | undefined;
+  };
+  get(key: string): unknown;
+}
+
+/** The slice of an ECharts instance that is used here. */
+export interface GraphChart {
+  getModel(): { getSeriesByIndex(index: number): GraphSeriesModel };
+  convertToPixel(finder: { seriesIndex: number }, value: unknown): unknown;
+  getWidth(): number;
+  getHeight(): number;
+  dispatchAction(event: Record<string, unknown>): void;
+}
+
+/** The authored series options that decide whether the default view may be adjusted. */
+export interface AuthoredGraph { type?: unknown; center?: unknown; [key: string]: unknown }
+
 // Node geometry is measured after ECharts has laid out the graph, in chart pixels.
-export function graphPixelBounds(chart, seriesIndex: number) {
+export function graphPixelBounds(chart: GraphChart, seriesIndex: number) {
   const model = chart.getModel().getSeriesByIndex(seriesIndex);
   if (model?.subType !== "graph") return null;
-  const data = model.getData(), points = [];
+  const data = model.getData(), points: Array<{ x: number; y: number; halfWidth: number; halfHeight: number }> = [];
   for (let index = 0; index < data.count(); index++) {
     const layout = data.getItemLayout(index);
     if (!Array.isArray(layout)) continue;
-    const point = chart.convertToPixel({ seriesIndex }, layout);
+    const point: unknown = chart.convertToPixel({ seriesIndex }, layout);
     if (!Array.isArray(point) || !point.every(Number.isFinite)) continue;
     const symbol = data.getItemVisual(index, "symbolSize") ?? model.get("symbolSize") ?? 10;
-    const size = Array.isArray(symbol) ? symbol : [symbol, symbol];
+    const size: unknown[] = Array.isArray(symbol) ? symbol : [symbol, symbol];
     const transform = data.getItemGraphicEl?.(index)?.getComputedTransform?.();
     const scaleX = transform ? Math.hypot(transform[0], transform[1]) : 1;
     const scaleY = transform ? Math.hypot(transform[2], transform[3]) : 1;
     const halfWidth = Number(size[0]) * scaleX / 2, halfHeight = Number(size[1]) * scaleY / 2;
-    points.push({ x: point[0], y: point[1], halfWidth, halfHeight });
+    points.push({ x: Number(point[0]), y: Number(point[1]), halfWidth, halfHeight });
   }
   if (points.length < 2) return null;
   const left = Math.min(...points.map(point => point.x - point.halfWidth));
@@ -29,13 +54,13 @@ export function graphPixelBounds(chart, seriesIndex: number) {
     label: model.get("label"), force: model.get("force") };
 }
 
-export function fitDefaultGraph(chart, authored, seriesIndex: number) {
+export function fitDefaultGraph(chart: GraphChart, authored: AuthoredGraph | null | undefined, seriesIndex: number) {
   if (authored?.type !== "graph") return null;
   const bounds = graphPixelBounds(chart, seriesIndex);
   if (!bounds || bounds.ratio <= 0) return bounds;
   const centerX = (bounds.left + bounds.right) / 2, centerY = (bounds.top + bounds.bottom) / 2;
-  const hasZoom = Object.prototype.hasOwnProperty.call(authored, "zoom");
-  const hasCenter = Object.prototype.hasOwnProperty.call(authored, "center");
+  const hasZoom = Object.hasOwn(authored, "zoom");
+  const hasCenter = Object.hasOwn(authored, "center");
   if (hasZoom && hasCenter) return bounds;
   // graphRoam updates the series' zoom/center without restarting the force solver.
   const currentZoom = Number(bounds.zoom || 1);

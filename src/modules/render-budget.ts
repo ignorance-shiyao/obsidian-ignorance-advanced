@@ -1,5 +1,5 @@
 // Yield to Chromium's task queue so input and painting can run between batches.
-export function renderBudget(signal?, milliseconds = 8) {
+export function renderBudget(signal?: AbortSignal, milliseconds = 8) {
   let started = performance.now();
   return async () => {
     signal?.throwIfAborted();

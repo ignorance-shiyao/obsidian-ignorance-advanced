@@ -36,7 +36,7 @@ describe("完整主题预设", () => {
 
   it("天蓝 Mermaid 的实心图块和淡色卡片分别保证文字达到 4.5:1", () => {
     const mix = (first: string, second: string, amount: number) => {
-      const channels = (color: string) => color.slice(1).match(/../g)!.map(channel => parseInt(channel, 16));
+      const channels = (color: string) => color.slice(1).match(/../g).map(channel => parseInt(channel, 16));
       const a = channels(first), b = channels(second);
       return "#" + a.map((value, index) => Math.round(value + (b[index] - value) * amount).toString(16).padStart(2, "0")).join("");
     };

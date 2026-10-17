@@ -1,4 +1,4 @@
-import { ViewPlugin } from "@codemirror/view";
+import { ViewPlugin, type EditorView } from "@codemirror/view";
 /* Live Preview quotes: CodeMirror hangs each quote line with an inline padding and a negative text-indent measured
    from its own gutter. The theme gives quotes a wider inset, so the first line and its wraps would start in
    different places. Reset the inline padding to the stylesheet's and hang by exactly that inset. */
@@ -16,7 +16,7 @@ function align(root: HTMLElement) {
 
 export const quoteIndentExtension = ViewPlugin.fromClass(class {
   observer: MutationObserver;
-  constructor(view) {
+  constructor(view: EditorView) {
     this.observer = new MutationObserver(() => align(view.contentDOM));
     this.observer.observe(view.contentDOM, { subtree: true, childList: true, attributes: true, attributeFilter: ["style", "class"] });
     view.requestMeasure({ read: () => null, write: () => align(view.contentDOM) });

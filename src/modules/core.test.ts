@@ -6,7 +6,7 @@ import { extractTocHeadings, isTocDirective } from "./toc-headings";
 import { PAGE_NUMBER_FORMATS } from "./page-numbers";
 
 function luminance(hex: string) {
-  const values = hex.match(/[\da-f]{2}/gi)!.map(pair => parseInt(pair, 16) / 255).map(channel => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+  const values = hex.match(/[\da-f]{2}/gi).map(pair => parseInt(pair, 16) / 255).map(channel => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
   return 0.2126 * values[0] + 0.7152 * values[1] + 0.0722 * values[2];
 }
 function contrast(first: string, second: string) {
@@ -96,7 +96,13 @@ describe("阅读分页窗口", () => {
   });
 
   it("把 Markdown 预览容器展平成内部块，供正常分页计算", () => {
-    const makeElement = (name: string, previewChildren: any[] | null = null) => ({
+    interface StubElement {
+      name: string;
+      children: StubElement[];
+      matches(selector: string): boolean;
+      querySelector(selector: string): { children: StubElement[] } | null;
+    }
+    const makeElement = (name: string, previewChildren: StubElement[] | null = null): StubElement => ({
       name,
       children: previewChildren || [],
       matches: (selector: string) => previewChildren !== null && selector === ".ibm-markdown-preview-block",
@@ -121,7 +127,7 @@ describe("阅读分页窗口", () => {
 
 describe("Pandoc Markdown 改写", () => {
   it("转换 Mermaid、图片、wiki 链接、callout，并移除注释", async () => {
-    const resolve = (target: string) => `/vault/assets/${target.split("/").at(-1)!.split("|")[0]}`;
+    const resolve = (target: string) => `/vault/assets/${target.split("/").at(-1).split("|")[0]}`;
     const source = [
       "```mermaid\nflowchart LR\nA-->B\n```",
       "![[photos/cover.webp|封面]]",
@@ -133,8 +139,8 @@ describe("Pandoc Markdown 改写", () => {
     ].join("\n\n");
     const result = await prepareMarkdownTextForPandoc(source, ["C:\\tmp\\diagram.png"], resolve);
     expect(result).toContain("![](C:/tmp/diagram.png)");
-    expect(result).toContain("![](<\/vault\/assets\/cover.webp>)");
-    expect(result).toContain("![相对图](<\/vault\/assets\/local.png>)");
+    expect(result).toContain("![](</vault/assets/cover.webp>)");
+    expect(result).toContain("![相对图](</vault/assets/local.png>)");
     expect(result).toContain("![远程图](https://example.com/x.png)");
     expect(result).toContain("主题预设 章节");
     expect(result).toContain("> **小心**");
