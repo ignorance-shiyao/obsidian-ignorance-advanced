@@ -10,11 +10,9 @@ import { applyAppearancePreferences } from "./appearance.js";
 import { THEME_TOKEN_NAMES } from "./theme-presets.js";
 import { buildCover } from "./reader-cover.js";
 import { headerMarkup, indexContent, navigationMarkup, overlayMarkup, railMarkup, readerAppCss, readerAppScript } from "./reader-app.js";
-import { electronRemote, hasDesktopExports } from "./desktop-runtime.js";
 import { bytesToBase64 } from "./bytes.js";
 import {
   CLIPBOARD_STYLE_PROPERTIES,
-  captureElement,
   clipboardImageMime,
   nextFrame,
   resourcePathKey,
@@ -22,7 +20,6 @@ import {
   withExportStage,
   saveExportToVault
 } from "./export.js";
-import { nodeFs } from "./node-builtins.js";
 
 const OMIT_FROM_HTML = new Set(["SCRIPT", "STYLE", "BUTTON", "TEXTAREA", "SELECT", "IFRAME", "OBJECT", "EMBED", "SOURCE", "META", "LINK", "BASE", "FORM"]);
 const OMIT_HTML_SELECTOR = ".ibm-block-header, .ibm-mermaid-toolbar, .ibp-page-number, .ib-table-resize-layer, .ibt-layer, .ib-image-actions, .ib-image-resize-layer, .copy-button";
@@ -205,13 +202,17 @@ async function cloneSvgNode(source, colors, checkpoint) {
 async function imageAsPng(source, colors, alt = "") {
   const rect = source.getBoundingClientRect();
   const image = createEl("img");
-  if (hasDesktopExports()) {
-    image.src = `data:image/png;base64,${bytesToBase64(await captureElement(source))}`;
-  } else if (source instanceof HTMLCanvasElement) {
-    // Mobile has no page capture; a chart canvas can export itself.
+  if (source instanceof HTMLCanvasElement) {
+    // A chart canvas can export itself.
     image.src = source.toDataURL("image/png");
   } else {
-    image.src = source.currentSrc || source.getAttribute("src") || "";
+    // Redraw the decoded picture; a cross-origin one taints the canvas and
+    // throws, and the caller then links the original instead.
+    const canvas = createEl("canvas");
+    canvas.width = source.naturalWidth;
+    canvas.height = source.naturalHeight;
+    canvas.getContext("2d").drawImage(source, 0, 0);
+    image.src = canvas.toDataURL("image/png");
   }
   image.alt = alt;
   inlineStandaloneStyles(source, image, colors);
@@ -619,21 +620,8 @@ async function prepareHtmlDocument(plugin: IgnorancePlugin, file: TFile, { cover
   });
 }
 
-async function exportHtml(plugin: IgnorancePlugin, file: TFile, targetPath) {
-  if (!hasDesktopExports()) {
-    return saveExportToVault(plugin, `${file.basename}.html`, await prepareHtmlDocument(plugin, file));
-  }
-  const remote = electronRemote();
-  const choice = targetPath ? { filePath: targetPath } : await remote.dialog.showSaveDialog({
-    defaultPath: `${file.basename}.html`,
-    filters: [{ name: "HTML 阅读器", extensions: ["html", "htm"] }],
-    properties: ["showOverwriteConfirmation", "createDirectory"]
-  });
-  if (choice.canceled || !choice.filePath) return null;
-  const fs = nodeFs();
-  fs.writeFileSync(choice.filePath, await prepareHtmlDocument(plugin, file), "utf8");
-  if (!targetPath) remote.shell?.openPath(choice.filePath);
-  return choice.filePath;
+async function exportHtml(plugin: IgnorancePlugin, file: TFile) {
+  return saveExportToVault(plugin, `${file.basename}.html`, await prepareHtmlDocument(plugin, file));
 }
 
 export { prepareHtmlDocument, exportHtml };

@@ -7,7 +7,6 @@ import { installCalloutMotion } from "../modules/callout-motion";
 import { captionsEditorExtension } from "../modules/captions-editor.js";
 import { installCaptions } from "../modules/captions.js";
 import { installChartPreload } from "../modules/chart-preload.js";
-import { setChunkHost } from "../modules/chunks.js";
 import { installCodeFold } from "../modules/code-fold.js";
 import { colorSwatchExtension,colorSwatchPostProcessor } from "../modules/color-swatch.js";
 import { containerEditorExtension } from "../modules/container-editor.js";
@@ -18,7 +17,6 @@ import { echartsSourceHighlighter } from "../modules/echarts-source.js";
 import { TableSizeStyles,codeCopyButtons,installCodeLanguagePicker,installQuietTaskToggle,mermaidHighlighter,tableKey,toggleWritingMode,writingModesExtension } from "../modules/editor-tools.js";
 import * as ExportTools from "../modules/export.js";
 import { copyFormattedNote,exportImages,exportPdf,exportWord,openExportMenu,prepareRichCopyMarkup } from "../modules/export.js";
-import { installExternalFiles } from "../modules/external-files.js";
 import { installFileIcons } from "../modules/file-icons.js";
 import { HTML_READONLY_VIEW,HtmlReadOnlyView,MarkdownImportModal,addFileToolsMenu,handleImageTransfer,importVaultFileAsMarkdown,isMarkdownImportSource } from "../modules/file-tools.js";
 import { installGifClick } from "../modules/gif-click.js";
@@ -76,7 +74,6 @@ function insertSnippet(editor, snippet) {
 /* Plugin lifecycle: everything onload wires up (state, renderers, editor extensions, commands, views, observers) and what onunload undoes. */
 
 export async function onload(plugin: IgnorancePlugin) {
-  setChunkHost(plugin);
   plugin.measuredBounds = new WeakMap();
   plugin.fileTools = Object.freeze({
     isMarkdownImportSource,
@@ -149,7 +146,6 @@ export async function onload(plugin: IgnorancePlugin) {
   installImageAlignment(plugin);
   installReadingPosition(plugin);
   installHeaderPath(plugin);
-  installExternalFiles(plugin);
   installWebClip(plugin);
   installReadingTime(plugin);
   installGrayMode(plugin);

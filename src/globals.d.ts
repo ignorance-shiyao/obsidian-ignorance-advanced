@@ -3,14 +3,7 @@ export {};
 
 declare global {
   interface Window {
-    /** Desktop only: Obsidian's preload bridge to the main process. */
-    electron: {
-      ipcRenderer: {
-        send(channel: string, ...args: unknown[]): void;
-        once(channel: string, listener: (...args: unknown[]) => void): void;
-      };
-    };
-    /** The mermaid instance Obsidian (or the plugin's bundled copy) installs. */
+    /** The mermaid instance Obsidian installs (the plugin's router stands in for it). */
     mermaid: {
       render(id: string, text: string, container?: Element): Promise<{ svg: string; bindFunctions?: (element: Element) => void }>;
       initialize(config: Record<string, unknown>): void;

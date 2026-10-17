@@ -108,19 +108,6 @@ class IgnoranceSettingTab extends PluginSettingTab {
       { name: "语法速查", desc: "在库根目录生成一页写法速查笔记并打开；已存在则直接打开。", aliases: ["syntax", "cheat sheet", "帮助"], add: setting => setting.addButton(button =>
         button.setButtonText("打开").onClick(() => void openSyntaxGuide(plugin))) }
     ] });
-    if (Platform.isMacOS) {
-      groups.push({ heading: "文件", items: [
-        { name: "「用…打开」的程序", desc: "每行一个应用名称或 .app 路径，会出现在文件右键菜单中。", add: setting => setting.addTextArea((text: string) => {
-          text.setPlaceholder("Visual Studio Code\nPreview\n/Applications/Typora.app")
-            .setValue((state.fileTools.apps || []).join("\n"))
-            .onChange((value: string) => {
-              state.fileTools.apps = [...new Set(value.split("\n").map((item: string) => item.trim()).filter(Boolean))];
-              plugin.saveStoredState();
-            });
-          text.inputEl.rows = 4;
-        }) }
-      ] });
-    }
     return groups;
   }
 

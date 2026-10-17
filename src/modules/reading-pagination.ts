@@ -511,7 +511,7 @@ async function composePages(plugin: IgnorancePlugin, file: TFile, text: string, 
   // typography (including the page zoom font size) matches the positioned clones.
   const stagingParent = book.parentElement || document.body;
   // Both strips measure the same render with the same stylesheet snapshot.
-  const sheet = await stagingStyleSheet(stagingParent.ownerDocument);
+  const sheet = stagingStyleSheet(stagingParent.ownerDocument);
   let staging: HTMLDivElement | undefined;
   const measure = book.createDiv({ cls: "ibp-page" });
   const bodyBox = measure.createDiv({ cls: "ibp-page-body" }).getBoundingClientRect();

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import JSZip from "jszip";
 import {
   csvToMarkdown,
+  docxToMarkdown,
   htmlToMarkdown,
   jsonToMarkdown,
   notionZipToMarkdown,
@@ -71,9 +72,52 @@ describe("PPTX converter", () => {
   });
 });
 
+describe("Word converter", () => {
+  it("keeps headings, inline styles, lists, tables and pictures", async () => {
+    const docx = await import("docx");
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, ImageRun } = docx;
+    const png = Uint8Array.from(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64"));
+    const document = new Document({
+      numbering: { config: [{ reference: "steps", levels: [{ level: 0, format: "decimal", text: "%1." }] }] },
+      sections: [{ children: [
+        new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("Report")] }),
+        new Paragraph({ children: [new TextRun("Plain "), new TextRun({ text: "bold", bold: true }), new TextRun(" and "), new TextRun({ text: "slanted", italics: true })] }),
+        new Paragraph({ text: "Point", bullet: { level: 0 } }),
+        new Paragraph({ text: "First", numbering: { reference: "steps", level: 0 } }),
+        new Paragraph({ text: "Second", numbering: { reference: "steps", level: 0 } }),
+        new Table({ rows: [
+          new TableRow({ children: [new TableCell({ children: [new Paragraph("Name")] }), new TableCell({ children: [new Paragraph("Count")] })] }),
+          new TableRow({ children: [new TableCell({ children: [new Paragraph("Ada")] }), new TableCell({ children: [new Paragraph("2")] })] })
+        ] }),
+        new Paragraph({ children: [new TextRun({ text: "Off", bold: false, italics: false, strike: false })] }),
+        new Paragraph({ children: [new TextRun({ text: "python", bold: true, font: "SFMono-Regular" })] }),
+        new Paragraph({ children: [new TextRun({ text: "def run():", font: "SFMono-Regular" })] }),
+        new Paragraph({ children: [new TextRun({ text: "    return 1", font: "SFMono-Regular" })] }),
+        new Paragraph({ children: [new ImageRun({ type: "png", data: png, transformation: { width: 10, height: 10 } })] })
+      ] }]
+    });
+    const bytes = new Uint8Array(await Packer.toBuffer(document));
+    const { markdown, images } = await docxToMarkdown(bytes, "./assets/");
+    expect(markdown).toContain("# Report");
+    expect(markdown).toContain("Plain **bold** and *slanted*");
+    expect(markdown).toContain("- Point");
+    expect(markdown).toContain("1. First\n2. Second");
+    expect(markdown).toContain("| Ada | 2 |");
+    expect(markdown).toMatch(/\n\nOff\n\n/);
+    expect(markdown).toContain("```python\ndef run():\n    return 1\n```");
+    expect(markdown).toContain("![](./assets/image-1.png)");
+    expect(images).toHaveLength(1);
+    expect(images[0].bytes.byteLength).toBe(png.byteLength);
+  });
+});
+
 describe("HTML converter", () => {
   it("keeps semantic headings, tables, and local image references while removing scripts", async () => {
-    const markdown = await htmlToMarkdown('<h1>Report</h1><p>Summary <strong>bold</strong></p><table><tr><th>Name</th><th>Count</th></tr><tr><td>Ada</td><td>2</td></tr></table><img src="./assets/chart.png" alt="Chart"><script>alert(1)</script>');
+    const { default: TurndownService } = await import("turndown");
+    const { gfm } = await import("turndown-plugin-gfm");
+    const service = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced", bulletListMarker: "-" });
+    service.use(gfm);
+    const markdown = await htmlToMarkdown('<h1>Report</h1><p>Summary <strong>bold</strong></p><table><tr><th>Name</th><th>Count</th></tr><tr><td>Ada</td><td>2</td></tr></table><img src="./assets/chart.png" alt="Chart"><script>alert(1)</script>', html => service.turndown(html));
     expect(markdown).toContain("# Report");
     expect(markdown).toContain("**bold**");
     expect(markdown).toContain("| Ada | 2 |");
@@ -101,7 +145,8 @@ describe("PDF converter", () => {
     source += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
     for (const offset of offsets.slice(1)) source += String(offset).padStart(10, "0") + " 00000 n \n";
     source += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
-    const markdown = await pdfToMarkdown(new Uint8Array(Buffer.from(source, "binary")));
+    const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    const markdown = await pdfToMarkdown(new Uint8Array(Buffer.from(source, "binary")), pdfjs);
     expect(markdown).toContain("## 第 1 页");
     expect(markdown).toContain("PDF import text");
   });

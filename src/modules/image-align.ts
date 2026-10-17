@@ -120,20 +120,17 @@ async function copyImage(plugin: IgnorancePlugin, embed: HTMLElement) {
   const img = embed.querySelector("img");
   if (!img) return;
   try {
-    const { clipboard, nativeImage } = require("electron");
     const src = img.currentSrc || img.src;
-    let buffer;
+    let buffer: ArrayBuffer;
     // Only vault embeds carry a link path; web images have none.
     const linkPath = embed.getAttribute("src");
     const local = linkPath ? plugin.app.metadataCache.getFirstLinkpathDest(decodeURIComponent(linkPath), viewFor(plugin, embed)?.file?.path || "") : null;
     if (local instanceof TFile && local.extension !== "md") buffer = await plugin.app.vault.readBinary(local);
     else buffer = await downloadImage(src);
-    // nativeImage reads only PNG / JPEG; decode anything else (WebP, AVIF, GIF, SVG…)
-    // from the bytes themselves and re-encode it as PNG.
-    let image = nativeImage.createFromBuffer(Buffer.from(buffer));
-    if (image.isEmpty()) image = nativeImage.createFromBuffer(Buffer.from(await toPng(buffer)));
-    if (image.isEmpty()) throw new Error("unsupported image");
-    clipboard.writeImage(image);
+    // The clipboard takes PNG; decode anything else (JPEG, WebP, AVIF, GIF, SVG…)
+    // from the bytes themselves and re-encode it.
+    const png = new Blob([await toPng(buffer)], { type: "image/png" });
+    await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
     new Notice("已复制图片");
   } catch (error) {
     console.error("Ignorance Advanced: copy image failed —", error);
@@ -141,25 +138,20 @@ async function copyImage(plugin: IgnorancePlugin, embed: HTMLElement) {
   }
 }
 
-// fetch follows redirects (picsum and most CDNs redirect); requestUrl covers hosts without CORS.
-async function downloadImage(url) {
-  try {
-    const response = await fetch(url);
-    if (response.ok) return await response.arrayBuffer();
-  } catch (_) {}
+async function downloadImage(url: string) {
   const response = await requestUrl({ url, throw: false });
   if (response.status !== 200) throw new Error(`HTTP ${response.status}`);
   return response.arrayBuffer;
 }
 
-async function toPng(buffer) {
+async function toPng(buffer: ArrayBuffer) {
   const bitmap = await createImageBitmap(new Blob([buffer]));
   const canvas = createEl("canvas");
   canvas.width = bitmap.width;
   canvas.height = bitmap.height;
   canvas.getContext("2d").drawImage(bitmap, 0, 0);
   bitmap.close();
-  const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+  const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/png"));
   if (!blob) throw new Error("unsupported image");
   return blob.arrayBuffer();
 }

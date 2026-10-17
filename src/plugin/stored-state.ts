@@ -36,9 +36,8 @@ export async function loadStoredState(plugin: IgnorancePlugin) {
   plugin.state.readingTime = Object.assign({ enabled: true }, plugin.state.readingTime || {});
   // Existing installs have stored data and have already found their way around; only a fresh install gets the hint.
   if (plugin.state.introShown === undefined) plugin.state.introShown = Boolean(stored);
-  plugin.state.fileTools.apps = Array.isArray(plugin.state.fileTools.apps)
-    ? plugin.state.fileTools.apps.filter(value => typeof value === "string")
-    : [];
+  // "Open with" apps were removed along with the shell access they needed.
+  delete plugin.state.fileTools.apps;
   delete plugin.state.pageDefaults;
   plugin.applyDensity();
   applyAppearancePreferences(plugin);

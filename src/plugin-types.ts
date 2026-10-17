@@ -63,7 +63,6 @@ export interface PluginState {
   introShown: boolean;
   /** Source line last read, per note path (most recent last). */
   readingPositions?: Record<string, number>;
-  externalFiles?: Record<string, unknown>;
   htmlSkin?: unknown;
   pageDefaults?: unknown;
 }

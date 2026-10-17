@@ -5,7 +5,6 @@ import { setIcon } from "./ui-icons.js";
 import { applyStagedChartAlignment } from "./chart-alignment.js";
 import { applyAccent, setThemeMode } from "./appearance.js";
 import { nextFrame } from "./export.js";
-import { electronRemote } from "./desktop-runtime.js";
 import { parseSlideLayout, type SlideLayout } from "./layout.js";
 import { paginateSlideSections } from "./paginate.js";
 import { normalizePresentationSkin } from "./skin-choice.js";
@@ -16,14 +15,12 @@ import { loadChunk } from "./chunks.js";
 import { previewThenExport } from "./export-preview.js";
 import { capturePortable } from "./portable-capture.js";
 import { bytesToBase64 } from "./bytes.js";
-import { hasDesktopExports } from "./desktop-runtime.js";
 import { saveExportToVault } from "./export.js";
 import { renderMarkdownWithContainers } from "./containers.js";
 import { structureSlide } from "./structure.js";
 import { addEditableSlide } from "./pptx-editable.js";
-import { openOffscreenCapturer, stageSlide } from "./offscreen-capture.js";
+import { stageSlide } from "./offscreen-capture.js";
 import { setMarkup } from "./dom-markup.js";
-import { nodeFs } from "./node-builtins.js";
 
 const VIEW_TYPE = "ignorance-presentation";
 const CANVASES: [string, number, number][] = [
@@ -846,7 +843,7 @@ class PresentationView extends ItemView {
   async exportPptx(targetPath = "", mode = "editable") {
     if (!this.deck || !this.slideEntries.length) return;
     const file = this.noteFile();
-    const filePath = await choosePptxPath(file, targetPath);
+    const filePath = choosePptxPath(file, targetPath);
     if (!filePath) return;
     this.exportButton?.addClass("is-busy");
     this.exportButton?.setAttr("disabled", "true");
@@ -896,30 +893,17 @@ async function addImageSlide(pptx, surface, slideWidth: number, slideHeight: num
   }
 }
 
-// Mobile has no save dialog: the deck goes to the vault's 导出/ folder.
+// Decks are saved into the vault's 导出/ folder.
 const VAULT_TARGET = "vault:";
 
-async function choosePptxPath(file: TFile, targetPath = "") {
-  if (targetPath) return targetPath;
-  if (!hasDesktopExports()) return `${VAULT_TARGET}${file?.basename || "演示"}.pptx`;
-  const remote = electronRemote();
-  if (!remote?.dialog?.showSaveDialog) {
-    new Notice("当前环境暂不支持导出 PPTX。", 5000);
-    return "";
-  }
-  const choice = await remote.dialog.showSaveDialog({
-    title: "导出演示文稿",
-    defaultPath: `${file?.basename || "演示"}.pptx`,
-    filters: [{ name: "PowerPoint", extensions: ["pptx"] }],
-    properties: ["showOverwriteConfirmation", "createDirectory"],
-  });
-  return choice.canceled ? "" : choice.filePath || "";
+function choosePptxPath(file: TFile, targetPath = "") {
+  return targetPath || `${VAULT_TARGET}${file?.basename || "演示"}.pptx`;
 }
 
 /* Writes a built deck to a .pptx file. Slides are copied off-screen and
-   captured in a hidden window, so nothing on screen changes; progress is one
-   notice that updates in place. */
-// Mobile capture: the staged slide sits far off-screen; bring it to the origin
+   painted in-page, so nothing on screen changes; progress is one notice that
+   updates in place. */
+// The staged slide sits far off-screen; bring it to the origin
 // underneath the app (so nothing flashes) while html2canvas paints it.
 async function capturePortableStage(staged) {
   const { stage } = staged;
@@ -944,16 +928,13 @@ async function exportDeckPptx(deck, filePath: string, mode = "editable") {
   pptx.layout = "IGNORANCE_WIDE";
   const total = entries.length;
   const progress = new Notice(`正在导出 PPTX：0 / ${total} 页`, 0);
-  let capturer = null;
   try {
-    const desktop = hasDesktopExports();
-    if (desktop) capturer = await openOffscreenCapturer(canvasWidth, canvasHeight);
     for (const [index, entry] of entries.entries()) {
       const staged = stageSlide(reveal, entry.el, canvasWidth, canvasHeight);
       try {
         await Promise.all([...staged.surface.querySelectorAll("img")].map(img => img.decode().catch(() => null)));
         await nextFrame();
-        const capture = desktop ? () => capturer.capture(staged.html()) : () => capturePortableStage(staged);
+        const capture = () => capturePortableStage(staged);
         if (mode === "editable") await addEditableSlide(pptx, staged.surface, { slideWidth, slideHeight, canvasWidth }, capture);
         else await addImageSlide(pptx, staged.surface, slideWidth, slideHeight, capture);
       } finally {
@@ -964,23 +945,16 @@ async function exportDeckPptx(deck, filePath: string, mode = "editable") {
       await nextFrame();
     }
     progress.setMessage("正在写入 PPTX 文件…");
-    // pptxgenjs's writeFile() imports node:fs dynamically, which Obsidian's
-    // renderer cannot load; take the bytes and write them ourselves.
-    let savedPath = filePath;
-    if (filePath.startsWith(VAULT_TARGET)) {
-      const bytes = await pptx.write({ outputType: "uint8array" });
-      savedPath = await saveExportToVault(deck.plugin, filePath.slice(VAULT_TARGET.length), bytes);
-    } else {
-      const bytes = await pptx.write({ outputType: "nodebuffer" });
-      await nodeFs().promises.writeFile(filePath, bytes);
-    }
+    // pptxgenjs's writeFile() imports node:fs dynamically; take the bytes
+    // and write them through the vault instead.
+    const bytes = await pptx.write({ outputType: "uint8array" });
+    const savedPath = await saveExportToVault(deck.plugin, filePath.replace(VAULT_TARGET, ""), bytes);
     progress.hide();
     new Notice(`PPTX 已导出：${savedPath}`, 7000);
   } catch (error) {
     progress.hide();
     new Notice(`PPTX 导出失败：${error.message || error}`, 7000);
   } finally {
-    capturer?.close();
     progress.hide();
   }
 }
@@ -989,7 +963,7 @@ async function exportDeckPptx(deck, filePath: string, mode = "editable") {
    presentation settings, without opening the presentation view. */
 export async function exportNotePptx(plugin: IgnorancePlugin, file: TFile, mode = "editable", targetPath = "") {
   if (!(file instanceof TFile) || file.extension !== "md") return;
-  const filePath = await choosePptxPath(file, targetPath);
+  const filePath = choosePptxPath(file, targetPath);
   if (!filePath) return;
   const preparing = new Notice("正在排版幻灯片…", 0);
   const component = new Component();

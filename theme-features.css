@@ -1967,23 +1967,6 @@ body.ib-show-code-line-numbers .markdown-source-view.mod-cm6.is-live-preview .ib
 .ib-color-value {
   white-space: nowrap;
 }
-.ib-external-view { display: flex; flex-direction: column; }
-.ib-external-view:not(#_ib) { padding: 0; }
-.ib-external-view__banner {
-  flex: 0 0 auto;
-  padding: var(--ib-space-2) var(--ib-space-4);
-  color: var(--ib-text-muted);
-  font-size: var(--ib-tiny-size);
-  border-bottom: var(--ib-border-1) solid var(--ib-border-default);
-  overflow-wrap: anywhere;
-}
-.ib-external-view > .markdown-reading-view { flex: 1 1 auto; min-height: 0; overflow: auto; }
-.ib-external-view__editor { flex: 1 1 auto; min-height: 0; overflow: auto; }
-.ib-external-view__editor .cm-editor { height: 100%; }
-.ib-external-view__editor .cm-scroller { font-family: var(--font-text); line-height: var(--line-height-normal); }
-.ib-external-view__editor .cm-content { max-width: var(--ib-content-max); margin: 0 auto; padding: var(--ib-space-5) var(--ib-space-4); caret-color: var(--text-normal); }
-.ib-external-view__editor .cm-editor.cm-focused { outline: none; }
-.ib-external-view__missing { padding: 48px 16px; color: var(--ib-text-muted); text-align: center; }
 :is(.ibp-has-book, .ibp-book, .ibp-staging, .ibp-export,
     .ibp-export-preview__book, .ibp-export-preview__slides) {
   --ib-dur-fast: 0ms;

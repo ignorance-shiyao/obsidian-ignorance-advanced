@@ -1,24 +1,13 @@
 import type { TFile, WorkspaceLeaf } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { Notice, Setting, Platform, Menu, FileView, Modal } from "obsidian";
-import { materializeConverters } from "./assets.js";
-import { findPandoc } from "./export.js";
-import { vaultFullPath } from "./desktop-runtime.js";
-import { nodeChildProcess, nodeFs, nodeOs, nodePath } from "./node-builtins.js";
+import { Notice, Setting, Menu, FileView, Modal, htmlToMarkdown, loadPdfJs } from "obsidian";
+import { csvToMarkdown, docxToMarkdown, htmlToMarkdown as cleanHtmlToMarkdown, jsonToMarkdown, notionZipToMarkdown, pdfToMarkdown, pptxToMarkdown, xlsxToMarkdown } from "./import-converters.js";
 
 const HTML_READONLY_VIEW = "ignorance-html-readonly";
 const MARKDOWN_IMPORT_EXTS = new Set(["docx", "pdf", "xlsx", "pptx", "csv", "tsv", "json", "html", "htm", "zip"]);
 
-async function loadImportConverters(plugin: IgnorancePlugin) {
-  return require(await loadImportConvertersPath(plugin));
-}
-
-async function loadImportConvertersPath(plugin: IgnorancePlugin) {
-  return materializeConverters(plugin);
-}
-
 function fileToolsDefaults() {
-  return { apps: [], convertPastedImages: true };
+  return { convertPastedImages: true };
 }
 
 function isPastedImageFile(file: TFile) {
@@ -213,18 +202,6 @@ async function savePastedImages(plugin: IgnorancePlugin, note, files, editor, ma
 
 function addFileToolsMenu(plugin: IgnorancePlugin, menu: Menu, file: TFile) {
   if (!file || typeof file.path !== "string" || !file.extension) return;
-  if (!Platform.isMobile) {
-    if (Platform.isMacOS) {
-      for (const appName of plugin.state.fileTools?.apps || []) {
-        const app = String(appName).trim();
-        if (!app || /[\r\n\0]/.test(app)) continue;
-        menu.addItem(item => item
-          .setTitle("用 " + app + " 打开")
-          .setIcon("lucide-app-window")
-          .onClick(() => runFileTool("打开文件", () => openWithNamedApp(plugin, file, app))));
-      }
-    }
-  }
   if (isMarkdownImportSource(file)) {
     menu.addSeparator();
     menu.addItem(item => item
@@ -236,7 +213,7 @@ function addFileToolsMenu(plugin: IgnorancePlugin, menu: Menu, file: TFile) {
 
 function isMarkdownImportSource(file: TFile) {
   const extension = String(file?.extension || "").toLowerCase();
-  return !Platform.isMobile && MARKDOWN_IMPORT_EXTS.has(extension);
+  return MARKDOWN_IMPORT_EXTS.has(extension);
 }
 
 async function runFileTool(label: string, task) {
@@ -247,23 +224,6 @@ async function runFileTool(label: string, task) {
     console.error("Ignorance Advanced: " + label + "失败 —", error);
     new Notice(label + "失败：" + (error.message || error), 8000);
   }
-}
-
-function fullVaultPath(plugin: IgnorancePlugin, file: TFile) {
-  const fullPath = vaultFullPath(plugin, file.path);
-  if (!fullPath) throw new Error("无法取得文件的系统路径");
-  return fullPath;
-}
-
-function openWithNamedApp(plugin: IgnorancePlugin, file: TFile, appName: string) {
-  return new Promise((resolve, reject) => {
-    nodeChildProcess().execFile(
-      "open",
-      ["-a", appName, fullVaultPath(plugin, file)],
-      { timeout: 30000, maxBuffer: 1024 * 1024 },
-      error => error ? reject(error) : resolve(null)
-    );
-  });
 }
 
 function escapeHtmlAttribute(value: string) {
@@ -340,7 +300,7 @@ class MarkdownImportModal extends Modal {
     const { contentEl } = this;
     contentEl.empty();
     const description = extension === "docx"
-      ? "Pandoc 在本机转换 Word 文档；提取的图片会转为 WebP 并放进目标笔记同级的 assets/。"
+      ? "在本机转换 Word 文档；其中的图片会转为 WebP 并放进目标笔记同级的 assets/。"
       : extension === "zip"
         ? "按 Notion 导出包导入 Markdown 页面、CSV 表格和图片；页面目录与内链会保留，图片转为 WebP。"
         : "本地转换为 Markdown；生成的笔记与源文件放在同一目录。PDF 扫描件暂不做 OCR。";
@@ -421,19 +381,18 @@ async function importVaultFileAsMarkdown(plugin: IgnorancePlugin, file: TFile, n
   const notePath = [parentPath, normalizedName + ".md"].filter(Boolean).join("/");
   if (vault.getAbstractFileByPath(notePath)) throw new Error("目标笔记已存在：" + notePath);
 
-  const converters = await loadImportConverters(plugin);
   const text = () => vault.cachedRead(file);
-  const bytes = () => vault.readBinary(file);
-  let markdown;
+  const bytes = async () => new Uint8Array(await vault.readBinary(file));
+  let markdown: string;
   switch (extension) {
-    case "csv": markdown = converters.csvToMarkdown(await text(), ","); break;
-    case "tsv": markdown = converters.csvToMarkdown(await text(), "\t"); break;
-    case "json": markdown = converters.jsonToMarkdown(await text()); break;
+    case "csv": markdown = csvToMarkdown(await text(), ","); break;
+    case "tsv": markdown = csvToMarkdown(await text(), "\t"); break;
+    case "json": markdown = jsonToMarkdown(await text()); break;
     case "html":
-    case "htm": markdown = await converters.htmlToMarkdown(await text()); break;
-    case "xlsx": markdown = await converters.xlsxToMarkdown(new Uint8Array(await bytes())); break;
-    case "pptx": markdown = await converters.pptxToMarkdown(new Uint8Array(await bytes())); break;
-    case "pdf": markdown = await converters.pdfToMarkdown(new Uint8Array(await bytes())); break;
+    case "htm": markdown = await cleanHtmlToMarkdown(await text(), htmlToMarkdown); break;
+    case "xlsx": markdown = await xlsxToMarkdown(await bytes()); break;
+    case "pptx": markdown = await pptxToMarkdown(await bytes()); break;
+    case "pdf": markdown = await pdfToMarkdown(await bytes(), await loadPdfJs()); break;
     default: throw new Error("不支持导入此文件类型");
   }
   if (!String(markdown || "").trim()) throw new Error("文件中没有可导入的内容");
@@ -451,15 +410,11 @@ function normalizeMarkdownImportName(value: string) {
 }
 
 async function importNotionZipAsMarkdown(plugin: IgnorancePlugin, file: TFile, folderName: string) {
-  const fs = nodeFs();
-  const path = nodePath();
-  const os = nodeOs();
   const vault = plugin.app.vault;
   const parentPath = file.parent?.path || "";
   const importRoot = [parentPath, normalizeMarkdownImportName(folderName)].filter(Boolean).join("/");
   if (vault.getAbstractFileByPath(importRoot)) throw new Error("目标文件夹已存在：" + importRoot);
-  const converters = await loadImportConverters(plugin);
-  const archive = await converters.notionZipToMarkdown(await vault.readBinary(file), importRoot);
+  const archive = await notionZipToMarkdown(await vault.readBinary(file), importRoot);
   const plannedPaths = [...archive.files.map(item => item.path), ...archive.assets.map(item => item.path)];
   const normalized = new Set();
   const plannedFiles = new Set(plannedPaths.map(target => target.toLowerCase()));
@@ -468,32 +423,22 @@ async function importNotionZipAsMarkdown(plugin: IgnorancePlugin, file: TFile, f
     if (normalized.has(key)) throw new Error("Notion 导出包中存在重名目标：" + target);
     normalized.add(key);
     if (vault.getAbstractFileByPath(target)) throw new Error("目标文件已存在：" + target);
-    let parent = path.posix.dirname(target);
-    while (parent !== ".") {
+    for (let parent = parentFolder(target); parent; parent = parentFolder(parent)) {
       if (plannedFiles.has(parent.toLowerCase())) throw new Error("Notion 导出包中的文件与目录路径冲突：" + parent);
-      parent = path.posix.dirname(parent);
     }
   }
 
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ignorance-notion-import-"));
   const createdFiles = [];
   const createdFolders = [];
   try {
-    const cwebp = findCwebp();
     const preparedAssets = [];
-    for (let index = 0; index < archive.assets.length; index += 1) {
-      const asset = archive.assets[index];
-      const source = path.join(tempRoot, `source-${index + 1}.${asset.extension || "img"}`);
-      const destination = path.join(tempRoot, `image-${index + 1}.webp`);
-      fs.writeFileSync(source, Buffer.from(asset.bytes));
-      await convertImageToWebp(source, destination, cwebp);
-      preparedAssets.push({ asset, bytes: fs.readFileSync(destination) });
+    for (const asset of archive.assets) {
+      preparedAssets.push({ asset, bytes: await convertImageToWebp(asset.bytes, asset.path) });
     }
 
     await createMissingVaultFolders(vault, plannedPaths, createdFolders);
     for (const { asset, bytes } of preparedAssets) {
-      const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-      createdFiles.push(await vault.createBinary(asset.path, arrayBuffer));
+      createdFiles.push(await vault.createBinary(asset.path, bytes));
     }
     for (const document of archive.files) {
       createdFiles.push(await vault.create(document.path, document.content.trim() + "\n"));
@@ -507,104 +452,34 @@ async function importNotionZipAsMarkdown(plugin: IgnorancePlugin, file: TFile, f
       throw new Error((error.message || error) + "；部分导入文件未能移入废纸篓：" + rollbackFailures.join("、"));
     }
     throw error;
-  } finally {
-    fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 }
 
-function findCwebp() {
-  const fs = nodeFs();
-  return ["/opt/homebrew/bin/cwebp", "/usr/local/bin/cwebp", "/usr/bin/cwebp"]
-    .find(candidate => fs.existsSync(candidate)) || null;
+function parentFolder(path: string) {
+  const slash = path.lastIndexOf("/");
+  return slash > 0 ? path.slice(0, slash) : "";
 }
 
-async function convertImageToWebp(source, destination, cwebp: string) {
-  const fs = nodeFs();
-  if (cwebp) {
-    try {
-      await execFileAsync(cwebp, ["-quiet", "-q", "85", source, "-o", destination], {
-        timeout: 120000, maxBuffer: 4 * 1024 * 1024
-      });
-      return;
-    } catch (_) {
-      // Browser decoding below also covers SVG and other formats cwebp cannot read.
-    }
-  }
-  let bitmap;
+// Any picture the browser can decode, re-encoded as WebP.
+async function convertImageToWebp(bytes: Uint8Array, name: string): Promise<ArrayBuffer> {
+  let bitmap: ImageBitmap | undefined;
   try {
-    bitmap = await createImageBitmap(new Blob([fs.readFileSync(source)]));
+    const type = /\.svg$/i.test(name) ? "image/svg+xml" : "";
+    bitmap = await createImageBitmap(new Blob([bytes as BlobPart], type ? { type } : {}));
     const canvas = createEl("canvas");
     canvas.width = bitmap.width;
     canvas.height = bitmap.height;
     const context = canvas.getContext("2d");
     if (!context || !canvas.width || !canvas.height) throw new Error("无法解码图片");
     context.drawImage(bitmap, 0, 0);
-    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/webp", 0.85));
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/webp", 0.85));
     if (!blob || blob.type !== "image/webp") throw new Error("当前 Obsidian 不支持 WebP 编码");
-    fs.writeFileSync(destination, Buffer.from(await blob.arrayBuffer()));
+    return await blob.arrayBuffer();
   } catch (error) {
-    throw new Error(pathBasename(source) + " 转 WebP 失败：" + (error.message || error));
+    throw new Error(name.split("/").pop() + " 转 WebP 失败：" + (error.message || error));
   } finally {
-    bitmap?.close?.();
+    bitmap?.close();
   }
-}
-
-function pathBasename(filePath) {
-  return nodePath().basename(filePath);
-}
-
-function execFileAsync(binary: string, args, options) {
-  return new Promise((resolve, reject) => {
-    nodeChildProcess().execFile(binary, args, options, (error, stdout, stderr) => {
-      if (error) {
-        reject(Object.assign(error, { stderr }));
-      } else resolve({ stdout, stderr });
-    });
-  });
-}
-
-function collectFiles(directory, root = directory) {
-  const fs = nodeFs();
-  const path = nodePath();
-  const files = [];
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    const candidate = path.join(directory, entry.name);
-    if (entry.isDirectory()) files.push(...collectFiles(candidate, root));
-    else if (entry.isFile()) files.push(candidate);
-  }
-  return files;
-}
-
-function decodeHtmlEntities(value: string) {
-  return value.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
-}
-
-function mediaKey(relativePath: string) {
-  const path = nodePath();
-  let decoded = decodeHtmlEntities(String(relativePath).replace(/\\/g, "/"));
-  try { decoded = decodeURIComponent(decoded); } catch (_) {}
-  decoded = decoded.split(/[?#]/, 1)[0].replace(/^\.\//, "");
-  if (/^(?:[a-z][a-z0-9+.-]*:|\/)/i.test(decoded)) return null;
-  return path.posix.normalize(decoded).toLowerCase();
-}
-
-function rewriteImportedMedia(markdown: string, replacements) {
-  let count = 0;
-  const resolve = (rawPath: string) => {
-    const key = mediaKey(rawPath.replace(/^<|>$/g, ""));
-    const result = key ? replacements.get(key) : null;
-    if (result) count += 1;
-    return result;
-  };
-  markdown = markdown.replace(/<img\b[^>]*>/gi, (tag: string) => tag.replace(/\bsrc\s*=\s*(["'])(.*?)\1/i, (whole, quote, src) => {
-    const next = resolve(src);
-    return next ? 'src="' + next + '"' : whole;
-  }));
-  markdown = markdown.replace(/(!\[[^\]]*\]\()\s*(<[^>]+>|[^)\s]+)(\))/g, (whole, prefix, destination, suffix) => {
-    const next = resolve(destination);
-    return next ? prefix + next + suffix : whole;
-  });
-  return { markdown, count };
 }
 
 function safeAssetStem(name: string) {
@@ -612,80 +487,45 @@ function safeAssetStem(name: string) {
 }
 
 async function importDocxAsMarkdown(plugin: IgnorancePlugin, file: TFile, noteName: string) {
-  const pandoc = findPandoc();
-  const cwebp = findCwebp();
-  if (!pandoc) throw new Error("未找到 Pandoc，请先安装（brew install pandoc）");
-
-  const fs = nodeFs();
-  const path = nodePath();
-  const os = nodeOs();
   const vault = plugin.app.vault;
   const parentPath = file.parent?.path || "";
-  const normalizedName = noteName.trim().replace(/\.md$/i, "");
-  if (!normalizedName || /[\\/\u0000-\u001f]/.test(normalizedName)) throw new Error("Markdown 文件名无效");
-  const notePath = [parentPath, normalizedName + ".md"].filter(Boolean).join("/");
+  const notePath = [parentPath, noteName + ".md"].filter(Boolean).join("/");
   if (vault.getAbstractFileByPath(notePath)) throw new Error("目标笔记已存在：" + notePath);
+  const assetDir = [parentPath, "assets"].filter(Boolean).join("/");
+  const assetFolder = vault.getAbstractFileByPath(assetDir);
+  if (assetFolder && !Array.isArray(assetFolder.children)) throw new Error("assets 路径已被同名文件占用：" + assetDir);
 
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ignorance-word-import-"));
-  const mediaDir = path.join(tempRoot, "media");
-  const outputPath = path.join(tempRoot, "import.md");
+  const placeholder = "ib-docx-media:";
+  const { markdown: converted, images } = await docxToMarkdown(new Uint8Array(await vault.readBinary(file)), placeholder);
+  if (!converted.trim() && !images.length) throw new Error("文件中没有可导入的内容");
+  const stem = safeAssetStem(noteName);
+  const pending = [];
+  const links = new Map();
+  for (const [index, image] of images.entries()) {
+    const base = stem + "-" + String(index + 1).padStart(2, "0");
+    let assetName = base + ".webp";
+    for (let suffix = 2; vault.getAbstractFileByPath(assetDir + "/" + assetName); suffix += 1) assetName = base + "-" + suffix + ".webp";
+    // Word's EMF / WMF drawings cannot be decoded in the page; leave them out.
+    let bytes: ArrayBuffer;
+    try { bytes = await convertImageToWebp(image.bytes, image.name); } catch { continue; }
+    pending.push({ path: assetDir + "/" + assetName, bytes });
+    links.set(image.name, "./assets/" + assetName);
+  }
+  const markdown = converted.replace(/!\[\]\(ib-docx-media:([^)]+)\)/g, (_whole, name: string) => links.has(name) ? `![](${links.get(name)})` : "");
+
   const createdFiles = [];
   try {
-    const inputPath = vaultFullPath(plugin, file.path);
-    await execFileAsync(pandoc, [
-      inputPath, "-f", "docx", "-t", "gfm", "--extract-media=media", "-o", "import.md"
-    ], { cwd: tempRoot, timeout: 120000, maxBuffer: 16 * 1024 * 1024 });
-
-    let markdown = fs.readFileSync(outputPath, "utf8");
-    const extracted = fs.existsSync(mediaDir) ? collectFiles(mediaDir) : [];
-    const images = extracted.filter((source: string) => /\.(?:png|jpe?g|gif|bmp|tiff?|webp|svg|emf|wmf|avif|heic)$/i.test(source));
-    const assetDir = [parentPath, "assets"].filter(Boolean).join("/");
-    const assetFolder = vault.getAbstractFileByPath(assetDir);
-    if (assetFolder && !Array.isArray(assetFolder.children)) throw new Error("assets 路径已被同名文件占用：" + assetDir);
-
-    const replacements = new Map();
-    const pendingAssets = [];
-    const stem = safeAssetStem(normalizedName);
-    for (let index = 0; index < images.length; index += 1) {
-      const source = images[index];
-      const relativeSource = path.relative(tempRoot, source).split(path.sep).join("/");
-      const base = stem + "-" + String(index + 1).padStart(2, "0");
-      let assetName = base + ".webp";
-      let suffix = 2;
-      while (vault.getAbstractFileByPath(assetDir + "/" + assetName)) {
-        assetName = base + "-" + suffix++ + ".webp";
-      }
-      const tempWebp = path.join(tempRoot, "converted-" + String(index + 1).padStart(3, "0") + ".webp");
-      await convertImageToWebp(source, tempWebp, cwebp);
-      const link = "./assets/" + assetName;
-      replacements.set(relativeSource.toLowerCase(), link);
-      pendingAssets.push({ tempWebp, path: assetDir + "/" + assetName });
-    }
-
-    const rewritten = rewriteImportedMedia(markdown, replacements);
-    if (images.length && rewritten.count === 0) {
-      throw new Error("Pandoc 已提取图片，但无法对应 Markdown 中的图片引用；未写入目标文件。");
-    }
-    markdown = rewritten.markdown;
-
-    if (pendingAssets.length && !assetFolder) await vault.createFolder(assetDir);
-    for (const asset of pendingAssets) {
-      const bytes = fs.readFileSync(asset.tempWebp);
-      const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-      createdFiles.push(await vault.createBinary(asset.path, arrayBuffer));
-    }
-    const note = await vault.create(notePath, markdown);
+    if (pending.length && !assetFolder) await vault.createFolder(assetDir);
+    for (const asset of pending) createdFiles.push(await vault.createBinary(asset.path, asset.bytes));
+    const note = await vault.create(notePath, markdown.trim() + "\n");
     createdFiles.push(note);
-    const leaf = plugin.app.workspace.getLeaf(false);
-    await leaf.openFile(note);
-    return notePath + (pendingAssets.length ? "（含 " + pendingAssets.length + " 张 WebP 图片）" : "");
+    await openImportedNote(plugin, note);
+    return notePath + (pending.length ? "（含 " + pending.length + " 张 WebP 图片）" : "");
   } catch (error) {
     for (const created of createdFiles.reverse()) {
-      try { await plugin.app.fileManager.trashFile(created); } catch (_) {}
+      try { await plugin.app.fileManager.trashFile(created); } catch { /* best effort */ }
     }
     throw error;
-  } finally {
-    fs.rmSync(tempRoot, { recursive: true, force: true });
   }
 }
 
@@ -705,20 +545,11 @@ export {
   savePastedImages,
   addFileToolsMenu,
   runFileTool,
-  fullVaultPath,
-  openWithNamedApp,
   escapeHtmlAttribute,
   htmlReaderDocument,
   HtmlReadOnlyView,
   MarkdownImportModal,
-  findCwebp,
   convertImageToWebp,
-  pathBasename,
-  execFileAsync,
-  collectFiles,
-  decodeHtmlEntities,
-  mediaKey,
-  rewriteImportedMedia,
   safeAssetStem,
   importDocxAsMarkdown,
   isMarkdownImportSource,

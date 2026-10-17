@@ -11,3 +11,5 @@ globalThis.createEl ??= (tag, options) => {
 };
 globalThis.createDiv ??= options => globalThis.createEl("div", options);
 globalThis.createSpan ??= options => globalThis.createEl("span", options);
+// Office importers parse XML with DOMParser, which Node lacks.
+if (!globalThis.DOMParser) globalThis.DOMParser = (await import("@xmldom/xmldom")).DOMParser;

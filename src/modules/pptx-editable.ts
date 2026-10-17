@@ -1,3 +1,4 @@
+import { requestUrl } from "obsidian";
 import { bytesToBase64 } from "./bytes.js";
 /* Editable PPTX: rebuild a rendered slide as native PowerPoint objects.
    Text blocks, lists, tables and code become text boxes / tables with the
@@ -178,18 +179,10 @@ async function imageData(img) {
     canvas.getContext("2d").drawImage(img, 0, 0);
     return canvas.toDataURL("image/png");
   } catch (_) {}
-  let bytes = null, type = "image/png";
-  try {
-    const response = await fetch(src);
-    if (response.ok) { bytes = new Uint8Array(await response.arrayBuffer()); type = response.headers.get("content-type") || type; }
-  } catch (_) {}
-  if (!bytes) {
-    const response = await require("obsidian").requestUrl({ url: src, throw: false });
-    if (response.status !== 200) throw new Error(`图片下载失败：${src}`);
-    bytes = new Uint8Array(response.arrayBuffer);
-    type = response.headers?.["content-type"] || type;
-  }
-  return `data:${type.split(";")[0]};base64,${bytesToBase64(bytes)}`;
+  const response = await requestUrl({ url: src, throw: false });
+  if (response.status !== 200) throw new Error(`图片下载失败：${src}`);
+  const type = response.headers?.["content-type"] || "image/png";
+  return `data:${type.split(";")[0]};base64,${bytesToBase64(new Uint8Array(response.arrayBuffer))}`;
 }
 
 function svgData(svg: SVGSVGElement) {

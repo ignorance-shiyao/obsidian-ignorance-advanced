@@ -116,9 +116,9 @@ Requires Obsidian 1.8.7 or later. Works on desktop and mobile; Word/PDF import a
 ## Privacy and network use
 
 - No telemetry, no analytics, no ads.
-- Nothing is downloaded or updated by the plugin itself. Mermaid is Obsidian's own; the other libraries (ECharts, the export engines…) are compressed inside `main.js` (about 3 MB) and are unpacked only when a feature needs them.
+- Nothing is downloaded or updated by the plugin itself. Mermaid, PDF.js and the HTML converter are Obsidian's own; the other libraries (ECharts, the export engines…) are bundled in `main.js` (about 3.6 MB) and start only when a feature needs them.
 - Network requests happen only when you ask for them: fetching a web page you clip, an image URL you export or copy, or a cover image URL you set in a note.
-- **Files outside the vault (desktop only, and only when you ask):** saving an export to a location you choose; opening a file from your notes in an external app you name; opening and editing Markdown files that live outside the vault; unpacking the Word / PDF import converters into the system temp folder; calling Pandoc for Word export if you have it installed. These features need Node.js and Electron, so they stay off on mobile; everything else works on both.
+- **Only the vault:** the plugin reads and writes through Obsidian's vault API and never touches the file system, other programs or Electron directly. Exports are saved into the vault's `导出/` folder; on desktop, PDF goes through the system print dialog (choose "Save as PDF"). Everything works the same on desktop and mobile.
 
 ## Build from source
 

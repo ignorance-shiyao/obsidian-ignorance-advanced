@@ -2,7 +2,7 @@ import { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Menu, Notice, Component, Platform, MarkdownView } from "obsidian";
 import { setDocSheet, removeDocSheet } from "./doc-sheets.js";
-import { electronRemote, hasDesktopExports, vaultBasePath } from "./desktop-runtime.js";
+import { hasDesktopExports } from "./desktop-runtime.js";
 import { prepareMarkdownTextForPandoc } from "./pandoc-markdown.js";
 import { composePages } from "./reading-pagination.js";
 import { MM, paperSize } from "./page-controls.js";
@@ -13,23 +13,19 @@ import { capturePortable, rasterizeSvg } from "./portable-capture.js";
 import { exportNotePptx, buildDeck } from "./slides.js";
 import { previewThenExport } from "./export-preview.js";
 import { buildImagePdf } from "./image-pdf.js";
-import { nodeChildProcess, nodeFs, nodeOs, nodePath } from "./node-builtins.js";
 
 /* --------------------------------------------------------------------------
  * Export
  *
  * Every format starts from the same pages the paged reading view shows
  * (composePages), laid out at 100% in light mode on an export stage:
- *   PDF          – Obsidian's own print-to-pdf IPC (the same path as its
- *                  "Export to PDF"), @page sized to the paper, margin 0 since
- *                  each page already carries its margins. Text stays text.
- *   Page images  – each page captured with webContents.capturePage, in
- *                  viewport-high slices stitched on a canvas.
- *   Long image   – the unpaged strip with page margins, captured the same way.
- *   Word         – Pandoc (the CLI, not the Obsidian plugin). Obsidian-only
- *                  syntax is rewritten first; Mermaid diagrams are captured
- *                  from the render and embedded as PNG; WebP images, which
- *                  Word cannot show, are converted to PNG.
+ *   PDF          – the system print dialog ("Save as PDF") on desktop, with
+ *                  @page sized to the paper; an image-only PDF on mobile.
+ *   Page images  – each page painted in-page (portable capture).
+ *   Long image   – the unpaged strip with page margins, painted the same way.
+ *   Word         – a structured .docx built in-page. Obsidian-only syntax is
+ *                  rewritten first; Mermaid diagrams are embedded as PNG.
+ * Files are saved into the vault's 导出/ folder.
  * -------------------------------------------------------------------------- */
 
 /* Every export first opens a preview window; the export itself runs only
@@ -55,11 +51,6 @@ function openExportMenu(plugin: IgnorancePlugin, view, event: MouseEvent) {
   const file = view.file;
   if (!file) return;
   const menu = new Menu();
-  if (!hasDesktopExports()) {
-    addPortableExportItems(plugin, menu, file);
-    menu.showAtMouseEvent(event);
-    return;
-  }
   const actions = exportActions(plugin, file);
   const groups = [["pdf", "word", "pptxEditable", "pptxImage"], ["wechat", "zhihu"], ["html"], ["pages", "long"]];
   groups.forEach((group, index) => {
@@ -214,22 +205,12 @@ async function portableElementPng(source) {
 async function renderedElementPng(source, alt = "") {
   const rect = source.getBoundingClientRect();
   const image = createEl("img");
-  let captured = null;
-  if (hasDesktopExports()) {
-    // Page capture fails for elements outside the window (long notes); fall
-    // back to painting the element in-page.
-    try { captured = `data:image/png;base64,${bytesToBase64(await captureElement(source))}`; } catch (_) { source.setCssStyles({ transform: "" }); }
-    if (!captured) captured = await portableElementPng(source);
-    if (!captured) {
-      try { captured = `data:image/png;base64,${bytesToBase64(await capturePortable(source))}`; } catch (_) {}
-    }
-    if (!captured) return source.cloneNode(true);
-    image.src = captured;
-  } else {
-    const dataUri = await portableElementPng(source);
-    if (!dataUri) return source.cloneNode(true);
-    image.src = dataUri;
+  let captured = await portableElementPng(source);
+  if (!captured) {
+    try { captured = `data:image/png;base64,${bytesToBase64(await capturePortable(source))}`; } catch { /* keep the live copy below */ }
   }
+  if (!captured) return source.cloneNode(true);
+  image.src = captured;
   image.alt = alt;
   inlineComputedStyles(source, image);
   if (rect.width > 0) image.style.setProperty("width", `${Math.ceil(rect.width)}px`);
@@ -268,19 +249,19 @@ async function localImageData(plugin: IgnorancePlugin, src, index: Map<string, T
   if (/^https?:\/\//i.test(src)) return src;
   const file = index.get(src) || index.get(resourcePathKey(src));
   if (!file) {
+    // App resources (icons, blob: previews): decode and redraw them.
     try {
-      const response = await fetch(src);
-      if (response.ok) {
-        const blob = await response.blob();
-        if (blob.type.startsWith("image/")) return await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      }
-    } catch (_) {}
-    return src;
+      const image = new Image();
+      image.src = src;
+      await image.decode();
+      const canvas = createEl("canvas");
+      canvas.width = image.naturalWidth || width;
+      canvas.height = image.naturalHeight || height;
+      canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL("image/png");
+    } catch {
+      return src;
+    }
   }
   const mime = clipboardImageMime(file.path);
   if (mime === "image/svg+xml") return src;
@@ -371,23 +352,17 @@ async function prepareRichCopyMarkup(plugin: IgnorancePlugin, file: TFile, targe
 }
 
 async function copyFormattedNote(plugin: IgnorancePlugin, file: TFile, target = "wechat") {
-  const clipboard = hasDesktopExports() ? electronRemote()?.clipboard : null;
   const payload = await prepareRichCopyMarkup(plugin, file, target);
-  if (clipboard?.write) {
-    clipboard.write({ text: payload.text, html: payload.html });
-  } else if (navigator.clipboard?.write && typeof ClipboardItem !== "undefined") {
-    // Mobile: the web clipboard carries rich HTML too.
-    await navigator.clipboard.write([new ClipboardItem({
-      "text/html": new Blob([payload.html], { type: "text/html" }),
-      "text/plain": new Blob([payload.text], { type: "text/plain" })
-    })]);
-  } else {
-    throw new Error("当前设备没有可用的剪贴板接口");
-  }
+  if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") throw new Error("当前设备没有可用的剪贴板接口");
+  // The web clipboard carries rich HTML on desktop and mobile alike.
+  await navigator.clipboard.write([new ClipboardItem({
+    "text/html": new Blob([payload.html], { type: "text/html" }),
+    "text/plain": new Blob([payload.text], { type: "text/plain" })
+  })]);
   return payload;
 }
 
-// Mobile: no print-to-pdf, so each page becomes a JPEG in an image-only PDF.
+// Mobile: no print dialog, so each page becomes a JPEG in an image-only PDF.
 async function exportPdfToVault(plugin: IgnorancePlugin, file: TFile) {
   const size = paperSize(plugin.state.page);
   return withExportStage(plugin, file, { visible: true }, async (stage, { pages }) => {
@@ -403,80 +378,38 @@ async function exportPdfToVault(plugin: IgnorancePlugin, file: TFile) {
   });
 }
 
-async function exportPdf(plugin: IgnorancePlugin, file: TFile, targetPath?: string) {
-  if (!hasDesktopExports() && !targetPath) return exportPdfToVault(plugin, file);
-  const remote = electronRemote();
-  const choice = targetPath ? { filePath: targetPath } : await remote.dialog.showSaveDialog({
-    defaultPath: `${file.basename}.pdf`,
-    filters: [{ name: "PDF", extensions: ["pdf"] }],
-    properties: ["showOverwriteConfirmation", "createDirectory"]
-  });
-  if (choice.canceled || !choice.filePath) return null;
+/* Desktop: the system print dialog, whose "Save as PDF" keeps text as text.
+   @page is sized to the paper with margin 0, since each page already carries
+   its margins. Returns null: the dialog itself reports where it saved. */
+async function exportPdf(plugin: IgnorancePlugin, file: TFile) {
+  if (!hasDesktopExports()) return exportPdfToVault(plugin, file);
   const size = paperSize(plugin.state.page);
   await withExportStage(plugin, file, {}, async stage => {
     stage.addClass("ibp-print-root");
     setDocSheet("ibp-print-export", `@media print {
       @page { size: ${size.w}mm ${size.h}mm; margin: 0; }
-      html, body { height: auto !important; overflow: visible !important; background: #FFFFFF !important; }
-      body > :not(.ibp-print-root) { display: none !important; }
+      html, body { height: auto; overflow: visible; background: #FFFFFF; }
+      body > :not(.ibp-print-root) { display: none; }
       /* Obsidian's own print CSS hides every body child without .print. */
-      html body > .ibp-print-root { display: block !important; }
+      html body > .ibp-print-root { display: block; }
     }`);
     const previousTitle = document.title;
     document.title = file.basename;
     try {
-      await new Promise(resolve => {
-        const ipc = window.electron.ipcRenderer;
-        ipc.once("print-to-pdf", resolve);
-        ipc.send("print-to-pdf", {
-          filepath: choice.filePath, open: !targetPath, printBackground: true, preferCSSPageSize: true,
-          // PDF bookmarks from the headings, and a tagged (accessible) PDF.
-          generateDocumentOutline: true, generateTaggedPDF: true,
-          pageSize: { width: size.w / 25.4, height: size.h / 25.4 },
-          margins: { top: 0, bottom: 0, left: 0, right: 0 }
-        });
-      });
+      await nextFrame();
+      window.print();
     } finally {
       if (document.title === file.basename) document.title = previousTitle;
       removeDocSheet("ibp-print-export");
     }
   });
-  return choice.filePath;
+  return null;
 }
 
 const nextFrame = () => new Promise(r => window.requestAnimationFrame(() => window.requestAnimationFrame(r)));
 
-/* Capture an element at device resolution: slide it under a fixed viewport
-   one window-height at a time and stitch the slices. */
-async function captureElement(element: HTMLElement) {
-  const contents = electronRemote().getCurrentWebContents();
-  const dpr = window.devicePixelRatio || 1;
-  element.setCssStyles({ transform: "" });
-  await nextFrame();
-  const rect = element.getBoundingClientRect();
-  const width = Math.ceil(rect.width), height = Math.ceil(rect.height);
-  const sliceH = Math.max(200, Math.floor(window.innerHeight - rect.top - 1));
-  // Chromium caps a canvas edge at 65535px; shrink very long captures.
-  const scale = Math.min(1, 60000 / (height * dpr));
-  const canvas = createEl("canvas");
-  canvas.width = Math.round(width * dpr * scale);
-  canvas.height = Math.round(height * dpr * scale);
-  const ctx = canvas.getContext("2d");
-  for (let y = 0; y < height; y += sliceH) {
-    element.style.transform = `translateY(${-y}px)`;
-    await nextFrame();
-    const h = Math.min(sliceH, height - y);
-    const shot = await contents.capturePage({ x: Math.round(rect.left), y: Math.round(rect.top), width, height: h });
-    const bitmap = await createImageBitmap(new Blob([shot.toPNG()], { type: "image/png" }));
-    ctx.drawImage(bitmap, 0, Math.round(y * dpr * scale), Math.round(bitmap.width * scale), Math.round(bitmap.height * scale));
-  }
-  element.setCssStyles({ transform: "" });
-  const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/png"));
-  return Buffer.from(await blob.arrayBuffer());
-}
-
-// Mobile: paint the same staged pages in-page and write the PNGs into 导出/.
-async function exportImagesToVault(plugin: IgnorancePlugin, file: TFile, kind: string) {
+// Paint the staged pages in-page and write the PNGs into 导出/.
+async function exportImages(plugin: IgnorancePlugin, file: TFile, kind: string) {
   return withExportStage(plugin, file, { visible: true, keepStrip: kind === "long" }, async (stage, { pages, staging }) => {
     if (kind === "pages") {
       pages.forEach(p => p.setCssStyles({ display: "none" }));
@@ -500,117 +433,16 @@ async function exportImagesToVault(plugin: IgnorancePlugin, file: TFile, kind: s
   });
 }
 
-async function exportImages(plugin: IgnorancePlugin, file: TFile, kind: string, targetPath?: string) {
-  if (!hasDesktopExports() && !targetPath) return exportImagesToVault(plugin, file, kind);
-  const remote = electronRemote();
-  const fs = nodeFs(), path = nodePath();
-  let target = targetPath;
-  if (target) {
-    // Given by the caller (tests); skip the dialog.
-  } else if (kind === "pages") {
-    const choice = await remote.dialog.showOpenDialog({ title: "选择保存分页图片的文件夹", properties: ["openDirectory", "createDirectory"] });
-    if (choice.canceled || !choice.filePaths?.[0]) return null;
-    target = choice.filePaths[0];
-  } else {
-    const choice = await remote.dialog.showSaveDialog({ defaultPath: `${file.basename}.png`, filters: [{ name: "PNG", extensions: ["png"] }], properties: ["showOverwriteConfirmation", "createDirectory"] });
-    if (choice.canceled || !choice.filePath) return null;
-    target = choice.filePath;
-  }
-  return withExportStage(plugin, file, { visible: true, keepStrip: kind === "long" }, async (stage, { pages, staging }) => {
-    if (kind === "pages") {
-      pages.forEach(p => p.setCssStyles({ display: "none" }));
-      const digits = String(pages.length).length;
-      for (let i = 0; i < pages.length; i += 1) {
-        pages[i].setCssStyles({ display: "" });
-        const png = await captureElement(pages[i]);
-        fs.writeFileSync(path.join(target, `${file.basename}-${String(i + 1).padStart(Math.max(2, digits), "0")}.png`), png);
-        pages[i].setCssStyles({ display: "none" });
-      }
-      return `${target}（${pages.length} 张）`;
-    }
-    pages.forEach(p => p.remove());
-    const sheet = stage.createDiv({ cls: "ibp-long-sheet" });
-    staging.removeClass("ibp-staging");
-    sheet.appendChild(staging);
-    fs.writeFileSync(target, await captureElement(sheet));
-    return target;
-  });
-}
-
-function findPandoc() {
-  const fs = nodeFs();
-  return ["/opt/homebrew/bin/pandoc", "/usr/local/bin/pandoc", "/usr/bin/pandoc", "C:\\Program Files\\Pandoc\\pandoc.exe"].find(p => fs.existsSync(p)) || null;
-}
-
-async function toPngFile(src, dest) {
-  const fs = nodeFs();
-  const bitmap = await createImageBitmap(new Blob([fs.readFileSync(src)]));
-  const canvas = createEl("canvas");
-  canvas.width = bitmap.width; canvas.height = bitmap.height;
-  canvas.getContext("2d").drawImage(bitmap, 0, 0);
-  const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, "image/png"));
-  fs.writeFileSync(dest, Buffer.from(await blob.arrayBuffer()));
-}
-
-/* Rewrite Obsidian-only syntax into plain Markdown Pandoc understands. */
-async function prepareMarkdownForPandoc(plugin: IgnorancePlugin, file: TFile, text: string, tmp, diagrams, { structuredWord = false } = {}) {
-  const path = nodePath();
-  const base = vaultBasePath(plugin);
-  const noteDir = path.join(base, file.parent?.path || "");
-  let imageIndex = 0;
-  const resolveLocalImage = async (target: string) => {
-    const clean = decodeURIComponent(target.split("#")[0].split("|")[0]);
-    const linked = plugin.app.metadataCache.getFirstLinkpathDest(clean, file.path);
-    const abs = linked ? path.join(base, linked.path) : path.resolve(noteDir, clean);
-    if (/\.(webp|avif|heic)$/i.test(abs) || (structuredWord && /\.(svg|tiff?)$/i.test(abs))) {
-      const out = path.join(tmp, `image-${++imageIndex}.png`);
-      try { await toPngFile(abs, out); return out; } catch (_) { return abs; }
-    }
-    return abs;
-  };
-  return prepareMarkdownTextForPandoc(text, diagrams, resolveLocalImage);
-}
-
 function wordFontFromToken(value: string, fallback: string) {
   const first = String(value || "").split(",")[0].trim().replace(/^['"]|['"]$/g, "");
   return first || fallback;
 }
 
-async function resolveStructuredWordImage(plugin: IgnorancePlugin, file: TFile, tmp, source: string) {
-  const fs = nodeFs(), path = nodePath();
-  const dataUri = String(source).match(/^data:image\/(png|jpe?g|gif|bmp);base64,([\s\S]+)$/i);
-  if (dataUri) {
-    const type = dataUri[1].toLowerCase().replace("jpeg", "jpg");
-    return { type, data: Buffer.from(dataUri[2], "base64") };
-  }
-  if (/^(?:https?:|mailto:)/i.test(source)) return null;
-
-  const base = vaultBasePath(plugin);
-  const clean = decodeURIComponent(String(source).replace(/^<|>$/g, "").split("#")[0]);
-  const linked = plugin.app.metadataCache.getFirstLinkpathDest(clean, file.path);
-  let absolute = linked ? path.join(base, linked.path) : (path.isAbsolute(clean) ? clean : path.resolve(base, file.parent?.path || "", clean));
-  let extension = path.extname(absolute).toLowerCase().slice(1);
-  if (!fs.existsSync(absolute)) return null;
-  if (["webp", "avif", "heic", "svg", "tif", "tiff"].includes(extension)) {
-    const png = path.join(tmp, `structured-image-${Date.now()}-${Math.random().toString(16).slice(2)}.png`);
-    try {
-      await toPngFile(absolute, png);
-      absolute = png;
-      extension = "png";
-    } catch (_) {
-      return null;
-    }
-  }
-  const type = extension === "jpeg" ? "jpg" : extension;
-  if (!["jpg", "png", "gif", "bmp"].includes(type)) return null;
-  return { type, data: fs.readFileSync(absolute) };
-}
-
-/* Mobile has no save dialog, file system or Pandoc: exports are written into
-   the vault's 导出/ folder, from where the system share sheet takes over. */
+/* Exports are written into the vault's 导出/ folder, from where the file can
+   be opened, shared or moved with Obsidian's own tools. */
 const EXPORT_FOLDER = "导出";
 
-async function saveExportToVault(plugin: IgnorancePlugin, name: string, data) {
+async function saveExportToVault(plugin: IgnorancePlugin, name: string, data: string | Uint8Array) {
   const vault = plugin.app.vault;
   if (!vault.getAbstractFileByPath(EXPORT_FOLDER)) await vault.createFolder(EXPORT_FOLDER).catch(() => {});
   const dot = name.lastIndexOf(".");
@@ -618,11 +450,11 @@ async function saveExportToVault(plugin: IgnorancePlugin, name: string, data) {
   let path = `${EXPORT_FOLDER}/${name}`;
   for (let index = 2; vault.getAbstractFileByPath(path); index += 1) path = `${EXPORT_FOLDER}/${stem} ${index}${extension}`;
   if (typeof data === "string") await vault.create(path, data);
-  else await vault.createBinary(path, data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength));
+  else await vault.createBinary(path, data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer);
   return path;
 }
 
-// A Mermaid diagram drawn by the (bundled) engine, as a PNG data URI.
+// A Mermaid diagram as a PNG data URI.
 async function mermaidToPngDataUri(source: string, index: number) {
   // HTML labels (foreignObject) would taint the canvas and block toDataURL.
   const plain = /^\s*%%\{\s*init/.test(source) ? source : `%%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%\n${source}`;
@@ -665,20 +497,20 @@ async function vaultImageForWord(plugin: IgnorancePlugin, file: TFile, source: s
     canvas.getContext("2d").drawImage(bitmap, 0, 0);
     bitmap.close();
     return { type: "png", data: base64ToBytes(canvas.toDataURL("image/png").split(",")[1]) };
-  } catch (_) {
+  } catch {
     return null;
   }
 }
 
-async function exportWordToVault(plugin: IgnorancePlugin, file: TFile) {
+async function exportWord(plugin: IgnorancePlugin, file: TFile) {
   const text = await plugin.app.vault.cachedRead(file);
   const diagrams = [];
   // Same fences, in the same order, as prepareMarkdownTextForPandoc replaces.
   const fences = [...text.matchAll(/```mermaid\n([\s\S]*?)```/g)];
   for (const [index, fence] of fences.entries()) {
-    try { diagrams.push(await mermaidToPngDataUri(fence[1], index)); } catch (_) { diagrams.push(""); }
+    try { diagrams.push(await mermaidToPngDataUri(fence[1], index)); } catch { diagrams.push(""); }
   }
-  const markdown = await prepareMarkdownTextForPandoc(text, diagrams, async target => {
+  const markdown = await prepareMarkdownTextForPandoc(text, diagrams, async (target: string) => {
     const clean = decodeURIComponent(target.split("#")[0].split("|")[0]);
     return plugin.app.metadataCache.getFirstLinkpathDest(clean, file.path)?.path || clean;
   });
@@ -696,70 +528,6 @@ async function exportWordToVault(plugin: IgnorancePlugin, file: TFile) {
   return saveExportToVault(plugin, `${file.basename}.docx`, bytes);
 }
 
-async function exportWord(plugin: IgnorancePlugin, file: TFile, targetPath?: string, options: { pandocPath?: string | null } = {}) {
-  if (!hasDesktopExports()) return exportWordToVault(plugin, file);
-  const pandoc = Object.prototype.hasOwnProperty.call(options, "pandocPath") ? options.pandocPath : findPandoc();
-  const remote = electronRemote();
-  const choice = targetPath ? { filePath: targetPath } : await remote.dialog.showSaveDialog({ defaultPath: `${file.basename}.docx`, filters: [{ name: "Word", extensions: ["docx"] }], properties: ["showOverwriteConfirmation", "createDirectory"] });
-  if (choice.canceled || !choice.filePath) return null;
-  const fs = nodeFs(), path = nodePath(), os = nodeOs();
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ibp-docx-"));
-  try {
-    const text = await plugin.app.vault.cachedRead(file);
-    // Capture rendered Mermaid diagrams, in source order, as PNGs.
-    const diagrams = [];
-    if (/```mermaid/.test(text)) {
-      await withExportStage(plugin, file, { visible: true, keepStrip: true }, async (stage, { pages, staging }) => {
-        pages.forEach(p => p.remove());
-        staging.removeClass("ibp-staging");
-        const holder = stage.createDiv({ cls: "ibp-long-sheet" });
-        holder.appendChild(staging);
-        for (const diagram of staging.querySelectorAll(":scope > .mermaid, :scope > div > .mermaid")) {
-          const out = path.join(tmp, `mermaid-${diagrams.length + 1}.png`);
-          const solo = stage.createDiv({ cls: "ibp-capture-solo markdown-rendered" });
-          solo.appendChild(diagram.cloneNode(true));
-          holder.setCssStyles({ display: "none" });
-          fs.writeFileSync(out, await captureElement(solo));
-          solo.remove();
-          holder.setCssStyles({ display: "" });
-          diagrams.push(out);
-        }
-      });
-    }
-    const markdown = await prepareMarkdownForPandoc(plugin, file, text, tmp, diagrams, { structuredWord: !pandoc });
-    if (!pandoc) {
-      const bodyStyle = getComputedStyle(document.body);
-      const { createStructuredDocxBuffer } = await loadChunk("chunk-docx.cjs");
-      const buffer = await createStructuredDocxBuffer(markdown, {
-        title: file.basename,
-        style: {
-          fontFamily: wordFontFromToken(bodyStyle.getPropertyValue("--ib-font-sans"), "Arial"),
-          headingFamily: wordFontFromToken(bodyStyle.getPropertyValue("--ib-font-heading"), "Arial"),
-          codeFamily: wordFontFromToken(bodyStyle.getPropertyValue("--ib-font-mono"), "Consolas")
-        },
-        resolveImage: (source: string) => resolveStructuredWordImage(plugin, file, tmp, source)
-      });
-      fs.writeFileSync(choice.filePath, buffer);
-      if (!targetPath) remote.shell?.openPath(choice.filePath);
-      return choice.filePath;
-    }
-
-    const source = path.join(tmp, "note.md");
-    fs.writeFileSync(source, markdown);
-    const base = vaultBasePath(plugin);
-    await new Promise((resolve, reject) => {
-      nodeChildProcess().execFile(pandoc, [
-        source, "-f", "markdown+mark+pipe_tables+tex_math_dollars+task_lists", "-t", "docx",
-        "-o", choice.filePath, "--resource-path", [path.join(base, file.parent?.path || ""), base, tmp].join(path.delimiter)
-      ], { timeout: 120000 }, (error, _out, stderr) => error ? reject(new Error(stderr || error.message)) : resolve(undefined));
-    });
-    if (!targetPath) remote.shell.openPath(choice.filePath);
-    return choice.filePath;
-  } finally {
-    fs.rmSync(tmp, { recursive: true, force: true });
-  }
-}
-
 
 export {
   openExportMenu,
@@ -769,11 +537,7 @@ export {
   withExportStage,
   exportPdf,
   nextFrame,
-  captureElement,
   exportImages,
-  findPandoc,
-  toPngFile,
-  prepareMarkdownForPandoc,
   exportWord,
   saveExportToVault,
   prepareRichCopyMarkup,

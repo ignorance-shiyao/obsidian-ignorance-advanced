@@ -1,5 +1,8 @@
 // Ported from morphdraft/src/core/import/converters.ts and notion.ts.
-// Heavy parsers are dynamically imported so routine plugin startup stays small.
+// Everything runs in the page: Office files are zip archives of XML read with
+// JSZip and DOMParser; PDF text and HTML conversion use the libraries Obsidian
+// ships (loadPdfJs, htmlToMarkdown), handed in by the caller.
+import JSZip from "jszip";
 
 const IMAGE_EXTENSIONS = /\.(?:png|jpe?g|gif|webp|bmp|tiff?|svg|avif|heic)$/i;
 const MAX_ARCHIVE_ENTRIES = 4000;
@@ -65,31 +68,236 @@ function jsonToMarkdown(text) {
   return "```json\n" + JSON.stringify(parsed, null, 2) + "\n```";
 }
 
+const XML_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+
+function parseXml(text) {
+  return new DOMParser().parseFromString(text, "application/xml");
+}
+
+// Column letters of a cell reference ("AB12" → 27, zero-based).
+function columnIndex(reference) {
+  const letters = /^[A-Z]+/i.exec(String(reference || ""))?.[0].toUpperCase() || "";
+  let index = 0;
+  for (const letter of letters) index = index * 26 + (letter.charCodeAt(0) - 64);
+  return Math.max(0, index - 1);
+}
+
 async function xlsxToMarkdown(bytes) {
-  const loaded = await import("exceljs");
-  const ExcelJS = loaded.default?.Workbook ? loaded.default : loaded;
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(Buffer.from(bytes));
+  const archive = await JSZip.loadAsync(bytes);
+  const read = async name => archive.file(name) ? parseXml(await archive.file(name).async("string")) : null;
+  const shared = [];
+  const strings = await read("xl/sharedStrings.xml");
+  for (const item of strings ? Array.from(strings.getElementsByTagNameNS(XML_MAIN, "si")) : []) {
+    shared.push(Array.from(item.getElementsByTagNameNS(XML_MAIN, "t")).map(node => node.textContent || "").join(""));
+  }
+  const workbook = await read("xl/workbook.xml");
+  const relations = await read("xl/_rels/workbook.xml.rels");
+  const targets = new Map(Array.from(relations?.getElementsByTagName("Relationship") || []).map(rel => [rel.getAttribute("Id"), rel.getAttribute("Target")]));
   const sections = [];
-  for (const sheet of workbook.worksheets) {
+  for (const sheet of Array.from(workbook?.getElementsByTagNameNS(XML_MAIN, "sheet") || [])) {
+    const id = sheet.getAttribute("r:id") || sheet.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
+    const target = String(targets.get(id) || "").replace(/^\/?(?:xl\/)?/, "");
+    const xml = target ? await read(`xl/${target}`) : null;
+    if (!xml) continue;
     const rows = [];
-    sheet.eachRow({ includeEmpty: false }, row => {
-      const values = Array.isArray(row.values) ? row.values.slice(1) : [];
-      rows.push(values.map(value => {
-        if (value instanceof Date) return value.toISOString().replace("T", " ").replace(/\.\d{3}Z$/, " UTC");
-        if (!value || typeof value !== "object") return value;
-        if (value.result !== undefined) return value.result;
-        if (typeof value.text === "string") return value.text;
-        if (Array.isArray(value.richText)) return value.richText.map(part => part.text || "").join("");
-        if (typeof value.formula === "string") return "=" + value.formula;
-        return JSON.stringify(value);
-      }));
-    });
+    for (const row of Array.from(xml.getElementsByTagNameNS(XML_MAIN, "row"))) {
+      const values = [];
+      for (const cell of Array.from(row.getElementsByTagNameNS(XML_MAIN, "c"))) {
+        const type = cell.getAttribute("t");
+        const value = cell.getElementsByTagNameNS(XML_MAIN, "v")[0]?.textContent ?? "";
+        let text = value;
+        if (type === "s") text = shared[Number(value)] ?? "";
+        else if (type === "inlineStr") text = Array.from(cell.getElementsByTagNameNS(XML_MAIN, "t")).map(node => node.textContent || "").join("");
+        else if (type === "b") text = value === "1" ? "TRUE" : "FALSE";
+        else if (!value) {
+          const formula = cell.getElementsByTagNameNS(XML_MAIN, "f")[0]?.textContent;
+          text = formula ? "=" + formula : "";
+        }
+        values[columnIndex(cell.getAttribute("r"))] = text;
+      }
+      rows.push(Array.from(values, value => value ?? ""));
+    }
     const table = rowsToTable(rows);
-    if (table) sections.push(`## ${String(sheet.name).replace(/\n/g, " ")}\n\n${table}`);
+    if (table) sections.push(`## ${String(sheet.getAttribute("name") || "").replace(/\n/g, " ")}\n\n${table}`);
   }
   if (!sections.length) throw new Error("工作簿中没有可导入的表格数据");
   return sections.join("\n\n");
+}
+
+const XML_WORD = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+const XML_DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main";
+const XML_RELATIONSHIP = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+function wordChildren(node, name) {
+  return Array.from(node.childNodes).filter(child => child.namespaceURI === XML_WORD && child.localName === name);
+}
+
+function wordProperty(node, container, name) {
+  const properties = wordChildren(node, container)[0];
+  const element = properties ? wordChildren(properties, name)[0] : null;
+  return element ? (element.getAttributeNS(XML_WORD, "val") || "") : null;
+}
+
+// A toggle such as <w:b/> is on unless its value says otherwise.
+function wordToggle(node, name) {
+  const value = wordProperty(node, "rPr", name);
+  return value !== null && !/^(?:0|false|off|none)$/i.test(value);
+}
+
+const MONOSPACE = /mono|consol|courier|menlo|code/i;
+
+// A paragraph whose every run is set in a monospace face: one line of code.
+function isCodeParagraph(paragraph) {
+  const runs = wordChildren(paragraph, "r").filter(run => wordChildren(run, "t").some(text => text.textContent));
+  return runs.length > 0 && runs.every(run => {
+    const properties = wordChildren(run, "rPr")[0];
+    const fonts = properties ? wordChildren(properties, "rFonts")[0] : null;
+    return MONOSPACE.test(fonts?.getAttributeNS(XML_WORD, "ascii") || "");
+  });
+}
+
+function plainParagraphText(paragraph) {
+  return wordChildren(paragraph, "r").flatMap(run => Array.from(run.childNodes)).map(child => {
+    if (child.namespaceURI !== XML_WORD) return "";
+    if (child.localName === "t") return child.textContent || "";
+    if (child.localName === "tab") return "\t";
+    return child.localName === "br" || child.localName === "cr" ? "\n" : "";
+  }).join("");
+}
+
+/* Word (.docx) to Markdown: headings, bold / italic / strikethrough runs,
+   bulleted and numbered lists, tables, links and embedded pictures. Pictures
+   are returned as bytes for the caller to save; the Markdown points at
+   `media` + their name. */
+async function docxToMarkdown(bytes, media = "./assets/") {
+  const archive = await JSZip.loadAsync(bytes);
+  const documentFile = archive.file("word/document.xml");
+  if (!documentFile) throw new Error("不是有效的 Word 文档");
+  const document = parseXml(await documentFile.async("string"));
+  const relationsFile = archive.file("word/_rels/document.xml.rels");
+  const relations = relationsFile ? parseXml(await relationsFile.async("string")) : null;
+  const targets = new Map(Array.from(relations?.getElementsByTagName("Relationship") || []).map(rel => [rel.getAttribute("Id"), rel.getAttribute("Target") || ""]));
+  const numbering = archive.file("word/numbering.xml") ? parseXml(await archive.file("word/numbering.xml").async("string")) : null;
+  const orderedLists = new Set();
+  if (numbering) {
+    const abstractOrdered = new Set();
+    for (const abstract of Array.from(numbering.getElementsByTagNameNS(XML_WORD, "abstractNum"))) {
+      const format = abstract.getElementsByTagNameNS(XML_WORD, "numFmt")[0]?.getAttributeNS(XML_WORD, "val");
+      if (format && format !== "bullet") abstractOrdered.add(abstract.getAttributeNS(XML_WORD, "abstractNumId"));
+    }
+    for (const num of Array.from(numbering.getElementsByTagNameNS(XML_WORD, "num"))) {
+      const abstractId = num.getElementsByTagNameNS(XML_WORD, "abstractNumId")[0]?.getAttributeNS(XML_WORD, "val");
+      if (abstractOrdered.has(abstractId)) orderedLists.add(num.getAttributeNS(XML_WORD, "numId"));
+    }
+  }
+  const images = [];
+  const imageNames = new Map();
+  const imageFor = async id => {
+    if (imageNames.has(id)) return imageNames.get(id);
+    const target = targets.get(id);
+    const file = target ? archive.file(`word/${target.replace(/^\/?(?:word\/)?/, "")}`) : null;
+    if (!file) return null;
+    const extension = (target.split(".").pop() || "png").toLowerCase();
+    const name = `image-${images.length + 1}.${extension}`;
+    images.push({ name, extension, bytes: await file.async("uint8array") });
+    imageNames.set(id, name);
+    return name;
+  };
+
+  const runText = async run => {
+    let text = "";
+    for (const child of Array.from(run.childNodes)) {
+      if (child.namespaceURI === XML_WORD && child.localName === "t") text += child.textContent || "";
+      else if (child.namespaceURI === XML_WORD && child.localName === "tab") text += "\t";
+      else if (child.namespaceURI === XML_WORD && (child.localName === "br" || child.localName === "cr")) text += "  \n";
+      else if (child.namespaceURI === XML_WORD && child.localName === "drawing") {
+        const blip = child.getElementsByTagNameNS(XML_DRAWING, "blip")[0];
+        const name = blip ? await imageFor(blip.getAttributeNS(XML_RELATIONSHIP, "embed")) : null;
+        if (name) text += `![](${media}${name})`;
+      }
+    }
+    if (!text.trim() || text.startsWith("![")) return text;
+    const escaped = text.replace(/([*_`[\]])/g, "\\$1");
+    const wrap = (value, mark) => value.replace(/^(\s*)([\s\S]*?)(\s*)$/, `$1${mark}$2${mark}$3`);
+    let styled = escaped;
+    if (wordToggle(run, "strike")) styled = wrap(styled, "~~");
+    if (wordToggle(run, "i")) styled = wrap(styled, "*");
+    if (wordToggle(run, "b")) styled = wrap(styled, "**");
+    return styled;
+  };
+
+  const paragraphText = async paragraph => {
+    let text = "";
+    for (const child of Array.from(paragraph.childNodes)) {
+      if (child.namespaceURI !== XML_WORD) continue;
+      if (child.localName === "r") text += await runText(child);
+      else if (child.localName === "hyperlink") {
+        let label = "";
+        for (const run of wordChildren(child, "r")) label += await runText(run);
+        const target = targets.get(child.getAttributeNS(XML_RELATIONSHIP, "id"));
+        text += target && label.trim() ? `[${label}](${target})` : label;
+      }
+    }
+    return text;
+  };
+
+  const blocks = [];
+  const counters = new Map();
+  let code = null;
+  const closeCode = () => {
+    if (!code) return;
+    // A short bold first line is the language label the exporter writes.
+    const [first, ...rest] = code;
+    const label = first.label && rest.length ? first.text.trim() : "";
+    const lines = (label ? rest : code).map(line => line.text);
+    blocks.push({ text: "```" + label + "\n" + lines.join("\n") + "\n```" });
+    code = null;
+  };
+  for (const node of Array.from(document.getElementsByTagNameNS(XML_WORD, "body")[0]?.childNodes || [])) {
+    if (node.namespaceURI !== XML_WORD) continue;
+    if (node.localName === "p" && isCodeParagraph(node)) {
+      const runs = wordChildren(node, "r");
+      const text = plainParagraphText(node);
+      (code ||= []).push({ text, label: code.length === 0 && /^[\w+#.-]{1,20}$/.test(text.trim()) && runs.every(run => wordToggle(run, "b")) });
+      continue;
+    }
+    closeCode();
+    if (node.localName === "tbl") {
+      const rows = [];
+      for (const row of wordChildren(node, "tr")) {
+        const cells = [];
+        for (const cell of wordChildren(row, "tc")) {
+          const parts = [];
+          for (const paragraph of wordChildren(cell, "p")) parts.push((await paragraphText(paragraph)).trim());
+          cells.push(parts.filter(Boolean).join(" "));
+        }
+        rows.push(cells);
+      }
+      const table = rowsToTable(rows);
+      if (table) blocks.push({ text: table });
+      continue;
+    }
+    if (node.localName !== "p") continue;
+    const text = (await paragraphText(node)).trim();
+    if (!text) continue;
+    const style = String(wordProperty(node, "pPr", "pStyle") || "");
+    const heading = /^(?:heading|标题)\s*(\d)$/i.exec(style) || (/^title$/i.test(style) ? [style, "1"] : null);
+    const properties = wordChildren(node, "pPr")[0];
+    const list = properties ? wordChildren(properties, "numPr")[0] : null;
+    if (heading) blocks.push({ text: `${"#".repeat(Math.min(6, Number(heading[1]) || 1))} ${text.replace(/^\*\*([\s\S]*)\*\*$/, "$1")}` });
+    else if (list) {
+      const level = Number(wordChildren(list, "ilvl")[0]?.getAttributeNS(XML_WORD, "val") || 0);
+      const numId = wordChildren(list, "numId")[0]?.getAttributeNS(XML_WORD, "val") || "";
+      const key = `${numId}:${level}`;
+      counters.set(key, (counters.get(key) || 0) + 1);
+      const marker = orderedLists.has(numId) ? `${counters.get(key)}.` : "-";
+      blocks.push({ text: `${"    ".repeat(level)}${marker} ${text}`, list: true });
+    } else if (/quote/i.test(style)) blocks.push({ text: `> ${text}` });
+    else blocks.push({ text });
+  }
+  closeCode();
+  const markdown = blocks.map((block, index) => index && !(block.list && blocks[index - 1].list) ? `\n${block.text}` : block.text).join("\n").trim();
+  return { markdown, images };
 }
 
 function decodeXml(value) {
@@ -104,8 +312,6 @@ function safeMarkdownHeading(value) {
 }
 
 async function pptxToMarkdown(bytes) {
-  const loaded = await import("jszip");
-  const JSZip = loaded.default || loaded;
   const archive = await JSZip.loadAsync(bytes);
   const slides = Object.keys(archive.files).filter(name => /^ppt\/slides\/slide\d+\.xml$/.test(name))
     .sort((left, right) => Number(left.match(/slide(\d+)\.xml$/)[1]) - Number(right.match(/slide(\d+)\.xml$/)[1]));
@@ -124,8 +330,8 @@ async function pptxToMarkdown(bytes) {
   return sections.join("\n\n---\n\n");
 }
 
-async function pdfToMarkdown(bytes) {
-  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+// pdfjs: the PDF.js library (Obsidian's, from loadPdfJs()).
+async function pdfToMarkdown(bytes, pdfjs) {
   const loadingTask = pdfjs.getDocument({ data: bytes, useSystemFonts: true, disableRange: true });
   const pdfDocument = await loadingTask.promise;
   const pages = [];
@@ -172,23 +378,12 @@ async function pdfToMarkdown(bytes) {
   return markdown;
 }
 
-async function htmlToMarkdown(source) {
-  const [turndownModule, gfmModule] = await Promise.all([import("turndown"), import("turndown-plugin-gfm")]);
-  const TurndownService = turndownModule.default || turndownModule;
-  const service = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced", bulletListMarker: "-" });
-  service.use(gfmModule.gfm || gfmModule.default?.gfm);
-  service.addRule("images", {
-    filter: "img",
-    replacement: (_content, node) => {
-      const alt = String(node.getAttribute("alt") || "").replace(/\]/g, "\\]");
-      const src = String(node.getAttribute("src") || "").replace(/\)/g, "%29");
-      return src ? `![${alt}](${src})` : "";
-    }
-  });
+// convert: an HTML-to-Markdown function (Obsidian's htmlToMarkdown).
+async function htmlToMarkdown(source, convert) {
   const contentOnly = String(source ?? "")
     .replace(/<(script|style|noscript|iframe|object)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, "")
     .replace(/<\/?(?:script|style|noscript|iframe|object|embed)\b[^>]*>/gi, "");
-  return service.turndown(contentOnly).replace(/\n{3,}/g, "\n\n").trim();
+  return String(await convert(contentOnly)).replace(/\n{3,}/g, "\n\n").trim();
 }
 
 function decodeEntities(value) {
@@ -283,8 +478,6 @@ function rewriteNotionReferences(markdown, sourcePath, targetPath, rootPrefix, n
 }
 
 async function notionZipToMarkdown(bytes, importRoot) {
-  const loaded = await import("jszip");
-  const JSZip = loaded.default || loaded;
   const archive = await JSZip.loadAsync(bytes);
   const entries = Object.values(archive.files).filter(entry => !entry.dir);
   if (!entries.length) throw new Error("Notion 导出包为空");
@@ -356,6 +549,7 @@ export {
   csvToMarkdown,
   jsonToMarkdown,
   xlsxToMarkdown,
+  docxToMarkdown,
   pptxToMarkdown,
   pdfToMarkdown,
   htmlToMarkdown,
