@@ -3,12 +3,10 @@ import { Component } from "obsidian";
 import { observedSize, waitForSize } from "./element-size.js";
 import { setIcon, UI_ICONS } from "./ui-icons.js";
 import { HALF_A4_HEIGHT, DIAGRAM_HEADER_HEIGHT } from "./diagram-fit.js";
-import { readAsset } from "./assets.js";
 import { buildEChartsTheme, echartsThemeName, normalizeEChartsOption, parseEChartsOption } from "./echarts-core.js";
 import { graphPixelBounds, fitDefaultGraph } from "./echarts-graph.js";
 import { setMarkup } from "./dom-markup.js";
 
-const ECHARTS_FILE = "echarts.min.js";
 let echartsLoad: Promise<any> | null = null;
 const registeredThemes = new Set<string>();
 // Charts already shown once this session: Obsidian re-renders sections as they
@@ -19,24 +17,10 @@ const previewCache = new Map();
 let drawTurn: Promise<unknown> = Promise.resolve();
 let tooltipSerial = 0;
 
-function loadECharts(plugin: IgnorancePlugin) {
+// ECharts (the full build) sits behind a dynamic import: evaluated on the first chart only.
+function loadECharts(_plugin?: IgnorancePlugin) {
   if (!echartsLoad) {
-    echartsLoad = (async () => {
-      const source = await readAsset(plugin, ECHARTS_FILE);
-      let captured = null;
-      const scope = new Proxy(window, {
-        set(target, key, value) {
-          if (key === "echarts") { captured = value; return true; }
-          return Reflect.set(target, key, value, target);
-        }
-      });
-      new Function("exports", "module", "define", "globalThis", `${source}\n;return undefined;`)(undefined, undefined, undefined, scope);
-      const engine = captured || scope.echarts;
-      if (!engine || typeof engine.init !== "function" || !/^6\.1\./.test(engine.version || "")) {
-        throw new Error("插件目录中的 ECharts 运行文件不可用或版本不匹配");
-      }
-      return engine;
-    })().catch(error => {
+    echartsLoad = import("echarts").catch(error => {
       echartsLoad = null;
       throw error;
     });

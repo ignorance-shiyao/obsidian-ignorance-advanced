@@ -32,7 +32,6 @@ for (const dep of Object.keys(pkg.dependencies || {})) await visit(dep, root);
 for (const dep of ["jszip", "material-icon-theme"]) await visit(dep, root);
 
 const vendored = [
-  ["Apache ECharts", "see file header", "Apache-2.0", "https://echarts.apache.org", "vendor/echarts.min.js (NOTICE in licenses/NOTICE-echarts)"],
   ["Lucide icons via @iconify-json/lucide", "see file", "ISC", "https://lucide.dev", "vendor/lucide-icons.json (architecture diagram icons)"],
   ["Material Icon Theme", "see devDependency", "MIT", "https://github.com/material-extensions/vscode-material-icon-theme", "language and file-type icons, built into the plugin by gen-icon-library.mjs"],
   ["reveal.js", "6.x", "MIT", "https://revealjs.com", "presentation view; also listed above as a dependency"],
@@ -42,7 +41,7 @@ const vendored = [
 // Dual-licensed or undeclared packages: say which terms we use.
 const NOTES = {
   jszip: "(MIT OR GPL-3.0-or-later) — used under MIT",
-  buffers: "no license declared upstream (transitive via exceljs → unzipper → binary; xlsx import on desktop only)"
+  buffers: "no license declared upstream (transitive via exceljs → unzipper → binary; test-only)"
 };
 for (const item of seen.values()) if (NOTES[item.name]) item.license = NOTES[item.name];
 const rows = [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
