@@ -57,7 +57,7 @@ export function enhanceCodeBlocks(plugin: IgnorancePlugin, root: HTMLElement, co
   }
 }
 
-export async function renderMarkdownPreviewBlock(plugin: IgnorancePlugin, source, element: HTMLElement, context) {
+export async function renderMarkdownPreviewBlock(plugin: IgnorancePlugin, source: string, element: HTMLElement, context) {
   plugin.rememberSource(element, context);
   const component = new Component();
   component.load();
@@ -95,7 +95,7 @@ export function rememberSource(plugin: IgnorancePlugin, element: HTMLElement, co
   });
 }
 
-export function editLanguage(plugin: IgnorancePlugin, label: string, pre, context, current) {
+export function editLanguage(plugin: IgnorancePlugin, label: string, pre, context, current: string) {
   openLanguagePicker({
     anchor: label,
     current,
@@ -106,14 +106,14 @@ export function editLanguage(plugin: IgnorancePlugin, label: string, pre, contex
   });
 }
 
-export async function writeFenceLanguage(plugin: IgnorancePlugin, pre, context, language) {
+export async function writeFenceLanguage(plugin: IgnorancePlugin, pre, context, language: string) {
   const info = context?.getSectionInfo?.(pre);
   const file = context?.sourcePath
     ? plugin.app.vault.getAbstractFileByPath(context.sourcePath)
     : null;
   if (!info || !file) return false;
 
-  const rewrite = data => {
+  const rewrite = (data: string) => {
     const lines = data.split("\n");
     const fence = lines[info.lineStart];
     if (!/^\s*(?:`{3,}|~{3,})/.test(fence)) return data;

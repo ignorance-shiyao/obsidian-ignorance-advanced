@@ -66,7 +66,7 @@ export function openNavigation(plugin: IgnorancePlugin) {
     if (!items.length) { new Notice("这篇笔记里没有可跳转的内容"); return; }
     const ICON = NAV_ICONS;
     class NavigationModal extends SuggestModal {
-      getSuggestions(query) {
+      getSuggestions(query: string) {
         const needle = query.trim().toLowerCase();
         return needle ? items.filter(item => item.label.toLowerCase().includes(needle) || ICON[item.kind] === needle) : items;
       }

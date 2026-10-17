@@ -1,6 +1,6 @@
 // Mermaid's directive schema omits wardley-beta, although its renderer reads
 // this key. Preserve the two supported font options during the private draw.
-export function wardleyFontOptions(source, parse) {
+export function wardleyFontOptions(source: string, parse) {
   const configs = [];
   for (const match of source.matchAll(/%%\{\s*(?:init|initialize)\s*:\s*([\s\S]*?)\}%%/g)) {
     try { configs.push(parse(match[1])); } catch (_) { /* Mermaid reports invalid source. */ }
@@ -17,7 +17,7 @@ export function wardleyFontOptions(source, parse) {
   return options;
 }
 
-export async function withWardleyFontConfig(engine, source, draw, parse) {
+export async function withWardleyFontConfig(engine, source: string, draw, parse) {
   if (!/^\s*wardley-beta\b/m.test(source)) return draw();
   const options = wardleyFontOptions(source, parse);
   if (!Object.keys(options).length) return draw();

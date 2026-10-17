@@ -2,7 +2,7 @@
    containers, long enough to fill the first few pages. Rendering the whole
    note first waited for every diagram in it (Obsidian's render resolves only
    once all are drawn), so the first page took seconds on a long note. */
-export function firstScreenSource(source, maxChars = 6000) {
+export function firstScreenSource(source: string, maxChars = 6000) {
   if (source.length <= maxChars * 1.5) return null;
   let fence = null, depth = 0, offset = 0, cut = -1;
   for (const line of source.split("\n")) {

@@ -54,7 +54,7 @@ export async function rasterizeSvg(live) {
     object.replaceWith(text);
   });
   const styles = getComputedStyle(live);
-  const resolve = value => value.replace(/var\((--[\w-]+)(?:,\s*([^()]*))?\)/g, (whole, name: string, fallback) => styles.getPropertyValue(name).trim() || fallback || whole);
+  const resolve = (value: string) => value.replace(/var\((--[\w-]+)(?:,\s*([^()]*))?\)/g, (whole, name: string, fallback) => styles.getPropertyValue(name).trim() || fallback || whole);
   copy.querySelectorAll("style").forEach(tag => { tag.textContent = resolve(tag.textContent || ""); });
   [copy, ...copy.querySelectorAll("*")].forEach(node => {
     for (const attribute of [...node.attributes]) if (attribute.value.includes("var(")) node.setAttribute(attribute.name, resolve(attribute.value));

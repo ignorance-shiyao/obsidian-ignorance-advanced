@@ -157,7 +157,7 @@ const C4_DEFAULTS = {
 const PERSON_GLYPH = "M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0 2c-4.4 0-8 2.2-8 5v1.5h16V19c0-2.8-3.6-5-8-5z";
 const SVG_NS_C4 = "http://www.w3.org/2000/svg";
 
-function cssColorToRgb(value) {
+function cssColorToRgb(value: string) {
   if (!value) return null;
   const probe = createSpan();
   probe.style.color = value;
@@ -170,7 +170,7 @@ function cssColorToRgb(value) {
 
 function authorPersonColor(shapes) {
   const style = shapes.map(shape => shape.getAttribute("style") || "").join(";");
-  const pick = prop => new RegExp(`${prop}:\\s*([^;!]+)`, "i").exec(style)?.[1]?.trim();
+  const pick = (prop: string) => new RegExp(`${prop}:\\s*([^;!]+)`, "i").exec(style)?.[1]?.trim();
   const candidates = [pick("stroke"), pick("fill")].filter(Boolean);
   for (const value of candidates) {
     const rgb = cssColorToRgb(value);
@@ -256,7 +256,7 @@ function diagramKind(svg: SVGSVGElement) {
 
 /* Mermaid tags mindmap/timeline branches with section-N; honor that grouping so
    sibling nodes share a color instead of cycling per shape. */
-function seriesIndex(element: HTMLElement, fallback) {
+function seriesIndex(element: HTMLElement, fallback: number) {
   const owner = element.closest("[class*='section-']") || element;
   const match = /(?:^|\s)section-{0,2}(-?\d+)/.exec(owner.getAttribute("class") || "");
   if (!match) return fallback;
@@ -342,7 +342,7 @@ const RELEASE_INLINE = {
   pie: [["g.legend rect", ["fill", "stroke"]]]
 };
 
-function releaseInlineStyles(svg: SVGSVGElement, kind) {
+function releaseInlineStyles(svg: SVGSVGElement, kind: string) {
   for (const [selector, properties] of RELEASE_INLINE[kind] || []) {
     for (const element of svg.querySelectorAll(selector)) {
       stashStyle(element);
@@ -368,7 +368,7 @@ function releaseInlineStyles(svg: SVGSVGElement, kind) {
 /* Plugin-built decorations survive a repaint (they carry no colors); the
    data-ibm-*-fixed / -table markers keep them from being built twice. */
 
-function paintDiagram(svg: SVGSVGElement, isDark) {
+function paintDiagram(svg: SVGSVGElement, isDark: boolean) {
   const kind = diagramKind(svg);
   clearPaint(svg);
   const structural = STRUCTURAL_KINDS.has(kind);
@@ -425,7 +425,7 @@ function spreadArchitectureServices(svg: SVGSVGElement) {
   if (svg.hasAttribute("data-ibm-arch-fixed")) return;
   svg.setAttribute("data-ibm-arch-fixed", "");
   const SIZE = 80, LABEL = 48, GAP = 24;
-  const num = (el: HTMLElement, attr) => Number(el.getAttribute(attr));
+  const num = (el: HTMLElement, attr: string) => Number(el.getAttribute(attr));
 
   const services = [...svg.querySelectorAll("g.architecture-service")]
     .map(node => ({ node, name: (node.id || "").replace(/^.*-service-/, ""), pos: parseTranslate(node), dy: 0 }))
@@ -505,7 +505,7 @@ function spreadArchitectureServices(svg: SVGSVGElement) {
   }
 }
 
-function shiftEdgeEnds(svg: SVGSVGElement, name: string, dy) {
+function shiftEdgeEnds(svg: SVGSVGElement, name: string, dy: number) {
   for (const path of svg.querySelectorAll("path.edge")) {
     const id = (path.id || "").replace(/^.*?-L_/, "L_");
     const m = /^L_(.+)_(.+)_\d+$/.exec(id);
@@ -722,7 +722,7 @@ function separateSankeyLabels(svg: SVGSVGElement) {
   entries.sort((a, b) => a.box.y - b.box.y || a.box.x - b.box.x);
   const placed = [];
   const gap = 3;
-  const overlaps = (a, dy, b) =>
+  const overlaps = (a, dy: number, b) =>
     a.box.x < b.box.x + b.box.width + gap && b.box.x < a.box.x + a.box.width + gap &&
     a.box.y + dy < b.box.y + b.dy + b.box.height + gap &&
     b.box.y + b.dy < a.box.y + dy + a.box.height + gap;
@@ -900,7 +900,7 @@ const REQ_ICONS = {
   ruler: "M3 17L17 3l4 4L7 21z M7 13l2 2 M10 10l2 2 M13 7l2 2"
 };
 
-function requirementIcon(stereotype, body) {
+function requirementIcon(stereotype: string, body: string) {
   const s = stereotype.toLowerCase();
   if (s.includes("functional")) return "gear";
   if (s.includes("performance")) return "chart";
@@ -1138,8 +1138,8 @@ function decorateSwimlanes(svg: SVGSVGElement) {
   svg.setAttribute("data-ibm-lanes-fixed", "");
   // Slots follow the lanes as drawn, top to bottom (or left to right), not
   // their DOM order.
-  const laneY = lane => Number(lane.querySelector("rect.swimlane-title")?.getAttribute("y")) || 0;
-  const laneX = lane => Number(lane.querySelector("rect.swimlane-title")?.getAttribute("x")) || 0;
+  const laneY = (lane: Element) => Number(lane.querySelector("rect.swimlane-title")?.getAttribute("y")) || 0;
+  const laneX = (lane: Element) => Number(lane.querySelector("rect.swimlane-title")?.getAttribute("x")) || 0;
   const lanes = [...svg.querySelectorAll("g.cluster.swimlane")].sort((a, b) => laneY(a) - laneY(b) || laneX(a) - laneX(b));
   const boxes = [];
   lanes.forEach((lane, index) => {
@@ -1463,7 +1463,7 @@ function drawClassCards(svg: SVGSVGElement) {
 
 function themeTokens() {
   const css = getComputedStyle(document.body);
-  const read = (name: string, fallback) => css.getPropertyValue(name).trim() || fallback;
+  const read = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
   const canvas = read("--ib-mm-canvas", "#0F172A");
   return {
     text: read("--ib-mm-text", "#F9FAFB"),
@@ -1478,14 +1478,14 @@ function isTextElement(element: HTMLElement) {
   return TEXT_TAGS.has(element.tagName.toLowerCase());
 }
 
-function hexToRgb(value) {
+function hexToRgb(value: string) {
   const match = /^#?([0-9a-f]{6}|[0-9a-f]{3})$/i.exec((value || "").trim());
   if (!match) return null;
   const hex = match[1].length === 3 ? match[1].replace(/./g, c => c + c) : match[1];
   return { r: parseInt(hex.slice(0, 2), 16), g: parseInt(hex.slice(2, 4), 16), b: parseInt(hex.slice(4, 6), 16), a: 1 };
 }
 
-function parseColor(value) {
+function parseColor(value: string) {
   const match = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+))?/.exec(value || "");
   if (!match) return null;
   const alpha = match[4] === undefined ? 1 : Number(match[4]);
@@ -1513,7 +1513,7 @@ function hslToCss({ h, s, l }, alpha = 1) {
 }
 
 function relativeLuminance({ r, g, b }) {
-  const channel = value => {
+  const channel = (value: number) => {
     const v = value / 255;
     return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
   };
@@ -1660,7 +1660,7 @@ function inkClientRect(svg: SVGSVGElement) {
   return { left, top, right, bottom, width: right - left, height: bottom - top };
 }
 
-function measureDrawnSizeFromViewBox(svg: SVGSVGElement, box, scale) {
+function measureDrawnSizeFromViewBox(svg: SVGSVGElement, box: DOMRect, scale: number) {
   const viewBox = svg.viewBox?.baseVal;
   if (!viewBox?.width || !viewBox?.height) return null;
   const boxWidth = box.width / scale;
@@ -1683,7 +1683,7 @@ function measureDrawnSizeFromViewBox(svg: SVGSVGElement, box, scale) {
   };
 }
 
-function toUserSpace(svg: SVGSVGElement, inverse, clientX, clientY) {
+function toUserSpace(svg: SVGSVGElement, inverse, clientX: number, clientY: number) {
   const point = svg.createSVGPoint();
   point.x = clientX;
   point.y = clientY;
@@ -1733,12 +1733,12 @@ const LANGUAGE_LABELS = {
   mermaid: "Mermaid", text: "Text", "": "Plain text"
 };
 
-function languageOf(code) {
+function languageOf(code: Element) {
   const match = /language-([\w+#-]+)/.exec(code.getAttribute("class") || "");
   return match ? match[1] : "";
 }
 
-function languageLabel(language) {
+function languageLabel(language: string) {
   return LANGUAGE_LABELS[language.toLowerCase()] || language;
 }
 
@@ -1819,7 +1819,7 @@ function interfaceLanguage() {
   return lang.startsWith("zh") ? "zh" : "en";
 }
 
-function t(key) {
+function t(key: string) {
   const table = STRINGS[interfaceLanguage()] || STRINGS.en;
   return table[key] || STRINGS.en[key] || key;
 }
@@ -1852,7 +1852,7 @@ const EXTERNAL_DIAGRAMS = [
 /* The bundles end by publishing themselves from the GLOBAL
    __esbuild_esm_mermaid_nm, which is Obsidian's and lacks our entries; that
    line would throw. Drop it and read the local copy instead. */
-function evalEsbuildBundle(source, key) {
+function evalEsbuildBundle(source: string, key: string) {
   const body = source.replace(/\nglobalThis\["[^"]+"\]\s*=\s*[^\n]*\s*$/, "");
   return new Function(`${body}\n;return __esbuild_esm_mermaid_nm[${JSON.stringify(key)}].default;`)();
 }
@@ -1930,7 +1930,7 @@ function registerElkLayouts(plugin: IgnorancePlugin, mermaid) {
 
 const TARGET_ASPECT = 1.6;
 
-function withLayoutDirective(text: string, layout) {
+function withLayoutDirective(text: string, layout: string) {
   const directive = `%%{init: {"layout": "${layout}"}}%%\n`;
   const frontmatter = /^\s*---[\s\S]*?\n---[ \t]*\n/.exec(text);
   return frontmatter
@@ -1992,7 +1992,7 @@ function installBalancedLayout(mermaid) {
 const USECASE_HEADER = /^\s*usecase(?:-beta)?\b/m;
 const USECASE_EDGE = /^\s*([A-Za-z_][\w-]*)\s*(?:-->|--|\.\.>[^\s]*|<--)\s*([A-Za-z_][\w-]*)\s*$/;
 
-function usecasePositions(svgText) {
+function usecasePositions(svgText: string) {
   const positions = new Map();
   const re = /<g[^>]*id="[^"]*-usecase-([^"]+)"[^>]*transform="translate\(\s*(-?[\d.]+)[,\s]+(-?[\d.]+)\s*\)"/g;
   for (const m of svgText.matchAll(re)) positions.set(m[1], { x: Number(m[2]), y: Number(m[3]) });
@@ -2039,7 +2039,7 @@ function reorderUsecaseSource(text: string, positions) {
   // Use cases (declared inside a boundary) by the mean rank of their actors,
   // falling back to their current height for ties and actor-less ones.
   let inBoundary = false;
-  const caseIdx = [];
+  const caseIdx: number[] = [];
   lines.forEach((line: number, i: number) => {
     if (/^\s*systemBoundary\b/.test(line)) { inBoundary = true; return; }
     if (inBoundary && /^\s*end\s*$/.test(line)) { inBoundary = false; return; }

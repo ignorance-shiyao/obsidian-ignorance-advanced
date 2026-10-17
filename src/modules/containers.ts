@@ -8,7 +8,7 @@ import { wantsLenient, withBlankLines } from "./missing-blank-lines-core.js";
 const parsedSources = new Map();
 const processing = new WeakSet();
 
-function chapterContainers(source) {
+function chapterContainers(source: string) {
   const nodes = parseMarkdownContainers(source);
   let index = 0;
   const walk = items => items.forEach((node: HTMLElement) => {
@@ -19,7 +19,7 @@ function chapterContainers(source) {
   return nodes;
 }
 
-function sourceContainers(sourcePath: string, source) {
+function sourceContainers(sourcePath: string, source: string) {
   const cached = parsedSources.get(sourcePath);
   if (cached?.source === source) return cached.containers;
   const containers = chapterContainers(source);
@@ -28,7 +28,7 @@ function sourceContainers(sourcePath: string, source) {
   return containers;
 }
 
-function containingNode(nodes, lineStart, lineEnd) {
+function containingNode(nodes, lineStart: number, lineEnd: number) {
   for (const node of nodes) {
     if (lineStart > node.startLine && lineStart <= node.endLine && lineEnd <= node.endLine) return node;
     const nested = containingNode(node.children, lineStart, lineEnd);
@@ -95,7 +95,7 @@ function finishMatrix(container: HTMLElement) {
    exported HTML and clones where no script runs. Staged renders for export and pagination skip the
    switcher and lay every panel out in order with its title. */
 let tabGroups = 0;
-function finishTabs(container: HTMLElement, interactive) {
+function finishTabs(container: HTMLElement, interactive: boolean) {
   const panels = [...container.querySelectorAll(":scope > .ibc-container--tab")];
   if (!panels.length) return;
   if (!interactive || panels.length < 2) { container.classList.add("ibc-tabs--static"); return; }
@@ -120,7 +120,7 @@ function finishTabs(container: HTMLElement, interactive) {
 
 /* ::: compare with two images: a draggable divider reveals the first image over the second. The range
    input does the work (mouse, touch and keyboard); without script (exports) both images sit side by side. */
-function finishCompare(container: HTMLElement, interactive) {
+function finishCompare(container: HTMLElement, interactive: boolean) {
   const images = [...container.querySelectorAll("img")].slice(0, 2);
   if (images.length < 2) return;
   const frames = images.map(img => {
@@ -172,12 +172,12 @@ function finishContainer(container: HTMLElement, interactive = false) {
   container.append(...figures);
 }
 
-async function renderFragment(plugin: IgnorancePlugin, sourcePath: string, source, target: HTMLElement, component) {
+async function renderFragment(plugin: IgnorancePlugin, sourcePath: string, source: string, target: HTMLElement, component) {
   if (!source.trim()) return;
   await MarkdownRenderer.render(plugin.app, source, target, sourcePath, component);
 }
 
-async function renderRange(plugin: IgnorancePlugin, sourcePath: string, source, start, end, nodes, target: HTMLElement, component, interactive = false) {
+async function renderRange(plugin: IgnorancePlugin, sourcePath: string, source: string, start: number, end: number, nodes, target: HTMLElement, component, interactive = false) {
   let cursor = start;
   for (const node of nodes) {
     if (node.startOffset < start || node.closeEnd > end) continue;
@@ -191,7 +191,7 @@ async function renderRange(plugin: IgnorancePlugin, sourcePath: string, source, 
   await renderFragment(plugin, sourcePath, source.slice(cursor, end), target, component);
 }
 
-async function renderMarkdownWithContainers(plugin: IgnorancePlugin, sourcePath: string, source, target: HTMLElement, component, interactive = false) {
+async function renderMarkdownWithContainers(plugin: IgnorancePlugin, sourcePath: string, source: string, target: HTMLElement, component, interactive = false) {
   // A table typed right under a paragraph still counts as a table in pages, slides and exports.
   if (wantsLenient(plugin)) source = withBlankLines(source);
   const containers = chapterContainers(source);

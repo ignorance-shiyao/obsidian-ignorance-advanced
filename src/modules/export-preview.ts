@@ -29,7 +29,7 @@ const NOTES = {
 };
 
 class ExportPreviewModal extends Modal {
-  constructor(plugin: IgnorancePlugin, file: TFile, kind, deps, run) {
+  constructor(plugin: IgnorancePlugin, file: TFile, kind: string, deps, run) {
     super(plugin.app);
     this.plugin = plugin;
     this.file = file;
@@ -140,7 +140,7 @@ class ExportPreviewModal extends Modal {
     if (kind === "html") {
       const html = await this.deps.prepareHtmlDocument(this.plugin, this.file, {
         cover: false, signal: this.controller.signal,
-        onProgress: async html => { await this.renderFrame(html); this.showPartial("首屏已加载，正在生成后续内容…"); }
+        onProgress: async (html: string) => { await this.renderFrame(html); this.showPartial("首屏已加载，正在生成后续内容…"); }
       });
       this.controller.signal.throwIfAborted();
       return this.renderFrame(html);
@@ -153,14 +153,14 @@ class ExportPreviewModal extends Modal {
     return this.renderPages(kind === "long");
   }
 
-  showPartial(message) {
+  showPartial(message: string) {
     this.controller.signal.throwIfAborted();
     this.status.remove();
     window.clearInterval(this.statusTimer);
     this.summary.setText(message);
   }
 
-  async renderFrame(html) {
+  async renderFrame(html: string) {
     this.controller.signal.throwIfAborted();
     const previous = this.frame;
     const scrollTop = previous?.contentWindow?.scrollY || 0;
@@ -186,7 +186,7 @@ class ExportPreviewModal extends Modal {
     this.summary.setText("");
   }
 
-  async renderPages(long) {
+  async renderPages(long: boolean) {
     this.forceLight();
     const page = this.plugin.state.page;
     const book = this.viewport.createDiv({ cls: "ibp-export-preview__book" });
@@ -235,7 +235,7 @@ class ExportPreviewModal extends Modal {
 }
 
 // Show the preview; `run` performs the real export when the user confirms.
-export function previewThenExport(plugin: IgnorancePlugin, file: TFile, kind, deps, run) {
+export function previewThenExport(plugin: IgnorancePlugin, file: TFile, kind: string, deps, run) {
   if (!file) return;
   new ExportPreviewModal(plugin, file, kind, deps, run).open();
 }

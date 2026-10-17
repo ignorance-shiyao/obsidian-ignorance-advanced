@@ -4,8 +4,8 @@ import MarkdownIt from "markdown-it";
 import { setIcon, UI_ICONS } from "./ui-icons.js";
 import { saveErrorMessage, holdScrollPosition, replaceRangeQuietly } from "./quiet-edit.js";
 const marker = /^\s*<!--\s*ib-table-align:(left|center|right)\s*-->\s*$/;
-function tables(source) { return new MarkdownIt().parse(source, {}).filter(t => t.type === "table_open"); }
-function metadata(lines, start) {
+function tables(source: string) { return new MarkdownIt().parse(source, {}).filter(t => t.type === "table_open"); }
+function metadata(lines, start: number) {
   let line = start - 1;
   while (line >= 0 && !lines[line].trim()) line--;
   const match = marker.exec(lines[line] || "");
@@ -20,7 +20,7 @@ function setAlignment(table: HTMLElement, value: string | null) {
   if (value) wrapper.dataset.ibTableAlign = value;
   else delete wrapper.dataset.ibTableAlign;
 }
-export function applyTableSourceAlignment(root: HTMLElement, source) {
+export function applyTableSourceAlignment(root: HTMLElement, source: string) {
   const entries = tables(source), lines = source.split("\n");
   [...root.querySelectorAll("table")].forEach((table: HTMLElement, index) => {
     if (table.closest(".markdown-embed, .internal-embed")) return;
@@ -37,7 +37,7 @@ export async function syncPreviewTableAlignment(plugin: IgnorancePlugin, view) {
   const source = await plugin.app.vault.cachedRead(file);
   applyTableSourceAlignment(preview, source);
 }
-export function tableAlignmentControl(plugin: IgnorancePlugin, table, path: string, ordinal) {
+export function tableAlignmentControl(plugin: IgnorancePlugin, table: HTMLElement, path: string, ordinal: number) {
   const locate = async () => {
     if (!path || ordinal == null || ordinal < 0) throw Error("未找到表格源码位置");
     const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);

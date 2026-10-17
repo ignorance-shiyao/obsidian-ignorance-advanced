@@ -1,6 +1,6 @@
 // Scope compact spacing to the private engine's current default class render.
 // ELK reads these options on the graph, rather than Mermaid's nodeSpacing.
-export async function withClassElkSpacing(source, draw, owner = window) {
+export async function withClassElkSpacing(source: string, draw, owner = window) {
   const directives = [source.match(/^\s*---[\s\S]*?\n---(?:\n|$)/)?.[0] || '', ...(source.match(/%%\{[\s\S]*?\}%%/g) || [])].join('\n');
   if (!/^\s*classDiagram(?:-v2)?\b/m.test(source) || /%%\s*ibm:keep-layout/.test(source) ||
       /["']?(?:layout|nodeSpacing|rankSpacing|[^\s"']*spacing[^\s"']*)["']?\s*:/i.test(directives)) return draw();

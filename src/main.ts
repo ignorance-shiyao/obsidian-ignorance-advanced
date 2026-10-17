@@ -3,7 +3,7 @@ import { createAfterPaintQueue } from "./modules/after-paint-queue.js";
 import { BlockHeightMemory } from "./modules/block-height-memory.js";
 import { guardedCleanup } from "./modules/plugin-cleanup.js";
 import type { TableSizeStyles } from "./modules/editor-tools.js";
-import type { PluginState } from "./plugin-types.js";
+import type { DiagramState, PluginState } from "./plugin-types.js";
 
 import * as BlockTools from "./plugin/block-tools.js";
 import * as DiagramLayout from "./plugin/diagram-layout.js";
@@ -19,7 +19,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
   declare state: PluginState;
   declare measuredBounds: WeakMap<Element, any>;
   declare fileTools: Readonly<Record<string, any>>;
-  declare diagramStates: WeakMap<Element, any>;
+  declare diagramStates: WeakMap<Element, DiagramState>;
   declare diagramEnhancements: ReturnType<typeof createAfterPaintQueue>;
   declare heightMemory: BlockHeightMemory;
   declare tableStyles: InstanceType<typeof TableSizeStyles>;

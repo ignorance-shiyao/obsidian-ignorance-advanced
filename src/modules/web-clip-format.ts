@@ -2,15 +2,15 @@
 export const CLIP_TAG = "Clippings";
 export const URL_PATTERN = /https?:\/\/[^\s<>"'）)\]]+/;
 
-export const pad = value => String(value).padStart(2, "0");
-export const day = date => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+export const pad = (value: number) => String(value).padStart(2, "0");
+export const day = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
 export function isClipUrl(text: string) {
   const value = String(text || "").trim();
   return /^https?:\/\/\S+$/.test(value) && URL_PATTERN.test(value);
 }
 
-function yamlString(value) {
+function yamlString(value: string) {
   return JSON.stringify(String(value ?? ""));
 }
 

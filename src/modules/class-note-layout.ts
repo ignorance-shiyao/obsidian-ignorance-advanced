@@ -9,14 +9,14 @@ export function compactClassNotes(data, defaultWidth = 240) {
     if (node.shape !== "note" || node.wrappingWidth > 0 || typeof node.label !== "string" || /<br\b|\n/i.test(node.label)) return node;
     changed = true;
     return { ...node, wrappingWidth: width,
-      cssStyles: (node.cssStyles || []).map(style => /^\s*white-space\s*:\s*nowrap\s*;?\s*$/i.test(style) ? "white-space: normal" : style) };
+      cssStyles: (node.cssStyles || []).map((style: string) => /^\s*white-space\s*:\s*nowrap\s*;?\s*$/i.test(style) ? "white-space: normal" : style) };
   });
   return changed ? { ...data, nodes } : data;
 }
 
 // Classifier styles are installed before Mermaid measures each member label.
 // Applying the member font after layout clips HTML labels measured in sans.
-export function measureClassMembers(data, font) {
+export function measureClassMembers(data, font: string) {
   if (!font || !Array.isArray(data?.nodes)) return data;
   return { ...data, nodes: data.nodes.map((node: HTMLElement) => {
     if (node.shape !== "classBox" || [...(node.styles || []), ...(node.cssStyles || [])].some(style => /font-family\s*:/i.test(style))) return node;
@@ -32,7 +32,7 @@ export function measureClassMembers(data, font) {
   }) };
 }
 
-export async function withClassNoteLayout(engine, source, draw, memberFont = "") {
+export async function withClassNoteLayout(engine, source: string, draw, memberFont = "") {
   if (!/^\s*classDiagram(?:-v2)?\b/m.test(source)) return draw();
   const preserveLayout = /%%\s*ibm:keep-layout/.test(source) || /["']?layout["']?\s*:/.test(source);
   let proto, original;

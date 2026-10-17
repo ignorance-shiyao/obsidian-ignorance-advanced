@@ -1,7 +1,7 @@
 /* Mermaid uses shared DOM ids while drawing, so keep one render in flight.
    Obsidian passes a hidden scratch div rather than the real note block. Match
    the pending source block once and recheck its position before each draw. */
-export function mermaidRenderTargets(document, text: string, container: HTMLElement) {
+export function mermaidRenderTargets(document: Document, text: string, container: HTMLElement) {
   const targets = new Set();
   if (container?.parentElement !== document.body && container?.getBoundingClientRect) targets.add(container);
   if (typeof text === "string") {
@@ -13,7 +13,7 @@ export function mermaidRenderTargets(document, text: string, container: HTMLElem
   return targets;
 }
 
-export function mermaidTargetPriority(targets, document) {
+export function mermaidTargetPriority(targets, document: Document) {
   let best = Infinity;
   const win = document.defaultView;
   for (const target of targets) {

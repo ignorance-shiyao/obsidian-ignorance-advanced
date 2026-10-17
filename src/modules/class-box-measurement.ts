@@ -9,7 +9,7 @@ export function classBoxBounds(box, groups, padding = 8) {
 // Mermaid measures a centered header together with members still at x=0.
 // That union counts half the header width as empty space. Only adapt the
 // unfinished class box in this render's scratch SVG, before edge routing.
-export async function withClassBoxMeasurement(engine, id: string, source, draw, prototype = window.SVGGraphicsElement?.prototype) {
+export async function withClassBoxMeasurement(engine, id: string, source: string, draw, prototype = window.SVGGraphicsElement?.prototype) {
   if (!/^\s*classDiagram(?:-v2)?\b/m.test(source)) return draw();
   const original = prototype?.getBBox;
   if (typeof original !== 'function' || !Object.getOwnPropertyDescriptor(prototype, 'getBBox')?.writable) return draw();

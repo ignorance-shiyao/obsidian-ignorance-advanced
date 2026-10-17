@@ -57,7 +57,7 @@ function renderTocBlocks(plugin: IgnorancePlugin, element: HTMLElement, sourcePa
 }
 
 class TocWidget extends WidgetType {
-  constructor(plugin: IgnorancePlugin, sourcePath: string, signature) {
+  constructor(plugin: IgnorancePlugin, sourcePath: string, signature: string) {
     super();
     this.plugin = plugin;
     this.sourcePath = sourcePath;

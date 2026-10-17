@@ -7,12 +7,12 @@ import { requestUrl, TFile } from "obsidian";
 import { bytesToBase64 } from "./bytes.js";
 
 
-function escapeHtml(value) {
+function escapeHtml(value: string) {
   return String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[char]);
 }
 
-const list = value => (Array.isArray(value) ? value : value == null || value === "" ? [] : [value]).map(item => String(item).trim()).filter(Boolean);
-const unlink = value => value.replace(/^\[\[([^\]|]+)(?:\|([^\]]+))?\]\]$/, (_, target: HTMLElement, alias) => alias || target);
+const list = (value: string) => (Array.isArray(value) ? value : value == null || value === "" ? [] : [value]).map(item => String(item).trim()).filter(Boolean);
+const unlink = (value: string) => value.replace(/^\[\[([^\]|]+)(?:\|([^\]]+))?\]\]$/, (_, target: HTMLElement, alias) => alias || target);
 
 function formatDate(value) {
   if (!value) return "";
@@ -29,7 +29,7 @@ export function readingStats(text: string) {
   return { count: cjk + words, minutes };
 }
 
-async function coverImage(plugin: IgnorancePlugin, file: TFile, value) {
+async function coverImage(plugin: IgnorancePlugin, file: TFile, value: string) {
   const raw = list(value)[0];
   if (!raw) return "";
   const target = unlink(raw.replace(/^!\[\[|\]\]$/g, "").replace(/^!?\[[^\]]*\]\(([^)]+)\)$/, "$1"));
@@ -50,7 +50,7 @@ async function coverImage(plugin: IgnorancePlugin, file: TFile, value) {
 
 /* Returns { cover, colophon } HTML. Drops the note's own first H1 when it only
    repeats the title shown in the cover. */
-export async function buildCover(plugin: IgnorancePlugin, file: TFile, content) {
+export async function buildCover(plugin: IgnorancePlugin, file: TFile, content: HTMLElement) {
   const fm = plugin.app.metadataCache.getFileCache(file)?.frontmatter || {};
   const title = String(fm.title || file.basename).trim();
   const firstHeading = content.querySelector("h1");

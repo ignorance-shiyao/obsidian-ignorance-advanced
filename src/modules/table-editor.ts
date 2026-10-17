@@ -10,7 +10,7 @@ export const TABLE_COMMANDS: Array<{ action: TableEditAction; name: string }> = 
   { action: "format", name: "格式化当前表格（中英文宽度对齐）" }
 ];
 
-function tableAtCursor(view): { range: PipeTableRange; rowIndex: number; columnIndex: number; columnCount: number } | null {
+function tableAtCursor(view: EditorView): { range: PipeTableRange; rowIndex: number; columnIndex: number; columnCount: number } | null {
   const doc = view.state.doc;
   const cursor = view.state.selection.main;
   if (!cursor.empty) return null;
@@ -40,7 +40,7 @@ function cellOffset(lines: string[], rowIndex: number, columnIndex: number) {
   return offset + cells[column].start;
 }
 
-function replaceTable(view, range: PipeTableRange, action: TableEditAction, rowIndex: number, columnIndex: number) {
+function replaceTable(view: EditorView, range: PipeTableRange, action: TableEditAction, rowIndex: number, columnIndex: number) {
   const result = editTableLines(range.lines, action, rowIndex, columnIndex);
   if (!result) return false;
   const doc = view.state.doc;
@@ -68,7 +68,7 @@ export function canEditTable(view) {
   return Boolean(view?.state?.facet(EditorView.editable) && tableAtCursor(view));
 }
 
-function moveToCell(view, range: PipeTableRange, rowIndex: number, columnIndex: number) {
+function moveToCell(view: EditorView, range: PipeTableRange, rowIndex: number, columnIndex: number) {
   const lineText = range.lines[rowIndex];
   const cells = lineText && parsePipeRow(lineText);
   if (!cells?.length) return false;
@@ -81,7 +81,7 @@ function moveToCell(view, range: PipeTableRange, rowIndex: number, columnIndex: 
   return true;
 }
 
-function moveAcrossCells(view, direction: -1 | 1) {
+function moveAcrossCells(view: EditorView, direction: -1 | 1) {
   if (!view?.state?.facet(EditorView.editable)) return false;
   const table = tableAtCursor(view);
   if (!table) return false;

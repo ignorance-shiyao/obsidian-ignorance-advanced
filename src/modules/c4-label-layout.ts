@@ -1,4 +1,4 @@
-export function avoidC4LabelNodes(label: string, obstacles, bounds, gap = 8) {
+export function avoidC4LabelNodes(label: string, obstacles, bounds: DOMRect, gap = 8) {
   const overlaps = box => obstacles.some((node: HTMLElement) => box.x < node.x + node.width + gap && box.x + box.width > node.x - gap && box.y < node.y + node.height + gap && box.y + box.height > node.y - gap);
   if (!overlaps(label)) return { dx: 0, dy: 0 };
   const xs = [label.x], ys = [label.y];

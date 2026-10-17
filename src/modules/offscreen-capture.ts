@@ -12,7 +12,7 @@ function collectCss() {
   return parts.join("\n");
 }
 
-export async function openOffscreenCapturer(width: number, height) {
+export async function openOffscreenCapturer(width: number, height: number) {
   const remote = electronRemote();
   if (!remote?.BrowserWindow) throw new Error("当前环境不支持后台渲染");
   // Match the main window's viewport so vw / vh based sizes lay out the same.

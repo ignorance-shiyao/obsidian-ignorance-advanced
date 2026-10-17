@@ -38,7 +38,7 @@ const HTML_STYLE_PROPERTIES = [
 ];
 const SVG_STYLE_PROPERTIES = [...HTML_STYLE_PROPERTIES, "rx", "ry"];
 
-async function setBodyThemeMode(plugin: IgnorancePlugin, mode, root: HTMLElement, signal) {
+async function setBodyThemeMode(plugin: IgnorancePlugin, mode: string, root: HTMLElement, signal) {
   const body = document.body;
   body.toggleClass("theme-dark", mode === "dark");
   body.toggleClass("theme-light", mode === "light");
@@ -116,7 +116,7 @@ const UA_DECORATED = new Set(["A", "INS", "U", "S", "DEL", "STRIKE"]);
 const UA_BACKGROUND = new Set(["MARK", "TH", "TD", "TR", "THEAD", "TBODY", "TABLE", "CODE", "PRE", "KBD"]);
 const UA_VERTICAL_ALIGN = new Set(["TD", "TH", "TR", "THEAD", "TBODY", "TFOOT", "SUB", "SUP", "IMG", "svg"]);
 
-function isDefaultValue(name: string, value, source, computed) {
+function isDefaultValue(name: string, value: string, source: Element, computed) {
   if (DEFAULT_VALUES[name] === value) return true;
   const tag = source.tagName;
   switch (name) {
@@ -131,13 +131,13 @@ function isDefaultValue(name: string, value, source, computed) {
   }
 }
 
-function inlineStandaloneStyles(source, target: HTMLElement, colors) {
+function inlineStandaloneStyles(source: Element, target: HTMLElement, colors) {
   const computed = getComputedStyle(source);
   const sized = SIZED_ELEMENTS.has(source.tagName);
   const diagramPaints = colors.diagramPaints?.get(source);
   // The cloned diagram has no source stylesheet, so browser defaults can be
   // omitted there too instead of repeating them on every SVG path and label.
-  for (const name of source instanceof SVGElement ? SVG_STYLE_PROPERTIES : HTML_STYLE_PROPERTIES) {
+  for (const name of source.instanceOf(SVGElement) ? SVG_STYLE_PROPERTIES : HTML_STYLE_PROPERTIES) {
     if (!sized && SIZE_PROPERTIES.has(name)) continue;
     let value = computed.getPropertyValue(name);
     const diagramToken = diagramPaints?.get(name);
@@ -154,22 +154,22 @@ function inlineStandaloneStyles(source, target: HTMLElement, colors) {
   }
 }
 
-function safeAttribute(name: string, value) {
+function safeAttribute(name: string, value: string) {
   if (/^on/i.test(name) || name === "style" || name === "srcset" || name.startsWith("data-") || name.startsWith("aria-")) return false;
   if (name === "href" || name === "xlink:href") return /^(?:#|https?:\/\/|mailto:)/i.test(value);
   if (name === "src") return /^data:image\//i.test(value);
   return true;
 }
 
-function decodeHash(value) {
+function decodeHash(value: string) {
   try { return decodeURIComponent(value); } catch (_) { return value; }
 }
 
-function copyAttributes(source, target: HTMLElement, headingIds) {
+function copyAttributes(source: Element, target: HTMLElement, headingIds) {
   for (const attribute of [...source.attributes]) {
     const name = attribute.name.toLowerCase();
     if (name === "class" || name === "style" || name === "src" || name === "id" || !safeAttribute(name, attribute.value)) continue;
-    if (name === "href" && source instanceof HTMLAnchorElement) {
+    if (name === "href" && source.instanceOf(HTMLAnchorElement)) {
       const value = attribute.value;
       if (value.startsWith("#")) {
         const mapped = headingIds.get(decodeHash(value.slice(1)));
@@ -222,7 +222,7 @@ async function imageAsPng(source, colors, alt = "") {
 
 const READER_CHART_SELECTOR = ".mermaid, .ibm-mermaid-enhanced, .ib-echarts-block, .block-language-mermaid";
 
-async function remoteImageDataUri(source) {
+async function remoteImageDataUri(source: HTMLImageElement) {
   const src = source.currentSrc || source.getAttribute("src") || "";
   if (!/^https?:/i.test(src)) return null;
   try {
@@ -235,7 +235,7 @@ async function remoteImageDataUri(source) {
   }
 }
 
-async function imageDataUri(plugin: IgnorancePlugin, source, imageIndex) {
+async function imageDataUri(plugin: IgnorancePlugin, source: HTMLImageElement, imageIndex) {
   const src = source.currentSrc || source.getAttribute("src") || "";
   if (/^data:image\//i.test(src)) return src;
   const file = imageIndex.get(src) || imageIndex.get(resourcePathKey(src));
@@ -440,7 +440,7 @@ async function dropInheritedDuplicates(root: HTMLElement, checkpoint) {
   for (const child of root.children) await visit(child);
 }
 
-function escapeHtml(value) {
+function escapeHtml(value: string) {
   return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[char]);
 }
 
@@ -515,7 +515,7 @@ function buildReaderCss(light, dark) {
   `;
 }
 
-async function buildHtmlReader(plugin: IgnorancePlugin, file: TFile, content, sourceHeadings, headingIds, light, dark, initialMode, checkpoint, preferenceId) {
+async function buildHtmlReader(plugin: IgnorancePlugin, file: TFile, content: HTMLElement, sourceHeadings, headingIds, light, dark, initialMode: string, checkpoint, preferenceId: string) {
     await dropInheritedDuplicates(content, checkpoint);
     // The cover shows the title; a first H1 that only repeats it is hidden and left out of the navigation.
     const { cover, colophon, title } = await buildCover(plugin, file, content);

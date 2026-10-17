@@ -19,11 +19,11 @@ function jpegSize(bytes) {
 // pages: [{ jpeg: Uint8Array }], size in millimetres (every page the same paper).
 export function buildImagePdf(pages, { widthMm, heightMm }) {
   const encoder = new TextEncoder();
-  const chunks = [];
+  const chunks: Uint8Array[] = [];
   const offsets = [];
   let length = 0;
-  const push = part => { const bytes = typeof part === "string" ? encoder.encode(part) : part; chunks.push(bytes); length += bytes.length; };
-  const object = (id: string, body, stream) => {
+  const push = (part: string) => { const bytes = typeof part === "string" ? encoder.encode(part) : part; chunks.push(bytes); length += bytes.length; };
+  const object = (id: string, body: string, stream) => {
     offsets[id] = length;
     push(`${id} 0 obj\n${body}\n`);
     if (stream) { push("stream\n"); push(stream); push("\nendstream\n"); }

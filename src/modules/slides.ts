@@ -56,11 +56,11 @@ function presentationDefaults() {
   return { skin: "none", animation: "none", canvas: "16:9" };
 }
 
-function stripFrontmatter(markdown) {
+function stripFrontmatter(markdown: string) {
   return String(markdown).replace(/^\uFEFF?---\r?\n[\s\S]*?\r?\n---\s*(?:\r?\n|$)/, "");
 }
 
-function delay(ms) {
+function delay(ms: number) {
   return new Promise(resolve => window.setTimeout(resolve, ms));
 }
 
@@ -147,7 +147,7 @@ function applySkin(root: HTMLElement, skinId) {
 
 }
 
-function addToolbarButton(parent: HTMLElement, icon, label: string, action, data = {}) {
+function addToolbarButton(parent: HTMLElement, icon: string, label: string, action, data = {}) {
   const button = parent.createEl("button", { cls: "ibp-presentation-action", attr: { type: "button", "aria-label": label, "data-tooltip-position": "top" } });
   setIcon(button, icon);
   button.addEventListener("click", action);
@@ -163,7 +163,7 @@ function closeToolbarPopover() {
 
 // A card panel under a toolbar button, for choices that read better with a
 // preview than as a text menu. `fill` draws the content; `pick` closes it.
-function openPopoverUnder(button, cls, fill) {
+function openPopoverUnder(button: HTMLButtonElement, cls: string, fill) {
   closeToolbarPopover();
   const doc = button.ownerDocument;
   const panel = doc.body.createDiv({ cls: `ibp-popover ${cls}` });
@@ -274,7 +274,7 @@ function addToolbarPicker(parent: HTMLElement, label: string, options, current, 
 }
 
 // Whether an element between target and boundary can still scroll that way.
-function canScrollInside(target: HTMLElement, boundary, delta) {
+function canScrollInside(target: HTMLElement, boundary: HTMLElement, delta: number) {
   for (let el = (target as Node | null)?.instanceOf(Element) ? target : null; el && el !== boundary; el = el.parentElement) {
     if (el.scrollHeight <= el.clientHeight + 1) continue;
     const overflow = getComputedStyle(el).overflowY;
@@ -504,14 +504,14 @@ class PresentationView extends ItemView {
     addToolbarSeparator(this.toolbar);
 
     const settings = this.plugin.state.presentation;
-    const choose = (key, value) => { settings[key] = value; this.plugin.saveStoredState(); };
+    const choose = (key: string, value: string) => { settings[key] = value; this.plugin.saveStoredState(); };
     addThemePicker(this.toolbar, this.plugin,
       () => { choose("skin", "none"); void this.renderSlides(); },
-      (id: string, mode) => { choose("skin", "none"); applyAccent(this.plugin, id); setThemeMode(this.plugin.app, mode); });
+      (id: string, mode: string) => { choose("skin", "none"); applyAccent(this.plugin, id); setThemeMode(this.plugin.app, mode); });
     addToolbarPicker(this.toolbar, "演示画幅", CANVASES.filter(([id]) => Platform.isPhone || id !== "9:16").map(([id]) => [id, id]),
-      () => canvasId(settings), value => { choose(Platform.isPhone ? "phoneCanvas" : "canvas", value); void this.renderSlides(); });
+      () => canvasId(settings), (value: string) => { choose(Platform.isPhone ? "phoneCanvas" : "canvas", value); void this.renderSlides(); });
     addAnimationPicker(this.toolbar, ANIMATIONS,
-      () => settings.animation || "none", value => {
+      () => settings.animation || "none", (value: string) => {
         choose("animation", value);
         this.root?.classList.forEach((name: string) => { if (name.startsWith("slide-anim-")) this.root.classList.remove(name); });
         if (value !== "none" && !Platform.isPhone) this.root?.classList.add(`slide-anim-${value}`);
@@ -637,7 +637,7 @@ class PresentationView extends ItemView {
     return host ? [...host.children].filter(element => element instanceof HTMLElement) : [];
   }
 
-  showSteps(section, shown) {
+  showSteps(section, shown: number) {
     const blocks = this.slideBlocks(section);
     section.dataset.ibShown = String(shown);
     blocks.forEach((block, index) => block.classList.toggle("ibp-step-hidden", index >= shown));
@@ -672,7 +672,7 @@ class PresentationView extends ItemView {
     if (section) this.showSteps(section, forward ? 1 : this.slideBlocks(section).length);
   }
 
-  setStepMode(on) {
+  setStepMode(on: boolean) {
     this.stepMode = Boolean(on);
     this.applyStepMode();
   }
@@ -690,7 +690,7 @@ class PresentationView extends ItemView {
     }
   }
 
-  setPointerTool(tool) {
+  setPointerTool(tool: string) {
     this.pointerTool = this.pointerTool === tool ? null : tool;
     this.applyPointerTool();
   }
@@ -756,7 +756,7 @@ class PresentationView extends ItemView {
     }
   }
 
-  async mountDeck({ reveal, entries, width, height }, token) {
+  async mountDeck({ reveal, entries, width, height }, token: number) {
     if (this.deck) {
       try { this.deck.destroy(); } catch (_) { /* already gone */ }
       this.deck = null;
@@ -805,7 +805,7 @@ class PresentationView extends ItemView {
     this.updateCounter();
   }
 
-  previewPptx(mode) {
+  previewPptx(mode: string) {
     const file = this.plugin.app.vault.getAbstractFileByPath(this.filePath);
     previewThenExport(this.plugin, file, `pptx-${mode}`, { buildDeck }, () => { void this.exportPptx("", mode); });
   }
@@ -836,7 +836,7 @@ class PresentationView extends ItemView {
 }
 
 // Picture version: the whole slide as one image, charts laid over as SVG.
-async function addImageSlide(pptx, surface, slideWidth, slideHeight, capture) {
+async function addImageSlide(pptx, surface, slideWidth: number, slideHeight: number, capture) {
   const surfaceRect = surface.getBoundingClientRect();
   const charts = [...surface.querySelectorAll(".mermaid svg, .ib-echarts-block svg, [data-ib-echarts-state] svg")].map(svg => {
     const rect = svg.getBoundingClientRect();
@@ -901,7 +901,7 @@ async function capturePortableStage(staged) {
   }
 }
 
-async function exportDeckPptx(deck, filePath, mode = "editable") {
+async function exportDeckPptx(deck, filePath: string, mode = "editable") {
   const { reveal, entries, width: canvasWidth, height: canvasHeight } = deck;
   const { PptxGenJS } = await loadChunk("chunk-pptx.cjs");
   const pptx = new PptxGenJS();

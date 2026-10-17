@@ -36,7 +36,7 @@ import { buildImagePdf } from "./image-pdf.js";
    when it is confirmed there. */
 function exportActions(plugin: IgnorancePlugin, file: TFile) {
   const deps = { prepareHtmlDocument: plugin.exporters.html, prepareRichCopyMarkup, pageVarsAtFullScale, buildDeck };
-  const preview = (kind, run) => () => previewThenExport(plugin, file, kind, deps, run);
+  const preview = (kind: string, run) => () => previewThenExport(plugin, file, kind, deps, run);
   return {
     pdf: { title: "导出 PDF", icon: "lucide-file-down", run: preview("pdf", () => runExport("PDF", () => exportPdf(plugin, file))) },
     word: { title: "导出 Word（.docx）", icon: "lucide-file-type", run: preview("word", () => runExport("Word", () => exportWord(plugin, file))) },
@@ -51,7 +51,7 @@ function exportActions(plugin: IgnorancePlugin, file: TFile) {
   };
 }
 
-function openExportMenu(plugin: IgnorancePlugin, view, event) {
+function openExportMenu(plugin: IgnorancePlugin, view, event: MouseEvent) {
   const file = view.file;
   if (!file) return;
   const menu = new Menu();
@@ -107,7 +107,7 @@ async function runCopy(label: string, task) {
 function pageVarsAtFullScale(page) {
   const size = paperSize(page);
   const m = page.margins;
-  const px = mm => `${(mm * MM).toFixed(2)}px`;
+  const px = (mm: number) => `${(mm * MM).toFixed(2)}px`;
   return { "--ibp-page-w": px(size.w), "--ibp-page-h": px(size.h), "--ibp-mt": px(m.t), "--ibp-mr": px(m.r), "--ibp-mb": px(m.b), "--ibp-ml": px(m.l), "--ibp-page-gap": "0px" };
 }
 
@@ -167,7 +167,7 @@ const CLIPBOARD_STYLE_PROPERTIES = [
   "stroke-dasharray", "fill-opacity", "stroke-opacity", "filter"
 ];
 
-function inlineComputedStyles(source, target: HTMLElement, properties = CLIPBOARD_STYLE_PROPERTIES) {
+function inlineComputedStyles(source: Element, target: HTMLElement, properties = CLIPBOARD_STYLE_PROPERTIES) {
   const computed = getComputedStyle(source);
   for (const name of properties) {
     const value = computed.getPropertyValue(name);
@@ -474,7 +474,7 @@ async function captureElement(element: HTMLElement) {
 }
 
 // Mobile: paint the same staged pages in-page and write the PNGs into 导出/.
-async function exportImagesToVault(plugin: IgnorancePlugin, file: TFile, kind) {
+async function exportImagesToVault(plugin: IgnorancePlugin, file: TFile, kind: string) {
   return withExportStage(plugin, file, { visible: true, keepStrip: kind === "long" }, async (stage, { pages, staging }) => {
     if (kind === "pages") {
       pages.forEach(p => p.setCssStyles({ display: "none" }));
@@ -498,7 +498,7 @@ async function exportImagesToVault(plugin: IgnorancePlugin, file: TFile, kind) {
   });
 }
 
-async function exportImages(plugin: IgnorancePlugin, file: TFile, kind, targetPath) {
+async function exportImages(plugin: IgnorancePlugin, file: TFile, kind: string, targetPath) {
   if (!hasDesktopExports() && !targetPath) return exportImagesToVault(plugin, file, kind);
   const remote = electronRemote();
   const fs = require("fs"), path = require("path");
@@ -569,12 +569,12 @@ async function prepareMarkdownForPandoc(plugin: IgnorancePlugin, file: TFile, te
   return prepareMarkdownTextForPandoc(text, diagrams, resolveLocalImage);
 }
 
-function wordFontFromToken(value, fallback) {
+function wordFontFromToken(value: string, fallback: string) {
   const first = String(value || "").split(",")[0].trim().replace(/^['"]|['"]$/g, "");
   return first || fallback;
 }
 
-async function resolveStructuredWordImage(plugin: IgnorancePlugin, file: TFile, tmp, source) {
+async function resolveStructuredWordImage(plugin: IgnorancePlugin, file: TFile, tmp, source: string) {
   const fs = require("fs"), path = require("path");
   const dataUri = String(source).match(/^data:image\/(png|jpe?g|gif|bmp);base64,([\s\S]+)$/i);
   if (dataUri) {
@@ -621,7 +621,7 @@ async function saveExportToVault(plugin: IgnorancePlugin, name: string, data) {
 }
 
 // A Mermaid diagram drawn by the (bundled) engine, as a PNG data URI.
-async function mermaidToPngDataUri(source, index: number) {
+async function mermaidToPngDataUri(source: string, index: number) {
   // HTML labels (foreignObject) would taint the canvas and block toDataURL.
   const plain = /^\s*%%\{\s*init/.test(source) ? source : `%%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%\n${source}`;
   const { svg } = await window.mermaid.render(`ibp-word-mermaid-${Date.now()}-${index}`, plain);
@@ -643,7 +643,7 @@ async function mermaidToPngDataUri(source, index: number) {
   }
 }
 
-async function vaultImageForWord(plugin: IgnorancePlugin, file: TFile, source) {
+async function vaultImageForWord(plugin: IgnorancePlugin, file: TFile, source: string) {
   const dataUri = String(source).match(/^data:image\/(png|jpe?g|gif|bmp);base64,([\s\S]+)$/i);
   if (dataUri) return { type: dataUri[1].toLowerCase().replace("jpeg", "jpg"), data: base64ToBytes(dataUri[2]) };
   if (/^(?:https?:|mailto:)/i.test(source)) return null;
@@ -689,7 +689,7 @@ async function exportWordToVault(plugin: IgnorancePlugin, file: TFile) {
       headingFamily: wordFontFromToken(bodyStyle.getPropertyValue("--ib-font-heading"), "Arial"),
       codeFamily: wordFontFromToken(bodyStyle.getPropertyValue("--ib-font-mono"), "Consolas")
     },
-    resolveImage: source => vaultImageForWord(plugin, file, source)
+    resolveImage: (source: string) => vaultImageForWord(plugin, file, source)
   });
   return saveExportToVault(plugin, `${file.basename}.docx`, bytes);
 }
@@ -735,7 +735,7 @@ async function exportWord(plugin: IgnorancePlugin, file: TFile, targetPath, opti
           headingFamily: wordFontFromToken(bodyStyle.getPropertyValue("--ib-font-heading"), "Arial"),
           codeFamily: wordFontFromToken(bodyStyle.getPropertyValue("--ib-font-mono"), "Consolas")
         },
-        resolveImage: source => resolveStructuredWordImage(plugin, file, tmp, source)
+        resolveImage: (source: string) => resolveStructuredWordImage(plugin, file, tmp, source)
       });
       fs.writeFileSync(choice.filePath, buffer);
       if (!targetPath) remote.shell?.openPath(choice.filePath);

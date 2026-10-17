@@ -43,7 +43,7 @@ export function enhanceTables(plugin: IgnorancePlugin, root: HTMLElement, contex
 export function enhanceLiveTable(plugin: IgnorancePlugin, table) {
   const widget = table.closest(".cm-table-widget");
   if (!widget) return;
-  let path = null, ordinal = null;
+  let path: string = null, ordinal = null;
   plugin.app.workspace.iterateAllLeaves?.(leaf => {
     const view = leaf.view;
     if (path || !(view instanceof MarkdownView) || !view.containerEl.contains(widget)) return;
@@ -58,7 +58,7 @@ export function enhanceLiveTable(plugin: IgnorancePlugin, table) {
   plugin.attachTable(table, path, ordinal);
 }
 
-export function attachTable(plugin: IgnorancePlugin, table, path: string, ordinal) {
+export function attachTable(plugin: IgnorancePlugin, table, path: string, ordinal: number) {
   if (table.classList.contains("ibt-enhanced")) return;
   if (headerCells(table).length < 1) return;
   table.classList.add("ibt-enhanced");
@@ -70,7 +70,7 @@ export function attachTable(plugin: IgnorancePlugin, table, path: string, ordina
   // While a Live Preview cell is being edited, every column is held at the
   // width it had when editing began. The hold is a stylesheet rule like the
   // stored sizes, so Obsidian clearing the cell's inline style cannot undo it.
-  let hold = null;
+  let hold: number[] = null;
   const publish = () => plugin.tableStyles.set(key, {
     cols: hold ? hold.map((width: number, index: number) => sizes.cols[index] || width) : sizes.cols,
     rows: sizes.rows,
@@ -105,14 +105,14 @@ export function attachTable(plugin: IgnorancePlugin, table, path: string, ordina
   const layer = new TableResizeLayer(table, {
     alignmentControl: tableAlignmentControl(plugin, table, path, ordinal),
     isHolding: () => Boolean(hold),
-    seedColumns: widths => {
+    seedColumns: (widths: number[]) => {
       widths.forEach((width: number, index: number) => { if (!sizes.cols[index]) sizes.cols[index] = width; });
     },
-    resize: (axis, index: number, size) => {
+    resize: (axis: string, index: number, size) => {
       (axis === "col" ? sizes.cols : sizes.rows)[index] = size;
       publish();
     },
-    reset: (axis, index: number) => {
+    reset: (axis: string, index: number) => {
       (axis === "col" ? sizes.cols : sizes.rows)[index] = null;
       publish();
       if (keyed) plugin.storeSizes(path, ordinal, sizes);

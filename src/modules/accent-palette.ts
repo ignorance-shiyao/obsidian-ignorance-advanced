@@ -6,29 +6,29 @@ function accentRgb(hex) {
   const full = h.length === 3 ? h.split("").map(c => c + c).join("") : h;
   return [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16));
 }
-function accentHex(rgb) {
-  return "#" + rgb.map(v => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, "0")).join("").toUpperCase();
+function accentHex(rgb: number[]) {
+  return "#" + rgb.map((v: number) => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, "0")).join("").toUpperCase();
 }
-function accentLuminance(hex) {
+function accentLuminance(hex: string) {
   const [r, g, b] = accentRgb(hex).map(v => v / 255).map(c => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
-function accentContrast(a, b) {
+function accentContrast(a: string, b: string) {
   const [hi, lo] = [accentLuminance(a), accentLuminance(b)].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
 }
-function accentMix(hex, target: HTMLElement, amount) {
+function accentMix(hex, target: HTMLElement, amount: number) {
   const a = accentRgb(hex), b = accentRgb(target);
   return accentHex(a.map((v, i) => v + (b[i] - v) * amount));
 }
-function accentStep(hex, toward, against, ratio) {
+function accentStep(hex: string, toward, against: string, ratio: number) {
   for (let t = 0; t <= 1.0001; t += 0.02) {
     const candidate = accentMix(hex, toward, t);
     if (accentContrast(candidate, against) >= ratio) return candidate;
   }
   return toward;
 }
-export function derivePalette(hex, surfaces = {}) {
+export function derivePalette(hex: string, surfaces = {}) {
   const lightPage = surfaces.lightPage || LIGHT_PAGE;
   const darkPage = surfaces.darkPage || DARK_PAGE;
   const lightSolid = accentStep(hex, "#000000", "#FFFFFF", 5);

@@ -11,17 +11,17 @@ import { collapseWhitespace, cssColor, fontFace, fontPoints, groupAdjacentBlocks
    "font, fallback" measures differently from the fallback alone only when the
    font supplied the glyphs. Checked against two fallbacks to avoid false hits. */
 const fontCache = new Map();
-function fontDraws(name: string, sample) {
+function fontDraws(name: string, sample: string) {
   const key = `${name}\u0000${sample}`;
   if (fontCache.has(key)) return fontCache.get(key);
   const ctx = createEl("canvas").getContext("2d");
-  const width = font => { ctx.font = `40px ${font}`; return ctx.measureText(sample).width; };
+  const width = (font: string) => { ctx.font = `40px ${font}`; return ctx.measureText(sample).width; };
   const quoted = `"${name.replace(/"/g, "")}"`;
   const result = ["monospace", "serif"].some(fallback => Math.abs(width(`${quoted}, ${fallback}`) - width(fallback)) > 0.5);
   fontCache.set(key, result);
   return result;
 }
-function faceFor(family, text: string) {
+function faceFor(family: string, text: string) {
   const sample = hasCjk(text) ? "永和九年岁在癸丑" : "Handgloves 0123";
   return fontFace(family, name => fontDraws(name, sample));
 }
@@ -54,7 +54,7 @@ export function collectSlideObjects(surface) {
   return { charts, images, tables, codes, lists, texts };
 }
 
-export function makeGeometry(surface, slideWidth, slideHeight, canvasWidth) {
+export function makeGeometry(surface, slideWidth: number, slideHeight: number, canvasWidth: number) {
   const frame = surface.getBoundingClientRect();
   const box = (el: HTMLElement) => {
     const r = el.getBoundingClientRect();
@@ -65,8 +65,8 @@ export function makeGeometry(surface, slideWidth, slideHeight, canvasWidth) {
       h: r.height / frame.height * slideHeight
     };
   };
-  const points = px => fontPoints(px, canvasWidth, slideWidth);
-  const inches = px => px / frame.height * slideHeight;
+  const points = (px: number) => fontPoints(px, canvasWidth, slideWidth);
+  const inches = (px: number) => px / frame.height * slideHeight;
   return { box, points, inches };
 }
 
@@ -89,7 +89,7 @@ function runOptions(el: HTMLElement, points, text = "") {
 }
 
 // Inline text of a block as pptxgenjs runs; nested blocks are left to their own objects.
-export function textRuns(block, points) {
+export function textRuns(block: HTMLElement, points) {
   const runs = [];
   const walk = (node: HTMLElement) => {
     for (const child of node.childNodes) {

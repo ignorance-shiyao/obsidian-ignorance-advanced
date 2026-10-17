@@ -85,7 +85,7 @@ function setChartError(element: HTMLElement, error) {
   message.textContent = `ECharts 渲染失败：${error instanceof Error ? error.message : String(error)}`;
 }
 
-function renderEChartsBlock(plugin: IgnorancePlugin, source, element: HTMLElement, context) {
+function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HTMLElement, context) {
   element.addClass("ib-echarts-block");
   element.dataset.ibEchartsState = "loading";
   element.setAttribute("role", "img");
@@ -103,7 +103,7 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source, element: HTMLElemen
   const viewport = element.createDiv({ cls: "ib-echarts-viewport" });
   const cachedKey = `${echartsThemeName(readThemeTokens(element))}\n${source.trim()}`;
   const cachedPreview = previewCache.get(cachedKey);
-  let placeholder = null;
+  let placeholder: Element = null;
   element.dataset.ibEchartsPreloaded = String(Boolean(cachedPreview));
   if (cachedPreview) {
     placeholder = viewport.createDiv({ cls: "ib-echarts-placeholder" });
@@ -115,7 +115,7 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source, element: HTMLElemen
   let viewportSize = { width:0, height:0 };
   let cardWidth = 0;
   const series = Array.isArray(option.series) ? option.series : [];
-  const leaves = (node: HTMLElement) => !node || node.collapsed || !node.children?.length ? 1 : node.children.reduce((count, child) => count + leaves(child), 0);
+  const leaves = (node: HTMLElement) => !node || node.collapsed || !node.children?.length ? 1 : node.children.reduce((count, child: HTMLElement) => count + leaves(child), 0);
   const treeHeight = series.filter(item => item && item.type === "tree" && !["TB", "BT"].includes(item.orient))
     .reduce((height, item) => Math.max(height, (item.data || []).reduce((count, node: HTMLElement) => count + leaves(node), 0) * 24 + 100), 0);
   // Fixed-pixel parts (calendar cells, a visualMap strip) do not shrink with a narrow card, so give them a floor.
@@ -166,7 +166,7 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source, element: HTMLElemen
       void draw();
     }, 220);
   };
-  const setZoom = (value, anchor = null) => {
+  const setZoom = (value: number, anchor = null) => {
     const next = Math.min(8, Math.max(.25, value));
     if (next === zoom) return;
     const ratio = next / zoom;
@@ -365,7 +365,7 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source, element: HTMLElemen
   }
 }
 
-export async function preloadEChartsPreview(plugin: IgnorancePlugin, source) {
+export async function preloadEChartsPreview(plugin: IgnorancePlugin, source: string) {
   const tokens = readThemeTokens(), name = echartsThemeName(tokens), key = `${name}\n${source.trim()}`;
   if (previewCache.has(key)) return;
   const engine = await loadECharts(plugin);

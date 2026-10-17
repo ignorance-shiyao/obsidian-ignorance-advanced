@@ -3,7 +3,7 @@ import { DIAGRAM_HEADER_HEIGHT,HALF_A4_HEIGHT,diagramFit } from "../modules/diag
 import { measureDiagramFont } from "../modules/diagram-readable-scale.js";
 import { clearPaint,diagramLabel,measureDrawnSize,measureRenderedContent,paintDiagram,t } from "../modules/mermaid-core.js";
 import { UI_ICONS,setIcon } from "../modules/ui-icons.js";
-import type { IgnorancePlugin } from "../plugin-types.js";
+import type { DiagramState, IgnorancePlugin } from "../plugin-types.js";
 
 // Raw viewBox plus the label text identify a diagram across renders (ids and styles vary).
 function diagramHeightKey(svg: SVGSVGElement, viewBox: string) {
@@ -67,7 +67,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
     container.querySelector(":scope > .ibm-mermaid-canvas")?.remove();
   }
 
-  const svg = container.querySelector(":scope > svg");
+  const svg = container.querySelector<SVGSVGElement>(":scope > svg");
   if (!svg) return;
 
   // The first retighten tightens the viewBox, before the next paint.
@@ -82,7 +82,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
   });
   container.appendChild(header);
 
-  const makeButton = (label: string, title) => {
+  const makeButton = (label: string, title: string) => {
     const button = createEl("button");
     button.type = "button";
     button.textContent = label;
@@ -117,7 +117,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
     if (remembered) container.style.setProperty("--ibm-mermaid-canvas-height", `${remembered}px`);
   }
 
-  const state: any = {
+  const state: DiagramState = {
     svg,
     canvas,
     container,
@@ -147,7 +147,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
     percent.textContent = `${Math.round(state.scale * 100)}%`;
   };
 
-  const zoomAt = (nextScale, clientX, clientY) => {
+  const zoomAt = (nextScale: number, clientX: number, clientY: number) => {
     const rect = canvas.getBoundingClientRect();
     if (!state.readableScroll) state.lockFrame = true;
     if (state.readableScroll) {
@@ -319,7 +319,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
   container.addEventListener("click", onClickCapture, true);
   container.addEventListener("wheel", onWheel, { passive: false });
   container.addEventListener("dblclick", onDoubleClick);
-  const zoomFromCenter = factor => {
+  const zoomFromCenter = (factor: number) => {
     const rect = canvas.getBoundingClientRect();
     zoomAt(state.scale * factor, rect.left + rect.width / 2, rect.top + rect.height / 2);
   };
@@ -334,7 +334,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
   const column = () => plugin.bleedTarget(container).parentElement;
   // Recorded on the observer's first call, when layout is already clean;
   // reading it here forced a layout of the note per diagram.
-  let lastParentWidth = null;
+  let lastParentWidth: number = null;
   const resizeObserver = new ResizeObserver(() => {
     const nextParentWidth = column()?.clientWidth || 0;
     if (lastParentWidth === null) { lastParentWidth = nextParentWidth; return; }
@@ -626,7 +626,7 @@ export function maxBleed(plugin: IgnorancePlugin, container: HTMLElement) {
   return Math.max(0, Math.floor(Math.min(left, right)));
 }
 
-export function setBleed(plugin: IgnorancePlugin, container: HTMLElement, perSide) {
+export function setBleed(plugin: IgnorancePlugin, container: HTMLElement, perSide: number) {
   const target = plugin.bleedTarget(container);
   const value = Math.max(0, Math.round(perSide));
   if (Number(target.dataset.ibmBleed || 0) === value) return;

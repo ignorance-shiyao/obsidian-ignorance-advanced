@@ -3,7 +3,7 @@ import { EditorView } from "@codemirror/view";
 import { WRAP_MARKERS, wrapMarkerPair, wrapSelectionChange } from "./wrap-selection-core.js";
 
 
-function wrapSelectedText(view, marker: string) {
+function wrapSelectedText(view: EditorView, marker: string) {
   const selection = view.state.selection;
   if (selection.ranges.length !== 1 || selection.main.empty) return false;
   const { from, to } = selection.main;

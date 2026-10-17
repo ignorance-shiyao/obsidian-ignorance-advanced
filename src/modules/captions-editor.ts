@@ -8,7 +8,7 @@ import { parseCaptions, wantsCaptions, type CaptionEntry } from "./captions.js";
 
 
 class LabelWidget extends WidgetType {
-  constructor(label: string, block, text = "") { super(); this.label = label; this.block = block; this.text = text; }
+  constructor(label: string, block: boolean, text = "") { super(); this.label = label; this.block = block; this.text = text; }
   eq(other) { return other.label === this.label && other.text === this.text && other.block === this.block; }
   toDOM() {
     const wrap = this.block ? createDiv({ cls: "ib-caption ib-caption--editor" }) : createSpan({ cls: "ib-caption__label ib-caption__label--editor" });

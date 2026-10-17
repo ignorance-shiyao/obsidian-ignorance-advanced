@@ -61,13 +61,13 @@ export async function createIsolatedStaging(plugin: IgnorancePlugin, parent: HTM
       for (const node of record.removedNodes) {
         if (node.nodeType !== 1) continue;
         if (node.matches('.mermaid')) removed.add(node);
-        node.querySelectorAll('.mermaid').forEach(diagram => removed.add(diagram));
+        node.querySelectorAll('.mermaid').forEach((diagram: Element) => removed.add(diagram));
       }
       for (const node of record.addedNodes) {
         if (node.nodeType !== 1) continue;
         const owner = node.closest('.mermaid');
         if (owner) diagrams.add(owner);
-        node.querySelectorAll('.mermaid').forEach(diagram => diagrams.add(diagram));
+        node.querySelectorAll('.mermaid').forEach((diagram: Element) => diagrams.add(diagram));
       }
     }
     for (const diagram of removed) if (!diagram.isConnected) plugin.disposeDiagram(diagram);

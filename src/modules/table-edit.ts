@@ -174,7 +174,7 @@ function formattedLines({ rows, alignments }: ParsedTable) {
     const marks = alignments[column] === "center" ? 2 : alignments[column] === "none" ? 0 : 1;
     return Math.max(3 + marks, ...rows.map(row => displayWidth(row[column] || "")));
   });
-  const formatRow = row => `| ${widths.map((width, index) => {
+  const formatRow = (row: string[]) => `| ${widths.map((width, index) => {
     const value = row[index] || "";
     return value + " ".repeat(Math.max(0, width - displayWidth(value)));
   }).join(" | ")} |`;

@@ -40,7 +40,7 @@ function pastedImageFiles(event) {
   return Array.from(transfer.files || []).filter(isPastedImageFile);
 }
 
-function imageTransferRange(event, editor, kind) {
+function imageTransferRange(event, editor, kind: string) {
   if (kind !== "drop") return { from: editor.getCursor("from"), to: editor.getCursor("to") };
   const cm = editor.cm;
   if (!cm || typeof cm.posAtCoords !== "function") return null;
@@ -52,7 +52,7 @@ function imageTransferRange(event, editor, kind) {
 
 let imageTransferSequence = 0;
 
-function handleImageTransfer(plugin: IgnorancePlugin, event, editor, info, kind) {
+function handleImageTransfer(plugin: IgnorancePlugin, event, editor, info, kind: string) {
   if (event.defaultPrevented || !plugin.state.fileTools?.convertPastedImages) return;
   const files = pastedImageFiles(event);
   const file = info?.file;
@@ -86,7 +86,7 @@ function handleImageTransfer(plugin: IgnorancePlugin, event, editor, info, kind)
   });
 }
 
-function replacePendingImageMarker(editor, marker, replacement) {
+function replacePendingImageMarker(editor, marker, replacement: string) {
   try {
     const content = editor.getValue();
     const start = content.indexOf(marker);
@@ -130,7 +130,7 @@ async function encodePastedImage(file: TFile) {
   }
 }
 
-function nextPastedImageSequence(vault, assetDir, stem) {
+function nextPastedImageSequence(vault, assetDir: string, stem: string) {
   const folder = vault.getAbstractFileByPath(assetDir);
   if (!folder || !Array.isArray(folder.children)) return 1;
   const prefix = stem + "-";
@@ -143,7 +143,7 @@ function nextPastedImageSequence(vault, assetDir, stem) {
   return maximum + 1;
 }
 
-async function trashPastedImageFiles(plugin: IgnorancePlugin, files, folder) {
+async function trashPastedImageFiles(plugin: IgnorancePlugin, files: TFile[], folder) {
   for (const file of [...(files || [])].reverse()) {
     try { await plugin.app.fileManager.trashFile(file); } catch (_) {}
   }
@@ -152,7 +152,7 @@ async function trashPastedImageFiles(plugin: IgnorancePlugin, files, folder) {
   }
 }
 
-async function savePastedImages(plugin: IgnorancePlugin, note, files, editor, marker) {
+async function savePastedImages(plugin: IgnorancePlugin, note, files, editor, marker: string) {
   const vault = plugin.app.vault;
   const parentPath = note.parent?.path || "";
   const assetDir = [parentPath, "assets"].filter(Boolean).join("/");
@@ -254,7 +254,7 @@ function fullVaultPath(plugin: IgnorancePlugin, file: TFile) {
   return fullPath;
 }
 
-function openWithNamedApp(plugin: IgnorancePlugin, file: TFile, appName) {
+function openWithNamedApp(plugin: IgnorancePlugin, file: TFile, appName: string) {
   return new Promise((resolve, reject) => {
     require("child_process").execFile(
       "open",
@@ -265,18 +265,18 @@ function openWithNamedApp(plugin: IgnorancePlugin, file: TFile, appName) {
   });
 }
 
-function escapeHtmlAttribute(value) {
+function escapeHtmlAttribute(value: string) {
   return String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
-function htmlReaderDocument(source, baseHref) {
+function htmlReaderDocument(source: string, baseHref: string) {
   const security = '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'none\'; object-src \'none\'; frame-src \'none\'; form-action \'none\'; base-uri app:; img-src app: data: blob: https: http:; style-src \'unsafe-inline\' app: data: https: http:; font-src app: data: https: http:; media-src app: data: blob: https: http:">';
   const head = '<base href="' + escapeHtmlAttribute(baseHref) + '">' + security;
   if (/<head\b[^>]*>/i.test(source)) {
-    return source.replace(/<head\b[^>]*>/i, match => match + head);
+    return source.replace(/<head\b[^>]*>/i, (match: string) => match + head);
   }
   if (/<html\b[^>]*>/i.test(source)) {
-    return source.replace(/<html\b[^>]*>/i, match => match + "<head>" + head + "</head>");
+    return source.replace(/<html\b[^>]*>/i, (match: string) => match + "<head>" + head + "</head>");
   }
   return "<!doctype html><html><head>" + head + "</head><body>" + source + "</body></html>";
 }
@@ -387,7 +387,7 @@ async function createMissingVaultFolders(vault, targetPaths, created = []) {
   return created;
 }
 
-async function rollbackImportedFiles(plugin: IgnorancePlugin, files, folders = []) {
+async function rollbackImportedFiles(plugin: IgnorancePlugin, files: TFile[], folders = []) {
   const failures = [];
   for (const file of [...files].reverse()) {
     try { await plugin.app.fileManager.trashFile(file); } catch (_) { failures.push(file.path); }
@@ -400,7 +400,7 @@ async function rollbackImportedFiles(plugin: IgnorancePlugin, files, folders = [
   return failures;
 }
 
-async function openImportedNote(plugin: IgnorancePlugin, note) {
+async function openImportedNote(plugin: IgnorancePlugin, note: TFile) {
   try {
     await plugin.app.workspace.getLeaf(false).openFile(note);
   } catch (error) {
@@ -408,7 +408,7 @@ async function openImportedNote(plugin: IgnorancePlugin, note) {
   }
 }
 
-async function importVaultFileAsMarkdown(plugin: IgnorancePlugin, file: TFile, noteName) {
+async function importVaultFileAsMarkdown(plugin: IgnorancePlugin, file: TFile, noteName: string) {
   if (!isMarkdownImportSource(file)) throw new Error("不支持导入此文件类型");
   const extension = String(file.extension).toLowerCase();
   const normalizedName = normalizeMarkdownImportName(noteName);
@@ -441,7 +441,7 @@ async function importVaultFileAsMarkdown(plugin: IgnorancePlugin, file: TFile, n
   return notePath;
 }
 
-function normalizeMarkdownImportName(value) {
+function normalizeMarkdownImportName(value: string) {
   const name = String(value || "").trim().replace(/\.md$/i, "");
   if (!name || /[\\/:*?"<>|\u0000-\u001f]/.test(name) || name === "." || name === "..") {
     throw new Error("Markdown 文件名无效");
@@ -449,7 +449,7 @@ function normalizeMarkdownImportName(value) {
   return name;
 }
 
-async function importNotionZipAsMarkdown(plugin: IgnorancePlugin, file: TFile, folderName) {
+async function importNotionZipAsMarkdown(plugin: IgnorancePlugin, file: TFile, folderName: string) {
   const fs = require("fs");
   const path = require("path");
   const os = require("os");
@@ -517,7 +517,7 @@ function findCwebp() {
     .find(candidate => fs.existsSync(candidate)) || null;
 }
 
-async function convertImageToWebp(source, destination, cwebp) {
+async function convertImageToWebp(source, destination, cwebp: string) {
   const fs = require("fs");
   if (cwebp) {
     try {
@@ -552,7 +552,7 @@ function pathBasename(filePath) {
   return require("path").basename(filePath);
 }
 
-function execFileAsync(binary, args, options) {
+function execFileAsync(binary: string, args, options) {
   return new Promise((resolve, reject) => {
     require("child_process").execFile(binary, args, options, (error, stdout, stderr) => {
       if (error) {
@@ -575,11 +575,11 @@ function collectFiles(directory, root = directory) {
   return files;
 }
 
-function decodeHtmlEntities(value) {
+function decodeHtmlEntities(value: string) {
   return value.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
 }
 
-function mediaKey(relativePath) {
+function mediaKey(relativePath: string) {
   const path = require("path");
   let decoded = decodeHtmlEntities(String(relativePath).replace(/\\/g, "/"));
   try { decoded = decodeURIComponent(decoded); } catch (_) {}
@@ -588,15 +588,15 @@ function mediaKey(relativePath) {
   return path.posix.normalize(decoded).toLowerCase();
 }
 
-function rewriteImportedMedia(markdown, replacements) {
+function rewriteImportedMedia(markdown: string, replacements) {
   let count = 0;
-  const resolve = rawPath => {
+  const resolve = (rawPath: string) => {
     const key = mediaKey(rawPath.replace(/^<|>$/g, ""));
     const result = key ? replacements.get(key) : null;
     if (result) count += 1;
     return result;
   };
-  markdown = markdown.replace(/<img\b[^>]*>/gi, tag => tag.replace(/\bsrc\s*=\s*(["'])(.*?)\1/i, (whole, quote, src) => {
+  markdown = markdown.replace(/<img\b[^>]*>/gi, (tag: string) => tag.replace(/\bsrc\s*=\s*(["'])(.*?)\1/i, (whole, quote, src) => {
     const next = resolve(src);
     return next ? 'src="' + next + '"' : whole;
   }));
@@ -611,7 +611,7 @@ function safeAssetStem(name: string) {
   return name.replace(/[^\p{L}\p{N}_-]+/gu, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 72) || "word-import";
 }
 
-async function importDocxAsMarkdown(plugin: IgnorancePlugin, file: TFile, noteName) {
+async function importDocxAsMarkdown(plugin: IgnorancePlugin, file: TFile, noteName: string) {
   const pandoc = findPandoc();
   const cwebp = findCwebp();
   if (!pandoc) throw new Error("未找到 Pandoc，请先安装（brew install pandoc）");
@@ -638,7 +638,7 @@ async function importDocxAsMarkdown(plugin: IgnorancePlugin, file: TFile, noteNa
 
     let markdown = fs.readFileSync(outputPath, "utf8");
     const extracted = fs.existsSync(mediaDir) ? collectFiles(mediaDir) : [];
-    const images = extracted.filter(source => /\.(?:png|jpe?g|gif|bmp|tiff?|webp|svg|emf|wmf|avif|heic)$/i.test(source));
+    const images = extracted.filter((source: string) => /\.(?:png|jpe?g|gif|bmp|tiff?|webp|svg|emf|wmf|avif|heic)$/i.test(source));
     const assetDir = [parentPath, "assets"].filter(Boolean).join("/");
     const assetFolder = vault.getAbstractFileByPath(assetDir);
     if (assetFolder && !Array.isArray(assetFolder.children)) throw new Error("assets 路径已被同名文件占用：" + assetDir);

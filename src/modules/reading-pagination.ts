@@ -48,7 +48,7 @@ function annotateTaskCheckboxes(staging, text: string) {
   });
 }
 
-function setTaskCloneState(inputs, checked) {
+function setTaskCloneState(inputs, checked: boolean) {
   for (const input of inputs) {
     input.checked = checked;
     const item = input.closest("li.task-list-item");
@@ -146,7 +146,7 @@ function installBookInteractions(plugin: IgnorancePlugin, view, book) {
    lines, table rows and list items. */
 const LINE_START_INSET = 2;
 
-function breakPoints(block, stripTop) {
+function breakPoints(block, stripTop: number) {
   const points = [];
   const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
   const range = document.createRange();
@@ -161,7 +161,7 @@ function breakPoints(block, stripTop) {
   return points;
 }
 
-function paginateStrip(strip, contentHeight, mode) {
+function paginateStrip(strip: HTMLDivElement, contentHeight: number, mode: string) {
   const stripRect = strip.getBoundingClientRect();
   const stripTop = stripRect.top;
   const chapterRects = new Map();
@@ -331,13 +331,13 @@ function pageBlockSignatures(blocks) {
   });
 }
 
-function reusablePagePrefix(previous, filePath, renderSignature, signatures, ranges, page) {
+function reusablePagePrefix(previous, filePath: string, renderSignature: string, signatures, ranges, page) {
   if (previous.filePath !== filePath || previous.renderSignature !== renderSignature || !previous.pages?.length) return 0;
   const old = previous.blockSignatures || [];
   let common = 0;
   while (common < old.length && common < signatures.length && old[common] === signatures[common]) common += 1;
   const dirtyBlock = common;
-  const pageFor = (pageRanges, blockIndex) => {
+  const pageFor = (pageRanges, blockIndex: number) => {
     const index = pageRanges.findIndex(range => range.end >= blockIndex && range.start <= blockIndex);
     return index >= 0 ? index : Math.max(0, pageRanges.length - 1);
   };
@@ -352,7 +352,7 @@ function tableForClone(clone) {
   return clone.matches("table") ? clone : clone.querySelector("table");
 }
 
-function retainTableRows(block, cloneTable, start, stop, repeatHeader) {
+function retainTableRows(block, cloneTable, start: number, stop: number, repeatHeader: boolean) {
   const clonedRows = [...cloneTable.querySelectorAll("tr")];
   block.tableRows.forEach((row, index: number) => {
     if (repeatHeader && row.header) return;
@@ -375,7 +375,7 @@ function retainTableRows(block, cloneTable, start, stop, repeatHeader) {
   }
 }
 
-function makePage(blocks, window, index: number, total, page, contentHeight = window.stop - window.start) {
+function makePage(blocks, window, index: number, total: number, page, contentHeight = window.stop - window.start) {
   const format = PAGE_NUMBER_FORMATS[page.pageNumberFormat] || PAGE_NUMBER_FORMATS.plain;
   const sheet = createDiv();
   sheet.className = "ibp-page";
@@ -462,8 +462,8 @@ function addRunningHeaders(pages, page) {
   });
 }
 
-async function settleRenderRegion(root: HTMLElement, height, signal = null) {
-  const wait = ms => new Promise(resolve => window.setTimeout(resolve, ms));
+async function settleRenderRegion(root: HTMLElement, height: number, signal = null) {
+  const wait = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms));
   const top = root.getBoundingClientRect().top;
   const inside = (element: HTMLElement) => element.getBoundingClientRect().top < top + height;
   const images = [...root.querySelectorAll("img")].filter(inside);
@@ -486,7 +486,7 @@ async function settleRenderRegion(root: HTMLElement, height, signal = null) {
   await waitForStableLayout(() => [...root.children].filter(inside).reduce((max, element) => Math.max(max, element.getBoundingClientRect().bottom - top), 0), { signal });
 }
 
-async function composePages(plugin: IgnorancePlugin, file: TFile, text: string, book, component, { keepStrip = false, previous = {}, showProgress = false, expandDetails = false, onProgress = null, signal = null } = {}) {
+async function composePages(plugin: IgnorancePlugin, file: TFile, text: string, book: HTMLDivElement, component, { keepStrip = false, previous = {}, showProgress = false, expandDetails = false, onProgress = null, signal = null } = {}) {
   signal?.throwIfAborted();
   const page = plugin.state.page;
   // Measure in the same view context as the final pages so inherited note
@@ -624,7 +624,7 @@ function hashText(text: string) {
    so block heights are final before cutting pages. */
 async function settleRender(root: HTMLElement, signal = null) {
   signal?.throwIfAborted();
-  const wait = async ms => {
+  const wait = async (ms: number) => {
     signal?.throwIfAborted();
     await new Promise(r => window.setTimeout(r, ms));
     signal?.throwIfAborted();
@@ -658,7 +658,7 @@ async function settleRender(root: HTMLElement, signal = null) {
   }
 }
 
-function refreshBooks(plugin: IgnorancePlugin, force) {
+function refreshBooks(plugin: IgnorancePlugin, force: boolean) {
   for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) {
     const view = leaf.view;
     const state = books.get(view);

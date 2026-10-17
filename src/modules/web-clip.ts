@@ -27,9 +27,9 @@ const BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/
 const FAILED_CLIP = /环境异常|完成验证后即可继续访问|轻点两下取消赞/;
 
 
-function isWeChat(url) { return /^https?:\/\/mp\.weixin\.qq\.com\//.test(url); }
+function isWeChat(url: string) { return /^https?:\/\/mp\.weixin\.qq\.com\//.test(url); }
 
-function meta(doc, ...names) {
+function meta(doc: Document, ...names: string[]) {
   for (const name of names) {
     const el = doc.querySelector(`meta[property="${name}"], meta[name="${name}"]`);
     const value = el?.getAttribute("content")?.trim();
@@ -38,7 +38,7 @@ function meta(doc, ...names) {
   return "";
 }
 
-function scriptVar(html, name: string) {
+function scriptVar(html: string, name: string) {
   const match = html.match(new RegExp(`var ${name}\\s*=\\s*(?:htmlDecode\\()?["']([^"']*)["']`));
   return match ? match[1] : "";
 }
@@ -51,7 +51,7 @@ function toDate(value) {
 
 /* --- site adapters: { title, author, published, description, body } -------- */
 
-function wechat(doc, html) {
+function wechat(doc: Document, html: string) {
   const body = doc.querySelector("#js_content");
   if (!body) return null;
   body.removeAttribute("style");
@@ -72,7 +72,7 @@ function wechat(doc, html) {
 }
 
 // Largest text block, when the page has no <article>.
-function mainBlock(doc) {
+function mainBlock(doc: Document) {
   const direct = doc.querySelector("article, [itemprop='articleBody'], main, .post-content, .article-content, .entry-content, .RichText");
   if (direct) return direct;
   let best = doc.body, score = 0;
@@ -85,7 +85,7 @@ function mainBlock(doc) {
   return best;
 }
 
-function generic(doc) {
+function generic(doc: Document) {
   const body = mainBlock(doc);
   body.querySelectorAll("script, style, noscript, nav, header, footer, aside, form, iframe, button").forEach((el: HTMLElement) => el.remove());
   body.querySelectorAll("img").forEach(img => {
@@ -103,7 +103,7 @@ function generic(doc) {
 
 /* --- page → note ------------------------------------------------------------ */
 
-async function fetchArticle(url) {
+async function fetchArticle(url: string) {
   const response = await requestUrl({ url, headers: { "User-Agent": BROWSER_UA, "Accept-Language": "zh-CN,zh;q=0.9" }, throw: false });
   if (response.status >= 400) throw new Error(`网页返回 ${response.status}`);
   const html = response.text;
@@ -121,7 +121,7 @@ async function fetchArticle(url) {
 }
 
 // Download every image into <folder>/assets/, rewrite the <img> to point there.
-async function saveImages(plugin: IgnorancePlugin, body, folder, stem, progress) {
+async function saveImages(plugin: IgnorancePlugin, body, folder, stem: string, progress) {
   const vault = plugin.app.vault;
   const assetDir = normalizePath([folder, "assets"].filter(Boolean).join("/"));
   const images = [...body.querySelectorAll("img[src]")].filter(img => /^https?:/.test(img.getAttribute("src")));
@@ -149,7 +149,7 @@ function safeNoteName(title) {
   return String(title || "未命名剪藏").replace(/[\\/:*?"<>|#^[\]]+/g, "-").replace(/\s+/g, " ").trim().slice(0, 120) || "未命名剪藏";
 }
 
-function uniquePath(vault, folder, name: string, except) {
+function uniquePath(vault, folder, name: string, except: HTMLElement) {
   let path = normalizePath(`${folder}/${name}.md`);
   for (let index = 1; vault.getAbstractFileByPath(path) && vault.getAbstractFileByPath(path) !== except; index += 1) path = normalizePath(`${folder}/${name} ${index}.md`);
   return path;
@@ -162,7 +162,7 @@ export function siteFolder(url) {
   try { return new URL(url).hostname.replace(/^www\./, "").replace(/[\\/:*?"<>|]/g, "-"); } catch (_) { return ""; }
 }
 
-export async function clipUrl(plugin: IgnorancePlugin, url, target: HTMLElement = null) {
+export async function clipUrl(plugin: IgnorancePlugin, url: string, target: HTMLElement = null) {
   const vault = plugin.app.vault;
   const notice = new Notice("正在剪藏…", 0);
   try {
@@ -281,7 +281,7 @@ class BatchClipModal extends Modal {
 }
 
 class ConfirmClipModal extends Modal {
-  constructor(plugin: IgnorancePlugin, message, url, action) { super(plugin.app); this.message = message; this.url = url; this.action = action; }
+  constructor(plugin: IgnorancePlugin, message: string, url: string, action) { super(plugin.app); this.message = message; this.url = url; this.action = action; }
   onOpen() {
     this.titleEl.setText("剪藏");
     this.contentEl.createEl("p", { text: this.message });

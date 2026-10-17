@@ -61,7 +61,7 @@ function applyPageSettings(plugin: IgnorancePlugin) {
   body.classList.toggle("ibp-paged", page.paged);
   const size = paperSize(page);
   const m = page.margins;
-  const px = mm => `${(mm * MM * scale).toFixed(2)}px`;
+  const px = (mm: number) => `${(mm * MM * scale).toFixed(2)}px`;
   body.style.setProperty("--ibp-page-w", px(size.w));
   body.style.setProperty("--ibp-page-h", px(size.h));
   body.style.setProperty("--ibp-page-gap", `${PAGE_GAP}px`);
@@ -119,7 +119,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
   let popover = null;
   const closePopover = () => { popover?.remove(); popover = null; };
 
-  const openWidthMenu = event => {
+  const openWidthMenu = (event: MouseEvent) => {
     const menu = new Menu();
     for (const [id, label, px, cap] of WIDTH_PRESETS) {
       menu.addItem(item => item.setTitle(`${label}（窗口的 ${px}%，最宽 ${cap}px）`).setChecked(page().width === id).onClick(() => { page().width = id; save(); }));
@@ -128,7 +128,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
     menu.showAtMouseEvent(event);
   };
 
-  const openWidthInput = event => {
+  const openWidthInput = (event: MouseEvent) => {
     closePopover();
     popover = document.body.createDiv({ cls: "ibp-popover" });
     const row = popover.createDiv({ cls: "ibp-row" });
@@ -162,17 +162,17 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
     return input;
   };
 
-  const openPageSettings = anchor => {
+  const openPageSettings = (anchor: HTMLDivElement) => {
     closePopover();
     const p = page();
     const menu = new Menu();
-    const submenu = (parent: HTMLElement, label: string, icon, fill) => parent.addItem(item => {
+    const submenu = (parent: HTMLElement, label: string, icon: string, fill) => parent.addItem(item => {
       item.setTitle(label).setIcon(icon);
       fill(item.setSubmenu());
     });
-    const choice = (parent: HTMLElement, label: string, checked, action) => parent.addItem(item =>
+    const choice = (parent: HTMLElement, label: string, checked: boolean, action) => parent.addItem(item =>
       item.setTitle(label).setChecked(checked).onClick(action));
-    const customFields = (title, fields) => {
+    const customFields = (title: string, fields) => {
       closePopover();
       popover = document.body.createDiv({ cls: "ibp-popover" });
       popover.createDiv({ cls: "ibp-title", text: title });
@@ -182,7 +182,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
       placePopover(anchor);
     };
     submenu(menu, "字体", "type", fonts => {
-      submenu(fonts, "标题字体", "heading", heading => {
+      submenu(fonts, "标题字体", "heading", (heading: HTMLElement) => {
         for (const [value, label] of HEADING_FONT_OPTIONS) choice(heading, label, plugin.state.appearance.fontHeading === value, () => {
           plugin.state.appearance.fontHeading = value;
           applyAppearancePreferences(plugin);
@@ -195,10 +195,10 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
         plugin.app.setting.openTabById("appearance");
       }));
     });
-    submenu(menu, "版式预设", "layout-template", presets => {
+    submenu(menu, "版式预设", "layout-template", (presets: HTMLElement) => {
       for (const preset of PAGE_PRESETS) choice(presets, preset.label, false, () => { applyPagePreset(p, preset.id); save(); });
     });
-    submenu(menu, "阅读布局", "book-open", layout => {
+    submenu(menu, "阅读布局", "book-open", (layout: HTMLElement) => {
       for (const [value, label] of [[false, "连续阅读（与实时预览一致）"], [true, "分页阅读（纸张布局）"]]) choice(layout, label, p.paged === value, () => { p.paged = value; save(); });
     });
     submenu(menu, "纸张", "file", papers => {
@@ -209,15 +209,15 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
         save();
       });
       choice(papers, "自定义尺寸…", p.paper === "CUSTOM", () => { p.paper = "CUSTOM"; save(); customFields("自定义纸张（mm）", [
-        ["宽", p.customPaper.w, value => { p.paper = "CUSTOM"; p.customPaper.w = value || 210; save(); }],
-        ["高", p.customPaper.h, value => { p.paper = "CUSTOM"; p.customPaper.h = value || 297; save(); }]
+        ["宽", p.customPaper.w, (value: number) => { p.paper = "CUSTOM"; p.customPaper.w = value || 210; save(); }],
+        ["高", p.customPaper.h, (value: number) => { p.paper = "CUSTOM"; p.customPaper.h = value || 297; save(); }]
       ]); });
       papers.addSeparator();
-      submenu(papers, "方向", "rotate-cw", direction => {
+      submenu(papers, "方向", "rotate-cw", (direction: HTMLElement) => {
         for (const [value, label] of [[false, "纵向"], [true, "横向"]]) choice(direction, label, p.landscape === value, () => { p.landscape = value; save(); });
       });
     });
-    submenu(menu, "页边距", "scan", margins => {
+    submenu(menu, "页边距", "scan", (margins: HTMLElement) => {
       for (const [id, preset] of Object.entries(MARGIN_PRESETS)) choice(margins, preset.label, p.marginPreset === id, () => {
         p.marginPreset = id;
         p.margins = paperMarginsForPreset(id, p.paper) || { t: preset.t, r: preset.r, b: preset.b, l: preset.l };
@@ -227,21 +227,21 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
         [["t", "上"], ["b", "下"], ["l", "左"], ["r", "右"]].map(([key, label]) =>
           [label, p.margins[key], value => { p.marginPreset = "custom"; p.margins[key] = value; save(); }])));
     });
-    submenu(menu, "跨页方式", "split", breaks => {
+    submenu(menu, "跨页方式", "split", (breaks: HTMLElement) => {
       for (const [id, label] of [["whitespace", "留白：整块移到下一页"], ["cut", "截断：在页底切开续排"]]) choice(breaks, label, p.breakMode === id, () => { p.breakMode = id; save(); });
     });
-    submenu(menu, "页码", "list-ordered", numbers => {
-      submenu(numbers, "位置", "align-center", position => {
+    submenu(menu, "页码", "list-ordered", (numbers: HTMLElement) => {
+      submenu(numbers, "位置", "align-center", (position: HTMLElement) => {
         for (const [id, label] of [["none", "不显示"], ["center", "底部居中"], ["right", "底部右侧"]]) choice(position, label, p.pageNumber === id, () => { p.pageNumber = id; save(); });
       });
-      submenu(numbers, "格式", "hash", format => {
+      submenu(numbers, "格式", "hash", (format: HTMLElement) => {
         for (const [id, label] of [["plain", "1"], ["total", "1 / 5"], ["gov", "- 1 -"], ["zh", "第 1 页"]]) choice(format, label, p.pageNumberFormat === id, () => { p.pageNumberFormat = id; save(); });
       });
     });
-    submenu(menu, "页眉", "panel-top", headers => {
+    submenu(menu, "页眉", "panel-top", (headers: HTMLElement) => {
       for (const [id, label] of [["none", "不显示"], ["chapter", "章节名"]]) choice(headers, label, (p.runningHeader || "none") === id, () => { p.runningHeader = id; save(); });
     });
-    submenu(menu, "页脚", "panel-bottom", footers => {
+    submenu(menu, "页脚", "panel-bottom", (footers: HTMLElement) => {
       for (const [template, label] of FOOTER_CHOICES) choice(footers, label, (p.footerText || "") === template, () => { p.footerText = template; save(); });
       const custom = !FOOTER_CHOICES.some(([template]) => template === (p.footerText || ""));
       choice(footers, custom ? `自定义：${p.footerText}` : "自定义…", custom, () => promptFooter(plugin, p.footerText || "", value => { p.footerText = value.trim(); save(); }));
@@ -254,7 +254,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu) {
     const host = view.containerEl;
     if (host.querySelector(".ibp-toolbar")) return;
     const bar = createDiv({ cls: "ibp-toolbar" });
-    const button = (icon, label: string, onClick) => {
+    const button = (icon: string, label: string, onClick) => {
       const el = bar.createDiv({ cls: "clickable-icon ibp-button", attr: { "aria-label": label } });
       setIcon(el, icon);
       el.addEventListener("click", onClick);

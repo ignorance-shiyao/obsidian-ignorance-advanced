@@ -20,7 +20,7 @@ function iconOf(item) {
   return [...(svg?.classList || [])].find(name => name !== "svg-icon") || "";
 }
 
-export function shouldHideMoreMenuItem(icon, section) {
+export function shouldHideMoreMenuItem(icon: string, section: string) {
   if (UNRELATED_TO_NOTE.includes(icon)) return true;
   return DUPLICATED_BY_TOOLBAR.some(rule => rule.icon === icon && (!rule.section || rule.section === section));
 }

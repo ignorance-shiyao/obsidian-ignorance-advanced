@@ -52,7 +52,7 @@ function showTree(plugin: IgnorancePlugin, file: TFile, event) {
   const menu = new Menu();
   const chain = ancestors(file);
   // Indent whole rows (icon included) so the path reads as a tree.
-  const indent = (item, depth) => { if (item.dom) item.dom.style.paddingInlineStart = `calc(var(--size-4-2) + ${depth * 16}px)`; };
+  const indent = (item, depth: number) => { if (item.dom) item.dom.style.paddingInlineStart = `calc(var(--size-4-2) + ${depth * 16}px)`; };
   chain.forEach((folder, depth) => {
     menu.addItem(item => {
       item.setTitle(folder.name).setIcon(depth === chain.length - 1 ? "lucide-folder-open" : "lucide-folder")

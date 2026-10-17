@@ -4,7 +4,7 @@ import { colorValue, hexColorTags, inlineCodeSpans, isPlainTextColor } from "./c
 
 const { syntaxTree } = require("@codemirror/language");
 
-function makeSwatch(color) {
+function makeSwatch(color: string) {
   const dot = createSpan();
   dot.className = "ib-color-swatch";
   dot.style.setProperty("--swatch", color);

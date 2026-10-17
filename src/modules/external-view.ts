@@ -20,7 +20,7 @@ function fs() { return require("fs"); }
 function nodePath() { return require("path"); }
 
 // file:// paths as Obsidian's resource URLs, so <img> can load them.
-function resourceUrl(absolute) {
+function resourceUrl(absolute: string) {
   const prefix = Platform.resourcePathPrefix || "app://local/";
   return prefix + absolute.split("/").map(encodeURIComponent).join("/").replace(/^\//, "");
 }

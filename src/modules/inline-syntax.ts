@@ -39,7 +39,7 @@ function resolveIconName(name: string, data) {
   return data.icons?.[current] ? current : null;
 }
 
-function safeSvgChild(source, target: HTMLElement) {
+function safeSvgChild(source: Element, target: HTMLElement) {
   if (source.nodeType !== 1) return null;
   const name = source.localName.toLowerCase();
   if (!ICON_TAGS.has(name)) return null;
@@ -84,10 +84,10 @@ function makeIconElement(name: string, data, doc = document) {
   return svg;
 }
 
-function pointList(values) {
+function pointList(values: number[]) {
   const width = 100, height = 24, pad = 3;
   const min = Math.min(...values), max = Math.max(...values), span = max - min || 1;
-  const points = values.map((value, index: number) => {
+  const points = values.map((value: number, index: number) => {
     const x = pad + (width - 2 * pad) * (values.length === 1 ? 0 : index / (values.length - 1));
     const y = pad + (height - 2 * pad) * (1 - (value - min) / span);
     return [x, y];
@@ -154,7 +154,7 @@ function makeChipElement(token, doc = document) {
     crumb.className = "ib-inline-crumb";
     crumb.title = "点击复制路径";
     crumb.addEventListener("click", () => { void navigator.clipboard?.writeText(token.parts.join(" > ")).catch(() => {}); });
-    token.parts.forEach((part, index: number) => {
+    token.parts.forEach((part: string, index: number) => {
       if (index) {
         const separator = doc.createElement("span");
         separator.className = "ib-inline-crumb__sep";

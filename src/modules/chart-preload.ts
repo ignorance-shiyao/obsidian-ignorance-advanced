@@ -9,7 +9,7 @@ export function installChartPreload(plugin: IgnorancePlugin) {
     if (window.requestIdleCallback) window.requestIdleCallback(() => resolve(), { timeout: 1500 });
     else window.setTimeout(resolve, 40);
   });
-  const warm = async (file: TFile, token) => {
+  const warm = async (file: TFile, token: number) => {
     if (!file || file.extension !== "md") return;
     const source = await plugin.app.vault.cachedRead(file);
     const fences = markdown.parse(source, {}).filter(t => t.type === "fence" && /^(mermaid|echarts)\b/i.test(t.info));

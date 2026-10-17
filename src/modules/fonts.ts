@@ -36,7 +36,7 @@ export function applyFontPreferences(body, preferences) {
   for (const [name, value] of Object.entries(composeFontTokens(preferences))) body.style.setProperty(name, value);
 }
 
-export function clearFontPreferences(body) {
+export function clearFontPreferences(body: HTMLElement) {
   for (const name of TOKEN_NAMES) body.style.removeProperty(name);
 }
 

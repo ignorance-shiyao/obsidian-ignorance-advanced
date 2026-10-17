@@ -32,11 +32,11 @@ const DEFAULT_WORD_STYLE = {
   lineHeight: 1.6
 };
 
-function stripFrontmatter(source) {
+function stripFrontmatter(source: string) {
   return source.replace(/^---\s*\r?\n[\s\S]*?\r?\n---\s*(?:\r?\n|$)/, "");
 }
 
-function markdownForStructuredWord(source) {
+function markdownForStructuredWord(source: string) {
   source = stripFrontmatter(source);
   const lines = source.split(/\r?\n/);
   const result = [];
@@ -56,7 +56,7 @@ function markdownForStructuredWord(source) {
   return result.join("\n");
 }
 
-function flattenInlineComponents(source) {
+function flattenInlineComponents(source: string) {
   return source
     .replace(/\(\((?:green|red|amber|blue|purple|teal|gray|grey):([^()]*)\)\)/gi, "$1")
     .replace(/\(\(bar:(\d+(?:\.\d+)?)\)\)/gi, "$1%")
@@ -67,7 +67,7 @@ function flattenInlineComponents(source) {
     .replace(/\(\(([^()|:]+?)\s*\|\s*([^()]+?)\)\)/g, "$1：$2");
 }
 
-function imageDimensions(data, type) {
+function imageDimensions(data, type: string) {
   // Plain byte views, so this also runs on mobile where Node's Buffer is absent.
   const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -207,7 +207,7 @@ function paragraphFromRuns(runs, context, options = {}) {
   return new Paragraph(paragraphOptions);
 }
 
-async function listToDocx(tokens, start, context, depth = 0) {
+async function listToDocx(tokens, start: number, context, depth = 0) {
   const ordered = tokens[start].type === "ordered_list_open";
   const first = Number(tokens[start].attrGet?.("start") || 1);
   const output = [];
@@ -260,7 +260,7 @@ function codeBlockParagraphs(source, context, indent = 0) {
   ], context, { code: true, indent }));
 }
 
-function tableCells(tokens, start, context, isHeader, count) {
+function tableCells(tokens, start: number, context, isHeader: boolean, count: number) {
   const rows = [];
   let index = start + 1;
   while (index < tokens.length && tokens[index].type !== "tr_close") {
@@ -286,7 +286,7 @@ function tableCells(tokens, start, context, isHeader, count) {
   return { cells: Promise.all(cells), next: index + 1 };
 }
 
-async function tableToDocx(tokens, start, context) {
+async function tableToDocx(tokens, start: number, context) {
   const rows = [];
   let columnCount = 0;
   for (let cursor = start + 1; cursor < tokens.length && tokens[cursor].type !== "table_close"; cursor += 1) {
@@ -394,7 +394,7 @@ async function blocksToDocx(tokens, context, quoteDepth = 0) {
   return elements;
 }
 
-export async function createStructuredDocxBuffer(source, options = {}) {
+export async function createStructuredDocxBuffer(source: string, options = {}) {
   const style = { ...DEFAULT_WORD_STYLE, ...options.style };
   const context = { style, resolveImage: options.resolveImage };
   const markdown = new MarkdownIt({ html: false, linkify: false, typographer: false });

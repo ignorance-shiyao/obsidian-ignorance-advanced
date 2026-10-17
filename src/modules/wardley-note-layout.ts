@@ -52,7 +52,7 @@ export function layoutWardleyNotes(svg: SVGSVGElement) {
     label.setAttribute('font-size', String(fontSize));
     const canvas = createEl("canvas"), context = canvas.getContext("2d"), computed = getComputedStyle(label);
     context.font = `${computed.fontWeight} ${fontSize}px ${computed.fontFamily}`;
-    const lines = wardleyNoteLines(original.text, width, (start, count) => context.measureText(original.text.slice(start, start + count)).width);
+    const lines = wardleyNoteLines(original.text, width, (start: number, count: number) => context.measureText(original.text.slice(start, start + count)).width);
     if (!lines.length) { label.setAttribute('font-size', original.attrs['font-size']); continue; }
     label.setAttribute('data-ibm-wardley-note-original', JSON.stringify(original));
     label.textContent = '';

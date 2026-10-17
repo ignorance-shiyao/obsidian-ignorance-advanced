@@ -20,7 +20,7 @@ class IgnoranceSettingTab extends PluginSettingTab {
     const state = plugin.state;
     const refreshAppearance = () => { applyAppearancePreferences(plugin); plugin.app.workspace.trigger("css-change"); plugin.saveStoredState(); };
     const toggle = (get, set) => setting => setting.addToggle(control => control.setValue(get()).onChange(value => set(value)));
-    const appearanceToggle = (get, key) => toggle(get, value => { state.appearance[key] = value; applyAppearancePreferences(plugin); plugin.saveStoredState(); });
+    const appearanceToggle = (get, key: string) => toggle(get, value => { state.appearance[key] = value; applyAppearancePreferences(plugin); plugin.saveStoredState(); });
 
     // 主题预设与主题色只在左下角调色板中设置；明暗模式用左下角按钮或 Obsidian 外观设置。
     const groups = [
@@ -93,7 +93,7 @@ class IgnoranceSettingTab extends PluginSettingTab {
       { heading: "剪藏", items: [
         { name: "回到 Obsidian 时检测剪贴板里的链接", desc: CLIPBOARD_DESC, add: toggle(() => Boolean(state.webClip?.watchClipboard), value => { state.webClip.watchClipboard = value; plugin.saveStoredState(); }) },
         { name: "剪藏文件夹", desc: "网页剪藏的笔记和图片保存到这里，文件夹名同时作为笔记标签。默认 Clippings。", aliases: ["clippings"], add: setting => setting.addText((text: string) => text.setPlaceholder("Clippings")
-          .setValue(state.webClip?.folder || "").onChange(value => { state.webClip.folder = value.trim(); plugin.saveStoredState(); })) },
+          .setValue(state.webClip?.folder || "").onChange((value: string) => { state.webClip.folder = value.trim(); plugin.saveStoredState(); })) },
         { name: "按网站分类", desc: "剪藏时在剪藏文件夹下按网站名建子文件夹，例如 Clippings/example.com/。", aliases: ["sort by site"], add: toggle(() => Boolean(state.webClip?.byDomain), value => { state.webClip.byDomain = value; plugin.saveStoredState(); }) }
       ] },
       { heading: "标签页", items: [
@@ -113,8 +113,8 @@ class IgnoranceSettingTab extends PluginSettingTab {
         { name: "「用…打开」的程序", desc: "每行一个应用名称或 .app 路径，会出现在文件右键菜单中。", add: setting => setting.addTextArea((text: string) => {
           text.setPlaceholder("Visual Studio Code\nPreview\n/Applications/Typora.app")
             .setValue((state.fileTools.apps || []).join("\n"))
-            .onChange(value => {
-              state.fileTools.apps = [...new Set(value.split("\n").map(item => item.trim()).filter(Boolean))];
+            .onChange((value: string) => {
+              state.fileTools.apps = [...new Set(value.split("\n").map((item: string) => item.trim()).filter(Boolean))];
               plugin.saveStoredState();
             });
           text.inputEl.rows = 4;

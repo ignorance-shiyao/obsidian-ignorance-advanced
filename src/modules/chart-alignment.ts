@@ -10,12 +10,12 @@ export function withChartAlignment(fence: string, alignment: string) {
   const clean = fence.replace(/\s*\{align=(?:left|center|right)\}/g, "").trimEnd();
   return `${clean} {align=${alignment}}`;
 }
-const fenceMapAt = (source, line: number) => new MarkdownIt().parse(source, {}).find(token => token.type === "fence" && token.map[0] <= line && line < token.map[1])?.map;
-const fenceAt = (source, line: number) => fenceMapAt(source, line)?.[0];
+const fenceMapAt = (source: string, line: number) => new MarkdownIt().parse(source, {}).find(token => token.type === "fence" && token.map[0] <= line && line < token.map[1])?.map;
+const fenceAt = (source: string, line: number) => fenceMapAt(source, line)?.[0];
 // Blocks inside a Markdown preview block are fences nested in the outer fence's body.
 const NESTED_BLOCKS = "pre.ibc-enhanced, .mermaid, .ib-echarts-block";
-export function mountChartAlignment(plugin: IgnorancePlugin, container: HTMLElement, actions) {
-  const apply = alignment => {
+export function mountChartAlignment(plugin: IgnorancePlugin, container: HTMLElement, actions: HTMLDivElement) {
+  const apply = (alignment: string) => {
     container.dataset.ibChartAlign = alignment;
     const wrapper = container.closest(".cm-embed-block");
     if (wrapper) wrapper.dataset.ibChartAlign = alignment;
@@ -138,7 +138,7 @@ function refit(plugin: IgnorancePlugin, container: HTMLElement) {
   if (state && !state.disposed) plugin.scheduleRetighten(container, state, state.svg);
 }
 
-async function persistWidth(plugin: IgnorancePlugin, container: HTMLElement, locate, width: number, previous) {
+async function persistWidth(plugin: IgnorancePlugin, container: HTMLElement, locate, width: number, previous: number) {
   const release = holdScrollPosition(container);
   try {
     const found = await locate();
@@ -153,7 +153,7 @@ async function persistWidth(plugin: IgnorancePlugin, container: HTMLElement, loc
 }
 
 // Staged readers and slides do not expose native section line information.
-export async function applyStagedChartAlignment(plugin: IgnorancePlugin, root: HTMLElement, sourcePath: string, source) {
+export async function applyStagedChartAlignment(plugin: IgnorancePlugin, root: HTMLElement, sourcePath: string, source: string) {
   applyTableSourceAlignment(root, source);
   if (!root.querySelector(".mermaid,.ib-echarts-block")) return;
   const fences = new MarkdownIt().parse(source, {}).filter(t => t.type === "fence" && /^(?:mermaid|echarts)\b/i.test(t.info));

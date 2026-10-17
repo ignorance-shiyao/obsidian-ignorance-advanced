@@ -66,3 +66,31 @@ export interface PluginState {
   htmlSkin?: unknown;
   pageDefaults?: unknown;
 }
+
+/** Pan / zoom state of one enhanced diagram (see src/plugin/diagram-layout.ts). */
+export interface DiagramState {
+  svg: SVGSVGElement;
+  canvas: HTMLElement;
+  container: HTMLElement;
+  toolbar: HTMLElement;
+  percent: HTMLElement;
+  scale: number;
+  x: number;
+  y: number;
+  pointerId: number | null;
+  lastX: number;
+  lastY: number;
+  /** Redraws the transform and the percent label. */
+  apply?: () => void;
+  cleanup?: () => void;
+  disposed?: boolean;
+  fitted?: boolean;
+  /** Set while the fit is pinned (no refit until the user or a layout change releases it). */
+  lockFrame?: boolean;
+  /** The diagram is too wide to read at the fitted scale and scrolls sideways instead. */
+  readableScroll?: boolean;
+  readableMinimum?: number;
+  minimumFontPx?: number;
+  fitHeightLimit?: number;
+  visibility?: IntersectionObserver;
+}

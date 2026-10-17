@@ -52,7 +52,7 @@ function addAlignItems(menu: Menu, view, found) {
   }
 }
 
-function linksOnLine(text: string, offset) {
+function linksOnLine(text: string, offset: number) {
   const links = [];
   for (let index = text.indexOf("!["); index !== -1; index = text.indexOf("![", index + 1)) {
     const link = imageLinkAt(text, index);
@@ -61,7 +61,7 @@ function linksOnLine(text: string, offset) {
   return links;
 }
 
-function editorLink(cm, embed) {
+function editorLink(cm, embed: Element) {
   if (!cm || !cm.dom.contains(embed)) return null;
   let pos;
   try { pos = cm.posAtDOM(embed); } catch (_) { return null; }
@@ -75,7 +75,7 @@ function editorLink(cm, embed) {
 
 // Reading view: the rendered section knows its source lines; pick the image
 // link there by its position among the section's image embeds.
-function readingLink(view, embed) {
+function readingLink(view, embed: Element) {
   // Rendered sections carry only their line counts, in source order.
   const sections = view.previewMode?.renderer?.sections || [];
   let lineStart = 0;
@@ -86,7 +86,7 @@ function readingLink(view, embed) {
   });
   if (!section) return null;
   const lines = view.data.split("\n");
-  const start = lines.slice(0, lineStart).reduce((sum, text: string) => sum + text.length + 1, 0);
+  const start = lines.slice(0, lineStart).reduce((sum: number, text: string) => sum + text.length + 1, 0);
   const text = lines.slice(lineStart, lineStart + Math.max(1, section.lines || 1)).join("\n");
   const links = linksOnLine(text, start);
   const embeds = [...section.el.querySelectorAll(".image-embed")];
@@ -110,13 +110,13 @@ function viewFor(plugin: IgnorancePlugin, el: HTMLElement) {
     .find(view => view.file && view.containerEl.contains(el)) || null;
 }
 
-function linkFor(view, embed) {
+function linkFor(view, embed: Element) {
   if (!view) return null;
   if (embed.closest(".markdown-reading-view")) return readingLink(view, embed);
   return editorLink(view.editor?.cm, embed);
 }
 
-async function copyImage(plugin: IgnorancePlugin, embed) {
+async function copyImage(plugin: IgnorancePlugin, embed: HTMLElement) {
   const img = embed.querySelector("img");
   if (!img) return;
   try {
@@ -166,7 +166,7 @@ async function toPng(buffer) {
 
 // Crop the vault image behind an embed. "New image" saves a copy and points this embed at it;
 // "replace" overwrites the file, and the embeds refresh on their own.
-function startCrop(plugin: IgnorancePlugin, embed) {
+function startCrop(plugin: IgnorancePlugin, embed: HTMLElement) {
   const view = viewFor(plugin, embed);
   const linkPath = embed.getAttribute("src");
   const file = linkPath ? plugin.app.metadataCache.getFirstLinkpathDest(decodeURIComponent(linkPath), view?.file?.path || "") : null;
@@ -181,7 +181,7 @@ function startCrop(plugin: IgnorancePlugin, embed) {
   });
 }
 
-function addButton(bar, icon, label: string, run, extraClass = "") {
+function addButton(bar, icon: string, label: string, run, extraClass = "") {
   const button = bar.createDiv({ cls: `ib-image-action ${extraClass}`.trim() });
   setIcon(button, icon);
   setTooltip(button, label, { placement: "top" });
@@ -215,7 +215,7 @@ function decorate(plugin: IgnorancePlugin, embed) {
     keepViewport(view, () => found.apply(make(found.link)));
   };
   // Filters and click-to-play are written into the link; this menu is the way to set them without the source.
-  addButton(bar, "lucide-sparkles", "图片样式：滤镜、点击播放", event => {
+  addButton(bar, "lucide-sparkles", "图片样式：滤镜、点击播放", (event: MouseEvent) => {
     const found = linkFor(viewFor(plugin, embed), embed);
     if (!found) { new Notice("无法定位图片链接"); return; }
     const now = imageFilter(found.link);
@@ -260,7 +260,7 @@ function installImageToolbar(plugin: IgnorancePlugin) {
   };
   const inMarkdown = (node: HTMLElement) => node.instanceOf(Element) && node.closest(".workspace-leaf-content[data-type='markdown']");
   // Only look at what was added, not the whole workspace on every change.
-  let pending = [];
+  let pending: Node[] = [];
   let scheduled = false;
   const observer = new MutationObserver(records => {
     for (const record of records) for (const node of record.addedNodes) if (inMarkdown(node)) pending.push(node);
@@ -330,7 +330,7 @@ function confirmRemoval(plugin: IgnorancePlugin, remove) {
   modal.open();
 }
 
-function installResizeHandles(plugin: IgnorancePlugin, embed, wrapper) {
+function installResizeHandles(plugin: IgnorancePlugin, embed: HTMLElement, wrapper) {
   const img = wrapper.querySelector("img");
   if (!img || wrapper.querySelector(".ib-image-resize-layer")) return;
   const layer = wrapper.createDiv({ cls: "ib-image-resize-layer" });

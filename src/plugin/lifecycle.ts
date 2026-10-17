@@ -80,7 +80,7 @@ export async function onload(plugin: IgnorancePlugin) {
   plugin.measuredBounds = new WeakMap();
   plugin.fileTools = Object.freeze({
     isMarkdownImportSource,
-    importVaultFileAsMarkdown: (file: TFile, noteName) => importVaultFileAsMarkdown(plugin, file, noteName)
+    importVaultFileAsMarkdown: (file: TFile, noteName: string) => importVaultFileAsMarkdown(plugin, file, noteName)
   });
   plugin.diagramStates = new WeakMap();
   plugin.diagramEnhancements = createAfterPaintQueue((container: HTMLElement) => plugin.enhanceDiagram(container));

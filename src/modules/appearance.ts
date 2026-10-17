@@ -30,7 +30,7 @@ const LEGACY_PRESETS = {
   "pine-smoke": "graphite"
 };
 
-function presetId(value) {
+function presetId(value: string) {
   const mapped = LEGACY_PRESETS[value] || value;
   return THEME_PRESETS.some(preset => preset.id === mapped) ? mapped : "azure";
 }
@@ -46,14 +46,14 @@ function currentThemeMode() {
   return document.body.classList.contains("theme-dark") ? "dark" : "light";
 }
 
-function writeThemePalette(preset, mode, accentOverride) {
+function writeThemePalette(preset: string, mode, accentOverride: string) {
   for (const [name, value] of Object.entries(composeThemeTokens(preset, mode, accentOverride))) {
     document.body.style.setProperty(name, value);
   }
   document.body.dataset.ibThemePreset = preset;
 }
 
-function writeCustomPalette(hex, preset = "azure") {
+function writeCustomPalette(hex: string, preset = "azure") {
   writeThemePalette(preset, currentThemeMode(), hex);
 }
 
@@ -111,7 +111,7 @@ function clearAppearancePreferences() {
   }
 }
 
-function applyAccent(plugin: IgnorancePlugin, value) {
+function applyAccent(plugin: IgnorancePlugin, value: string) {
   plugin.state.appearance ||= appearanceDefaults();
   if (value === CUSTOM_ACCENT) {
     if (plugin.state.accent !== CUSTOM_ACCENT) plugin.state.appearance.themePreset = presetId(plugin.state.accent || "none");
@@ -137,7 +137,7 @@ function themeMode(app) {
   return app.vault.getConfig("theme") === "system" ? "system" : (app.isDarkMode() ? "dark" : "light");
 }
 
-function setThemeMode(app, mode) {
+function setThemeMode(app, mode: string) {
   app.changeTheme(mode === "system" ? "system" : (mode === "dark" ? "obsidian" : "moonstone"));
   app.updateTheme?.();
 }
@@ -148,7 +148,7 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
   applyAppearancePreferences(plugin);
 
   const modeIcon = () => ({ system: "lucide-sun-moon", dark: "lucide-moon", light: "lucide-sun" })[themeMode(app)];
-  let popover = null;
+  let popover: HTMLDivElement = null;
   const closePopover = () => { popover?.remove(); popover = null; };
 
   const fillModeMenu = (menu: Menu) => {
@@ -160,7 +160,7 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
       }));
     }
   };
-  const openModeMenu = event => {
+  const openModeMenu = (event: MouseEvent) => {
     const menu = new Menu();
     fillModeMenu(menu);
     menu.showAtMouseEvent(event);
@@ -178,7 +178,7 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
         .setChecked(currentAccent(plugin) === preset.value).onClick(() => applyAccent(plugin, preset.value)));
     });
   };
-  const openThemeMenu = event => {
+  const openThemeMenu = (event: MouseEvent) => {
     closePopover();
     const menu = new Menu();
     fillThemeMenu(menu);
@@ -186,7 +186,7 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
     else menu.showAtPosition({ x: Math.round(window.innerWidth / 2), y: 80 });
   };
 
-  const openAccentPopover = anchor => {
+  const openAccentPopover = (anchor: HTMLSpanElement) => {
     if (popover) return closePopover();
     const current = currentAccent(plugin);
     popover = document.body.createDiv({ cls: "ibm-accent-popover" });
@@ -231,7 +231,7 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
     });
   };
 
-  const buttons = [];
+  const buttons: HTMLSpanElement[] = [];
   const mount = () => {
     if (Platform.isMobile) return;
     for (const actions of document.querySelectorAll(".workspace-drawer-vault-actions")) {

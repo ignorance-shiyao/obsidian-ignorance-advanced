@@ -32,14 +32,14 @@ const delimiterCache = [];
 function delimiterLines(text: string) {
   const hit = delimiterCache.find(entry => entry.text === text);
   if (hit) return hit.lines;
-  const lines = [];
+  const lines: number[] = [];
   text.split("\n").forEach((line: number, index: number) => { if (isTableDelimiter(line)) lines.push(index); });
   delimiterCache.unshift({ text, lines });
   delimiterCache.length = Math.min(delimiterCache.length, 3);
   return lines;
 }
 
-function tableOrdinal(text: string, lineStart) {
+function tableOrdinal(text: string, lineStart: number) {
   const lines = delimiterLines(text);
   let low = 0, high = lines.length;
   while (low < high) { const mid = (low + high) >> 1; if (lines[mid] < lineStart) low = mid + 1; else high = mid; }
@@ -75,7 +75,7 @@ class TableSizeStyles {
     this.sizes = new Map();
   }
 
-  set(key, sizes, rowMap) {
+  set(key: string, sizes, rowMap: string[]) {
     this.sizes.set(key, { sizes, rowMap });
     this.render();
   }
@@ -90,7 +90,7 @@ class TableSizeStyles {
       const cols = sizes.cols || [];
       const count = sizes.columnCount || cols.length;
       if (count && cols.length >= count && cols.slice(0, count).every(Boolean)) {
-        const total = cols.slice(0, count).reduce((sum, width: number) => sum + width, 0);
+        const total = cols.slice(0, count).reduce((sum: number, width: number) => sum + width, 0);
         rules.push(`${scope} { table-layout: fixed !important; width: ${total}px !important; min-width: 0 !important; max-width: none !important; }`);
       }
       cols.forEach((width: number, index: number) => {
@@ -110,7 +110,7 @@ class TableSizeStyles {
   }
 }
 
-function tableKey(path: string, ordinal) {
+function tableKey(path: string, ordinal: number) {
   let hash = 0;
   for (const char of `${path}#${ordinal}`) hash = (hash * 31 + char.charCodeAt(0)) | 0;
   return `t${(hash >>> 0).toString(36)}`;
@@ -211,7 +211,7 @@ class TableResizeLayer {
     button.addEventListener("click", event => {
       event.preventDefault(); event.stopPropagation();
       const menu = new Menu();
-      const add = (title, icon, run) => menu.addItem(item => item.setTitle(title).setIcon(icon).onClick(() => { this.build(); run(); }));
+      const add = (title, icon: string, run) => menu.addItem(item => item.setTitle(title).setIcon(icon).onClick(() => { this.build(); run(); }));
       add("所有列适应内容", "lucide-between-vertical-start", () => this.fitAll());
       add("等分列宽", "lucide-columns-3", () => this.equalize());
       add("撑满正文宽度", "lucide-move-horizontal", () => this.fillWidth());
@@ -296,7 +296,7 @@ class TableResizeLayer {
     if (this.active) this.showFocus(this.active);
   }
 
-  place(axis, edges) {
+  place(axis: string, edges) {
     const handles = [...this.layer.querySelectorAll(`.ibt-handle.is-${axis}`)];
     while (handles.length < edges.length) handles.push(this.addHandle(axis, handles.length));
     while (handles.length > edges.length) handles.pop().remove();
@@ -305,7 +305,7 @@ class TableResizeLayer {
     });
   }
 
-  addHandle(axis, index: number) {
+  addHandle(axis: string, index: number) {
     const handle = createDiv();
     handle.className = `ibt-handle is-${axis}`;
     handle.title = t(axis === "col" ? "resizeColumn" : "resizeRow");
@@ -402,7 +402,7 @@ class TableResizeLayer {
   currentWidths() { return this.geo.cols.map(c => Math.round(c.end - c.start)); }
 
   /* Apply a whole set of column widths at once (the quick actions). */
-  setWidths(widths) {
+  setWidths(widths: number[]) {
     this.options.seedColumns(this.currentWidths());
     widths.forEach((width: number, index: number) => this.options.resize("col", index, Math.max(MIN_COLUMN_WIDTH, Math.round(width))));
     this.options.commit();
@@ -413,14 +413,14 @@ class TableResizeLayer {
   fitAll() { this.setWidths(this.geo.cols.map((_, index: number) => this.measureFit(index))); }
 
   equalize() {
-    const total = this.currentWidths().reduce((sum, width: number) => sum + width, 0);
+    const total = this.currentWidths().reduce((sum: number, width: number) => sum + width, 0);
     this.setWidths(this.geo.cols.map(() => total / this.geo.cols.length));
   }
 
   // Scale the columns together so the table fills the text column.
   fillWidth() {
     const room = Math.floor(this.host.clientWidth);
-    const widths = this.currentWidths(), total = widths.reduce((sum, width: number) => sum + width, 0);
+    const widths = this.currentWidths(), total = widths.reduce((sum: number, width: number) => sum + width, 0);
     if (room > 0 && total > 0) this.setWidths(widths.map((width: number) => width * room / total));
   }
 
@@ -431,14 +431,14 @@ class TableResizeLayer {
   }
 
   // A short "thunk" when a drag catches a detent, so the stop is felt as well as seen.
-  pulse(handle) {
+  pulse(handle: HTMLDivElement) {
     const targets = [this.layer, handle].filter(Boolean);
     targets.forEach(node => { node.classList.remove("is-detent"); void node.offsetWidth; node.classList.add("is-detent"); });
     window.setTimeout(() => targets.forEach(node => node.classList.remove("is-detent")), 320);
     try { navigator.vibrate?.(8); } catch (_) {}
   }
 
-  startDrag(event, axis, index: number, handle) {
+  startDrag(event: PointerEvent, axis: string, index: number, handle: HTMLDivElement) {
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
@@ -549,7 +549,7 @@ const mermaidHighlighter = ViewPlugin.fromClass(class {
    and reads the fenced lines straight from the document when pressed. */
 const FENCE_OPEN = /^\s*(`{3,}|~{3,})\s*([^\s`]*)/;
 
-function fencedSource(doc, openLine) {
+function fencedSource(doc, openLine: number) {
   const opening = FENCE_OPEN.exec(doc.line(openLine).text);
   if (!opening) return null;
   const marker = opening[1];
@@ -740,7 +740,7 @@ function installQuietTaskToggle(plugin: IgnorancePlugin) {
 
 const writingModeRefresh = StateEffect.define();
 
-function buildWritingFocusDecorations(view, enabled) {
+function buildWritingFocusDecorations(view, enabled: boolean) {
   if (!enabled) return Decoration.none;
   const doc = view.state.doc;
   const cursorLine = doc.lineAt(view.state.selection.main.head).number;
@@ -808,7 +808,7 @@ function writingModesExtension(plugin: IgnorancePlugin) {
   }, { decorations: value => value.decorations });
 }
 
-function setWritingMode(plugin: IgnorancePlugin, mode, value) {
+function setWritingMode(plugin: IgnorancePlugin, mode: string, value: boolean) {
   plugin.state.writingModes ||= writingModeDefaults();
   plugin.state.writingModes[mode] = Boolean(value);
   plugin.saveStoredState();
@@ -819,7 +819,7 @@ function setWritingMode(plugin: IgnorancePlugin, mode, value) {
   document.querySelectorAll(".ibp-toolbar").forEach(toolbar => toolbar.dispatchEvent(new CustomEvent("ibp-refresh")));
 }
 
-function toggleWritingMode(plugin: IgnorancePlugin, mode) {
+function toggleWritingMode(plugin: IgnorancePlugin, mode: string) {
   const current = Boolean(plugin.state.writingModes?.[mode]);
   setWritingMode(plugin, mode, !current);
   const label = mode === "typewriterScroll" ? "打字机滚动" : "专注模式";
