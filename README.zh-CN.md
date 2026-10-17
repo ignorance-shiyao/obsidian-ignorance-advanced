@@ -9,9 +9,7 @@
 ![License](https://img.shields.io/github/license/ignorance-shiyao/obsidian-ignorance-advanced?color=4D81EF)
 ![Release](https://img.shields.io/github/v/release/ignorance-shiyao/obsidian-ignorance-advanced?color=4D81EF)
 
-<img src="docs/assets/palettes-light.gif" width="760">
-
-<img src="docs/assets/palettes-dark.gif" width="760">
+<img src="docs/assets/hero.jpg" alt="Ignorance Advanced：图表、代码、表格、图片、演示与导出" width="820">
 
 </div>
 
@@ -19,7 +17,11 @@
 
 ## 配色：八套，一键切换
 
-在插件设置里选择 Azure、Pine、Book、Graphite、Terracotta、Teal、Wisteria、Amber，浅色深色各自调校，上方动图即是效果。
+在插件设置里选择 Azure、Pine、Book、Graphite、Terracotta、Teal、Wisteria、Amber，浅色深色各自调校。
+
+<div align="center">
+<img src="docs/assets/palettes-light.gif" alt="浅色模式切换配色（录屏）" width="400"> <img src="docs/assets/palettes-dark.gif" alt="深色模式切换配色（录屏）" width="400">
+</div>
 
 ## 功能
 
@@ -28,6 +30,10 @@ Mermaid 12（含 ELK 布局与 ZenUML），随主题明暗与配色自动换色�
 
 ### ECharts 增强
 Apache ECharts 代码块直接渲染成图，同样跟随主题配色，操作与 Mermaid 一致。
+
+<div align="center">
+<img src="docs/assets/diagrams.jpg" alt="跟随主题的 Mermaid 与 ECharts" width="820">
+</div>
 
 ### 表格增强
 拖拽列边与行边，带吸附顿挫（适应内容宽度或等分，Alt 自由拖动，Shift 以 10 px 步进）；尺寸菜单可一键适应内容、等分、撑满正文、重置；双击边线适应内容；左中右定位；按钮仅在悬停时出现，手机端同样可用。
@@ -45,16 +51,26 @@ Apache ECharts 代码块直接渲染成图，同样跟随主题配色，操作�
 ### 图片
 对齐、八向缩放、复制、删除，以及**裁切**（裁切后选择替换原图或新增一张）。
 
+<div align="center">
+<img src="docs/assets/code-tables-images.jpg" alt="语言选择、列宽拖拽与图片工具栏" width="820">
+</div>
+
 ### 阅读与导出
 页面工具栏（正文宽度、纸张、页边距、页码、分页阅读，与 PDF 输出一致）；导出 PDF、Word、PPT、图片，以及带目录、搜索和明暗切换的离线 HTML 阅读器。
+
+<div align="center">
+<img src="docs/assets/slides-export.jpg" alt="演示、页面工具栏与导出格式" width="820">
+</div>
 
 ### 其他
 标签页复用、打字机与专注模式、智能标点、彩色高亮（`==🟢文字==`）、网页剪藏、从 Word/PDF/Excel/PPT 等导入 Markdown（桌面端）。
 
-## 长图预览
+## 桌面与手机
 
 <div align="center">
-<img src="docs/assets/showcase-light.jpg" width="420"> <img src="docs/assets/showcase-dark.jpg" width="420">
+<img src="docs/assets/desktop-mobile.jpg" alt="桌面与手机上的同一套工具" width="820">
+<br><br>
+<img src="docs/assets/mobile.gif" alt="手机上的图表、演示与代码工具" width="360">
 </div>
 
 ## 安装

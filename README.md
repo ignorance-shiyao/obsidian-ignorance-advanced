@@ -9,9 +9,7 @@
 ![License](https://img.shields.io/github/license/ignorance-shiyao/obsidian-ignorance-advanced?color=4D81EF)
 ![Release](https://img.shields.io/github/v/release/ignorance-shiyao/obsidian-ignorance-advanced?color=4D81EF)
 
-<img src="docs/assets/palettes-light.gif" width="760">
-
-<img src="docs/assets/palettes-dark.gif" width="760">
+<img src="docs/assets/hero.jpg" alt="Ignorance Advanced: diagrams, charts, code, tables, images, presentations and exports" width="820">
 
 </div>
 
@@ -19,7 +17,11 @@
 
 ## Palettes: eight, one click
 
-Choose Azure, Pine, Book, Graphite, Terracotta, Teal, Wisteria or Amber in the plugin settings, each tuned for light and dark (see the animations above).
+Choose Azure, Pine, Book, Graphite, Terracotta, Teal, Wisteria or Amber in the plugin settings, each tuned for light and dark.
+
+<div align="center">
+<img src="docs/assets/palettes-light.gif" alt="Switching palettes in light mode (screen recording)" width="400"> <img src="docs/assets/palettes-dark.gif" alt="Switching palettes in dark mode (screen recording)" width="400">
+</div>
 
 ## Features
 
@@ -28,6 +30,10 @@ Mermaid 12 (with ELK layout and ZenUML), recolored to the active theme and palet
 
 ### ECharts enhancement
 Apache ECharts blocks render in place, follow the theme palette, and share the same controls as Mermaid.
+
+<div align="center">
+<img src="docs/assets/diagrams.jpg" alt="Mermaid and ECharts blocks following the theme" width="820">
+</div>
 
 ### Table enhancement
 Drag column and row edges with detents (fit-to-content or equal share; Alt drags freely, Shift steps by 10 px). A size menu fits all columns, equalizes, fills the text width or resets; double-click an edge to fit it; left / center / right placement. Buttons appear on hover and work on mobile.
@@ -45,16 +51,26 @@ A searchable language picker (type `py`, `ts`, `sql`), 130+ languages, language 
 ### Images
 Align, resize with eight handles, copy, remove, and **crop** (then replace the original or add a new image).
 
+<div align="center">
+<img src="docs/assets/code-tables-images.jpg" alt="Language picker, column resizing and the image toolbar" width="820">
+</div>
+
 ### Reading and export
 A page toolbar (content width, paper size, margins, page numbers, a paged view that matches PDF output). Export to PDF, Word, PowerPoint, images, and a standalone offline HTML reader with table of contents, search and a light/dark switch.
+
+<div align="center">
+<img src="docs/assets/slides-export.jpg" alt="Presentation, page toolbar and export formats" width="820">
+</div>
 
 ### And more
 Tab reuse, typewriter and focus modes, smart punctuation, `==🟢colored==` highlights, web clipping, and Markdown import from Word, PDF, Excel, PowerPoint and more (desktop).
 
-## Long preview
+## Desktop and mobile
 
 <div align="center">
-<img src="docs/assets/showcase-light.jpg" width="420"> <img src="docs/assets/showcase-dark.jpg" width="420">
+<img src="docs/assets/desktop-mobile.jpg" alt="The same tools on desktop and phone" width="820">
+<br><br>
+<img src="docs/assets/mobile.gif" alt="Diagrams, charts, slides and code tools on a phone" width="360">
 </div>
 
 ## Install
