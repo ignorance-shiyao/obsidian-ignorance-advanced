@@ -3,7 +3,7 @@
 //   OBSIDIAN_VAULT=/path/to/vault node esbuild.config.mjs --install   also copy into the vault's plugin folder
 import { build, transform } from "esbuild";
 import { execFileSync } from "node:child_process";
-import { mkdir, readFile, writeFile, copyFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile, copyFile, readdir, rm } from "node:fs/promises";
 import { gzipSync } from "node:zlib";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -84,5 +84,10 @@ if (process.argv.includes("--install")) {
   const target = path.join(vault, ".obsidian/plugins/ignorance-advanced");
   await mkdir(target, { recursive: true });
   for (const name of ["main.js", "styles.css", "manifest.json"]) await copyFile(path.join(dist, name), path.join(target, name));
-  console.log(`installed into ${target}`);
+  // Builds before 1.0.0 shipped these beside main.js; everything is embedded now, and the old copies
+  // would only keep syncing megabytes with the vault.
+  const stale = ["chunk-docx.cjs", "chunk-pptx.cjs", "chunk-reveal.cjs", "chunk-capture.cjs", "import-converters.cjs", "pdf.worker.mjs", "file-icons.json", "language-icons.json", "NOTICE-echarts", "README.md"];
+  const removed = (await readdir(target)).filter(name => stale.includes(name) || name.startsWith("LICENSE-"));
+  for (const name of removed) await rm(path.join(target, name));
+  console.log(`installed into ${target}${removed.length ? ` (removed ${removed.length} old files)` : ""}`);
 }
