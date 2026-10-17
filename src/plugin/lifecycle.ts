@@ -159,6 +159,8 @@ export async function onload(plugin: IgnorancePlugin) {
   if (Platform.isMobile) {
     plugin.registerEvent(plugin.app.workspace.on("file-menu", (menu, file, source) => {
       if (source !== "more-options" || file?.extension !== "md") return;
+      // Phones have no outline pane beside the note; the jump list (headings, diagrams, tables, code) stands in.
+      if (Platform.isPhone) menu.addItem(item => item.setTitle("跳到标题、图表或表格").setIcon("lucide-list-tree").setSection("ibp-export").onClick(() => openNavigation(plugin)));
       menu.addItem(item => item.setTitle("演示").setIcon("lucide-presentation").setSection("ibp-export").onClick(() => { void openPresentation(plugin, file); }));
       ExportTools.addPortableExportItems(plugin, menu, file);
     }));

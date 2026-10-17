@@ -36,7 +36,7 @@ export function installMoreMenuFilter(plugin: IgnorancePlugin) {
     menu.showAtPosition = function (...args) {
       menu.items = menu.items.filter(item => {
         const icon = iconOf(item);
-        const hide = phone ? icon === "lucide-file-down" && item.section === "action" : shouldHideMoreMenuItem(icon, item.section);
+        const hide = phone ? (icon === "lucide-file-down" && item.section === "action") || UNRELATED_TO_NOTE.includes(icon) : shouldHideMoreMenuItem(icon, item.section);
         if (!item?.dom || !hide) return true;
         item.dom.remove();
         return false;
