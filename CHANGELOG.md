@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.16
+The plugin now carries the styles for its own inline chips, bars and sparklines, the clip dialog, the path toggle, writing focus, heading badges and callout animations (they used to ship in the theme). Use with Ignorance 1.0.16 or later.
+
 ## 1.0.15
 Page width: each preset (narrow, standard, wide) is a share of the window with a pixel cap, so lines stay readable on wide screens; drag the page edge to set a custom width; the width button shows the laid-out width; per-note width (wider / narrower) from the width menu. Zoom (Ctrl + wheel) is kept as a preview scale and only magnifies the laid-out page. With Obsidian's "Readable line length" off the page fills the window. Phones: the page uses the full screen width, and the note menu gets "Jump to heading, chart or table". Reading positions merge across synced devices instead of overwriting each other. Fixes: PDF export produced a single blank page on recent Obsidian versions; chart left / center / right alignment; empty [toc] in paged reading for new or just-edited notes. Text element styles (quotes, highlights, keys, footnotes, details, checkboxes, definition lists, tables) moved to the theme. Use with Ignorance 1.0.15 or later.
 
