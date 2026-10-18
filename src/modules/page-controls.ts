@@ -455,7 +455,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
   plugin.registerDomEvent(document, "wheel", event => {
     if (!(event.ctrlKey || event.metaKey) || !(event.target instanceof Element)) return;
     if (!event.target.closest(".workspace-leaf-content[data-type='markdown']")) return;
-    if (event.target.closest(".ibm-mermaid-enhanced, .ibm-chart-enhanced, .ib-crop-stage, .ibp-popover, .modal-container")) return;
+    if (event.target.closest(".ibm-mermaid-enhanced, .ibm-chart-enhanced, .ib-echarts-block, .ib-crop-stage, .ibp-popover, .modal-container")) return;
     event.preventDefault();
     event.stopPropagation();
     const step = Math.min(0.08, Math.abs(event.deltaY) * 0.002);

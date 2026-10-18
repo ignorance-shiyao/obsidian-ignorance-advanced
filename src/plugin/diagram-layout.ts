@@ -1,3 +1,4 @@
+import { controlScale } from "../modules/control-geometry.js";
 import { markContext } from "../modules/context-markers.js";
 import { DIAGRAM_HEADER_HEIGHT,HALF_A4_HEIGHT,diagramFit } from "../modules/diagram-fit.js";
 import { measureDiagramFont } from "../modules/diagram-readable-scale.js";
@@ -151,12 +152,12 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
   };
 
   const zoomAt = (nextScale: number, clientX: number, clientY: number) => {
-    const rect = canvas.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect(), pageScale = controlScale(canvas);
     if (!state.readableScroll) state.lockFrame = true;
     if (state.readableScroll) {
       const oldScale = state.scale;
       const left = canvas.scrollLeft, top = canvas.scrollTop;
-      const x = clientX - rect.left, y = clientY - rect.top;
+      const x = (clientX - rect.left) / pageScale, y = (clientY - rect.top) / pageScale;
       state.scale = Math.min(Math.max(8, state.readableMinimum || 0), Math.max(0.05, nextScale));
       apply();
       const ratio = state.scale / oldScale;
@@ -164,9 +165,9 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
       canvas.scrollTop = Math.max(0, (top + y - 8) * ratio - y + 8);
       return;
     }
-    const pointX = clientX - rect.left - rect.width / 2;
+    const pointX = (clientX - rect.left - rect.width / 2) / pageScale;
     // The drawing hangs from the top gutter, so that is the zoom origin's y.
-    const pointY = clientY - rect.top - 8;
+    const pointY = (clientY - rect.top) / pageScale - 8;
     const previousScale = state.scale;
     const boundedScale = Math.min(8, Math.max(0.05, nextScale));
     const ratio = boundedScale / previousScale;
@@ -221,19 +222,20 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
   const onPointerMove = (event: PointerEvent) => {
     const p = pointers.get(event.pointerId);
     if (!p) return;
-    const dx = event.clientX - p.x;
-    const dy = event.clientY - p.y;
+    const pageScale = controlScale(canvas);
+    const dx = (event.clientX - p.x) / pageScale;
+    const dy = (event.clientY - p.y) / pageScale;
     p.x = event.clientX;
     p.y = event.clientY;
 
     if (pinch && pointers.size >= 2) {
       const m = midpoint();
       if (state.readableScroll) {
-        canvas.scrollLeft -= m.x - pinch.x;
-        canvas.scrollTop -= m.y - pinch.y;
+        canvas.scrollLeft -= (m.x - pinch.x) / pageScale;
+        canvas.scrollTop -= (m.y - pinch.y) / pageScale;
       } else {
-        state.x += m.x - pinch.x;
-        state.y += m.y - pinch.y;
+        state.x += (m.x - pinch.x) / pageScale;
+        state.y += (m.y - pinch.y) / pageScale;
       }
       pinch.x = m.x;
       pinch.y = m.y;
@@ -296,7 +298,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
     if (Math.abs(event.deltaX) > Math.abs(event.deltaY) * 1.2) {
       if (state.readableScroll) return; // Native horizontal scrolling.
       event.preventDefault();
-      state.x -= event.deltaX;
+      state.x -= event.deltaX / controlScale(canvas);
       apply();
     }
   };

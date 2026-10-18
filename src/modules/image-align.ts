@@ -1,3 +1,4 @@
+import { controlScale, controlBox } from "./control-geometry.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { MarkdownView, Menu, Modal, Notice, TFile, requestUrl, setTooltip } from "obsidian";
 import { EditorState, Transaction } from "@codemirror/state";
@@ -350,11 +351,13 @@ function installResizeHandles(plugin: IgnorancePlugin, embed: HTMLElement, wrapp
       img.style.removeProperty("aspect-ratio"); img.style.removeProperty("object-fit");
       delete img.dataset.ibExplicitRatio;
     }
-    const a = img.getBoundingClientRect(), b = wrapper.getBoundingClientRect();
-    Object.assign(layer.style, { left: `${a.left - b.left}px`, top: `${a.top - b.top}px`, width: `${a.width}px`, height: `${a.height}px` });
+    const box = controlBox(img, wrapper);
+    Object.assign(layer.style, { left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px` });
   };
   const observer = new ResizeObserver(update);
   observer.observe(img); observer.observe(wrapper);
+  window.addEventListener("ibp-page-change", update);
+  plugin.registerDomEvent(wrapper, "pointerenter", update);
   // Native reset can remove size attributes without replacing the image node.
   const sizeObserver = new MutationObserver(update);
   sizeObserver.observe(img, { attributes: true, attributeFilter: ["width", "height"] });
@@ -366,7 +369,8 @@ function installResizeHandles(plugin: IgnorancePlugin, embed: HTMLElement, wrapp
       const view = viewFor(plugin, embed), found = linkFor(view, embed);
       if (!found) return;
       event.preventDefault(); event.stopPropagation();
-      const rect = img.getBoundingClientRect();
+      const box = img.getBoundingClientRect(), scale = controlScale(img);
+      const rect = { width: box.width / scale, height: box.height / scale };
       const previous = img.getAttribute("style");
       let next = { width: rect.width, height: rect.height }, moved = false;
       layer.classList.add("is-dragging");
@@ -376,7 +380,7 @@ function installResizeHandles(plugin: IgnorancePlugin, embed: HTMLElement, wrapp
         if (e.pointerId !== event.pointerId) return;
         e.preventDefault(); e.stopPropagation();
         moved = true;
-        next = resizedImageBox(rect.width, rect.height, e.clientX - event.clientX, e.clientY - event.clientY, direction);
+        next = resizedImageBox(rect.width, rect.height, (e.clientX - event.clientX) / scale, (e.clientY - event.clientY) / scale, direction);
         img.style.setProperty("width", `${next.width}px`, "important");
         img.style.setProperty("height", `${next.height}px`, "important");
         img.setCssStyles({ objectFit: "fill" });
@@ -409,5 +413,5 @@ function installResizeHandles(plugin: IgnorancePlugin, embed: HTMLElement, wrapp
     };
   }
   update();
-  plugin.register(() => { cancelDrag?.(); observer.disconnect(); sizeObserver.disconnect(); layer.remove(); });
+  plugin.register(() => { cancelDrag?.(); window.removeEventListener("ibp-page-change", update); observer.disconnect(); sizeObserver.disconnect(); layer.remove(); });
 }

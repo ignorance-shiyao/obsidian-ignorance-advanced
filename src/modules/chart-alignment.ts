@@ -1,3 +1,4 @@
+import { controlScale } from "./control-geometry.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Menu, Notice, MarkdownView, TFile, type Editor } from "obsidian";
 import { applyTableSourceAlignment } from "./table-alignment.js";
@@ -94,22 +95,23 @@ function mountResizeHandles(plugin: IgnorancePlugin, container: HTMLElement, loc
     handle.addEventListener("pointerdown", event => {
       if (event.button) return;
       event.preventDefault(); event.stopPropagation();
-      const start = event.clientX, box = container.getBoundingClientRect();
+      const start = event.clientX, scale = controlScale(container);
+      const initialWidth = container.getBoundingClientRect().width / scale;
       // The text column, not the block's wrapper: the wrapper shrinks to its content.
       const host = container.closest<HTMLElement>(".cm-content, .markdown-preview-sizer, .markdown-preview-view") || container.parentElement;
       const hostStyle = host ? getComputedStyle(host) : null;
-      const column = host ? host.clientWidth - (parseFloat(hostStyle.paddingLeft) || 0) - (parseFloat(hostStyle.paddingRight) || 0) : box.width;
-      const limit = Math.max(box.width, column);
+      const column = host ? host.clientWidth - (parseFloat(hostStyle.paddingLeft) || 0) - (parseFloat(hostStyle.paddingRight) || 0) : initialWidth;
+      const limit = Math.max(initialWidth, column);
       const align = container.dataset.ibChartAlign || "center";
       // Centred blocks grow on both sides, so the edge under the pointer moves at half speed.
       const factor = align === "center" ? 2 : 1;
       const previous = Number(container.dataset.ibChartWidth) || 0;
-      let width = box.width;
+      let width = initialWidth;
       handle.setPointerCapture(event.pointerId);
       container.classList.add("is-resizing");
       const move = (moveEvent: PointerEvent) => {
-        const delta = (side === "east" ? moveEvent.clientX - start : start - moveEvent.clientX) * factor;
-        width = Math.round(Math.min(limit, Math.max(MIN_BLOCK_WIDTH, box.width + delta)));
+        const delta = (side === "east" ? moveEvent.clientX - start : start - moveEvent.clientX) * factor / scale;
+        width = Math.round(Math.min(limit, Math.max(MIN_BLOCK_WIDTH, initialWidth + delta)));
         setBlockWidth(container, width);
       };
       const end = (finish: PointerEvent) => {
@@ -119,7 +121,7 @@ function mountResizeHandles(plugin: IgnorancePlugin, container: HTMLElement, loc
         container.classList.remove("is-resizing");
         refit(plugin, container);
         if (finish.type === "pointercancel") { setBlockWidth(container, previous); refit(plugin, container); return; }
-        if (Math.abs(width - box.width) < 2) return;
+        if (Math.abs(width - initialWidth) < 2) return;
         void persistWidth(plugin, container, locate, width, previous);
       };
       const cancel = (cancelEvent: PointerEvent) => end(cancelEvent);

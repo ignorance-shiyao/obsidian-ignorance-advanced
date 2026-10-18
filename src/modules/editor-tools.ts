@@ -1,3 +1,4 @@
+import { controlScale, controlBox } from "./control-geometry.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Notice, Menu, MarkdownView } from "obsidian";
 import { Decoration, ViewPlugin, WidgetType, EditorView, type DecorationSet, type ViewUpdate } from "@codemirror/view";
@@ -182,6 +183,7 @@ class TableResizeLayer {
   active: { axis: Axis; index: number } | null;
   dragging: boolean;
   cancelDrag: (() => void) | null;
+  onPageChange = () => { if (this.built) this.build(); };
 
   constructor(table: HTMLTableElement, options: TableResizeOptions) {
     this.table = table;
@@ -246,6 +248,7 @@ class TableResizeLayer {
     this.layer.addEventListener("pointerleave", this.onLeave);
     this.resizeObserver = new ResizeObserver(() => this.build());
     this.resizeObserver.observe(this.table);
+    window.addEventListener("ibp-page-change", this.onPageChange);
     this.build();
   }
 
@@ -303,6 +306,7 @@ class TableResizeLayer {
     this.cancelDrag?.();
     if (this.touchOffHandler) document.removeEventListener("pointerdown", this.touchOffHandler, true);
     this.resizeObserver?.disconnect();
+    window.removeEventListener("ibp-page-change", this.onPageChange);
     this.layer?.remove();
     this.readout?.remove();
     this.table.removeEventListener("pointerenter", this.onEnter);
@@ -311,31 +315,32 @@ class TableResizeLayer {
 
   geometry() {
     const rect = this.table.getBoundingClientRect();
+    const scale = controlScale(this.host);
     const cols = headerCells(this.table).map(cell => {
       const box = cell.getBoundingClientRect();
-      return { start: box.left - rect.left, end: box.right - rect.left };
+      return { start: (box.left - rect.left) / scale, end: (box.right - rect.left) / scale };
     });
     const rows = tableRows(this.table).map(row => {
       const box = row.getBoundingClientRect();
-      return { start: box.top - rect.top, end: box.bottom - rect.top };
+      return { start: (box.top - rect.top) / scale, end: (box.bottom - rect.top) / scale };
     });
     return { rect, cols, rows };
   }
 
   build() {
     if (!this.alive()) return;
-    const hostRect = this.host.getBoundingClientRect();
-    const { rect, cols, rows } = this.geometry();
-    this.geo = { cols, rows, width: rect.width, height: rect.height };
+    const box = controlBox(this.table, this.host);
+    const { cols, rows } = this.geometry();
+    this.geo = { cols, rows, width: box.width, height: box.height };
     // Last widths seen while nothing was being edited: by the time an edit's
     // focus event arrives, the cell editor is already in and has widened its
     // column, so the hold must come from before that.
     if (!this.options.isHolding?.()) this.stableCols = cols.map(c => Math.round(c.end - c.start));
     Object.assign(this.layer.style, {
-      left: `${rect.left - hostRect.left + this.host.scrollLeft}px`,
-      top: `${rect.top - hostRect.top + this.host.scrollTop}px`,
-      width: `${rect.width}px`,
-      height: `${rect.height}px`
+      left: `${box.left}px`,
+      top: `${box.top}px`,
+      width: `${box.width}px`,
+      height: `${box.height}px`
     });
     const headerHeight = rows[0] ? rows[0].end - rows[0].start : 0;
     const firstWidth = cols[0] ? cols[0].end - cols[0].start : 0;
@@ -407,7 +412,7 @@ class TableResizeLayer {
       body.insertRow().appendChild(clone);
     }
     this.host.appendChild(probe);
-    const width = Math.ceil(probe.getBoundingClientRect().width);
+    const width = Math.ceil(probe.getBoundingClientRect().width / controlScale(probe));
     probe.remove();
     return Math.min(1600, width);
   }
@@ -423,7 +428,7 @@ class TableResizeLayer {
       const style = getComputedStyle(cell);
       const range = document.createRange();
       range.selectNodeContents(cell);
-      const content = range.getBoundingClientRect().height;
+      const content = range.getBoundingClientRect().height / controlScale(cell);
       // Collapsed borders are shared with the neighbouring rows, so each counts half.
       const extra = (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0)
         + ((parseFloat(style.borderTopWidth) || 0) + (parseFloat(style.borderBottomWidth) || 0)) / 2;
@@ -501,6 +506,7 @@ class TableResizeLayer {
 
     const start = axis === "col" ? event.clientX : event.clientY;
     const startSize = span.end - span.start;
+    const scale = controlScale(this.host);
     const min = axis === "col" ? MIN_COLUMN_WIDTH : MIN_ROW_HEIGHT;
 
     this.dragging = true;
@@ -534,7 +540,7 @@ class TableResizeLayer {
     };
     const onMove = (move: PointerEvent) => {
       const now = axis === "col" ? move.clientX : move.clientY;
-      let target = Math.max(min, Math.round(startSize + now - start));
+      let target = Math.max(min, Math.round(startSize + (now - start) / scale));
       if (move.altKey) stuck = null;                                   // Alt: free drag, no stops
       else if (move.shiftKey) { target = Math.max(min, Math.round(target / 10) * 10); stuck = null; } // Shift: 10px grid
       else {

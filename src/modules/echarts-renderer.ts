@@ -1,3 +1,4 @@
+import { controlScale } from "./control-geometry.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { MarkdownRenderChild } from "obsidian";
 import type { MarkdownPostProcessorContext } from "obsidian";
@@ -172,8 +173,9 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HT
     if (next === zoom) return;
     const ratio = next / zoom;
     // Keep the point under the pointer (or the middle of the view) where it is.
-    const box = viewport.getBoundingClientRect();
-    const ax = anchor ? anchor.x - box.left : box.width / 2, ay = anchor ? anchor.y - box.top : box.height / 2;
+    const box = viewport.getBoundingClientRect(), pageScale = controlScale(viewport);
+    const ax = anchor ? (anchor.x - box.left) / pageScale - viewport.clientLeft : viewport.clientWidth / 2;
+    const ay = anchor ? (anchor.y - box.top) / pageScale - viewport.clientTop : viewport.clientHeight / 2;
     const contentX = viewport.scrollLeft + ax, contentY = viewport.scrollTop + ay;
     zoom = next;
     applyZoom();

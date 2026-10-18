@@ -279,6 +279,7 @@
 .ibt-layer { --ibt-accent: var(--ib-focus, var(--interactive-accent)); }
 .ibt-handle::after { background: color-mix(in srgb, var(--ibt-accent) 45%, transparent); border-radius: 1px; transition: none; }
 .ibt-handle::before {
+  box-sizing: border-box;
   background: var(--ib-bg-tertiary, var(--background-primary));
   border: 2px solid var(--ibt-accent);
   border-radius: 999px;
@@ -1650,7 +1651,7 @@ body.ib-show-code-line-numbers .markdown-source-view.mod-cm6.is-live-preview .ib
 .slide-surface.slide-layout-split .slide-body.has-split-cols {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    column-gap: 1.55em;
+    gap: 0 1.55em;
     align-items: start;
     background: linear-gradient(color-mix(in srgb, var(--border) 55%, transparent), color-mix(in srgb, var(--border) 55%, transparent)) 50% 0 / 1px 100% no-repeat;
 }
