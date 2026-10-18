@@ -410,16 +410,10 @@ export function installWebClip(plugin: IgnorancePlugin) {
       return;
     }
     // Obsidian's share extension keeps only the verification page, not the
-    // link. Offer the link on the clipboard (copy it in WeChat before sharing).
+    // link. The clipboard is only read when the user runs the command below.
     if (!FAILED_CLIP.test(text) || told.has(file.path)) return;
     told.add(file.path);
-    const copied = await clipboardUrl();
-    if (copied) {
-      new ConfirmClipModal(plugin, `「${file.basename}」是分享时抓取失败的页面，分享没有带上文章链接。用剪贴板里的链接重新剪藏它？`, copied,
-        () => void clipUrl(plugin, copied, file).then(note => app.workspace.getLeaf(false).openFile(note)).catch(() => {})).open();
-    } else {
-      new Notice(`「${file.basename}」是分享时抓取失败的页面，分享没有带上文章链接。\n在微信里点「复制链接」，再对这条笔记运行「重新剪藏当前笔记」。`, 12000);
-    }
+    new Notice(`「${file.basename}」是分享时抓取失败的页面，分享没有带上文章链接。\n在微信里点「复制链接」，再对这条笔记运行「重新剪藏当前笔记」。`, 12000);
   };
   // The share extension saves into the clip folder, the vault root or the folder set for new notes.
   const sweep = () => {

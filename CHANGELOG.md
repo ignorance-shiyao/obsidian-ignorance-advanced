@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+Split slides lay out in two balanced grid columns measured at build time instead of CSS multi-column (a single list is split between the columns, numbered lists keep counting). Exported HTML pages no longer store reader choices in the browser (they last while the page is open), and web clipping no longer reads the clipboard by itself when it finds a failed shared page; the clipboard is read only when you open the clip dialog, run the re-clip command, or turn on link detection.
+
 ## 1.0.18
 Store review follow-up: main.js no longer contains code that creates script elements. The build removes the old-IE setImmediate fallbacks in the bundled zip and Word libraries and Reveal's script-dependency loader (the plugin never used either); the release check now refuses any such code.
 
