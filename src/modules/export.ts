@@ -1,3 +1,4 @@
+import { wordFontFromToken } from "./word-font.js";
 import { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Menu, Notice, Component, MarkdownView, Platform } from "obsidian";
@@ -463,11 +464,6 @@ async function exportImages(plugin: IgnorancePlugin, file: TFile, kind: string) 
     sheet.appendChild(staging);
     return saveExportToVault(plugin, `${file.basename}.png`, await capturePortable(sheet, { scale: 2 }));
   });
-}
-
-function wordFontFromToken(value: string, fallback: string) {
-  const first = String(value || "").split(",")[0].trim().replace(/^['"]|['"]$/g, "");
-  return first || fallback;
 }
 
 /* Exports are written into the vault's 导出/ folder, from where the file can
