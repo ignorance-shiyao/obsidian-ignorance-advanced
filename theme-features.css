@@ -2290,6 +2290,8 @@ body[data-ib-table-alignment="right"] .markdown-source-view.mod-cm6 .cm-table-wi
   border-radius:var(--ib-card-radius);
 }
 .markdown-rendered pre[data-ib-chart-align] { width:fit-content; max-width:100%; min-width:min(100%, 320px); }
+/* Without {align=…} or {width=…} on the fence a code block fills the text width. */
+.markdown-rendered pre[data-ib-chart-align]:not([data-ib-placed]) { width:100%; }
 .markdown-rendered pre[data-ib-chart-align="left"] { margin-inline:0 auto; }
 .markdown-rendered pre[data-ib-chart-align="center"] { margin-inline:auto; }
 .markdown-rendered pre[data-ib-chart-align="right"] { margin-inline:auto 0; }

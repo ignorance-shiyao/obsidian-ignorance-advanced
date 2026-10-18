@@ -18,7 +18,7 @@ export function parseHighlightedCodeLines(fenceLine: string | undefined): number
   return [...lines].sort((a, b) => a - b);
 }
 
-interface CodeFenceEntry { lineStart: number; body: string; alignment: string; width: number; highlighted: number[]; }
+interface CodeFenceEntry { lineStart: number; body: string; alignment: string; width: number; placed: boolean; highlighted: number[]; }
 const fenceEntriesCache = new Map<string, CodeFenceEntry[]>();
 function parseCodeFenceEntries(markdown: string) {
   const cached = fenceEntriesCache.get(markdown);
@@ -38,6 +38,8 @@ function parseCodeFenceEntries(markdown: string) {
       body: lines.slice(index + 1, end).join("\n"),
       alignment: lines[index].match(/\{align=(left|center|right)\}/)?.[1] || "center",
       width: Number(lines[index].match(/\{width=(\d+)\}/)?.[1]) || 0,
+      // A block placed or sized on its fence keeps that; otherwise code fills the text width.
+      placed: /\{(?:align|width)=/.test(lines[index]),
       highlighted: parseHighlightedCodeLines(lines[index])
     });
     index = end;
@@ -67,7 +69,7 @@ export function applyCodeFenceHighlights(root: HTMLElement, markdown: string): v
     if (index < 0) continue;
     const highlighted = fences[index].highlighted;
     const pre = code.parentElement;
-    if (pre) { pre.dataset.ibCodeHighlightLines = highlighted.join(","); pre.dataset.ibChartAlign = fences[index].alignment; setBlockWidth(pre, fences[index].width); }
+    if (pre) { pre.dataset.ibCodeHighlightLines = highlighted.join(","); pre.dataset.ibChartAlign = fences[index].alignment; pre.toggleAttribute("data-ib-placed", Boolean(fences[index].placed)); setBlockWidth(pre, fences[index].width); }
     wrapCodeLines(code, highlighted, fences[index].body);
     cursor = index + 1;
   }
