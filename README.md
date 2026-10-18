@@ -56,7 +56,7 @@ Align, resize with eight handles, copy, remove, and **crop** (then replace the o
 </div>
 
 ### Reading and export
-A page toolbar (content width, paper size, margins, page numbers, a paged view that matches PDF output). Export to PDF, Word, PowerPoint, images, and a standalone offline HTML reader with table of contents, search and a light/dark switch.
+A page toolbar (content width, paper size, margins, page numbers, a paged view that matches PDF output). Export to PDF, Word, PowerPoint, images, and a standalone offline HTML reader with table of contents, search and a light/dark switch. Choose Microsoft YaHei, theme fonts or SimSun for Word in settings. HTML readers keep theme and width in the URL fragment across reloads without browser storage.
 
 <div align="center">
 <img src="docs/assets/slides-export.jpg" alt="Presentation, page toolbar and export formats" width="820">

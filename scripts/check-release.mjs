@@ -5,6 +5,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
+import { changelogProblems } from "./check-changelog.mjs";
 
 const read = file => readFileSync(file, "utf8");
 const results = [];
@@ -28,6 +29,9 @@ check(existsSync("LICENSE") && existsSync("README.md"), "LICENSE and README pres
 const plainJs = execFileSync("git", ["ls-files", "src"], { encoding: "utf8" }).split("\n").filter(file => /\.(?:js|mjs|cjs)$/.test(file) && existsSync(file));
 check(plainJs.length === 0, "src/ is TypeScript only (no .js files)", plainJs.join(", "));
 check(new RegExp(`^## ${manifest.version.replaceAll(".", "\\.")}$`, "m").test(read("CHANGELOG.md")), "CHANGELOG has an entry for this version");
+
+const changelogIssues = changelogProblems(read("CHANGELOG.md"));
+check(changelogIssues.length === 0, "CHANGELOG version entries contain no Chinese bullet lists", changelogIssues.join(", "));
 
 // Source patterns
 const sourceFiles = [];

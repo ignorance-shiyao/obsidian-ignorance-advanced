@@ -4,7 +4,7 @@
   "scripts": {
     "build": "node esbuild.config.mjs",
     "install:vault": "node esbuild.config.mjs --install",
-    "test": "vitest run",
+    "test": "vitest run && node --test scripts/check-changelog-cases.mjs",
     "check": "node scripts/check-release.mjs"
   },
   "devDependencies": {
