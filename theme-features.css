@@ -3362,3 +3362,4 @@ body.ib-theme-text-size:not(#_ib) { --font-text-size: var(--ib-text-size); }
 .cm-embed-block.ib-has-echarts:not(#_ib) { padding:0; border:0; background:transparent; box-shadow:none; }
 .markdown-reading-view .image-embed.ib-has-resize-layer { position:relative; }
 .cm-embed-block.ib-has-echarts > .edit-block-button { display:none; }
+.ibp-word-mermaid-stage { position: absolute; visibility: hidden; width: 800px; pointer-events: none; }

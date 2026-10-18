@@ -1,3 +1,4 @@
+import { renderMermaidForExport } from "./mermaid-export.js";
 import { wordFontFromToken } from "./word-font.js";
 import { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
@@ -486,7 +487,7 @@ async function saveExportToVault(plugin: IgnorancePlugin, name: string, data: st
 async function mermaidToPngDataUri(source: string, index: number) {
   // HTML labels (foreignObject) would taint the canvas and block toDataURL.
   const plain = /^\s*%%\{\s*init/.test(source) ? source : `%%{init: {"htmlLabels": false, "flowchart": {"htmlLabels": false}}}%%\n${source}`;
-  const { svg } = await window.mermaid.render(`ibp-word-mermaid-${Date.now()}-${index}`, plain);
+  const { svg } = await renderMermaidForExport(`ibp-word-mermaid-${Date.now()}-${index}`, plain);
   const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
   try {
     const image = new Image();
