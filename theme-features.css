@@ -310,7 +310,6 @@
 }
 .mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="quadrantChart"] g.data-point :is(text, tspan),
 .mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="venn"] :is(text.label, text.label tspan),
-.mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="wardley"] :is(text.wardley-node-label, text.wardley-node-label tspan, g.wardley-notes text, g.wardley-notes tspan),
 .mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="architecture"] :is(text, tspan),
 .mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="sequence"] :is(text.loopText, text.loopText tspan, text.messageText, text.messageText tspan),
 .mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="cynefin"] :is(text.cynefinDomainLabel, text.cynefinDomainLabel tspan),
@@ -321,7 +320,6 @@
   stroke-width: 4px;
   stroke-linejoin: round;
 }
-.mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="wardley"] g.wardley-notes :is(text, tspan) { fill: var(--ib-mm-text); }
 .theme-dark .mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="sequence"] rect.rect {
   fill: color-mix(in srgb, var(--ib-mm-card) 90%, var(--ibm-seq-region-color, var(--ib-accent-brand)));
 }
@@ -2315,7 +2313,6 @@ body[data-ib-table-alignment] .markdown-rendered table[data-ib-table-align="righ
 .ibc-container--timeline > :is(ul,ol) > li::before { border-color:var(--background-primary, var(--ib-bg-primary)); }
 .ibp-page .ibc-container--timeline > :is(ul,ol) > li::before { border-color:var(--ib-page-paper); }
 .markdown-source-view.mod-cm6 .ibc-live-actions { display:inline-flex; gap:4px; align-items:center; }
-.mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="wardley"] rect.ibm-wardley-note-card { fill:var(--ib-mm-card); stroke:var(--ib-mm-cluster-stroke); stroke-width:1px; }
 .mermaid svg:is([aria-roledescription="class"], [aria-roledescription="classDiagram"]) foreignObject p {
   font-size: inherit;
   line-height: inherit;
@@ -2521,31 +2518,6 @@ body[data-ib-table-alignment] .markdown-rendered table[data-ib-table-align="righ
   & g.labels text { fill: var(--ib-mm-muted); }
   & g.title text { fill: var(--ib-mm-text); font-weight: 650; }
 }
-.mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="usecase"] {
-  & :is(ellipse.label-container, ellipse.basic):not(#_ib) { fill: color-mix(in srgb, var(--ib-accent-brand) 10%, var(--ib-mm-card)); stroke: color-mix(in srgb, var(--ib-mm-accent-stroke) 70%, transparent); stroke-width: 1.4px; }
-  & g.usecase-element { filter: var(--ib-mm-shadow); }
-  & g.usecase-element :is(span, p) { color: var(--ib-mm-text); }
-
-  & rect.ibm-uc-card:not(#_ib) { fill: var(--ib-mm-card); stroke: var(--ib-mm-cluster-stroke); stroke-width: 1px; }
-  & g.usecase-actor { filter: var(--ib-mm-shadow); }
-  & circle.ibm-uc-avatar:not(#_ib) { fill: color-mix(in srgb, var(--ib-accent-brand) 11%, var(--ib-mm-card)); stroke: none; }
-  & :is(path.usecase-actor-stick, g.usecase-actor-glyph :is(path, line)):not(#_ib) { stroke: var(--ib-mm-accent-stroke); stroke-width: 1.8px; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-  & g.usecase-actor-label :is(span, p) { color: var(--ib-mm-text); }
-
-  & rect.boundary-body:not(#_ib) { fill: color-mix(in srgb, var(--ib-accent-brand) 3%, var(--ib-mm-card)); stroke: color-mix(in srgb, var(--ib-mm-accent-stroke) 24%, transparent); stroke-width: 1px; stroke-dasharray: none; rx: 16px; ry: 16px; }
-  & path.ibm-uc-band:not(#_ib) { fill: color-mix(in srgb, var(--ib-accent-brand) 8%, var(--ib-mm-card)); stroke: none; }
-  & circle.ibm-uc-icon-bg:not(#_ib) { fill: color-mix(in srgb, var(--ib-accent-brand) 16%, var(--ib-mm-card)); stroke: none; }
-  & path.ibm-uc-icon:not(#_ib) { fill: none; stroke: var(--ib-mm-accent-stroke); stroke-width: 2.2px; stroke-linecap: round; stroke-linejoin: round; }
-  & g.system-boundary-title :is(span, p, div) { color: var(--ib-mm-text); font-weight: 700; text-align: left; }
-
-  & path.relationship:not(#_ib) { stroke: var(--ib-mm-accent-stroke); stroke-width: 1.5px; }
-  & path.relationship-include:not(#_ib), & path.relationship-extend:not(#_ib) { stroke-dasharray: 3 3; stroke-width: 1.3px; }
-  & path.relationship-extend:not(#_ib) { stroke: var(--ib-mm-series-2); }
-  & circle.ibm-uc-dot:not(#_ib) { fill: var(--ib-accent-brand); stroke: none; }
-  & marker :is(path, polygon):not(#_ib) { fill: var(--ib-accent-brand); stroke: var(--ib-mm-accent-stroke); }
-  & foreignObject .labelBkg { background: transparent; }
-  & foreignObject .labelBkg :is(span, p) { color: var(--ib-mm-text-accent); background: transparent; }
-}
 .mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="gitGraph"] {
   & line.branch { stroke-width: 2px; stroke-linecap: round; opacity: 0.35; }
   & :is(path.arrow) { stroke-width: 2.4px; stroke-linecap: round; fill: none; }
@@ -2619,25 +2591,6 @@ body[data-ib-table-alignment] .markdown-rendered table[data-ib-table-align="righ
   & g.lineWrapper line { stroke: var(--ib-mm-line); stroke-width: 2px; }
   & marker path { fill: var(--ib-mm-line); stroke: var(--ib-mm-line); }
 }
-.mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="zenuml"] {
-  & rect.participant-box { fill: var(--ib-mm-node-fill); stroke: var(--ib-mm-node-stroke); rx: 10px; ry: 10px; }
-  & g.participant { filter: var(--ib-mm-shadow); }
-  & text.participant-label { fill: var(--ib-mm-text); font-weight: 600; }
-  & line.lifeline { stroke: var(--ib-mm-cluster-stroke); stroke-dasharray: 4 5; }
-  & rect.occurrence { fill: var(--ib-accent-subtle); stroke: var(--ib-mm-node-stroke); rx: 2px; ry: 2px; }
-  & line.message-line { stroke: var(--ib-mm-line); stroke-width: 1.4px; }
-  & :is(svg.arrow-head path, svg.arrow-head polygon, path.return-icon) { fill: var(--ib-mm-arrow); stroke: var(--ib-mm-arrow); }
-  & :is(text.message-label, text.return-label) { fill: var(--ib-mm-text); }
-  & text.seq-number { fill: var(--ib-mm-muted); }
-  & :is(g.return-self, g.self-call, g.return) :is(path, line, polyline) { stroke: var(--ib-mm-line); }
-  & rect.fragment-border { fill: color-mix(in srgb, var(--ib-accent-brand) 3%, transparent); stroke: color-mix(in srgb, var(--ib-mm-accent-stroke) 24%, transparent); rx: 8px; ry: 8px; }
-  & rect.fragment-header { fill: color-mix(in srgb, var(--ib-accent-brand) 10%, var(--ib-mm-card)); stroke: none; }
-  & line.fragment-separator { stroke: color-mix(in srgb, var(--ib-mm-accent-stroke) 24%, transparent); stroke-dasharray: 4 4; }
-  & :is(text.fragment-label, text.fragment-condition, text.fragment-section-label) { fill: var(--ib-mm-text); font-weight: 600; }
-  & :is(rect.frame-border-outer, rect.frame-border-inner) { fill: transparent; stroke: var(--ib-mm-cluster-stroke); rx: 10px; ry: 10px; }
-  & line.frame-header-line { stroke: var(--ib-mm-cluster-stroke); }
-  & text.frame-title { fill: var(--ib-mm-text); font-weight: 650; }
-}
 .mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="architecture"] {
   & rect.node-bkg { fill: color-mix(in srgb, var(--ib-accent-brand) 4%, transparent); stroke: color-mix(in srgb, var(--ib-mm-accent-stroke) 30%, transparent); stroke-width: 1px; stroke-dasharray: 5 4; rx: 14px; ry: 14px; }
   & g.architecture-service { filter: var(--ib-mm-shadow); }
@@ -2662,19 +2615,6 @@ body[data-ib-table-alignment] .markdown-rendered table[data-ib-table-align="righ
   & [class*="radarLegendBox-"] { rx: 3px; ry: 3px; stroke: none; }
   & text.radarLegendText { fill: var(--ib-mm-text); }
 }
-.mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="eventmodeling"] {
-  & g.em-swimlane > rect { fill: color-mix(in srgb, var(--ib-accent-brand) 3%, transparent); stroke: var(--ib-mm-cluster-stroke); rx: 12px; ry: 12px; }
-  & g.em-swimlane > text { fill: var(--ib-mm-muted); letter-spacing: 0.04em; }
-  & g.em-box > rect { rx: 10px; ry: 10px; stroke-width: 1.1px; }
-  & g.em-box { filter: var(--ib-mm-shadow); }
-  & g.em-box > rect[fill="white"] { fill: var(--ib-mm-card); stroke: var(--ib-mm-cluster-stroke); }
-  & g.em-box > rect[fill="#bcd6fe"] { fill: color-mix(in srgb, var(--ib-mm-series-1) var(--ib-mm-section-tint), var(--ib-mm-card)); stroke: color-mix(in srgb, var(--ib-mm-series-1) 55%, transparent); }
-  & g.em-box > rect[fill="#ffb778"] { fill: color-mix(in srgb, var(--ib-mm-series-2) var(--ib-mm-section-tint), var(--ib-mm-card)); stroke: color-mix(in srgb, var(--ib-mm-series-2) 55%, transparent); }
-  & g.em-box > rect[fill="#edb3f6"] { fill: color-mix(in srgb, var(--ib-mm-series-4) var(--ib-mm-section-tint), var(--ib-mm-card)); stroke: color-mix(in srgb, var(--ib-mm-series-4) 55%, transparent); }
-  & g.em-box > rect[fill="#d3f1a2"] { fill: color-mix(in srgb, var(--ib-mm-series-3) var(--ib-mm-section-tint), var(--ib-mm-card)); stroke: color-mix(in srgb, var(--ib-mm-series-3) 55%, transparent); }
-  & path.em-relation { stroke: var(--ib-mm-line); stroke-width: 1.4px; fill: none; }
-  & foreignObject :is(div, span, b) { color: var(--ib-mm-text); }
-}
 .mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="treemap"] {
   & rect.treemapSection { fill-opacity: 0.08; stroke: none; rx: 10px; ry: 10px; }
   & rect.treemapSectionHeader { fill: transparent; stroke: none; }
@@ -2698,36 +2638,6 @@ body[data-ib-table-alignment] .markdown-rendered table[data-ib-table-align="righ
   & text.label { font-weight: 600; font-size: 17px; }
   & text.label[data-ibm-on-mark] { font-size: 20px; }
   & text.venn-title { fill: var(--ib-mm-text); font-weight: 650; }
-}
-.mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="ishikawa"] {
-  & line.ishikawa-spine { stroke: var(--ib-mm-accent-stroke); stroke-width: 2.4px; stroke-linecap: round; }
-  & line.ishikawa-branch { stroke: color-mix(in srgb, var(--ib-mm-accent-stroke) 55%, var(--ib-mm-line)); stroke-width: 1.6px; stroke-linecap: round; }
-  & line.ishikawa-sub-branch { stroke: var(--ib-mm-line); stroke-width: 1px; stroke-linecap: round; }
-  & path.ishikawa-arrow { fill: var(--ib-accent-brand); stroke: var(--ib-mm-accent-stroke); }
-  & path.ishikawa-head { fill: var(--ib-accent-subtle); stroke: var(--ib-mm-accent-stroke); stroke-width: 1.4px; }
-  & text.ishikawa-head-label { fill: var(--ib-mm-text-accent); font-weight: 700; }
-  & rect.ishikawa-label-box { fill: var(--ib-mm-node-fill); stroke: var(--ib-mm-node-stroke); rx: 8px; ry: 8px; }
-  & g.ishikawa-label-group { filter: var(--ib-mm-shadow); }
-  & text.ishikawa-label { fill: var(--ib-mm-text); font-weight: 600; }
-  & :is(text.cause, text.cause tspan, g.ishikawa-sub-group text) { fill: var(--ib-mm-muted); font-weight: 400; }
-}
-.mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="wardley"] {
-  & rect.wardley-background { fill: color-mix(in srgb, var(--ib-accent-brand) 2%, var(--ib-mm-card)); stroke: var(--ib-mm-cluster-stroke); rx: 10px; ry: 10px; }
-  & g.wardley-axes line { stroke: var(--ib-mm-muted); stroke-width: 1.2px; }
-  & g.wardley-stages line { stroke: var(--ib-mm-grid); stroke-dasharray: 4 5; }
-  & text.wardley-stage-label { fill: var(--ib-mm-muted); }
-  & text:is(.wardley-axis-label, .wardley-axis-label-x, .wardley-axis-label-y) { fill: var(--ib-mm-muted); font-weight: 600; }
-  & text.wardley-title { fill: var(--ib-mm-text); font-weight: 650; }
-  & line.wardley-link { stroke: var(--ib-mm-line); stroke-width: 1.2px; }
-  & line.wardley-trend { stroke: var(--ib-mm-series-2); stroke-width: 1.4px; }
-  & g.wardley-node circle { fill: var(--ib-mm-card); stroke: var(--ib-mm-accent-stroke); stroke-width: 2px; }
-  & g.wardley-node--anchor circle { fill: var(--ib-accent-brand); }
-  & text.wardley-node-label { fill: var(--ib-mm-text); }
-}
-.mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="treeView"] {
-  & line.treeView-node-line { stroke: var(--ib-mm-cluster-stroke); stroke-width: 1px; }
-  & text.treeView-node-label { fill: var(--ib-mm-text); font-family: var(--font-monospace); font-size: 15px; }
-  & text.treeView-node-dir { fill: var(--ib-mm-text-accent); font-weight: 650; }
 }
 .mermaid :is(#_ib#_ib, svg[id])[aria-roledescription="journey"] {
   & rect.journey-section { stroke: none; rx: 10px; ry: 10px; }
