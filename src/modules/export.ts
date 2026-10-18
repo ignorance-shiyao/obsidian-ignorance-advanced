@@ -1,5 +1,5 @@
 import { renderMermaidForExport } from "./mermaid-export.js";
-import { WORD_TEXT_FONT, wordFontFromToken } from "./word-font.js";
+import { wordExportFonts, wordFontFromToken } from "./word-font.js";
 import { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Menu, Notice, Component, MarkdownView, Platform } from "obsidian";
@@ -548,8 +548,10 @@ async function exportWord(plugin: IgnorancePlugin, file: TFile) {
   const bytes = await createStructuredDocxBuffer(markdown, {
     title: file.basename,
     style: {
-      fontFamily: WORD_TEXT_FONT,
-      headingFamily: WORD_TEXT_FONT,
+      ...wordExportFonts(plugin.state.wordFont, {
+        text: bodyStyle.getPropertyValue("--font-text") || bodyStyle.getPropertyValue("--ib-font-sans"),
+        heading: bodyStyle.getPropertyValue("--ib-font-heading") || bodyStyle.getPropertyValue("--font-text")
+      }),
       codeFamily: wordFontFromToken(bodyStyle.getPropertyValue("--ib-font-mono"), "Consolas")
     },
     resolveImage: (source: string) => vaultImageForWord(plugin, file, source)

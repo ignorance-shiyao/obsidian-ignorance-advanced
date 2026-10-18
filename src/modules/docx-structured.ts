@@ -361,7 +361,7 @@ async function blocksToDocx(tokens: Token[], context: DocxContext, quoteDepth = 
     if (token.type === "heading_open") {
       const inline = tokens[index + 1];
       const level = Number(token.tag?.slice(1)) || 1;
-      const headingContext = level <= 3 ? { ...context, style: { ...context.style, fontSize: headingFontSize(context.style.fontSize, level) } } : context;
+      const headingContext = { ...context, style: { ...context.style, fontFamily: context.style.headingFamily, fontSize: level <= 3 ? headingFontSize(context.style.fontSize, level) : context.style.fontSize } };
       const runs = inline?.children ? await inlineTokensToRuns(inline.children, headingContext, { bold: true }) : [new TextRun({ text: "" })];
       elements.push(paragraphFromRuns(runs, context, { heading: Math.min(6, Math.max(1, level)), quote: quoteDepth > 0 }));
       index += 3;
@@ -416,7 +416,7 @@ async function blocksToDocx(tokens: Token[], context: DocxContext, quoteDepth = 
 }
 
 export async function createStructuredDocxBuffer(source: string, options: StructuredDocxOptions = {}) {
-  const style: WordStyle = { ...DEFAULT_WORD_STYLE, ...options.style };
+  const style: WordStyle = { ...DEFAULT_WORD_STYLE, ...options.style, headingFamily: options.style?.headingFamily || options.style?.fontFamily || DEFAULT_WORD_STYLE.headingFamily };
   const context = { style, resolveImage: options.resolveImage };
   const markdown = new MarkdownIt({ html: false, linkify: false, typographer: false });
   const tokens = markdown.parse(markdownForStructuredWord(source), {});
@@ -426,9 +426,9 @@ export async function createStructuredDocxBuffer(source: string, options: Struct
     styles: {
       default: {
         document: { run: { font: style.fontFamily, size: style.fontSize * 2 } },
-        heading1: { run: { font: style.fontFamily, size: headingFontSize(style.fontSize, 1) * 2, bold: true } },
-        heading2: { run: { font: style.fontFamily, size: headingFontSize(style.fontSize, 2) * 2, bold: true } },
-        heading3: { run: { font: style.fontFamily, size: headingFontSize(style.fontSize, 3) * 2, bold: true } }
+        heading1: { run: { font: style.headingFamily, size: headingFontSize(style.fontSize, 1) * 2, bold: true } },
+        heading2: { run: { font: style.headingFamily, size: headingFontSize(style.fontSize, 2) * 2, bold: true } },
+        heading3: { run: { font: style.headingFamily, size: headingFontSize(style.fontSize, 3) * 2, bold: true } }
       }
     },
     sections: [{ children: elements.length ? elements : [new Paragraph({ text: "" })] }]

@@ -57,6 +57,7 @@ export interface PluginState {
   autoFoldCode: boolean;
   captions: boolean;
   grayDates: string;
+  wordFont: import("./modules/word-font.js").WordFontChoice;
   writingModes: { typewriterScroll: boolean; focusMode: boolean };
   fileTools: { convertPastedImages: boolean; /** Removed setting, deleted on load. */ apps?: unknown };
   webClip: { watchClipboard: boolean; folder: string; byDomain: boolean };

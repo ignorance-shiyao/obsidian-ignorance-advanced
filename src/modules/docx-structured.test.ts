@@ -108,3 +108,22 @@ it("默认正文与三级标题使用微软雅黑，并保持独立的代码字�
   expect(document).toContain('w:ascii="Menlo"');
   expect(document).not.toContain("PingFang");
 });
+
+it("独立标题字体同时写入样式和实际文字，不影响正文及代码字体", async () => {
+  const output = await createStructuredDocxBuffer("# 一级\n\n## 二级\n\n### 三级\n\n正文\n\n`code`", {
+    style: { fontFamily: "PingFang SC", headingFamily: "Songti SC", codeFamily: "Menlo" }
+  });
+  const archive = await JSZip.loadAsync(output);
+  const styles = await archive.file("word/styles.xml").async("string");
+  const document = await archive.file("word/document.xml").async("string");
+  for (const level of [1, 2, 3]) {
+    const heading = styles.match(new RegExp(`<w:style[^>]*w:styleId="Heading${level}"[\\s\\S]*?</w:style>`))?.[0];
+    expect(heading).toContain('w:eastAsia="Songti SC"');
+  }
+  const paragraphs = document.match(/<w:p[ >][\s\S]*?<\/w:p>/g) || [];
+  const headings = paragraphs.filter(p => p.includes("w:pStyle") && p.includes("Heading"));
+  expect(headings).toHaveLength(3);
+  expect(headings.every(p => p.includes('w:eastAsia="Songti SC"'))).toBe(true);
+  expect(paragraphs.find(p => p.includes("正文"))).toContain('w:eastAsia="PingFang SC"');
+  expect(paragraphs.find(p => p.includes(">code<"))).toContain('w:ascii="Menlo"');
+});

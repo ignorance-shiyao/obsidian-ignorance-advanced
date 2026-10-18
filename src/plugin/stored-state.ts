@@ -1,3 +1,4 @@
+import { normalizeWordFont } from "../modules/word-font.js";
 import { Notice } from "obsidian";
 import { appearanceDefaults,applyAppearancePreferences,tabDefaults } from "../modules/appearance.js";
 import { DENSITIES,writingModeDefaults } from "../modules/editor-tools.js";
@@ -30,6 +31,7 @@ export async function loadStoredState(plugin: IgnorancePlugin) {
   plugin.state.headingNumberStart = plugin.state.headingNumberStart === "h1" || plugin.state.headingNumberStart === "h2" ? plugin.state.headingNumberStart : "auto";
   plugin.state.headingNumberDepth = Math.min(6, Math.max(1, Math.round(Number(plugin.state.headingNumberDepth)) || 4));
   plugin.state.captions = plugin.state.captions === true;
+  plugin.state.wordFont = normalizeWordFont(plugin.state.wordFont);
   plugin.state.grayDates = typeof plugin.state.grayDates === "string" ? plugin.state.grayDates : "";
   plugin.state.writingModes = Object.assign(writingModeDefaults(), plugin.state.writingModes || {});
   plugin.state.fileTools = Object.assign(fileToolsDefaults(), plugin.state.fileTools || {});

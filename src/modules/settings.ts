@@ -1,3 +1,4 @@
+import { WORD_FONT_OPTIONS, normalizeWordFont } from "./word-font.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { MarkdownView, PluginSettingTab, Setting } from "obsidian";
 import type { App } from "obsidian";
@@ -95,6 +96,12 @@ class IgnoranceSettingTab extends PluginSettingTab {
         }) },
         { name: "代码块行号", desc: "阅读视图、分页和导出中显示行号；围栏里写 {2,5} 可高亮指定行。", aliases: ["line numbers"], add: toggle(() => Boolean(state.codeLineNumbers), value => {
           state.codeLineNumbers = value; plugin.applyCodeLineNumbers(); plugin.saveStoredState();
+        }) }
+      ] },
+      { heading: "导出", items: [
+        { name: "Word 导出字体", desc: "用于导出文档的正文与标题。跟随主题时，正文与标题统一使用当前正文字体，需本机安装相应字体；代码保持独立的等宽字体。", aliases: ["word font", "docx"], add: (setting: Setting) => setting.addDropdown(dropdown => {
+          for (const [value, label] of WORD_FONT_OPTIONS) dropdown.addOption(value, label);
+          dropdown.setValue(normalizeWordFont(state.wordFont)).onChange(value => { state.wordFont = normalizeWordFont(value); plugin.saveStoredState(); });
         }) }
       ] },
       { heading: "编辑", items: [
