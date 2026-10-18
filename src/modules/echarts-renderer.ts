@@ -15,6 +15,7 @@ type ChartRenderer = "canvas" | "svg";
 type TreeNode = { collapsed?: boolean; children?: TreeNode[] };
 type SeriesItem = { type?: string; orient?: string; data?: TreeNode[] };
 type TooltipOption = { className?: string; extraCssText?: string };
+const isTooltipOption = (value: unknown): value is TooltipOption => typeof value === "object" && value !== null && !Array.isArray(value);
 type GraphBounds = ReturnType<typeof graphPixelBounds>;
 type ChartBlockElement = HTMLElement & { __ibGraphMetrics?: () => GraphBounds[] };
 
@@ -264,9 +265,10 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HT
       const key = `${source.length}:${source.slice(0, 200)}`;
       if (cachedPreview || shownCharts.has(key) || renderer === "svg") normalized.animation = false;
       shownCharts.add(key);
-      const tooltip = normalized.tooltip as TooltipOption | TooltipOption[] | undefined;
-      if (!Array.isArray(tooltip)) normalized.tooltip = { ...(tooltip || {}), appendTo: document.body, confine: false, className: `${tooltip?.className || ""} ${tooltipClass}`,
-        extraCssText: `${tooltip?.extraCssText || ""};z-index:var(--layer-tooltip,10000);pointer-events:none;` };
+      const tooltip: unknown = normalized.tooltip;
+      const base: TooltipOption = isTooltipOption(tooltip) ? tooltip : {};
+      if (!Array.isArray(tooltip)) normalized.tooltip = { ...base, appendTo: document.body, confine: false, className: `${base.className || ""} ${tooltipClass}`,
+        extraCssText: `${base.extraCssText || ""};z-index:var(--layer-tooltip,10000);pointer-events:none;` };
       chart.setOption(normalized);
       if (series.some(item => item?.type === "graph")) {
         const renderedChart = chart;

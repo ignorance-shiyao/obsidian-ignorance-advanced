@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "@types/markdown-it": "14.1.2",
+    "@types/turndown": "5.0.5",
     "@xmldom/xmldom": "0.8.11",
     "esbuild": "0.28.2",
     "eslint": "^9.39.5",

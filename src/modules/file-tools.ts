@@ -2,7 +2,7 @@ import type { Editor, MarkdownFileInfo, MarkdownView, TAbstractFile, TFolder, Va
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Notice, Setting, TFile, FileView, Modal, htmlToMarkdown, loadPdfJs } from "obsidian";
 import type { Menu } from "obsidian";
-import { csvToMarkdown, docxToMarkdown, htmlToMarkdown as cleanHtmlToMarkdown, jsonToMarkdown, notionZipToMarkdown, pdfToMarkdown, pptxToMarkdown, xlsxToMarkdown } from "./import-converters.js";
+import { csvToMarkdown, docxToMarkdown, htmlToMarkdown as cleanHtmlToMarkdown, jsonToMarkdown, notionZipToMarkdown, pdfToMarkdown, pptxToMarkdown, xlsxToMarkdown, type PdfJs } from "./import-converters";
 
 const HTML_READONLY_VIEW = "ignorance-html-readonly";
 const MARKDOWN_IMPORT_EXTS = new Set(["docx", "pdf", "xlsx", "pptx", "csv", "tsv", "json", "html", "htm", "zip"]);
@@ -27,12 +27,6 @@ function hasInvalidNameChar(name: string): boolean {
 
 type TransferEvent = ClipboardEvent | DragEvent;
 
-/** What the (untyped) Notion converter hands back. */
-interface NotionArchive {
-  root: string;
-  files: Array<{ path: string; content: string }>;
-  assets: Array<{ path: string; bytes: Uint8Array }>;
-}
 
 
 function isPastedImageFile(file: File | null) {
@@ -424,7 +418,7 @@ async function importVaultFileAsMarkdown(plugin: IgnorancePlugin, file: TFile, n
     case "htm": markdown = await cleanHtmlToMarkdown(await text(), htmlToMarkdown); break;
     case "xlsx": markdown = await xlsxToMarkdown(await bytes()); break;
     case "pptx": markdown = await pptxToMarkdown(await bytes()); break;
-    case "pdf": markdown = await pdfToMarkdown(await bytes(), await loadPdfJs()); break;
+    case "pdf": markdown = await pdfToMarkdown(await bytes(), (await loadPdfJs()) as PdfJs); break;
     default: throw new Error("不支持导入此文件类型");
   }
   if (!String(markdown || "").trim()) throw new Error("文件中没有可导入的内容");
@@ -446,7 +440,7 @@ async function importNotionZipAsMarkdown(plugin: IgnorancePlugin, file: TFile, f
   const parentPath = file.parent?.path || "";
   const importRoot = [parentPath, normalizeMarkdownImportName(folderName)].filter(Boolean).join("/");
   if (vault.getAbstractFileByPath(importRoot)) throw new Error("目标文件夹已存在：" + importRoot);
-  const archive = await notionZipToMarkdown(await vault.readBinary(file), importRoot) as NotionArchive;
+  const archive = await notionZipToMarkdown(await vault.readBinary(file), importRoot);
   const plannedPaths = [...archive.files.map(item => item.path), ...archive.assets.map(item => item.path)];
   const normalized = new Set<string>();
   const plannedFiles = new Set(plannedPaths.map(target => target.toLowerCase()));
@@ -530,7 +524,7 @@ async function importDocxAsMarkdown(plugin: IgnorancePlugin, file: TFile, noteNa
   const placeholder = "ib-docx-media:";
   const docx = await docxToMarkdown(new Uint8Array(await vault.readBinary(file)), placeholder);
   const converted = docx.markdown;
-  const images = docx.images as Array<{ name: string; bytes: Uint8Array }>;
+  const images = docx.images;
   if (!converted.trim() && !images.length) throw new Error("文件中没有可导入的内容");
   const stem = safeAssetStem(noteName);
   const pending: Array<{ path: string; bytes: ArrayBuffer }> = [];

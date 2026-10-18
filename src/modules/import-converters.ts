@@ -9,15 +9,41 @@ const MAX_ARCHIVE_ENTRIES = 4000;
 const MAX_ARCHIVE_ENTRY_BYTES = 32 * 1024 * 1024;
 const MAX_ARCHIVE_TOTAL_BYTES = 256 * 1024 * 1024;
 
-function escapeTableCell(value) {
+type Cell = string | number | boolean | null | undefined;
+type Row = Cell[];
+
+export interface DocxImage { name: string; extension: string; bytes: Uint8Array }
+export interface NotionFile { path: string; content: string }
+export interface NotionAsset { sourcePath: string; path: string; bytes: Uint8Array; extension: string }
+export interface NotionArchive { files: NotionFile[]; assets: NotionAsset[]; totalCount: number; root: string }
+
+/** The part of PDF.js (Obsidian's loadPdfJs()) this module calls. */
+interface PdfTextItem { type?: string; str?: unknown; transform?: number[]; width?: number; hasEOL?: boolean }
+interface PdfPage { getTextContent(): Promise<{ items?: PdfTextItem[] }>; cleanup?(): void }
+interface PdfDocument { numPages: number; getPage(pageNumber: number): Promise<PdfPage> }
+export interface PdfJs {
+  getDocument(source: { data: Uint8Array | ArrayBuffer; useSystemFonts: boolean; disableRange: boolean }): { promise: Promise<PdfDocument>; destroy(): Promise<void> };
+}
+
+/** JSZip keeps the uncompressed size on a private field; read it without trusting it. */
+interface SizedEntry { _data?: { uncompressedSize?: number } }
+
+type ZipInput = Uint8Array | ArrayBuffer;
+
+// DOMParser documents may come from another realm (tests), so test the node type instead of instanceof.
+function isElement(node: Node): node is Element {
+  return node.nodeType === 1;
+}
+
+function escapeTableCell(value: Cell): string {
   return String(value ?? "").replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim();
 }
 
-function rowsToTable(rows) {
+function rowsToTable(rows: Row[]): string {
   const nonEmpty = (rows || []).filter(row => (row || []).some(cell => String(cell ?? "").trim() !== ""));
   if (!nonEmpty.length) return "";
   const columns = Math.max(...nonEmpty.map(row => row.length));
-  const pad = row => Array.from({ length: columns }, (_, index) => escapeTableCell(row[index]));
+  const pad = (row: Row) => Array.from({ length: columns }, (_, index) => escapeTableCell(row[index]));
   const header = pad(nonEmpty[0]);
   return [
     `| ${header.join(" | ")} |`,
@@ -26,10 +52,10 @@ function rowsToTable(rows) {
   ].join("\n");
 }
 
-function parseDelimited(text, delimiter) {
+function parseDelimited(text: string, delimiter: string): string[][] {
   const source = String(text ?? "").replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
-  const rows = [];
-  let row = [];
+  const rows: string[][] = [];
+  let row: string[] = [];
   let field = "";
   let quoted = false;
   for (let index = 0; index < source.length; index += 1) {
@@ -48,17 +74,17 @@ function parseDelimited(text, delimiter) {
   return rows;
 }
 
-function csvToMarkdown(text, delimiter = ",") {
+function csvToMarkdown(text: string, delimiter = ",") {
   return rowsToTable(parseDelimited(text, delimiter));
 }
 
-function isFlatRecord(value) {
+function isFlatRecord(value: unknown): value is Record<string, Cell> {
   return !!value && typeof value === "object" && !Array.isArray(value) &&
     Object.values(value).every(item => item === null || typeof item !== "object");
 }
 
-function jsonToMarkdown(text) {
-  let parsed;
+function jsonToMarkdown(text: string): string {
+  let parsed: unknown;
   try { parsed = JSON.parse(String(text ?? "")); }
   catch { throw new Error("JSON 文件格式无效，未导入"); }
   if (Array.isArray(parsed) && parsed.length && parsed.every(isFlatRecord)) {
@@ -70,22 +96,25 @@ function jsonToMarkdown(text) {
 
 const XML_MAIN = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 
-function parseXml(text) {
+function parseXml(text: string): Document {
   return new DOMParser().parseFromString(text, "application/xml");
 }
 
 // Column letters of a cell reference ("AB12" → 27, zero-based).
-function columnIndex(reference) {
+function columnIndex(reference: string | null): number {
   const letters = /^[A-Z]+/i.exec(String(reference || ""))?.[0].toUpperCase() || "";
   let index = 0;
   for (const letter of letters) index = index * 26 + (letter.charCodeAt(0) - 64);
   return Math.max(0, index - 1);
 }
 
-async function xlsxToMarkdown(bytes) {
+async function xlsxToMarkdown(bytes: ZipInput): Promise<string> {
   const archive = await JSZip.loadAsync(bytes);
-  const read = async name => archive.file(name) ? parseXml(await archive.file(name).async("string")) : null;
-  const shared = [];
+  const read = async (name: string) => {
+    const file = archive.file(name);
+    return file ? parseXml(await file.async("string")) : null;
+  };
+  const shared: string[] = [];
   const strings = await read("xl/sharedStrings.xml");
   for (const item of strings ? Array.from(strings.getElementsByTagNameNS(XML_MAIN, "si")) : []) {
     shared.push(Array.from(item.getElementsByTagNameNS(XML_MAIN, "t")).map(node => node.textContent || "").join(""));
@@ -93,15 +122,15 @@ async function xlsxToMarkdown(bytes) {
   const workbook = await read("xl/workbook.xml");
   const relations = await read("xl/_rels/workbook.xml.rels");
   const targets = new Map(Array.from(relations?.getElementsByTagName("Relationship") || []).map(rel => [rel.getAttribute("Id"), rel.getAttribute("Target")]));
-  const sections = [];
+  const sections: string[] = [];
   for (const sheet of Array.from(workbook?.getElementsByTagNameNS(XML_MAIN, "sheet") || [])) {
     const id = sheet.getAttribute("r:id") || sheet.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
-    const target = String(targets.get(id) || "").replace(/^\/?(?:xl\/)?/, "");
+    const target = String((id && targets.get(id)) || "").replace(/^\/?(?:xl\/)?/, "");
     const xml = target ? await read(`xl/${target}`) : null;
     if (!xml) continue;
-    const rows = [];
+    const rows: string[][] = [];
     for (const row of Array.from(xml.getElementsByTagNameNS(XML_MAIN, "row"))) {
-      const values = [];
+      const values: string[] = [];
       for (const cell of Array.from(row.getElementsByTagNameNS(XML_MAIN, "c"))) {
         const type = cell.getAttribute("t");
         const value = cell.getElementsByTagNameNS(XML_MAIN, "v")[0]?.textContent ?? "";
@@ -128,18 +157,18 @@ const XML_WORD = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const XML_DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main";
 const XML_RELATIONSHIP = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
-function wordChildren(node, name) {
-  return Array.from(node.childNodes).filter(child => child.namespaceURI === XML_WORD && child.localName === name);
+function wordChildren(node: Node, name: string): Element[] {
+  return Array.from(node.childNodes).filter(isElement).filter(child => child.namespaceURI === XML_WORD && child.localName === name);
 }
 
-function wordProperty(node, container, name) {
+function wordProperty(node: Element, container: string, name: string): string | null {
   const properties = wordChildren(node, container)[0];
   const element = properties ? wordChildren(properties, name)[0] : null;
   return element ? (element.getAttributeNS(XML_WORD, "val") || "") : null;
 }
 
 // A toggle such as <w:b/> is on unless its value says otherwise.
-function wordToggle(node, name) {
+function wordToggle(node: Element, name: string): boolean {
   const value = wordProperty(node, "rPr", name);
   return value !== null && !/^(?:0|false|off|none)$/i.test(value);
 }
@@ -147,7 +176,7 @@ function wordToggle(node, name) {
 const MONOSPACE = /mono|consol|courier|menlo|code/i;
 
 // A paragraph whose every run is set in a monospace face: one line of code.
-function isCodeParagraph(paragraph) {
+function isCodeParagraph(paragraph: Element): boolean {
   const runs = wordChildren(paragraph, "r").filter(run => wordChildren(run, "t").some(text => text.textContent));
   return runs.length > 0 && runs.every(run => {
     const properties = wordChildren(run, "rPr")[0];
@@ -156,8 +185,8 @@ function isCodeParagraph(paragraph) {
   });
 }
 
-function plainParagraphText(paragraph) {
-  return wordChildren(paragraph, "r").flatMap(run => Array.from(run.childNodes)).map(child => {
+function plainParagraphText(paragraph: Element): string {
+  return wordChildren(paragraph, "r").flatMap(run => Array.from(run.childNodes).filter(isElement)).map(child => {
     if (child.namespaceURI !== XML_WORD) return "";
     if (child.localName === "t") return child.textContent || "";
     if (child.localName === "tab") return "\t";
@@ -169,7 +198,7 @@ function plainParagraphText(paragraph) {
    bulleted and numbered lists, tables, links and embedded pictures. Pictures
    are returned as bytes for the caller to save; the Markdown points at
    `media` + their name. */
-async function docxToMarkdown(bytes, media = "./assets/") {
+async function docxToMarkdown(bytes: ZipInput, media = "./assets/"): Promise<{ markdown: string; images: DocxImage[] }> {
   const archive = await JSZip.loadAsync(bytes);
   const documentFile = archive.file("word/document.xml");
   if (!documentFile) throw new Error("不是有效的 Word 文档");
@@ -177,10 +206,11 @@ async function docxToMarkdown(bytes, media = "./assets/") {
   const relationsFile = archive.file("word/_rels/document.xml.rels");
   const relations = relationsFile ? parseXml(await relationsFile.async("string")) : null;
   const targets = new Map(Array.from(relations?.getElementsByTagName("Relationship") || []).map(rel => [rel.getAttribute("Id"), rel.getAttribute("Target") || ""]));
-  const numbering = archive.file("word/numbering.xml") ? parseXml(await archive.file("word/numbering.xml").async("string")) : null;
-  const orderedLists = new Set();
+  const numberingFile = archive.file("word/numbering.xml");
+  const numbering = numberingFile ? parseXml(await numberingFile.async("string")) : null;
+  const orderedLists = new Set<string | null>();
   if (numbering) {
-    const abstractOrdered = new Set();
+    const abstractOrdered = new Set<string | null>();
     for (const abstract of Array.from(numbering.getElementsByTagNameNS(XML_WORD, "abstractNum"))) {
       const format = abstract.getElementsByTagNameNS(XML_WORD, "numFmt")[0]?.getAttributeNS(XML_WORD, "val");
       if (format && format !== "bullet") abstractOrdered.add(abstract.getAttributeNS(XML_WORD, "abstractNumId"));
@@ -190,13 +220,15 @@ async function docxToMarkdown(bytes, media = "./assets/") {
       if (abstractOrdered.has(abstractId)) orderedLists.add(num.getAttributeNS(XML_WORD, "numId"));
     }
   }
-  const images = [];
-  const imageNames = new Map();
-  const imageFor = async id => {
-    if (imageNames.has(id)) return imageNames.get(id);
+  const images: DocxImage[] = [];
+  const imageNames = new Map<string, string>();
+  const imageFor = async (id: string | null) => {
+    if (!id) return null;
+    const known = imageNames.get(id);
+    if (known) return known;
     const target = targets.get(id);
     const file = target ? archive.file(`word/${target.replace(/^\/?(?:word\/)?/, "")}`) : null;
-    if (!file) return null;
+    if (!file || !target) return null;
     const extension = (target.split(".").pop() || "png").toLowerCase();
     const name = `image-${images.length + 1}.${extension}`;
     images.push({ name, extension, bytes: await file.async("uint8array") });
@@ -204,9 +236,9 @@ async function docxToMarkdown(bytes, media = "./assets/") {
     return name;
   };
 
-  const runText = async run => {
+  const runText = async (run: Element) => {
     let text = "";
-    for (const child of Array.from(run.childNodes)) {
+    for (const child of Array.from(run.childNodes).filter(isElement)) {
       if (child.namespaceURI === XML_WORD && child.localName === "t") text += child.textContent || "";
       else if (child.namespaceURI === XML_WORD && child.localName === "tab") text += "\t";
       else if (child.namespaceURI === XML_WORD && (child.localName === "br" || child.localName === "cr")) text += "  \n";
@@ -218,7 +250,7 @@ async function docxToMarkdown(bytes, media = "./assets/") {
     }
     if (!text.trim() || text.startsWith("![")) return text;
     const escaped = text.replace(/([*_`[\]])/g, "\\$1");
-    const wrap = (value, mark) => value.replace(/^(\s*)([\s\S]*?)(\s*)$/, `$1${mark}$2${mark}$3`);
+    const wrap = (value: string, mark: string) => value.replace(/^(\s*)([\s\S]*?)(\s*)$/, `$1${mark}$2${mark}$3`);
     let styled = escaped;
     if (wordToggle(run, "strike")) styled = wrap(styled, "~~");
     if (wordToggle(run, "i")) styled = wrap(styled, "*");
@@ -226,24 +258,24 @@ async function docxToMarkdown(bytes, media = "./assets/") {
     return styled;
   };
 
-  const paragraphText = async paragraph => {
+  const paragraphText = async (paragraph: Element) => {
     let text = "";
-    for (const child of Array.from(paragraph.childNodes)) {
+    for (const child of Array.from(paragraph.childNodes).filter(isElement)) {
       if (child.namespaceURI !== XML_WORD) continue;
       if (child.localName === "r") text += await runText(child);
       else if (child.localName === "hyperlink") {
         let label = "";
         for (const run of wordChildren(child, "r")) label += await runText(run);
-        const target = targets.get(child.getAttributeNS(XML_RELATIONSHIP, "id"));
+        const target = targets.get(child.getAttributeNS(XML_RELATIONSHIP, "id") || "");
         text += target && label.trim() ? `[${label}](${target})` : label;
       }
     }
     return text;
   };
 
-  const blocks = [];
-  const counters = new Map();
-  let code = null;
+  const blocks: Array<{ text: string; list?: boolean }> = [];
+  const counters = new Map<string, number>();
+  let code: Array<{ text: string; label: boolean }> | null = null;
   const closeCode = () => {
     if (!code) return;
     // A short bold first line is the language label the exporter writes.
@@ -253,21 +285,22 @@ async function docxToMarkdown(bytes, media = "./assets/") {
     blocks.push({ text: "```" + label + "\n" + lines.join("\n") + "\n```" });
     code = null;
   };
-  for (const node of Array.from(document.getElementsByTagNameNS(XML_WORD, "body")[0]?.childNodes || [])) {
+  for (const node of Array.from(document.getElementsByTagNameNS(XML_WORD, "body")[0]?.childNodes || []).filter(isElement)) {
     if (node.namespaceURI !== XML_WORD) continue;
     if (node.localName === "p" && isCodeParagraph(node)) {
       const runs = wordChildren(node, "r");
       const text = plainParagraphText(node);
-      (code ||= []).push({ text, label: code.length === 0 && /^[\w+#.-]{1,20}$/.test(text.trim()) && runs.every(run => wordToggle(run, "b")) });
+      code ||= [];
+      code.push({ text, label: code.length === 0 && /^[\w+#.-]{1,20}$/.test(text.trim()) && runs.every(run => wordToggle(run, "b")) });
       continue;
     }
     closeCode();
     if (node.localName === "tbl") {
-      const rows = [];
+      const rows: string[][] = [];
       for (const row of wordChildren(node, "tr")) {
-        const cells = [];
+        const cells: string[] = [];
         for (const cell of wordChildren(row, "tc")) {
-          const parts = [];
+          const parts: string[] = [];
           for (const paragraph of wordChildren(cell, "p")) parts.push((await paragraphText(paragraph)).trim());
           cells.push(parts.filter(Boolean).join(" "));
         }
@@ -281,7 +314,7 @@ async function docxToMarkdown(bytes, media = "./assets/") {
     const text = (await paragraphText(node)).trim();
     if (!text) continue;
     const style = String(wordProperty(node, "pPr", "pStyle") || "");
-    const heading = /^(?:heading|标题)\s*(\d)$/i.exec(style) || (/^title$/i.test(style) ? [style, "1"] : null);
+    const heading: ArrayLike<string> | null = /^(?:heading|标题)\s*(\d)$/i.exec(style) || (/^title$/i.test(style) ? [style, "1"] : null);
     const properties = wordChildren(node, "pPr")[0];
     const list = properties ? wordChildren(properties, "numPr")[0] : null;
     if (heading) blocks.push({ text: `${"#".repeat(Math.min(6, Number(heading[1]) || 1))} ${text.replace(/^\*\*([\s\S]*)\*\*$/, "$1")}` });
@@ -290,7 +323,7 @@ async function docxToMarkdown(bytes, media = "./assets/") {
       const numId = wordChildren(list, "numId")[0]?.getAttributeNS(XML_WORD, "val") || "";
       const key = `${numId}:${level}`;
       counters.set(key, (counters.get(key) || 0) + 1);
-      const marker = orderedLists.has(numId) ? `${counters.get(key)}.` : "-";
+      const marker = orderedLists.has(numId) ? `${counters.get(key) ?? 1}.` : "-";
       blocks.push({ text: `${"    ".repeat(level)}${marker} ${text}`, list: true });
     } else if (/quote/i.test(style)) blocks.push({ text: `> ${text}` });
     else blocks.push({ text });
@@ -300,19 +333,23 @@ async function docxToMarkdown(bytes, media = "./assets/") {
   return { markdown, images };
 }
 
-function decodeXml(value) {
-  return String(value).replace(/&#x([\da-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
-    .replace(/&#(\d+);/g, (_, decimal) => String.fromCodePoint(Number(decimal)))
+function decodeXml(value: string): string {
+  return String(value).replace(/&#x([\da-f]+);/gi, (_: string, hex: string) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_: string, decimal: string) => String.fromCodePoint(Number(decimal)))
     .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
 }
 
-async function pptxToMarkdown(bytes) {
+function slideNumber(name: string): number {
+  return Number(/slide(\d+)\.xml$/.exec(name)?.[1]);
+}
+
+async function pptxToMarkdown(bytes: ZipInput): Promise<string> {
   const archive = await JSZip.loadAsync(bytes);
   const slides = Object.keys(archive.files).filter(name => /^ppt\/slides\/slide\d+\.xml$/.test(name))
-    .sort((left, right) => Number(left.match(/slide(\d+)\.xml$/)[1]) - Number(right.match(/slide(\d+)\.xml$/)[1]));
+    .sort((left, right) => slideNumber(left) - slideNumber(right));
   if (!slides.length) throw new Error("PPTX 中没有可读取的幻灯片");
-  const sections = [];
+  const sections: string[] = [];
   for (let index = 0; index < slides.length; index += 1) {
     const xml = await archive.files[slides[index]].async("string");
     const paragraphs = [...xml.matchAll(/<a:p(?:\s[^>]*)?>([\s\S]*?)<\/a:p>/g)].map(match => {
@@ -327,20 +364,21 @@ async function pptxToMarkdown(bytes) {
 }
 
 // pdfjs: the PDF.js library (Obsidian's, from loadPdfJs()).
-async function pdfToMarkdown(bytes, pdfjs) {
+async function pdfToMarkdown(bytes: Uint8Array | ArrayBuffer, pdfjs: PdfJs): Promise<string> {
   const loadingTask = pdfjs.getDocument({ data: bytes, useSystemFonts: true, disableRange: true });
   const pdfDocument = await loadingTask.promise;
-  const pages = [];
+  const pages: string[] = [];
   try {
     for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber += 1) {
       const page = await pdfDocument.getPage(pageNumber);
       const content = await page.getTextContent();
-      const lines = [];
-      let baseline = null;
+      const lines: string[] = [];
+      let baseline: number | null = null;
       let line = "";
-      let previousX = null;
+      let previousX: number | null = null;
       for (const item of content.items || []) {
         if (!item || typeof item.str !== "string" || !item.str) continue;
+        const str = item.str;
         const y = Number(item.transform?.[5]);
         const x = Number(item.transform?.[4]);
         if (baseline !== null && Number.isFinite(y) && Math.abs(y - baseline) > 2) {
@@ -348,8 +386,8 @@ async function pdfToMarkdown(bytes, pdfjs) {
           line = "";
           previousX = null;
         }
-        if (line && previousX !== null && Number.isFinite(x) && x - previousX > 2 && !/\s$/.test(line) && !/^\s/.test(item.str)) line += " ";
-        line += item.str;
+        if (line && previousX !== null && Number.isFinite(x) && x - previousX > 2 && !/\s$/.test(line) && !/^\s/.test(str)) line += " ";
+        line += str;
         baseline = Number.isFinite(y) ? y : baseline;
         previousX = Number.isFinite(x) ? x + Number(item.width || 0) : previousX;
         if (item.hasEOL) {
@@ -375,29 +413,29 @@ async function pdfToMarkdown(bytes, pdfjs) {
 }
 
 // convert: an HTML-to-Markdown function (Obsidian's htmlToMarkdown).
-async function htmlToMarkdown(source, convert) {
+async function htmlToMarkdown(source: string, convert: (html: string) => string | Promise<string>): Promise<string> {
   const contentOnly = String(source ?? "")
     .replace(/<(script|style|noscript|iframe|object)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, "")
     .replace(/<\/?(?:script|style|noscript|iframe|object|embed)\b[^>]*>/gi, "");
   return String(await convert(contentOnly)).replace(/\n{3,}/g, "\n\n").trim();
 }
 
-function decodeEntities(value) {
+function decodeEntities(value: string): string {
   return String(value).replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
     .replace(/&lt;/g, "<").replace(/&gt;/g, ">");
 }
 
-function stripNotionHash(name) {
+function stripNotionHash(name: string): string {
   return String(name).replace(/\s+[a-f0-9]{20,}(\.[^.]+)$/i, "$1").replace(/\s+[a-f0-9]{20,}$/i, "");
 }
 
-function safePathSegment(segment) {
+function safePathSegment(segment: string): string {
   const clean = Array.from(stripNotionHash(segment), char => char.charCodeAt(0) < 32 || "<>:\"|?*".includes(char) ? "-" : char).join("").trim().replace(/[. ]+$/g, "");
   if (!clean || clean === "." || clean === "..") return "_";
   return clean.slice(0, 180);
 }
 
-function safeZipPath(value) {
+function safeZipPath(value: string): string | null {
   const path = String(value).replace(/\\/g, "/");
   if (!path || path.startsWith("/") || /^[a-z]:/i.test(path)) return null;
   const segments = path.split("/").filter(Boolean);
@@ -405,14 +443,14 @@ function safeZipPath(value) {
   return segments.map(safePathSegment).join("/");
 }
 
-function commonZipRoot(paths) {
+function commonZipRoot(paths: string[]): string {
   if (!paths.length) return "";
   const first = paths.map(path => path.split("/")[0]);
   if (first[0] && first.every(part => part === first[0]) && paths.every(path => path.includes("/"))) return first[0] + "/";
   return "";
 }
 
-function cleanRelativeZipPath(value, currentPath) {
+function cleanRelativeZipPath(value: string, currentPath: string): string | null {
   let decoded = decodeEntities(String(value).replace(/^<|>$/g, "")).replace(/\\/g, "/");
   try { decoded = decodeURIComponent(decoded); } catch { /* keep the undecoded path */ }
   decoded = decoded.split(/[?#]/, 1)[0];
@@ -426,7 +464,7 @@ function cleanRelativeZipPath(value, currentPath) {
   return stack.join("/");
 }
 
-function uniquePath(candidate, occupied) {
+function uniquePath(candidate: string, occupied: Set<string>): string {
   if (!occupied.has(candidate.toLowerCase())) { occupied.add(candidate.toLowerCase()); return candidate; }
   const slash = candidate.lastIndexOf("/");
   const dir = slash >= 0 ? candidate.slice(0, slash + 1) : "";
@@ -440,7 +478,7 @@ function uniquePath(candidate, occupied) {
   }
 }
 
-function relativeMarkdownPath(fromFile, toFile) {
+function relativeMarkdownPath(fromFile: string, toFile: string): string {
   const from = fromFile.split("/").slice(0, -1);
   const to = toFile.split("/");
   while (from.length && to.length && from[0].toLowerCase() === to[0].toLowerCase()) { from.shift(); to.shift(); }
@@ -448,8 +486,8 @@ function relativeMarkdownPath(fromFile, toFile) {
   return value.startsWith(".") ? value : "./" + value;
 }
 
-function rewriteNotionReferences(markdown, sourcePath, targetPath, rootPrefix, notesBySource, assetsBySource) {
-  const resolve = (raw, isImage) => {
+function rewriteNotionReferences(markdown: string, sourcePath: string, targetPath: string, rootPrefix: string, notesBySource: Map<string, string>, assetsBySource: Map<string, string>): string {
+  const resolve = (raw: string, isImage: boolean) => {
     const original = raw.replace(/^<|>$/g, "");
     const fragmentIndex = original.indexOf("#");
     const fragment = fragmentIndex >= 0 ? original.slice(fragmentIndex) : "";
@@ -461,41 +499,44 @@ function rewriteNotionReferences(markdown, sourcePath, targetPath, rootPrefix, n
     if (!target) return null;
     return relativeMarkdownPath(targetPath, target) + (isImage ? "" : fragment);
   };
-  markdown = markdown.replace(/(!?\[[^\]]*\]\()(\s*)(<[^>]+>|[^)]*?)(\s+(?:"[^"]*"|'[^']*'))?(\s*\))/g, (whole, prefix, space, raw, title = "", close) => {
+  markdown = markdown.replace(/(!?\[[^\]]*\]\()(\s*)(<[^>]+>|[^)]*?)(\s+(?:"[^"]*"|'[^']*'))?(\s*\))/g, (whole: string, prefix: string, space: string, raw: string, title: string | undefined, close: string) => {
     const isImage = prefix.startsWith("![");
     const next = resolve(raw, isImage);
-    return next ? prefix + space + next + title + close : whole;
+    return next ? prefix + space + next + (title ?? "") + close : whole;
   });
-  markdown = markdown.replace(/<img\b[^>]*\bsrc\s*=\s*(["'])(.*?)\1[^>]*>/gi, (whole, _quote, raw) => {
+  markdown = markdown.replace(/<img\b[^>]*\bsrc\s*=\s*(["'])(.*?)\1[^>]*>/gi, (whole: string, _quote: string, raw: string) => {
     const next = resolve(raw, true);
     return next ? whole.replace(raw, next) : whole;
   });
   return markdown;
 }
 
-async function notionZipToMarkdown(bytes, importRoot) {
+async function notionZipToMarkdown(bytes: ZipInput, importRoot: string): Promise<NotionArchive> {
   const archive = await JSZip.loadAsync(bytes);
   const entries = Object.values(archive.files).filter(entry => !entry.dir);
   if (!entries.length) throw new Error("Notion 导出包为空");
   if (entries.length > MAX_ARCHIVE_ENTRIES) throw new Error("Notion 导出包文件过多，已停止导入");
   let totalBytes = 0;
   for (const entry of entries) {
-    const size = Number(entry._data?.uncompressedSize || 0);
+    const size = Number((entry as JSZip.JSZipObject & SizedEntry)._data?.uncompressedSize || 0);
     if (size > MAX_ARCHIVE_ENTRY_BYTES) throw new Error(`Notion 导出包中有过大的文件：${entry.name}`);
     totalBytes += size;
   }
   if (totalBytes > MAX_ARCHIVE_TOTAL_BYTES) throw new Error("Notion 导出包解压后超过 256 MB，已停止导入");
 
-  const valid = entries.map(entry => ({ entry, sourcePath: safeZipPath(entry.name) })).filter(item => item.sourcePath);
+  const valid = entries.flatMap(entry => {
+    const sourcePath = safeZipPath(entry.name);
+    return sourcePath ? [{ entry, sourcePath }] : [];
+  });
   const prefix = commonZipRoot(valid.map(item => item.sourcePath));
   const prepared = valid.map(item => ({ ...item, relativePath: prefix && item.sourcePath.startsWith(prefix) ? item.sourcePath.slice(prefix.length) : item.sourcePath }));
   const documents = prepared.filter(item => /\.(?:md|csv)$/i.test(item.relativePath));
   if (!documents.length) throw new Error("Notion 导出包里没有 Markdown 或 CSV 页面");
   const media = prepared.filter(item => IMAGE_EXTENSIONS.test(item.relativePath));
   const root = String(importRoot || "Notion 导入").split("/").filter(Boolean).map(safePathSegment).join("/");
-  const occupied = new Set();
-  const documentRecords = [];
-  const noteTargets = new Map();
+  const occupied = new Set<string>();
+  const documentRecords: Array<{ item: typeof prepared[number]; targetPath: string }> = [];
+  const noteTargets = new Map<string, string>();
   for (const item of documents) {
     const originalRelative = item.relativePath;
     let clean = originalRelative.split("/").map(safePathSegment).join("/");
@@ -507,10 +548,10 @@ async function notionZipToMarkdown(bytes, importRoot) {
     documentRecords.push({ item, targetPath });
   }
 
-  const assetRecords = [];
-  const assetTargets = new Map();
+  const assetRecords: Array<{ item: typeof prepared[number]; assetPath: string }> = [];
+  const assetTargets = new Map<string, string>();
   for (const item of media) {
-    const sourceName = item.relativePath.split("/").pop();
+    const sourceName = item.relativePath.split("/").pop() || "";
     const parent = item.relativePath.includes("/") ? item.relativePath.slice(0, item.relativePath.lastIndexOf("/")) : "";
     const folder = [root, ...parent.split("/").filter(Boolean).map(safePathSegment), "assets"].filter(Boolean).join("/");
     const stem = safePathSegment(stripNotionHash(sourceName).replace(/\.[^.]+$/, "")) || "image";
@@ -520,14 +561,14 @@ async function notionZipToMarkdown(bytes, importRoot) {
     assetRecords.push({ item, assetPath });
   }
 
-  const assets = [];
+  const assets: NotionAsset[] = [];
   for (const { item, assetPath } of assetRecords) {
     const data = await item.entry.async("uint8array");
     if (data.byteLength > MAX_ARCHIVE_ENTRY_BYTES) throw new Error(`Notion 图片过大：${item.entry.name}`);
-    assets.push({ sourcePath: item.relativePath, path: assetPath, bytes: data, extension: item.relativePath.split(".").pop().toLowerCase() });
+    assets.push({ sourcePath: item.relativePath, path: assetPath, bytes: data, extension: (item.relativePath.split(".").pop() || "").toLowerCase() });
   }
 
-  const files = [];
+  const files: NotionFile[] = [];
   for (const { item, targetPath } of documentRecords) {
     let content = await item.entry.async("string");
     if (/\.csv$/i.test(item.relativePath)) content = csvToMarkdown(content);

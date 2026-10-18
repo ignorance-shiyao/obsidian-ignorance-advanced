@@ -13,7 +13,7 @@ import {
   safeZipPath,
   stripNotionHash,
   xlsxToMarkdown
-} from "./import-converters.js";
+} from "./import-converters";
 
 describe("CSV / TSV converters", () => {
   it("handles quoted delimiters, escaped quotes, and newlines", () => {
