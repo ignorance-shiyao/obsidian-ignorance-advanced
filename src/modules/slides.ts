@@ -574,8 +574,8 @@ class PresentationView extends ItemView {
     });
     this.exportButton = addToolbarButton(this.toolbar, "lucide-file-down", "导出 PPTX", () => {
       const menu = new Menu();
-      menu.addItem(item => item.setTitle("微软演示文稿（可编辑）").setIcon("lucide-presentation").onClick(() => this.previewPptx("editable")));
-      menu.addItem(item => item.setTitle("微软演示文稿（图片版，高保真、不可编辑）").setIcon("lucide-image").onClick(() => this.previewPptx("image")));
+      menu.addItem(item => item.setTitle("微软演示文稿（.pptx，可编辑）").setIcon("lucide-presentation").onClick(() => this.previewPptx("editable")));
+      menu.addItem(item => item.setTitle("微软演示文稿（.pptx，图片版，高保真、不可编辑）").setIcon("lucide-image").onClick(() => this.previewPptx("image")));
       const box = this.exportButton.getBoundingClientRect();
       menu.showAtPosition({ x: box.left, y: box.bottom + 4 });
     });
