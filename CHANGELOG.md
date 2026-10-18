@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Word 导出的代码字体跳过系统别名，沿等宽字体链选取实际字体，避免 Pages 提示缺失。
+
 - 清理已移除图种的专属图表样式，保留现有图种共享规则。
 Split slides lay out in two balanced grid columns measured at build time instead of CSS multi-column (a single list is split between the columns, numbered lists keep counting). Exported HTML pages no longer store reader choices in the browser (they last while the page is open), and web clipping no longer reads the clipboard by itself when it finds a failed shared page; the clipboard is read only when you open the clip dialog, run the re-clip command, or turn on link detection.
 
