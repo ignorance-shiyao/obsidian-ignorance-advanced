@@ -24,6 +24,9 @@ check(/^[A-Za-z0-9 +()-]+$/.test(manifest.name) && !/obsidian|plugin/i.test(mani
 check(manifest.description.length <= 250 && manifest.description.endsWith(".") && !/\p{Extended_Pictographic}/u.test(manifest.description) && !/^this is a plugin/i.test(manifest.description), "description: ≤250 chars, ends with a period, no emoji", String(manifest.description.length));
 check(typeof manifest.isDesktopOnly === "boolean", "isDesktopOnly is set");
 check(existsSync("LICENSE") && existsSync("README.md"), "LICENSE and README present");
+// The store type-checks .js too, where untyped code turns into a wall of no-unsafe-* warnings.
+const plainJs = execFileSync("git", ["ls-files", "src"], { encoding: "utf8" }).split("\n").filter(file => /\.(?:js|mjs|cjs)$/.test(file) && existsSync(file));
+check(plainJs.length === 0, "src/ is TypeScript only (no .js files)", plainJs.join(", "));
 check(new RegExp(`^## ${manifest.version.replaceAll(".", "\\.")}$`, "m").test(read("CHANGELOG.md")), "CHANGELOG has an entry for this version");
 
 // Source patterns
