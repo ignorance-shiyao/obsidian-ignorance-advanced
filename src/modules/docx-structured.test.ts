@@ -18,6 +18,8 @@ describe("结构化 Word 导出", () => {
       expect(heading).toContain(`w:sz w:val="${size}"`);
       expect(heading).toContain("<w:b/>");
       expect(document).toContain(`w:pStyle w:val="Heading${level}"`);
+      const paragraph = document.match(new RegExp(`<w:p>[\\s\\S]*?<w:pStyle w:val="Heading${level}"[\\s\\S]*?</w:p>`))?.[0];
+      expect(paragraph).toContain(`w:sz w:val="${size}"`);
     }
   });
 

@@ -113,6 +113,10 @@ function fitImage(image: WordImage, maxWidth = 468, maxHeight = 640) {
   return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
 }
 
+function headingFontSize(fontSize: number, level: number) {
+  return Math.round(fontSize * ([1.6, 1.35, 1.15][level - 1] ?? 1));
+}
+
 function runStyle(style: RunFlags, tpl: WordStyle) {
   return {
     font: style.code ? tpl.codeFamily : tpl.fontFamily,
@@ -356,7 +360,8 @@ async function blocksToDocx(tokens: Token[], context: DocxContext, quoteDepth = 
     if (token.type === "heading_open") {
       const inline = tokens[index + 1];
       const level = Number(token.tag?.slice(1)) || 1;
-      const runs = inline?.children ? await inlineTokensToRuns(inline.children, context, { bold: true }) : [new TextRun({ text: "" })];
+      const headingContext = level <= 3 ? { ...context, style: { ...context.style, fontSize: headingFontSize(context.style.fontSize, level) } } : context;
+      const runs = inline?.children ? await inlineTokensToRuns(inline.children, headingContext, { bold: true }) : [new TextRun({ text: "" })];
       elements.push(paragraphFromRuns(runs, context, { heading: Math.min(6, Math.max(1, level)), quote: quoteDepth > 0 }));
       index += 3;
       continue;
@@ -420,9 +425,9 @@ export async function createStructuredDocxBuffer(source: string, options: Struct
     styles: {
       default: {
         document: { run: { font: style.fontFamily, size: style.fontSize * 2 } },
-        heading1: { run: { font: style.fontFamily, size: Math.round(style.fontSize * 1.6) * 2, bold: true } },
-        heading2: { run: { font: style.fontFamily, size: Math.round(style.fontSize * 1.35) * 2, bold: true } },
-        heading3: { run: { font: style.fontFamily, size: Math.round(style.fontSize * 1.15) * 2, bold: true } }
+        heading1: { run: { font: style.fontFamily, size: headingFontSize(style.fontSize, 1) * 2, bold: true } },
+        heading2: { run: { font: style.fontFamily, size: headingFontSize(style.fontSize, 2) * 2, bold: true } },
+        heading3: { run: { font: style.fontFamily, size: headingFontSize(style.fontSize, 3) * 2, bold: true } }
       }
     },
     sections: [{ children: elements.length ? elements : [new Paragraph({ text: "" })] }]
