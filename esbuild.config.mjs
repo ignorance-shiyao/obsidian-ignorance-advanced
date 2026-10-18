@@ -44,10 +44,23 @@ const NO_EVAL = [
     ['return $Function("\\"use strict\\"; return (" + expressionSyntax + ").constructor;")();', 'return ({ "function* () {}": Object.getPrototypeOf(function* () {}), "async function* () {}": Object.getPrototypeOf(async function* () {}), "async function () {}": Object.getPrototypeOf(async function () {}) })[expressionSyntax]?.constructor;', 1],
     ['bound = Function("binder", "return function (" + joiny(boundArgs, ",") + "){ return binder.apply(this,arguments); }")(binder);', 'bound = function() { return binder.apply(this, arguments); };', 1],
     ['return Function("return function*() {}")();', 'return function* () {};', 1],
-    ['"function" != typeof e && (e = new Function("" + e));', '"function" != typeof e && (e = function() { throw new TypeError("setImmediate needs a function"); });', 1]
+    ['"function" != typeof e && (e = new Function("" + e));', '"function" != typeof e && (e = function() { throw new TypeError("setImmediate needs a function"); });', 1],
+    // Old-IE setImmediate fallbacks (script onreadystatechange): never taken in Obsidian.
+    ['"onreadystatechange" in t.document.createElement("script")', 'false', 1],
+    ['var e = t.document.createElement("script");', 'var e = t.document.createElement("span");', 1],
+    ['"onreadystatechange" in l.createElement("script")', 'false', 1],
+    ['var t = l.createElement("script");', 'var t = l.createElement("span");', 1]
   ] },
   { file: /node_modules\/jszip\/dist\/jszip\.min\.js$/, rules: [
-    ['"function"!=typeof e&&(e=new Function(""+e));', '"function"!=typeof e&&(e=function(){throw new TypeError("setImmediate needs a function")});', 1]
+    ['"function"!=typeof e&&(e=new Function(""+e));', '"function"!=typeof e&&(e=function(){throw new TypeError("setImmediate needs a function")});', 1],
+    ['"onreadystatechange"in t.document.createElement("script")', '!1', 1],
+    ['var e=t.document.createElement("script");', 'var e=t.document.createElement("span");', 1],
+    ['"onreadystatechange"in l.createElement("script")', '!1', 1],
+    ['var t=l.createElement("script");', 'var t=l.createElement("span");', 1]
+  ] },
+  // Reveal's loader for script dependencies; the plugin passes none, so it only reports an error.
+  { file: /node_modules\/reveal\.js\/dist\/reveal\.mjs$/, rules: [
+    ["_e = (e, t) => {\n\tlet n = document.createElement(\"script\");\n\tn.type = \"text/javascript\", n.async = !1, n.defer = !1, n.src = e, typeof t == \"function\" && (n.onload = (e) => {\n\t\te.type === \"load\" && (n.onload = n.onerror = null, t());\n\t}, n.onerror = (e) => {\n\t\tn.onload = n.onerror = null, t(/* @__PURE__ */ Error(\"Failed loading script: \" + n.src + \"\\n\" + e));\n\t});\n\tlet r = document.querySelector(\"head\");\n\tr && r.insertBefore(n, r.lastChild);\n", '_e = (e, t) => {\n\ttypeof t == "function" && t(Error("Loading scripts is not supported: " + e));\n', 1]
   ] },
   { file: /node_modules\/echarts\/lib\/coord\/geo\/GeoJSONResource\.js$/, rules: [
     ["new Function('return (' + source + ');')()", "JSON.parse(source)", 1]
@@ -56,7 +69,7 @@ const NO_EVAL = [
 const noEval = {
   name: "no-eval",
   setup(b) {
-    b.onLoad({ filter: /node_modules\/(?:docx|jszip|echarts)\/.*\.m?js$/ }, async args => {
+    b.onLoad({ filter: /node_modules\/(?:docx|jszip|echarts|reveal\.js)\/.*\.m?js$/ }, async args => {
       const entry = NO_EVAL.find(item => item.file.test(args.path));
       if (!entry) return undefined;
       let contents = await readFile(args.path, "utf8");

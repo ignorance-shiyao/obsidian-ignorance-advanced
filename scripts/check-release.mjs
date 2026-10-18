@@ -81,8 +81,8 @@ if (existsSync("dist/main.js")) {
   const size = statSync("dist/main.js").size / 1048576;
   check(size < 5, "dist/main.js is under 5 MB", `${size.toFixed(2)} MB`);
   const bundle = read("dist/main.js");
-  const banned = ["child_process", "ipcRenderer", 'require("electron")', 'require("fs")', "new Function", "eval("].filter(token => bundle.includes(token));
-  check(banned.length === 0, "dist/main.js has no Node / Electron access or eval", banned.join(", "));
+  const banned = ["child_process", "ipcRenderer", 'require("electron")', 'require("fs")', "new Function", "eval(", "createElement(\"script\")", "createElement('script')"].filter(token => bundle.includes(token));
+  check(banned.length === 0, "dist/main.js has no Node / Electron access, eval or script injection", banned.join(", "));
 }
 
 // Nothing internal in the public repository
