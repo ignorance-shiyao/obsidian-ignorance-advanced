@@ -1,5 +1,6 @@
 // 移植自 morphdraft/src/core/export/docx2.ts：Markdown token → docx.js 对象。
 import MarkdownIt from "markdown-it";
+import { WORD_TEXT_FONT } from "./word-font.js";
 import {
   BorderStyle,
   Document,
@@ -40,8 +41,8 @@ const HEADING_LEVELS: Record<number, (typeof HeadingLevel)[keyof typeof HeadingL
 };
 
 const DEFAULT_WORD_STYLE: WordStyle = {
-  fontFamily: "Arial",
-  headingFamily: "Arial",
+  fontFamily: WORD_TEXT_FONT,
+  headingFamily: WORD_TEXT_FONT,
   codeFamily: "Consolas",
   fontSize: 11,
   lineHeight: 1.6

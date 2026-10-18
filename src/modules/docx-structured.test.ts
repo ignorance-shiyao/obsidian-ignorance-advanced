@@ -93,3 +93,18 @@ describe("结构化 Word 导出", () => {
     ].join("\n"));
   });
 });
+
+it("默认正文与三级标题使用微软雅黑，并保持独立的代码字体", async () => {
+  const output = await createStructuredDocxBuffer("# 一级\n\n## 二级\n\n### 三级\n\n正文与 `code`", { style: { codeFamily: "Menlo" } });
+  const archive = await JSZip.loadAsync(output);
+  const styles = await archive.file("word/styles.xml").async("string");
+  const document = await archive.file("word/document.xml").async("string");
+  for (const level of [1, 2, 3]) {
+    const heading = styles.match(new RegExp(`<w:style[^>]*w:styleId="Heading${level}"[\\s\\S]*?</w:style>`))?.[0];
+    expect(heading).toContain('w:eastAsia="Microsoft YaHei"');
+  }
+  expect(document).toContain('w:ascii="Microsoft YaHei"');
+  expect(document).toContain('w:eastAsia="Microsoft YaHei"');
+  expect(document).toContain('w:ascii="Menlo"');
+  expect(document).not.toContain("PingFang");
+});

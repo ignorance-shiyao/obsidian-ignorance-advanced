@@ -1,3 +1,5 @@
+export const WORD_TEXT_FONT = "Microsoft YaHei";
+
 const CSS_FONT_ALIASES = new Set([
   "-apple-system", "blinkmacsystemfont", "sfmono-regular", "system-ui", "ui-sans-serif", "ui-serif", "ui-monospace", "ui-rounded",
   "sans-serif", "serif", "monospace", "cursive", "fantasy", "emoji", "math", "fangsong",
