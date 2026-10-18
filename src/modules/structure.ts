@@ -12,6 +12,7 @@ const BODY_LAYOUTS = new Set<SlideLayout>(['default', 'split', 'grid'])
 
 export function structureSlide(section: HTMLElement, layout: SlideLayout, opts: StructureOpts = {}) {
     if (BODY_LAYOUTS.has(layout)) structureDefaultSlide(section, opts)
+    if (layout === 'split') balanceSplitColumns(section)
   else if (layout === 'cover') tuneCoverSlide(section)
 }
 
@@ -71,6 +72,44 @@ function tuneBodyDensity(section: HTMLElement, body: HTMLElement) {
   } else {
     section.dataset.density = 'balanced'
   }
+}
+
+// 分栏页：按实测高度把正文块分成左右两栏（替代 CSS 多栏）。只有一个列表时按列表项拆分，有序列表续号
+function balanceSplitColumns(section: HTMLElement) {
+  const body = section.querySelector<HTMLElement>(':scope > .slide-inner > .slide-body')
+  if (!body || body.querySelector(':scope > .ibc-container--cols, :scope > .slide-split-col')) return
+  let blocks = Array.from(body.children) as HTMLElement[]
+  const only = blocks.length === 1 ? blocks[0] : null
+  if (only && /^(UL|OL)$/.test(only.tagName) && only.children.length > 1) {
+    const items = Array.from(only.children) as HTMLElement[]
+    const half = splitIndex(items)
+    const second = only.cloneNode(false) as HTMLElement
+    if (only.tagName === 'OL') second.setAttribute('start', String(Number(only.getAttribute('start') || 1) + half))
+    second.append(...items.slice(half))
+    only.after(second)
+    blocks = [only, second]
+  }
+  if (blocks.length < 2) return
+  const half = splitIndex(blocks)
+  const left = createDiv({ cls: 'slide-split-col' })
+  const right = createDiv({ cls: 'slide-split-col' })
+  left.append(...blocks.slice(0, half))
+  right.append(...blocks.slice(half))
+  body.append(left, right)
+  body.classList.add('has-split-cols')
+}
+
+// 第一栏取到累计高度过半为止；量不到高度（未挂载）时按块数对半
+function splitIndex(blocks: HTMLElement[]): number {
+  const heights = blocks.map(el => el.getBoundingClientRect().height)
+  const total = heights.reduce((sum, h) => sum + h, 0)
+  if (!total) return Math.ceil(blocks.length / 2)
+  let sum = 0
+  for (let i = 0; i < blocks.length - 1; i += 1) {
+    sum += heights[i]
+    if (sum >= total / 2) return sum - heights[i] / 2 > total / 2 && i > 0 ? i : i + 1
+  }
+  return blocks.length - 1
 }
 
 function tuneCoverSlide(section: HTMLElement) {

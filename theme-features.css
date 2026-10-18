@@ -1649,19 +1649,19 @@ body.ib-show-code-line-numbers .markdown-source-view.mod-cm6.is-live-preview .ib
     min-width: 0;
     width: 100%;
 }
-.slide-surface.slide-layout-split .slide-body:not(.ib-has-cols) {
-    columns: 2;
-    gap: 1.55em;
+.slide-surface.slide-layout-split .slide-body.has-split-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 1.55em;
+    align-items: start;
     background: linear-gradient(color-mix(in srgb, var(--border) 55%, transparent), color-mix(in srgb, var(--border) 55%, transparent)) 50% 0 / 1px 100% no-repeat;
 }
-.slide-surface.slide-layout-split .slide-body > * {
+.slide-surface.slide-layout-split .slide-body > *,
+.slide-surface.slide-layout-split .slide-split-col > * {
     min-width: 0;
-    page-break-inside: avoid;
     margin-top: 0;
     margin-bottom: 0.62em;
 }
-.slide-surface.slide-layout-split .slide-body > :is(ul, ol) { page-break-inside: auto; }
-.slide-surface.slide-layout-split .slide-body > :is(ul, ol) > li { page-break-inside: avoid; }
 .slide-surface.slide-layout-grid .slide-body {
     flex: 1 1 auto;
     min-height: 0;
