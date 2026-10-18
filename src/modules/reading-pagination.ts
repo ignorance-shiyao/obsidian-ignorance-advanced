@@ -10,7 +10,6 @@ import { nextFrame } from "./export.js";
 import { firstScreenSource } from "./first-screen-source.js";
 import { renderBudget } from "./render-budget.js";
 import { paginateStrip as paginateStripCoordinates, paginationElements } from "./pagination.js";
-import { fitPaperTreeBounds } from "./paper-tree-bounds.js";
 import { preparePaperTableColumns } from "./paper-table-columns.js";
 import { renderMarkdownWithContainers } from "./containers.js";
 import { applyCodeFenceHighlights } from "./code-lines.js";
@@ -564,7 +563,6 @@ async function composePages(plugin: IgnorancePlugin, file: TFile, text: string, 
         if (!onProgress) await settleRenderRegion(quick, bodyBox.height * (showProgress ? 1 : 3), signal);
         else await nextFrame();
         await plugin.settleDiagramFits?.(quick, signal);
-        fitPaperTreeBounds(quick);
         const firstPass = paginateStrip(quick, bodyBox.height, page.breakMode);
         // The last window may be cut short by the opening's end; leave it out.
         // Only the first page can be visible before the opening is published.
@@ -614,7 +612,6 @@ async function composePages(plugin: IgnorancePlugin, file: TFile, text: string, 
     if (early && !opening) {
       await settleRenderRegion(staging, bodyBox.height * 3, signal);
       await plugin.settleDiagramFits?.(staging, signal);
-      fitPaperTreeBounds(staging);
       const firstPass = paginateStrip(staging, bodyBox.height, page.breakMode);
       const earlyCount = Math.min(3, firstPass.windows.length);
       if (earlyCount) {
@@ -628,7 +625,6 @@ async function composePages(plugin: IgnorancePlugin, file: TFile, text: string, 
     }
     await settleRender(staging, signal);
     await plugin.settleDiagramFits?.(staging, signal);
-    fitPaperTreeBounds(staging);
     const { blocks, windows } = paginateStrip(staging, bodyBox.height, page.breakMode);
     const signatures = pageBlockSignatures(blocks);
     const ranges = pageBlockRanges(blocks, windows);

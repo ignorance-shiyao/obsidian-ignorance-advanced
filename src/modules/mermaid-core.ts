@@ -1,9 +1,6 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { withClassBoxMeasurement } from "./class-box-measurement.js";
 import { withMermaidConfigIsolation } from "./mermaid-config-isolation.js";
-import { layoutWardleyNotes, restoreWardleyNotes } from "./wardley-note-layout.js";
-import { parseYaml } from "obsidian";
-import { withWardleyFontConfig } from "./wardley-font-config.js";
 import { Decoration } from "@codemirror/view";
 import type { EditorView } from "@codemirror/view";
 import { mapArchitectureIcons, registerLucideIcons } from "./architecture-icons.js";
@@ -145,12 +142,6 @@ const SERIES_MARKS = [
 ].join(", ");
 const SERIES_SWATCHES = ".legend rect, g.legend rect, .legend .swatch, .legendColor";
 
-/* Families with their own block in theme.css; the generic dark tone mapping
-   must not paint over them. */
-const THEMED_KINDS = new Set([
-  "usecase", "zenuml", "eventmodeling", "ishikawa", "wardley", "treeView"
-]);
-
 /* C4 writes its default palette inline with !important, which no stylesheet
    can beat. Only these exact defaults are stripped (and the role recorded for
    the theme); any other inline color is the author's UpdateElementStyle. */
@@ -286,7 +277,6 @@ function applyPaint(element: SVGElement | HTMLElement, props: Record<string, str
 }
 
 function clearPaint(svg: SVGSVGElement) {
-  restoreWardleyNotes(svg);
   for (const label of svg.querySelectorAll("[data-ibm-note-label-transform]")) {
     const transform = label.getAttribute("data-ibm-note-label-transform");
     if (transform) label.setAttribute("transform", transform);
@@ -391,10 +381,8 @@ function paintDiagram(svg: SVGSVGElement, isDark: boolean) {
   if (kind === "sankey") whenMeasurable(svg, () => separateSankeyLabels(svg));
   if (kind === "journey") arrangeJourneyFaces(svg);
   if (kind === "gantt") markGanttSections(svg);
-  if (kind === "wardley") whenMeasurable(svg, () => layoutWardleyNotes(svg));
   if (kind === "pie") buildPieTable(svg);
   if (kind === "requirement") drawRequirementCards(svg);
-  if (kind === "usecase") decorateUsecase(svg);
   if (kind === "flowchart-v2" || kind === "flowchart" || kind === "graph" || kind === "swimlane") decorateFlowchart(svg);
   if (kind === "swimlane") decorateSwimlanes(svg);
   if (kind === "sequence") {
@@ -405,7 +393,7 @@ function paintDiagram(svg: SVGSVGElement, isDark: boolean) {
     adoptC4Defaults(svg);
     whenMeasurable(svg, () => { compactC4Title(svg); separateC4Labels(svg); });
   }
-  if (isDark && !structural && !series && !THEMED_KINDS.has(kind)) toneMapForDark(svg, themeTokens());
+  if (isDark && !structural && !series) toneMapForDark(svg, themeTokens());
 
   svg.setAttribute("data-ibm-theme", isDark ? "dark" : "light");
 }
@@ -1011,53 +999,6 @@ function drawRequirementCards(svg: SVGSVGElement) {
         }
       }
     }
-  }
-}
-
-/* Use case: actors sit on cards with an avatar disc behind the figure, the
-   system boundary gets a header band with an icon and a left-aligned title,
-   and association lines start from a dot. Shapes only; the theme colors. */
-function decorateUsecase(svg: SVGSVGElement) {
-  if (svg.hasAttribute("data-ibm-usecase-fixed")) return;
-  svg.setAttribute("data-ibm-usecase-fixed", "");
-  const el = svgEl;
-
-  for (const actor of svg.querySelectorAll("g.usecase-actor")) {
-    const outline = actor.querySelector("rect.usecase-actor-outline");
-    const glyph = actor.querySelector("g.usecase-actor-glyph");
-    if (!outline || !glyph) continue;
-    const x = Number(outline.getAttribute("x")), y = Number(outline.getAttribute("y"));
-    const w = Number(outline.getAttribute("width")), h = Number(outline.getAttribute("height"));
-    actor.insertBefore(el("rect", { class: "ibm-uc-card", x: x - 8, y: y - 10, width: w + 16, height: h + 20, rx: 14, ry: 14 }), actor.firstChild);
-    const gy = (parseTranslate(glyph)?.y || 0) - 4;
-    glyph.before(el("circle", { class: "ibm-uc-avatar", cx: 0, cy: gy, r: 34 }));
-  }
-
-  for (const boundary of svg.querySelectorAll("g.usecase-system-boundary")) {
-    const body = boundary.querySelector("rect.boundary-body");
-    const title = boundary.querySelector("g.system-boundary-title");
-    if (!body) continue;
-    const x = Number(body.getAttribute("x")), y = Number(body.getAttribute("y"));
-    const w = Number(body.getAttribute("width"));
-    const r = 16, band = 52;
-    body.after(el("path", { class: "ibm-uc-band", d: `M${x},${y + band} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + band} Z` }));
-    const tile = el("circle", { class: "ibm-uc-icon-bg", cx: x + 34, cy: y + band / 2, r: 17 });
-    const icon = el("path", { class: "ibm-uc-icon", d: REQ_ICONS.box, transform: `translate(${x + 25},${y + band / 2 - 9}) scale(0.75)` });
-    boundary.appendChild(tile);
-    boundary.appendChild(icon);
-    if (title) title.setAttribute("transform", `translate(${x + 62},${y + band / 2 - 12})`);
-  }
-
-  // Associations leave the actor from the card's edge (the card is 8px wider
-  // than Mermaid's actor box), marked with a dot.
-  for (const edge of svg.querySelectorAll("path.relationship-association")) {
-    const d = edge.getAttribute("d") || "";
-    const m = /^\s*M\s*(-?[\d.]+)[ ,]+(-?[\d.]+)\s*[LQC]\s*(-?[\d.]+)/.exec(d);
-    if (!m) continue;
-    const x = Number(m[1]), y = Number(m[2]), nextX = Number(m[3]);
-    const sx = x + Math.sign(nextX - x || 1) * 8;
-    edge.setAttribute("d", d.replace(/^\s*M\s*-?[\d.]+/, `M${sx}`));
-    edge.after(el("circle", { class: "ibm-uc-dot", cx: sx, cy: y, r: 3.5 }));
   }
 }
 
@@ -1709,8 +1650,7 @@ const DIAGRAM_LABELS: Record<string, string> = {
   requirement: "Requirement", gitGraph: "Git", c4: "C4", mindmap: "Mindmap",
   timeline: "Timeline", sankey: "Sankey", xychart: "XY Chart", block: "Block",
   packet: "Packet", kanban: "Kanban", architecture: "Architecture",
-  radar: "Radar", treemap: "Treemap", venn: "Venn", ishikawa: "Ishikawa",
-  wardley: "Wardley", treeView: "Tree", eventmodeling: "Event Model"
+  radar: "Radar", treemap: "Treemap", venn: "Venn"
 };
 
 function diagramLabel(svg: SVGSVGElement) {
@@ -1858,87 +1798,6 @@ interface MermaidEngine {
 
 const FLOWCHART_HEADER = /^(\s*(?:---[\s\S]*?\n---\s*\n)?(?:%%[^\n]*\n\s*)*(?:flowchart|graph))(?:[ \t]+(LR|RL|TB|TD|BT))?[ \t]*$/m;
 
-/* --------------------------------------------------------------------------
- * Use case crossing reduction
- *
- * The use case layout keeps declaration order, so actors and use cases that
- * talk to each other can end up on opposite sides and their links cross.
- * After the first render, actors are re-ordered by the average height of the
- * use cases they reach, then use cases by the average rank of their actors
- * (the classic two-layer barycentre pass). The reordered source is rendered
- * and kept only if it actually crosses less.
- * -------------------------------------------------------------------------- */
-
-const USECASE_HEADER = /^\s*usecase(?:-beta)?\b/m;
-const USECASE_EDGE = /^\s*([A-Za-z_][\w-]*)\s*(?:-->|--|\.\.>[^\s]*|<--)\s*([A-Za-z_][\w-]*)\s*$/;
-
-function usecasePositions(svgText: string) {
-  const positions = new Map<string, Point>();
-  const re = /<g[^>]*id="[^"]*-usecase-([^"]+)"[^>]*transform="translate\(\s*(-?[\d.]+)[,\s]+(-?[\d.]+)\s*\)"/g;
-  for (const m of svgText.matchAll(re)) positions.set(m[1], { x: Number(m[2]), y: Number(m[3]) });
-  return positions;
-}
-
-function segmentsCross(a: Point, b: Point, c: Point, d: Point) {
-  const cross = (p: Point, q: Point, r: Point) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
-  const d1 = cross(c, d, a), d2 = cross(c, d, b), d3 = cross(a, b, c), d4 = cross(a, b, d);
-  return ((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0));
-}
-
-function countCrossings(edges: [string, string][], positions: Map<string, Point>) {
-  const segs = edges.map(([from, to]): [string, string, Point, Point] => [from, to, positions.get(from), positions.get(to)]).filter(e => e[2] && e[3]);
-  let crossings = 0;
-  for (let i = 0; i < segs.length; i += 1) {
-    for (let j = i + 1; j < segs.length; j += 1) {
-      const [a1, a2, p1, p2] = segs[i];
-      const [b1, b2, q1, q2] = segs[j];
-      if (a1 === b1 || a1 === b2 || a2 === b1 || a2 === b2) continue;
-      if (segmentsCross(p1, p2, q1, q2)) crossings += 1;
-    }
-  }
-  return crossings;
-}
-
-function reorderUsecaseSource(text: string, positions: Map<string, Point>) {
-  const lines = text.split("\n");
-  const edges: [string, string][] = [];
-  lines.forEach((line: string) => { const m = USECASE_EDGE.exec(line); if (m) edges.push([m[1], m[2]]); });
-  const neighbours = (name: string) => edges.flatMap(([a, b]) => (a === name ? [b] : b === name ? [a] : []));
-  const meanY = (names: string[]) => {
-    const ys = names.map(n => positions.get(n)?.y).filter(v => v !== undefined);
-    return ys.length ? ys.reduce((x, y) => x + y, 0) / ys.length : Infinity;
-  };
-  const declName = (line: string) => /^\s*(?:actor\s+)?([A-Za-z_][\w-]*)\s*[([]/.exec(line)?.[1];
-
-  // Actors by the mean height of their use cases.
-  const actorIdx = lines.map((l, i: number) => (/^\s*actor\b/.test(l) ? i : -1)).filter((i: number) => i >= 0);
-  const actorOrder = actorIdx.map((i: number) => lines[i]).sort((a, b) => meanY(neighbours(declName(a))) - meanY(neighbours(declName(b))));
-  const actorRank = new Map<string, number>(actorOrder.map((l, r): [string, number] => [declName(l), r]));
-  actorIdx.forEach((i: number, k) => { lines[i] = actorOrder[k]; });
-
-  // Use cases (declared inside a boundary) by the mean rank of their actors,
-  // falling back to their current height for ties and actor-less ones.
-  let inBoundary = false;
-  const caseIdx: number[] = [];
-  lines.forEach((line: string, i: number) => {
-    if (/^\s*systemBoundary\b/.test(line)) { inBoundary = true; return; }
-    if (inBoundary && /^\s*end\s*$/.test(line)) { inBoundary = false; return; }
-    if (inBoundary && declName(line)) caseIdx.push(i);
-  });
-  const caseKey = (line: string): [number, number] => {
-    const name = declName(line);
-    const ranks = neighbours(name).map(n => actorRank.get(n)).filter(r => r !== undefined);
-    const rank = ranks.length ? ranks.reduce((x, y) => x + y, 0) / ranks.length : Infinity;
-    return [rank, positions.get(name)?.y ?? 0];
-  };
-  const caseOrder = caseIdx.map(i => lines[i]).sort((a, b) => {
-    const [ra, ya] = caseKey(a), [rb, yb] = caseKey(b);
-    return ra === rb ? ya - yb : ra - rb;
-  });
-  caseIdx.forEach((i, k) => { lines[i] = caseOrder[k]; });
-  return { text: lines.join("\n"), edges };
-}
-
 /* Flowchart node shapes are read from the source (the neo look draws
    stadiums, cylinders and subroutines all as outline paths) and stamped on
    the SVG root for decorateFlowchart. */
@@ -1960,26 +1819,6 @@ function installFlowchartShapes(mermaid: MermaidEngine) {
       }
       const json = JSON.stringify(shapes).replace(/'/g, "&#39;");
       return { ...result, svg: result.svg.replace(/<svg\b/, `<svg data-ibm-shapes='${json}'`) };
-    } catch {
-      return result;
-    }
-  };
-}
-
-function installUsecaseOrdering(mermaid: MermaidEngine) {
-  const render = mermaid.render.bind(mermaid) as MermaidEngine["render"];
-  let counter = 0;
-  mermaid.render = async (id: string, text: string, ...rest: unknown[]) => {
-    const result = await render(id, text, ...rest);
-    try {
-      if (typeof text !== "string" || !USECASE_HEADER.test(text) || /%%\s*ibm:keep-layout/.test(text)) return result;
-      const positions = usecasePositions(result.svg);
-      const { text: reordered, edges } = reorderUsecaseSource(text, positions);
-      const before = countCrossings(edges, positions);
-      if (!before || reordered === text) return result;
-      const alternative = await render(`${id}-ibm-uc${counter++}`, reordered, ...rest);
-      const after = countCrossings(edges, usecasePositions(alternative.svg));
-      return after < before ? alternative : result;
     } catch {
       return result;
     }
@@ -2028,9 +1867,6 @@ const MERMAID_CONFIG = {
     boundaryFontSize: 19, messageFontSize: 17
   },
   architecture: { fontSize: 20 },
-  // Wardley otherwise uses 10px labels, which shrink to ~6px in a reading column.
-  // Engine configuration participates in layout; authored diagram config wins.
-  "wardley-beta": { labelFontSize: 16, axisFontSize: 14 },
   // Block connectors need room between cards, especially with 20px labels.
   block: { padding: 24 },
   // Keep enough vertical node space without shrinking the whole drawing to
@@ -2090,7 +1926,7 @@ function createMermaidRouter(plugin: IgnorancePlugin, engine: MermaidEngine) {
             if (interval) text = text.replace(/^(\s*gantt[^\n]*\n)/m, `$1    tickInterval ${interval}\n`);
           } catch { /* Original rendering retains Mermaid's error handling. */ }
         }
-        const result = await withClassNoteLayout(engine, text, () => withClassBoxMeasurement(engine, id, text, () => withWardleyFontConfig(engine, text, () => engine.render(id, text, ...rest), parseYaml)), getComputedStyle(document.body).getPropertyValue("--ib-font-mono").trim());
+        const result = await withClassNoteLayout(engine, text, () => withClassBoxMeasurement(engine, id, text, () => engine.render(id, text, ...rest)), getComputedStyle(document.body).getPropertyValue("--ib-font-mono").trim());
         // Stamp who drew it, so diagrams Obsidian drew before we loaded can be found.
         // Mermaid caps the drawing with an inline max-width; hand it over as a
         // variable so the stylesheet applies it and layout classes can lift it.
@@ -2102,7 +1938,6 @@ function createMermaidRouter(plugin: IgnorancePlugin, engine: MermaidEngine) {
       return drawn;
     }
   };
-  installUsecaseOrdering(router);
   installFlowchartShapes(router);
   return router;
 }
@@ -2117,7 +1952,6 @@ export {
   SERIES_KINDS,
   SERIES_MARKS,
   SERIES_SWATCHES,
-  THEMED_KINDS,
   C4_DEFAULTS,
   PERSON_GLYPH,
   SVG_NS_C4,
@@ -2147,7 +1981,6 @@ export {
   REQ_ICONS,
   requirementIcon,
   drawRequirementCards,
-  decorateUsecase,
   FLOW_KEYWORDS,
   CLUSTER_KEYWORDS,
   flowIcon,
@@ -2190,17 +2023,10 @@ export {
   interfaceLanguage,
   t,
   FLOWCHART_HEADER,
-  USECASE_HEADER,
-  USECASE_EDGE,
-  usecasePositions,
-  segmentsCross,
-  countCrossings,
-  reorderUsecaseSource,
   FLOW_SHAPE_RE,
   FLOW_SHAPES,
   SWIMLANE_HEADER,
   installFlowchartShapes,
-  installUsecaseOrdering,
   MERMAID_CONFIG,
   createMermaidRouter
 };

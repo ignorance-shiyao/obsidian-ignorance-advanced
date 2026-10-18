@@ -238,23 +238,6 @@ export const SNIPPET_TEMPLATES = [
     "  }",
     "  portal - satisfies -> requestFlow"
   ]),
-  mermaid("usecase", "用例图", [
-    "usecase-beta",
-    "direction LR",
-    'actor Customer("用户")',
-    'actor Reviewer("审核人员")',
-    'systemBoundary platform["业务申请系统"]',
-    '  Submit("⟦提交申请⟧")',
-    '  Track("查询进度")',
-    '  Review("审核申请")',
-    '  Feedback("退回补充")',
-    "end",
-    "Customer --> Submit",
-    "Customer --> Track",
-    "Reviewer --> Review",
-    "Reviewer --> Feedback",
-    "Submit ..>:include Review"
-  ]),
   mermaid("gitgraph", "Git 图", [
     "gitGraph",
     '  commit id: "init" tag: "v1.0"',
