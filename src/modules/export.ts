@@ -1,6 +1,6 @@
 import { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { Menu, Notice, Component, MarkdownView } from "obsidian";
+import { Menu, Notice, Component, MarkdownView, Platform } from "obsidian";
 import { setDocSheet, removeDocSheet } from "./doc-sheets.js";
 import { hasDesktopExports } from "./desktop-runtime.js";
 import { prepareMarkdownTextForPandoc } from "./pandoc-markdown.js";
@@ -428,6 +428,7 @@ async function exportPdf(plugin: IgnorancePlugin, file: TFile) {
     document.title = file.basename;
     try {
       await nextFrame();
+      if (Platform.isDesktop) new Notice("在打印窗口选择「存储为 PDF」即可保存", 6000);
       window.print();
     } finally {
       if (document.title === file.basename) document.title = previousTitle;
