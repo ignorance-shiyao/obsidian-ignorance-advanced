@@ -144,20 +144,26 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
 
   const openWidthMenu = (event: MouseEvent) => {
     const menu = new Menu();
-    for (const [id, label, px, cap] of WIDTH_PRESETS) {
-      menu.addItem(item => item.setTitle(`${label}（窗口的 ${px}%，最宽 ${cap}px）`).setChecked(page().width === id).onClick(() => { page().width = id; save(); }));
-    }
-    menu.addItem(item => item.setTitle(`自定义…${page().width === "custom" ? `（${page().customWidth}%）` : ""}`).setChecked(page().width === "custom").onClick(() => openWidthInput(event)));
-    // Per note: the theme's cssclasses, so the choice travels with the note and works without the plugin too.
+    const preset = WIDTH_PRESETS.find(([id]) => id === page().width);
+    const defaultLabel = page().width === "custom" ? `${page().customWidth}%` : preset?.[1] || "标准";
+    // Keep the note's portable override separate from this device's default.
     const file = plugin.app.workspace.getActiveFile();
     if (file?.extension === "md") {
-      menu.addSeparator();
       const classes = noteClasses(plugin, file);
       const current = classes.includes("ib-wide") ? "ib-wide" : classes.includes("ib-narrow") ? "ib-narrow" : "";
-      for (const [cls, label] of [["", "本笔记：跟随上面的设置"], ["ib-wide", "本笔记：加宽（最宽 1120px）"], ["ib-narrow", "本笔记：收窄（最宽 660px）"]]) {
+      for (const [cls, label] of [["", `跟随默认（${defaultLabel}）`], ["ib-narrow", "窄（最宽 660px）"], ["ib-wide", "宽（最宽 1120px）"]]) {
         menu.addItem(item => item.setTitle(label).setChecked(current === cls).onClick(() => { if (current !== cls) void setNoteWidthClass(plugin, file, cls); }));
       }
+      menu.addSeparator();
     }
+    menu.addItem(item => {
+      item.setTitle(`此设备默认宽度 · ${defaultLabel}`).setIcon("settings");
+      const defaults = item.setSubmenu();
+      for (const [id, label, percent, cap] of WIDTH_PRESETS) {
+        defaults.addItem(option => option.setTitle(`${label}（视图的 ${percent}%，最宽 ${cap}px）`).setChecked(page().width === id).onClick(() => { page().width = id; save(); }));
+      }
+      defaults.addItem(option => option.setTitle("自定义…").setChecked(page().width === "custom").onClick(() => openWidthInput(event)));
+    });
     menu.showAtMouseEvent(event);
   };
 
@@ -165,10 +171,10 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
     closePopover();
     popover = document.body.createDiv({ cls: "ibp-popover" });
     const row = popover.createDiv({ cls: "ibp-row" });
-    row.createSpan({ text: "页面宽度" });
+    row.createSpan({ text: "此设备默认宽度" });
     const input = row.createEl("input", { attr: { type: "number", min: "30", max: "100", step: "5" } });
     input.value = String(page().customWidth);
-    row.createSpan({ cls: "ibp-unit", text: "% 窗口宽度" });
+    row.createSpan({ cls: "ibp-unit", text: "% 视图宽度" });
     const commit = () => { const v = Math.min(100, Math.max(30, Number(input.value) || 80)); page().width = "custom"; page().customWidth = v; save(); closePopover(); };
     input.addEventListener("keydown", e => { if (e.key === "Enter") commit(); if (e.key === "Escape") closePopover(); });
     popover.createEl("button", { cls: "mod-cta", text: "应用" }).addEventListener("click", commit);
@@ -330,7 +336,8 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       const px = sizer ? Math.round(parseFloat(getComputedStyle(sizer).width)) : 0;
       const own = view.file ? noteClasses(plugin, view.file) : [];
       const noteLabel = own.includes("ib-wide") ? "本笔记加宽" : own.includes("ib-narrow") ? "本笔记收窄" : "";
-      width.setText(`${noteLabel ? `宽度 · ${noteLabel}` : p.width === "custom" ? `宽 ${p.customWidth}%` : `宽度 · ${preset ? preset[1] : "标准"}`}${px ? ` · ${px}` : ""}${Number(p.zoom) && Number(p.zoom) !== 1 ? ` · ${Math.round(Number(p.zoom) * 100)}%` : ""}`);
+      width.setText(`宽度 · ${noteLabel || `默认${p.width === "custom" ? ` ${p.customWidth}%` : `（${preset ? preset[1] : "标准"}）`}`}${px ? ` · ${px}px` : ""}${Number(p.zoom) && Number(p.zoom) !== 1 ? ` · ${Math.round(Number(p.zoom) * 100)}%` : ""}`);
+      width.setAttr("aria-label", `当前笔记宽度：${noteLabel || "跟随此设备默认"}。点击选择，默认宽度在子菜单中设置`);
       typewriter.toggleClass("is-active", Boolean(plugin.state.writingModes?.typewriterScroll));
       typewriter.setAttr("aria-pressed", String(Boolean(plugin.state.writingModes?.typewriterScroll)));
       focus.toggleClass("is-active", Boolean(plugin.state.writingModes?.focusMode));
@@ -355,8 +362,9 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
   const installWidthHandle = (view: MarkdownView) => {
     const content = view.containerEl.querySelector<HTMLElement>(":scope > .view-content");
     if (!content || Platform.isMobile || content.querySelector(":scope > .ibp-width-handle")) return;
-    const handle = content.createDiv({ cls: "ibp-width-handle", attr: { "aria-label": "拖动调整正文宽度" } });
-    const usable = () => !view.containerEl.hasClass("ibp-book-host") && !view.containerEl.hasClass("ibp-source-fixed-width");
+    const handle = content.createDiv({ cls: "ibp-width-handle", attr: { "aria-label": "拖动调整此设备默认宽度" } });
+    const usable = () => !view.containerEl.hasClass("ibp-book-host") && !view.containerEl.hasClass("ibp-source-fixed-width")
+      && !(view.file && noteClasses(plugin, view.file).some(cls => cls === "ib-wide" || cls === "ib-narrow"));
     let frame = 0, dragging = false;
     const place = (x: number) => {
       const sizer = visibleSizer(view.containerEl);
@@ -374,7 +382,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
     plugin.registerDomEvent(content, "pointerleave", () => { if (!dragging) handle.removeClass("is-visible"); });
     handle.addEventListener("pointerdown", event => {
       const sizer = visibleSizer(view.containerEl);
-      if (!sizer || event.button !== 0) return;
+      if (!sizer || !usable() || event.button !== 0) return;
       event.preventDefault();
       dragging = true;
       handle.setPointerCapture(event.pointerId);
