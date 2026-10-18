@@ -213,16 +213,16 @@ export const SNIPPET_TEMPLATES = [
   mermaid("quadrant", "象限图", [
     "quadrantChart",
     "  title ⟦优先级评估⟧",
-    "  x-axis 低投入 --> 高投入",
-    "  y-axis 低收益 --> 高收益",
-    "  quadrant-1 重点推进",
-    "  quadrant-2 快速验证",
-    "  quadrant-3 暂缓观察",
-    "  quadrant-4 谨慎投入",
-    "  项目 A: [0.78, 0.82]",
-    "  项目 B: [0.32, 0.68]",
-    "  项目 C: [0.24, 0.28]",
-    "  项目 D: [0.71, 0.38]"
+    '  x-axis "低投入" --> "高投入"',
+    '  y-axis "低收益" --> "高收益"',
+    '  quadrant-1 "重点推进"',
+    '  quadrant-2 "快速验证"',
+    '  quadrant-3 "暂缓观察"',
+    '  quadrant-4 "谨慎投入"',
+    '  "项目 A": [0.78, 0.82]',
+    '  "项目 B": [0.32, 0.68]',
+    '  "项目 C": [0.24, 0.28]',
+    '  "项目 D": [0.71, 0.38]'
   ]),
   mermaid("requirement", "需求图", [
     "requirementDiagram",

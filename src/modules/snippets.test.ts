@@ -55,3 +55,15 @@ describe("块与图表起手模板", () => {
     expect(resolved.text).toContain("转化率提升");
   });
 });
+
+it("中文象限图标签使用 Mermaid 所需的引号", () => {
+  const template = SNIPPET_TEMPLATES.find(item => item.id === "quadrant");
+  if (!template) throw new Error("象限图模板未注册");
+  const source = resolveSnippet(template.body).text;
+  expect(source).toContain('x-axis "低投入" --> "高投入"');
+  expect(source).toContain('y-axis "低收益" --> "高收益"');
+  for (const line of source.split("\n")) {
+    if (/^\s*quadrant-\d/.test(line)) expect(line).toMatch(/^\s*quadrant-\d "[^"]+"$/);
+    if (line.includes(": [")) expect(line).toMatch(/^\s*"[^"]+": \[/);
+  }
+});
