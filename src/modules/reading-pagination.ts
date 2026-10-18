@@ -1,12 +1,12 @@
 import type { MarkdownPreviewView, TFile, View } from "obsidian";
-import type { IgnorancePlugin, PageState } from "../plugin-types.js";
+import type { RenderingContext, PageState } from "../rendering-context.js";
 import { Component, Notice, MarkdownView } from "obsidian";
 import { waitForStableLayout } from "./layout-stability.js";
 import { createIsolatedStaging, stagingStyleSheet } from "./isolated-staging.js";
 import { PAGE_NUMBER_FORMATS } from "./page-numbers.js";
 import { addPageFooters } from "./page-footer.js";
 import { enhanceStaged } from "./staged-enhance.js";
-import { nextFrame } from "./export.js";
+import { nextFrame } from "./layout-frame.js";
 import { firstScreenSource } from "./first-screen-source.js";
 import { renderBudget } from "./render-budget.js";
 import { paginateStrip as paginateStripCoordinates, paginationElements } from "./pagination.js";
@@ -25,7 +25,7 @@ function setBookFlag(preview: HTMLElement, on: boolean) {
 
 // Last composed book per reading view; reused when only some blocks changed.
 interface BookState {
-  key?: string;
+  key?: string | null;
   component?: Component;
   book?: HTMLElement;
   staging?: HTMLElement | null;
@@ -91,12 +91,12 @@ function findBookAnchor(book: HTMLElement, target: string) {
   try { fragment = decodeURIComponent(fragment); } catch { /* keep the raw fragment when it is not valid percent-encoding */ }
   if (!fragment || fragment.startsWith("^")) return null;
   return [...book.querySelectorAll<HTMLElement>("h1,h2,h3,h4,h5,h6")]
-    .find(heading => heading.dataset.heading === fragment || heading.textContent.trim() === fragment || heading.id === fragment)
+    .find(heading => heading.dataset.heading === fragment || (heading.textContent || "").trim() === fragment || heading.id === fragment)
     || [...book.querySelectorAll<HTMLElement>("[id]")].find(element => element.id === fragment)
     || null;
 }
 
-function installBookInteractions(plugin: IgnorancePlugin, view: MarkdownView, book: HTMLElement) {
+function installBookInteractions(plugin: RenderingContext, view: MarkdownView, book: HTMLElement) {
   if (interactiveBooks.has(book)) return;
   interactiveBooks.add(book);
   const pendingTasks = new Set<string>();
@@ -179,7 +179,7 @@ function breakPoints(block: HTMLElement, stripTop: number) {
   const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
   const range = document.createRange();
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    if (!node.textContent.trim()) continue;
+    if (!(node.textContent || "").trim()) continue;
     range.selectNodeContents(node);
     // Cut just before a rendered line starts. A text range's bottom can differ
     // slightly from the glyph paint bounds in the positioned page clone.
@@ -233,8 +233,10 @@ function paginateStrip(strip: HTMLDivElement, contentHeight: number, mode: strin
     list.push(block); chapterBlocks.set(block.chapter.element, list);
   }
   for (const list of chapterBlocks.values()) {
-    list[0].layoutTop = list[0].chapter.top;
-    list[list.length - 1].layoutBottom = list[0].chapter.bottom;
+    const chapter = list[0].chapter;
+    if (!chapter) continue;
+    list[0].layoutTop = chapter.top;
+    list[list.length - 1].layoutBottom = chapter.bottom;
   }
   const coordinates = blocks.map(block => ({
     top: block.layoutTop ?? block.top,
@@ -244,8 +246,8 @@ function paginateStrip(strip: HTMLDivElement, contentHeight: number, mode: strin
       : breakPoints(block.el, stripTop),
     continuationOverhead: block.continuationOverhead,
     atomic: Boolean(block.el.matches(".mermaid, .math-block, .math, mjx-container, figure, .internal-embed, .image-embed, svg, img")
-      || (block.el.matches("p") && block.el.textContent.trim() === "" && block.el.querySelector("img, svg"))),
-    leadIn: /^H[1-6]$/.test(block.el.tagName) || (block.el.tagName === "P" && /[:：]\s*$/.test(block.el.textContent))
+      || (block.el.matches("p") && (block.el.textContent || "").trim() === "" && block.el.querySelector("img, svg"))),
+    leadIn: /^H[1-6]$/.test(block.el.tagName) || (block.el.tagName === "P" && /[:：]\s*$/.test(block.el.textContent || ""))
   }));
   return { blocks, windows: paginateStripCoordinates(coordinates, contentHeight, mode) };
 }
@@ -253,7 +255,7 @@ function paginateStrip(strip: HTMLDivElement, contentHeight: number, mode: strin
 const rendering = new WeakSet<View>();
 const readingControllers = new WeakMap<View, AbortController>();
 
-async function renderBook(plugin: IgnorancePlugin, view: PagedView) {
+async function renderBook(plugin: RenderingContext, view: PagedView) {
   // One render per view at a time; a request arriving mid-render re-runs once
   // it finishes, so the latest settings and text always win.
   if (rendering.has(view)) { view.ibpRerender = true; return; }
@@ -269,7 +271,7 @@ async function renderBook(plugin: IgnorancePlugin, view: PagedView) {
   }
 }
 
-async function renderBookOnce(plugin: IgnorancePlugin, view: PagedView) {
+async function renderBookOnce(plugin: RenderingContext, view: PagedView) {
   if (!plugin.state.page.paged || !view.containerEl.isConnected) return;
   const page = plugin.state.page;
   const preview = view.containerEl.querySelector<HTMLElement>(".markdown-reading-view .markdown-preview-view");
@@ -387,6 +389,7 @@ function tableForClone(clone: HTMLElement) {
 }
 
 function retainTableRows(block: PageBlock, cloneTable: HTMLElement, start: number, stop: number, repeatHeader: boolean) {
+  if (!block.table) return;
   const clonedRows = [...cloneTable.querySelectorAll("tr")];
   block.tableRows.forEach((row, index: number) => {
     if (repeatHeader && row.header) return;
@@ -485,9 +488,9 @@ function addRunningHeaders(pages: HTMLElement[], page: PageState) {
     sheet.querySelector(":scope > .ibp-page-header")?.remove();
     const headings = [...sheet.querySelectorAll<HTMLElement>(".ibp-page-body :is(h1, h2)")];
     const top = (heading: HTMLElement) => parseFloat(heading.closest<HTMLElement>(".ibp-placed")?.style.top || "0");
-    const opening = headings[0] && top(headings[0]) < 48 ? headings[0].textContent.trim() : "";
+    const opening = headings[0] && top(headings[0]) < 48 ? (headings[0].textContent || "").trim() : "";
     const label = opening || current;
-    if (headings.length) current = headings[headings.length - 1].textContent.trim();
+    if (headings.length) current = (headings[headings.length - 1].textContent || "").trim();
     if (page.runningHeader !== "chapter" || index === 0 || !label) return;
     const header = createDiv();
     header.className = "ibp-page-header";
@@ -496,7 +499,7 @@ function addRunningHeaders(pages: HTMLElement[], page: PageState) {
   });
 }
 
-async function settleRenderRegion(root: HTMLElement, height: number, signal: AbortSignal | null = null) {
+async function settleRenderRegion(root: HTMLElement, height: number, signal?: AbortSignal) {
   const wait = (ms: number) => new Promise(resolve => window.setTimeout(resolve, ms));
   const top = root.getBoundingClientRect().top;
   const inside = (element: HTMLElement) => element.getBoundingClientRect().top < top + height;
@@ -507,7 +510,7 @@ async function settleRenderRegion(root: HTMLElement, height: number, signal: Abo
     img.addEventListener("error", () => { window.clearTimeout(timer); resolve(); }, { once: true });
   })));
   for (let i = 0; i < 20; i += 1) {
-    const pending = [...root.querySelectorAll<HTMLElement>(".mermaid, pre.language-mermaid")].some(element => inside(element) && !element.querySelector("svg") && !/Error/.test(element.textContent));
+    const pending = [...root.querySelectorAll<HTMLElement>(".mermaid, pre.language-mermaid")].some(element => inside(element) && !element.querySelector("svg") && !/Error/.test(element.textContent || ""));
     if (!pending) break;
     await wait(100);
   }
@@ -529,7 +532,8 @@ interface ComposeOptions {
   signal?: AbortSignal | null;
 }
 
-async function composePages(plugin: IgnorancePlugin, file: TFile, text: string, book: HTMLElement, component: Component, { keepStrip = false, previous = {}, showProgress = false, expandDetails = false, onProgress = null, signal = null }: ComposeOptions = {}) {
+async function composePages(plugin: RenderingContext, file: TFile, text: string, book: HTMLElement, component: Component, { keepStrip = false, previous = {}, showProgress = false, expandDetails = false, onProgress = null, signal: requestedSignal }: ComposeOptions = {}) {
+  const signal = requestedSignal ?? undefined;
   signal?.throwIfAborted();
   const page = plugin.state.page;
   // Measure in the same view context as the final pages so inherited note
@@ -664,7 +668,7 @@ function hashText(text: string) {
 
 /* Mermaid and images finish after MarkdownRenderer resolves; wait for them
    so block heights are final before cutting pages. */
-async function settleRender(root: HTMLElement, signal: AbortSignal | null = null) {
+async function settleRender(root: HTMLElement, signal?: AbortSignal) {
   signal?.throwIfAborted();
   const wait = async (ms: number) => {
     signal?.throwIfAborted();
@@ -680,7 +684,7 @@ async function settleRender(root: HTMLElement, signal: AbortSignal | null = null
   })));
   signal?.throwIfAborted();
   for (let i = 0; i < 40; i += 1) {
-    const pending = [...root.querySelectorAll(".mermaid, pre.language-mermaid")].some(m => !m.querySelector("svg") && !/Error/.test(m.textContent));
+    const pending = [...root.querySelectorAll(".mermaid, pre.language-mermaid")].some(m => !m.querySelector("svg") && !/Error/.test(m.textContent || ""));
     if (!pending) break;
     await wait(150);
   }
@@ -700,7 +704,7 @@ async function settleRender(root: HTMLElement, signal: AbortSignal | null = null
   }
 }
 
-function refreshBooks(plugin: IgnorancePlugin, force: boolean) {
+function refreshBooks(plugin: RenderingContext, force: boolean) {
   for (const leaf of plugin.app.workspace.getLeavesOfType("markdown")) {
     const view = leaf.view as MarkdownView;
     const state = books.get(view);

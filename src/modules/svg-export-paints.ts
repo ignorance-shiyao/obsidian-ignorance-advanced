@@ -11,7 +11,9 @@ export async function snapshotSvgPaints(root: HTMLElement, checkpoint: () => Pro
     const stack: { node: Element; path: string }[] = [{ node:svgs[index], path:String(index) }];
     while (stack.length) {
       await checkpoint();
-      const { node, path } = stack.pop();
+      const entry = stack.pop();
+      if (!entry) break;
+      const { node, path } = entry;
       const style = getComputedStyle(node), key = `${path}|${node.tagName}|${node.getAttribute('class') || ''}`;
       snapshot.set(key, { node, values:Object.fromEntries(PAINT_PROPERTIES.map(name => [name, style.getPropertyValue(name).trim()])) });
       [...node.children].forEach((child, childIndex) => stack.push({node:child,path:`${path}/${childIndex}`}));

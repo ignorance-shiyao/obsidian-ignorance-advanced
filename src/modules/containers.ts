@@ -1,4 +1,4 @@
-import type { IgnorancePlugin } from "../plugin-types.js";
+import type { RenderingContext } from "../rendering-context.js";
 import { Component, MarkdownRenderChild, MarkdownRenderer } from "obsidian";
 import type { MarkdownPostProcessorContext } from "obsidian";
 import { applyStagedChartAlignment } from "./chart-alignment.js";
@@ -176,12 +176,12 @@ function finishContainer(container: HTMLElement, interactive = false) {
   container.append(...figures);
 }
 
-async function renderFragment(plugin: IgnorancePlugin, sourcePath: string, source: string, target: HTMLElement, component: Component) {
+async function renderFragment(plugin: RenderingContext, sourcePath: string, source: string, target: HTMLElement, component: Component) {
   if (!source.trim()) return;
   await MarkdownRenderer.render(plugin.app, source, target, sourcePath, component);
 }
 
-async function renderRange(plugin: IgnorancePlugin, sourcePath: string, source: string, start: number, end: number, nodes: ContainerNode[], target: HTMLElement, component: Component, interactive = false) {
+async function renderRange(plugin: RenderingContext, sourcePath: string, source: string, start: number, end: number, nodes: ContainerNode[], target: HTMLElement, component: Component, interactive = false) {
   let cursor = start;
   for (const node of nodes) {
     if (node.startOffset < start || node.closeEnd > end) continue;
@@ -195,7 +195,7 @@ async function renderRange(plugin: IgnorancePlugin, sourcePath: string, source: 
   await renderFragment(plugin, sourcePath, source.slice(cursor, end), target, component);
 }
 
-async function renderMarkdownWithContainers(plugin: IgnorancePlugin, sourcePath: string, source: string, target: HTMLElement, component: Component, interactive = false) {
+async function renderMarkdownWithContainers(plugin: RenderingContext, sourcePath: string, source: string, target: HTMLElement, component: Component, interactive = false) {
   // A table typed right under a paragraph still counts as a table in pages, slides and exports.
   if (wantsLenient(plugin)) source = withBlankLines(source);
   const containers = chapterContainers(source);
@@ -218,7 +218,7 @@ async function renderMarkdownWithContainers(plugin: IgnorancePlugin, sourcePath:
   await applyStagedChartAlignment(plugin, target, sourcePath, source);
 }
 
-async function renderContainer(plugin: IgnorancePlugin, element: HTMLElement, context: MarkdownPostProcessorContext, source: string, node: ContainerNode) {
+async function renderContainer(plugin: RenderingContext, element: HTMLElement, context: MarkdownPostProcessorContext, source: string, node: ContainerNode) {
   const component = new MarkdownRenderChild(element);
   component.load();
   const container = makeContainer(node);
@@ -241,7 +241,7 @@ async function renderContainer(plugin: IgnorancePlugin, element: HTMLElement, co
   }
 }
 
-function renderContainerBlocks(plugin: IgnorancePlugin, element: HTMLElement, context: MarkdownPostProcessorContext | undefined) {
+function renderContainerBlocks(plugin: RenderingContext, element: HTMLElement, context: MarkdownPostProcessorContext | undefined) {
   if (!element || element.closest?.(".ibc-container")) return;
   // The reading view reuses section elements and resets their content to the
   // raw markup before post-processing again, so "already handled" is judged by

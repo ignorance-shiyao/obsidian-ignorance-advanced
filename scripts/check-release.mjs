@@ -58,6 +58,14 @@ const nodeAccess = /(?:from\s*|import\(\s*)["'](?:node:)?(?:fs|path|os|child_pro
 check(tally(nodeAccess) === 0, "no Node built-ins, Electron or require()", String(tally(nodeAccess)));
 check(!/\bfetch\(["'`]https?:/.test(sourceText) || true, "network calls are user-initiated (review manually)");
 
+// Selected rendering modules and their dependencies must satisfy the incremental strict gate.
+try {
+  execFileSync("npx", ["tsc", "-p", "tsconfig.strict.json", "--noEmit"], { encoding: "utf8", stdio: "pipe" });
+  check(true, "incremental strict TypeScript check");
+} catch (error) {
+  check(false, "incremental strict TypeScript check", String(error.stdout || error.message).trim().split("\n").slice(0, 4).join("; "));
+}
+
 // Lint: the directory runs eslint-plugin-obsidianmd; every problem shows up as a review warning.
 if (!process.argv.includes("--no-lint")) {
   try { execFileSync("npx", ["eslint", ".", "--format", "json", "-o", "/tmp/ib-eslint.json"], { stdio: "ignore" }); } catch { /* eslint exits non-zero when it finds problems */ }

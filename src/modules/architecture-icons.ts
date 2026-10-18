@@ -1,4 +1,3 @@
-import type { IgnorancePlugin } from "../plugin-types.js";
 import { readAsset } from "./assets.js";
 const ARCHITECTURE_BUILTINS = new Set(["cloud", "database", "disk", "internet", "server"]);
 const ARCHITECTURE_ALIASES: Record<string, string> = {
@@ -23,7 +22,7 @@ interface IconPackEngine {
   registerIconPacks?: (packs: Array<{ name: string; loader: () => Promise<unknown> }>) => void;
 }
 
-function registerLucideIcons(plugin: IgnorancePlugin, engine: IconPackEngine) {
+function registerLucideIcons(plugin: unknown, engine: IconPackEngine) {
   if (typeof engine.registerIconPacks !== "function") return;
   const load = async () => {
     const raw = JSON.parse(await readAsset(plugin, "lucide-icons.json")) as LucidePack;

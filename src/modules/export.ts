@@ -1,3 +1,4 @@
+import { nextFrame } from "./layout-frame.js";
 import { renderMermaidForExport } from "./mermaid-export.js";
 import { wordExportFonts, wordFontFromToken } from "./word-font.js";
 import { TFile } from "obsidian";
@@ -440,7 +441,7 @@ async function exportPdf(plugin: IgnorancePlugin, file: TFile) {
   return null;
 }
 
-const nextFrame = () => new Promise(r => window.requestAnimationFrame(() => window.requestAnimationFrame(r)));
+
 
 // Paint the staged pages in-page and write the PNGs into 导出/.
 async function exportImages(plugin: IgnorancePlugin, file: TFile, kind: string) {

@@ -19,8 +19,11 @@ export function hasAsset(name: string) { return name in assets; }
 
 export function readAssetBytes(name: string): Promise<Uint8Array> {
   if (!hasAsset(name)) return Promise.reject(new Error(`Unknown embedded asset: ${name}`));
-  if (!bytesCache.has(name)) bytesCache.set(name, gunzip(assets[name].data));
-  return bytesCache.get(name);
+  const cached = bytesCache.get(name);
+  if (cached !== undefined) return cached;
+  const pending = gunzip(assets[name].data);
+  bytesCache.set(name, pending);
+  return pending;
 }
 
 // Kept as (plugin, name) so every caller reads the same way; the plugin argument is no longer needed.

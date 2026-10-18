@@ -1,11 +1,11 @@
-import type { IgnorancePlugin } from "../plugin-types.js";
+import type { RenderingContext } from "../rendering-context.js";
 import { Menu, Notice, MarkdownView, TFile } from "obsidian";
 import MarkdownIt from "markdown-it";
 import { setIcon, UI_ICONS } from "./ui-icons.js";
 import { saveErrorMessage, holdScrollPosition, replaceRangeQuietly } from "./quiet-edit.js";
 const marker = /^\s*<!--\s*ib-table-align:(left|center|right)\s*-->\s*$/;
-interface TableToken { type: string; map: [number, number] }
-function tables(source: string): TableToken[] { return new MarkdownIt().parse(source, {}).filter(t => t.type === "table_open"); }
+type TableToken = ReturnType<MarkdownIt["parse"]>[number] & { map: [number, number] };
+function tables(source: string): TableToken[] { return new MarkdownIt().parse(source, {}).filter((t): t is TableToken => t.type === "table_open" && t.map !== null); }
 function metadata(lines: string[], start: number) {
   let line = start - 1;
   while (line >= 0 && !lines[line].trim()) line--;
@@ -32,13 +32,13 @@ export function applyTableSourceAlignment(root: HTMLElement, source: string) {
 // Obsidian reuses an already rendered table section when only the marker comment above it changed
 // (set from Live Preview), so a table in reading view kept its old position. Re-read the markers
 // from the source whenever a reading view could be showing stale ones.
-export async function syncPreviewTableAlignment(plugin: IgnorancePlugin, view: MarkdownView | null) {
+export async function syncPreviewTableAlignment(plugin: RenderingContext, view: MarkdownView | null) {
   const file = view?.file, preview = view?.containerEl?.querySelector<HTMLElement>(".markdown-preview-view");
   if (!file || !preview || view.getMode?.() !== "preview") return;
   const source = await plugin.app.vault.cachedRead(file);
   applyTableSourceAlignment(preview, source);
 }
-export function tableAlignmentControl(plugin: IgnorancePlugin, table: HTMLElement, path: string, ordinal: number) {
+export function tableAlignmentControl(plugin: RenderingContext, table: HTMLElement, path: string, ordinal: number) {
   const locate = async () => {
     if (!path || ordinal == null || ordinal < 0) throw Error("未找到表格源码位置");
     const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
@@ -78,7 +78,7 @@ export function tableAlignmentControl(plugin: IgnorancePlugin, table: HTMLElemen
             const old = found.source.split("\n");
             let a=0;while(a<old.length&&a<found.lines.length&&old[a]===found.lines[a])a++;
             let b=old.length,c=found.lines.length;while(b>a&&c>a&&old[b-1]===found.lines[c-1]){b--;c--;}
-            replaceRangeQuietly(found.editor,{line:a,ch:0},b<old.length?{line:b,ch:0}:{line:old.length-1,ch:old.at(-1).length},found.lines.slice(a,c).join("\n")+(b<old.length?"\n":""));
+            replaceRangeQuietly(found.editor,{line:a,ch:0},b<old.length?{line:b,ch:0}:{line:old.length-1,ch:(old.at(-1)?.length ?? 0)},found.lines.slice(a,c).join("\n")+(b<old.length?"\n":""));
           } else await plugin.app.vault.process(found.file, () => text);
         } catch(error) {
           release();

@@ -1,5 +1,5 @@
 import type { TFile } from "obsidian";
-import type { IgnorancePlugin } from "../plugin-types.js";
+import type { RenderingContext } from "../rendering-context.js";
 /* Heading numbers and captions for renders that have no per-section source info (paged reading, PDF, HTML
    and image export): the whole note is rendered into one container, and the source decides which element
    gets which number. A kind is skipped when the document and the source disagree about how many there are. */
@@ -35,7 +35,7 @@ export function removeUnpublished(root: HTMLElement) {
   }
 }
 
-function applyHeadingNumbers(plugin: IgnorancePlugin, root: HTMLElement, source: string) {
+function applyHeadingNumbers(plugin: RenderingContext, root: HTMLElement, source: string) {
   const all = scanHeadings(source.split(/\r?\n/));
   const hidden = unpublishedIndexes(all);
   const entries = all.filter((_, index) => !hidden.has(index));
@@ -70,7 +70,7 @@ function applyCaptions(root: HTMLElement, source: string) {
       const found = [...paragraph.querySelectorAll(".internal-embed, img")].filter(item => !item.parentElement?.closest(".internal-embed"));
       return found.length === 1 ? found[0] : null;
     })
-    .filter((holder): holder is Element => Boolean(holder) && !holder.closest("figure.ib-figure"));
+    .filter((holder): holder is Element => holder !== null && !holder.closest("figure.ib-figure"));
   if (figures.length === holders.length) figures.forEach((entry, index) => wrapFigure(holders[index], entry));
 
   for (const kind of ["tab", "code", "eq"] as CaptionKind[]) {
@@ -82,7 +82,7 @@ function applyCaptions(root: HTMLElement, source: string) {
   resolveRefs(root, entries);
 }
 
-export function enhanceStaged(plugin: IgnorancePlugin, root: HTMLElement, source: string, file: TFile) {
+export function enhanceStaged(plugin: RenderingContext, root: HTMLElement, source: string, file: TFile) {
   removeUnpublished(root);
   const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
   if (wantsNumbers(plugin, frontmatter)) applyHeadingNumbers(plugin, root, source);

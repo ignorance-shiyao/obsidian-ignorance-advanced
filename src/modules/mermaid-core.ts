@@ -1,4 +1,3 @@
-import type { IgnorancePlugin } from "../plugin-types.js";
 import { withClassBoxMeasurement } from "./class-box-measurement.js";
 import { withMermaidConfigIsolation } from "./mermaid-config-isolation.js";
 import { Decoration } from "@codemirror/view";
@@ -169,7 +168,7 @@ function cssColorToRgb(value: string): Rgb | null {
 function authorPersonColor(shapes: Element[]): string | null {
   const style = shapes.map(shape => shape.getAttribute("style") || "").join(";");
   const pick = (prop: string) => new RegExp(`${prop}:\\s*([^;!]+)`, "i").exec(style)?.[1]?.trim();
-  const candidates: string[] = [pick("stroke"), pick("fill")].filter(Boolean);
+  const candidates: string[] = [pick("stroke"), pick("fill")].filter((value): value is string => Boolean(value));
   for (const value of candidates) {
     const rgb = cssColorToRgb(value);
     if (rgb && rgbToHsl(rgb).s > 0.25) return value;
@@ -182,7 +181,7 @@ function stashStyle(element: Element) {
 }
 
 function adoptC4Defaults(svg: SVGSVGElement) {
-  for (const rect of svg.querySelectorAll('g > rect[fill="#1168BD"]')) rect.parentElement.setAttribute("data-ibm-c4-system", "");
+  for (const rect of svg.querySelectorAll('g > rect[fill="#1168BD"]')) rect.parentElement?.setAttribute("data-ibm-c4-system", "");
   for (const node of svg.querySelectorAll<SVGElement>("g.node")) {
     const shapes = [...node.querySelectorAll<SVGElement>(":scope > g.basic :is(rect, path, circle, ellipse)[style], :scope > :is(rect, path)[style]")];
     let role: string | null = null;
@@ -190,7 +189,7 @@ function adoptC4Defaults(svg: SVGSVGElement) {
       const style = shape.getAttribute("style") || "";
       const fill = /fill:\s*(#[0-9a-f]{6})/i.exec(style)?.[1]?.toLowerCase();
       const stroke = /stroke:\s*(#[0-9a-f]{6})/i.exec(style)?.[1]?.toLowerCase();
-      const found = C4_DEFAULTS[fill];
+      const found = fill ? C4_DEFAULTS[fill] : undefined;
       if (!found || (stroke && !C4_DEFAULTS[stroke])) continue;
       role = found;
       stashStyle(shape);
@@ -290,7 +289,7 @@ function clearPaint(svg: SVGSVGElement) {
     label.removeAttribute("data-ibm-shifted");
   }
   for (const title of svg.querySelectorAll("[data-ibm-c4-title-y]")) {
-    title.setAttribute("y", title.getAttribute("data-ibm-c4-title-y"));
+    title.setAttribute("y", (title.getAttribute("data-ibm-c4-title-y") || ""));
     title.removeAttribute("data-ibm-c4-title-y");
   }
   for (const label of svg.querySelectorAll("[data-ibm-c4-label-position]")) {
@@ -313,11 +312,11 @@ function clearPaint(svg: SVGSVGElement) {
     style.removeAttribute("data-ibm-style-text");
   }
   for (const shape of svg.querySelectorAll("[data-ibm-c4-style]")) {
-    shape.setAttribute("style", shape.getAttribute("data-ibm-c4-style"));
+    shape.setAttribute("style", (shape.getAttribute("data-ibm-c4-style") || ""));
     shape.removeAttribute("data-ibm-c4-style");
   }
   for (const circle of svg.querySelectorAll("[data-ibm-c4-geom]")) {
-    const [cy, r] = circle.getAttribute("data-ibm-c4-geom").split("|");
+    const [cy, r] = (circle.getAttribute("data-ibm-c4-geom") || "").split("|");
     circle.setAttribute("cy", cy);
     circle.setAttribute("r", r);
     circle.removeAttribute("data-ibm-c4-geom");
@@ -356,7 +355,7 @@ function releaseInlineStyles(svg: SVGSVGElement, kind: string) {
   }
   if (kind === "gantt") {
     for (const style of svg.querySelectorAll("style")) {
-      if (!style.hasAttribute("data-ibm-style-text")) style.setAttribute("data-ibm-style-text", style.textContent);
+      if (!style.hasAttribute("data-ibm-style-text")) style.setAttribute("data-ibm-style-text", style.textContent || "");
       style.textContent = (style.getAttribute("data-ibm-style-text") || "").replace(/\s*!important/g, "");
     }
   }
@@ -420,15 +419,17 @@ function spreadArchitectureServices(svg: SVGSVGElement) {
   if (svg.hasAttribute("data-ibm-arch-fixed")) return;
   svg.setAttribute("data-ibm-arch-fixed", "");
   const SIZE = 80, LABEL = 48, GAP = 24;
-  interface ArchGroup { rect: Element; deco: Element | null; x: number; y: number; w: number; h: number; dy: number; members: ArchService[]; padBottom?: number }
+  interface ArchGroup { rect: Element; deco: Element | null; x: number; y: number; w: number; h: number; dy: number; members: ArchService[]; padBottom: number }
   interface ArchService { node: Element; name: string; pos: Point; dy: number; group?: ArchGroup | null }
   const num = (el: Element, attr: string) => Number(el.getAttribute(attr));
 
   const services = [...svg.querySelectorAll("g.architecture-service")]
-    .map((node): ArchService => ({ node, name: (node.id || "").replace(/^.*-service-/, ""), pos: parseTranslate(node), dy: 0 }))
-    .filter(entry => entry.pos);
+    .flatMap((node): ArchService[] => {
+      const pos = parseTranslate(node);
+      return pos ? [{ node, name: (node.id || "").replace(/^.*-service-/, ""), pos, dy: 0 }] : [];
+    });
   const groups = [...svg.querySelectorAll("g.architecture-groups > rect.node-bkg")].map((rect): ArchGroup => ({
-    rect, deco: rect.nextElementSibling, x: num(rect, "x"), y: num(rect, "y"), w: num(rect, "width"), h: num(rect, "height"), dy: 0, members: []
+    rect, deco: rect.nextElementSibling, x: num(rect, "x"), y: num(rect, "y"), w: num(rect, "width"), h: num(rect, "height"), dy: 0, members: [], padBottom: 0
   }));
   for (const service of services) {
     const cx = service.pos.x + SIZE / 2, cy = service.pos.y + SIZE / 2;
@@ -555,7 +556,7 @@ function addTextBackplates(svg: SVGSVGElement, selector: string) {
     } catch { return []; }
   });
   for (const { label, box } of measured) {
-    let plate: Element = label.previousElementSibling;
+    let plate = label.previousElementSibling;
     if (!plate?.classList.contains("ibm-text-backplate")) {
       plate = document.createElementNS(SVG_NS, "rect");
       plate.setAttribute("class", "ibm-text-backplate");
@@ -600,7 +601,7 @@ function separateC4Labels(svg: SVGSVGElement) {
     const x = Math.min(...corners.map(p => p.x)), y = Math.min(...corners.map(p => p.y));
     return { x, y, width: Math.max(...corners.map(p => p.x)) - x, height: Math.max(...corners.map(p => p.y)) - y };
   };
-  const obstacles = [...svg.querySelectorAll<SVGGraphicsElement>("g.node")].map(node => boxInSvg(node)).filter(Boolean);
+  const obstacles = [...svg.querySelectorAll<SVGGraphicsElement>("g.node")].map(node => boxInSvg(node)).filter((box): box is Box => box !== null);
   const bounds = svg.viewBox.baseVal;
   for (const label of svg.querySelectorAll<SVGGraphicsElement>('g > text[fill="#444444"]')) {
     // Relationship labels follow their line/path. Boundaries and explicit
@@ -615,7 +616,9 @@ function separateC4Labels(svg: SVGSVGElement) {
     const { dx, dy } = avoidC4LabelNodes(box, obstacles, bounds);
     if (!dx && !dy) continue;
     if (!label.hasAttribute("data-ibm-c4-label-position")) label.setAttribute("data-ibm-c4-label-position", `${label.getAttribute("x")}|${label.getAttribute("y")}`);
-    const matrix = rootMatrix.inverse().multiply(label.getCTM());
+    const labelMatrix = label.getCTM();
+    if (!labelMatrix) continue;
+    const matrix = rootMatrix.inverse().multiply(labelMatrix);
     const local = matrix.inverse();
     const origin = new DOMPoint(0, 0).matrixTransform(local), delta = new DOMPoint(dx, dy).matrixTransform(local);
     label.setAttribute("x", String(Number(label.getAttribute("x")) + delta.x - origin.x));
@@ -644,7 +647,7 @@ function fitVennTitle(svg: SVGSVGElement) {
     title.setAttribute("text-anchor", "middle");
     try {
       const box = title.getBBox();
-      if (box.width) content = union([{ x: content.x, y: content.y, width: content.r - content.x, height: content.b - content.y }, box]);
+      if (box.width) content = union([{ x: content.x, y: content.y, width: content.r - content.x, height: content.b - content.y }, box]) ?? content;
     } catch { /* keep circles only */ }
   }
   const pad = 16;
@@ -711,7 +714,7 @@ function separateSankeyLabels(svg: SVGSVGElement) {
   const entries: SankeyEntry[] = [];
   try {
     for (const label of labels) {
-      const originalY = label.dataset.ibmSankeyY || label.getAttribute("y");
+      const originalY = label.dataset.ibmSankeyY || label.getAttribute("y") || "0";
       label.setAttribute("y", originalY);
       label.dataset.ibmSankeyY = originalY;
       const box = label.getBBox();
@@ -753,6 +756,7 @@ function arrangeJourneyFaces(svg: SVGSVGElement) {
   const rowY = axisY + 62;
   for (const face of svg.querySelectorAll("circle.face")) {
     const group = face.parentElement;
+    if (!group) continue;
     const cy = Number(face.getAttribute("cy"));
     const score = Math.max(1, Math.min(5, Math.round(5 - (cy - 300) / 30)));
     group.setAttribute("data-ibm-mood", score >= 4 ? "good" : score === 3 ? "ok" : "bad");
@@ -813,7 +817,7 @@ function buildPieTable(svg: SVGSVGElement) {
   if (!slices.length || !legends.length || !outer || !center) return;
   svg.setAttribute("data-ibm-pie-table", "");
   const R = Number(outer.getAttribute("r")) || 185;
-  const percents = [...svg.querySelectorAll("text.slice")].map(t => parseFloat(t.textContent) || 0);
+  const percents = [...svg.querySelectorAll("text.slice")].map(t => parseFloat(t.textContent || "") || 0);
   interface PieRow { name: string; value: number | null; index: number; pct: number }
   const rows = legends.map((legend, index): PieRow => {
     const text = (legend.querySelector("text")?.textContent || "").trim();
@@ -821,9 +825,9 @@ function buildPieTable(svg: SVGSVGElement) {
     return { name: m ? m[1] : text, value: m ? Number(m[2]) : null, index, pct: 0 };
   });
   const hasValues = rows.every(row => row.value !== null);
-  const total = hasValues ? rows.reduce((sum, row) => sum + row.value, 0) : null;
+  const total = hasValues ? rows.reduce((sum, row) => sum + (row.value ?? 0), 0) : null;
   rows.forEach(row => {
-    row.pct = hasValues && total ? (row.value / total) * 100 : (percents[row.index] || 0);
+    row.pct = hasValues && total ? ((row.value ?? 0) / total) * 100 : (percents[row.index] || 0);
   });
   const el = (tag: string, attrs: AttrMap, parent: Element, text?: string) => {
     const node = document.createElementNS(SVG_NS, tag);
@@ -939,7 +943,7 @@ function drawRequirementCards(svg: SVGSVGElement) {
 
     const stereotype = labels[0].textContent || "";
     const body = labels.slice(2).map(label => label.textContent).join("\n");
-    const bodyTop = labels[2] ? parseTranslate(labels[2]).y : parseTranslate(labels[1]).y + 26;
+    const bodyTop = labels[2] ? (parseTranslate(labels[2])?.y ?? y0) : (parseTranslate(labels[1])?.y ?? y0) + 26;
     const headBottom = Math.min(y1, bodyTop - 6);
     const r = 12;
 
@@ -1049,9 +1053,11 @@ function decorateFlowchart(svg: SVGSVGElement) {
     const match = flowIcon(label?.textContent || "");
     if (!label || !match) continue;
     const at = parseTranslate(label);
+    if (!at) continue;
     const icon = el("path", { class: `ibm-flow-icon tone-${match.tone}`, d: iconPath(match.icon) });
     if (shape === "rect") {
       const rect = node.querySelector(":scope > rect.label-container");
+      if (!rect) continue;
       const x0 = Number(rect.getAttribute("x"));
       icon.setAttribute("transform", `translate(${x0 + 12},-8) scale(0.667)`);
       label.setAttribute("transform", `translate(${at.x + 11},${at.y})`);
@@ -1151,7 +1157,7 @@ function decorateSequence(svg: SVGSVGElement) {
   const labelWidths = new Map<Element, number>();
   if (!svg.hasAttribute("data-ibm-seq-fixed")) {
     for (const box of svg.querySelectorAll("polygon.labelBox")) {
-      const label = box.parentElement.querySelector<SVGTextContentElement>(":scope > text.labelText");
+      const label = box.parentElement?.querySelector<SVGTextContentElement>(":scope > text.labelText");
       labelWidths.set(box, label?.getComputedTextLength?.() || 24);
     }
   }
@@ -1164,6 +1170,7 @@ function decorateSequence(svg: SVGSVGElement) {
 
   for (const rect of svg.querySelectorAll("rect.actor")) {
     const group = rect.parentElement;
+    if (!group) continue;
     const text = group.querySelector<SVGElement>("text.actor");
     if (!text) continue;
     const match = PARTICIPANT_KEYWORDS.find(([re]) => re.test(text.textContent || ""));
@@ -1182,6 +1189,7 @@ function decorateSequence(svg: SVGSVGElement) {
 
   for (const box of svg.querySelectorAll("polygon.labelBox")) {
     const group = box.parentElement;
+    if (!group) continue;
     const lines = [...group.querySelectorAll(":scope > line.loopLine")];
     const label = group.querySelector(":scope > text.labelText");
     const type = (label?.textContent || "").trim().toLowerCase();
@@ -1211,7 +1219,7 @@ function tagGroups(svg: SVGSVGElement) {
   const clusters = [...svg.querySelectorAll(CLUSTER_GROUPS)].map(cluster => {
     const shape = cluster.querySelector(":scope > rect, :scope > polygon, :scope > path") || cluster;
     const box = shape.getBoundingClientRect();
-    const index = [...cluster.parentElement.children].indexOf(cluster);
+    const index = [...(cluster.parentElement?.children || [])].indexOf(cluster);
     return { box, index, area: box.width * box.height };
   }).filter(entry => entry.area > 0);
   if (!clusters.length) return;
@@ -1277,13 +1285,16 @@ function labelsOverMark(mark: Element, cache = new Map<Element, DOMRect>(), grou
   const group = mark.closest("g");
   if (!group) return [];
   const boundsOf = (element: Element) => {
-    if (!cache.has(element)) cache.set(element, element.getBoundingClientRect());
-    return cache.get(element);
+    const cached = cache.get(element);
+    if (cached) return cached;
+    const measured = element.getBoundingClientRect();
+    cache.set(element, measured);
+    return measured;
   };
   const bounds = boundsOf(mark);
   if (!bounds.width || !bounds.height) return [];
   if (!groups.has(group)) groups.set(group, [...group.querySelectorAll("text, tspan, foreignObject div, foreignObject span, foreignObject p")]);
-  return groups.get(group).filter(element => {
+  return (groups.get(group) || []).filter(element => {
     const rect = boundsOf(element);
     if (!rect.width || !rect.height) return false;
     const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
@@ -1904,7 +1915,7 @@ const MERMAID_CONFIG = {
    It is wrapped in a router that applies this plugin's configuration per
    render and stamps each drawing, so diagrams drawn before it took over can
    be found and redrawn. */
-function createMermaidRouter(plugin: IgnorancePlugin, engine: MermaidEngine) {
+function createMermaidRouter(plugin: unknown, engine: MermaidEngine) {
   registerLucideIcons(plugin, engine);
   engine.initialize(MERMAID_CONFIG);
 

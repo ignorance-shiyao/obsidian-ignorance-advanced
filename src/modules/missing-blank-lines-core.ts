@@ -1,4 +1,4 @@
-import type { IgnorancePlugin } from "../plugin-types.js";
+import type { RenderingContext } from "../rendering-context.js";
 /* Obsidian only starts a table when a blank line (or another block) comes right before it; typed straight under
    a paragraph, the rows stay plain text. These helpers find that mistake so the table can still be recognised:
    virtually in Reading view and exports, and by inserting the blank line while editing. */
@@ -57,6 +57,6 @@ export function withBlankLines(text: string): string {
   return out.join("\n");
 }
 
-export function wantsLenient(plugin: IgnorancePlugin): boolean {
+export function wantsLenient(plugin: RenderingContext): boolean {
   return plugin?.state?.lenientBlocks !== false;
 }

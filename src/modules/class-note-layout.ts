@@ -30,7 +30,7 @@ export function compactClassNotes(data: ClassDiagramData, defaultWidth = 240): C
   const width = authored > 0 ? authored : defaultWidth;
   let changed = false;
   const nodes = data.nodes.map((node): ClassNode => {
-    if (node.shape !== "note" || node.wrappingWidth > 0 || typeof node.label !== "string" || /<br\b|\n/i.test(node.label)) return node;
+    if (node.shape !== "note" || (node.wrappingWidth ?? 0) > 0 || typeof node.label !== "string" || /<br\b|\n/i.test(node.label)) return node;
     changed = true;
     return { ...node, wrappingWidth: width,
       cssStyles: (node.cssStyles || []).map(style => /^\s*white-space\s*:\s*nowrap\s*;?\s*$/i.test(style) ? "white-space: normal" : style) };
@@ -45,10 +45,11 @@ export function measureClassMembers(data: ClassDiagramData, font: string): Class
   const measure = (members: unknown[] | undefined) => (members || []).map(entry => {
     const member = entry as ClassifierMember | null;
     if (typeof member?.parseClassifier !== "function") return entry;
+    const parseClassifier = member.parseClassifier;
     const clone: ClassifierMember = Object.create(Object.getPrototypeOf(member) as object) as ClassifierMember;
     Object.assign(clone, member);
     clone.parseClassifier = function(this: unknown, ...args: unknown[]) {
-      const style = Reflect.apply<unknown, unknown[], string>(member.parseClassifier, this, args);
+      const style = Reflect.apply<unknown, unknown[], string>(parseClassifier, this, args);
       return /font-family\s*:/i.test(style) ? style : `${style};font-family: ${font}`;
     };
     return clone;

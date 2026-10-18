@@ -120,7 +120,7 @@ it("独立标题字体同时写入样式和实际文字，不影响正文及代�
     const heading = styles.match(new RegExp(`<w:style[^>]*w:styleId="Heading${level}"[\\s\\S]*?</w:style>`))?.[0];
     expect(heading).toContain('w:eastAsia="Songti SC"');
   }
-  const paragraphs = document.match(/<w:p[ >][\s\S]*?<\/w:p>/g) || [];
+  const paragraphs: string[] = document.match(/<w:p[ >][\s\S]*?<\/w:p>/g) || [];
   const headings = paragraphs.filter(p => p.includes("w:pStyle") && p.includes("Heading"));
   expect(headings).toHaveLength(3);
   expect(headings.every(p => p.includes('w:eastAsia="Songti SC"'))).toBe(true);

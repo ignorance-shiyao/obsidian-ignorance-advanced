@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "strictNullChecks": true, "noImplicitAny": true },
+  "include": [
+    "src/globals.d.ts", "src/obsidian-internals.d.ts", "src/embedded-assets.d.ts", "src/turndown-plugin-gfm.d.ts",
+    "src/modules/line-height.ts", "src/modules/mermaid-core.ts", "src/modules/reading-pagination.ts",
+    "src/modules/svg-export-paints.ts", "src/modules/structure.ts", "src/modules/import-converters.ts"
+  ]
+}

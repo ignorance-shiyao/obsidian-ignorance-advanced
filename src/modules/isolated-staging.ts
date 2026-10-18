@@ -1,5 +1,5 @@
 import type { Component } from "obsidian";
-import type { IgnorancePlugin } from "../plugin-types.js";
+import type { RenderingContext } from "../rendering-context.js";
 /* SVG styles added during native Markdown rendering must not invalidate every
    diagram in the workspace. Keep measurement in its own CSS tree; pages remain
    ordinary DOM clones with the same theme and inherited preferences. */
@@ -98,7 +98,7 @@ export function stagingStyleSheet<S extends ConstructedSheet = CSSStyleSheet>(do
   return sheet;
 }
 
-export async function createIsolatedStaging(plugin: IgnorancePlugin, parent: HTMLElement, component: Component, signal?: AbortSignal, sharedSheet?: CSSStyleSheet) {
+export async function createIsolatedStaging(plugin: RenderingContext, parent: HTMLElement, component: Component, signal?: AbortSignal, sharedSheet?: CSSStyleSheet) {
   const doc = parent.ownerDocument;
   const sheet = sharedSheet || stagingStyleSheet(doc);
   signal?.throwIfAborted();

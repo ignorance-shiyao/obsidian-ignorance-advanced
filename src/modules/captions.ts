@@ -1,5 +1,5 @@
 import type { MarkdownPostProcessorContext } from "obsidian";
-import type { IgnorancePlugin } from "../plugin-types.js";
+import type { RenderingContext } from "../rendering-context.js";
 /* Figure, table, code and equation captions with automatic numbers and cross references, in Reading view.
      ![A caption {#fig-flow}](a.png)       a figure: the alt text becomes "图 1  A caption"
      表：A caption {#tab-sales}             a caption line directly under a table: "表 1  A caption"
@@ -73,7 +73,7 @@ export function parseCaptions(source: string): CaptionEntry[] {
   return entries;
 }
 
-export function wantsCaptions(plugin: IgnorancePlugin, frontmatter: Record<string, unknown> | null | undefined) {
+export function wantsCaptions(plugin: RenderingContext, frontmatter: Record<string, unknown> | null | undefined) {
   const classes = [frontmatter?.cssclasses, frontmatter?.cssclass].flat().filter(Boolean).map(String);
   if (classes.includes("ib-no-captions")) return false;
   return plugin.state?.captions === true || classes.includes("ib-captions");
@@ -115,7 +115,7 @@ export function resolveRefs(root: ParentNode, entries: CaptionEntry[]) {
   }
 }
 
-export function installCaptions(plugin: IgnorancePlugin) {
+export function installCaptions(plugin: RenderingContext) {
   // A later sort order than the inline syntax pass, so `((ref:…))` already is an element when this runs.
   const process = async (element: HTMLElement, context: MarkdownPostProcessorContext) => {
     const info = context.getSectionInfo?.(element);
