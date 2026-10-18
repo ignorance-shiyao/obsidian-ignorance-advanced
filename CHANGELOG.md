@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.17
+Store review follow-up: the Office / PDF / Notion import converters are now TypeScript, so the directory's type-checked lint finds nothing left to flag. Exports look up each image by its path instead of listing every file in the vault, and web clipping only scans the clip folder (plus the vault root and the new-note folder when repairing shared pages) instead of the whole vault.
+
 ## 1.0.16
 Store review clean-up: main.js shrinks from 7.2 MB to 3.6 MB and the code passes the directory's ESLint rules with no errors or warnings. Diagrams now use Obsidian's built-in Mermaid (11), so the families only Mermaid 12 offered (use case, Wardley, Ishikawa, event modeling, tree view), ZenUML and ELK layout are gone. The plugin no longer touches the file system, other programs or Electron: every export is saved into the vault's `导出/` folder, PDF on desktop goes through the system print dialog ("Save as PDF" keeps text selectable), and Word, Excel, PowerPoint, PDF, HTML and Notion imports run inside Obsidian (PDF and HTML through Obsidian's own converters). Removed with that: editing files outside the vault, "Open with" external apps and Pandoc. No `eval`, no `fetch`, no `!important` in the stylesheets.
 
