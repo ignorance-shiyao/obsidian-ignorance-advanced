@@ -1,6 +1,6 @@
-import type { TAbstractFile, Vault } from "obsidian";
+import type { App, TAbstractFile, Vault } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { Modal, Notice, TFile, htmlToMarkdown, normalizePath, requestUrl } from "obsidian";
+import { Modal, Notice, TFile, TFolder, htmlToMarkdown, normalizePath, requestUrl } from "obsidian";
 import { setIcon } from "./ui-icons.js";
 /* Clip a web page into the clipping folder the way the Web Clipper template does:
    title / source / author / published / created / description / tags, the
@@ -22,6 +22,23 @@ export const CLIP_FOLDER = "Clippings";
 export function clipFolder(plugin: IgnorancePlugin) {
   const value = String(plugin.state.webClip?.folder || "").trim().replace(/^\/+|\/+$/g, "");
   return value || CLIP_FOLDER;
+}
+
+/** Notes in one folder ("" is the vault root); `deep` includes subfolders. Clipped notes only live here, so the whole vault is never listed. */
+function notesIn(app: App, folderPath: string, deep: boolean): TFile[] {
+  const folder = folderPath ? app.vault.getAbstractFileByPath(folderPath) : app.vault.getRoot();
+  if (!(folder instanceof TFolder)) return [];
+  const notes: TFile[] = [];
+  const visit = (node: TAbstractFile) => {
+    if (node instanceof TFile && node.extension === "md") notes.push(node);
+    else if (node instanceof TFolder && (deep || node === folder)) node.children.forEach(visit);
+  };
+  visit(folder);
+  return notes;
+}
+
+function clippedNotes(plugin: IgnorancePlugin): TFile[] {
+  return notesIn(plugin.app, clipFolder(plugin), true);
 }
 // A desktop browser: WeChat serves bots and unknown clients a verification page.
 const BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
@@ -283,7 +300,7 @@ class BatchClipModal extends Modal {
     this.busy = true;
     this.start.setAttr("disabled", "true");
     const { app } = this.plugin;
-    const known = new Set(app.vault.getMarkdownFiles().map(file => {
+    const known = new Set(clippedNotes(this.plugin).map(file => {
       const source: unknown = app.metadataCache.getFileCache(file)?.frontmatter?.source;
       return typeof source === "string" ? source : "";
     }).filter(Boolean));
@@ -404,7 +421,12 @@ export function installWebClip(plugin: IgnorancePlugin) {
       new Notice(`「${file.basename}」是分享时抓取失败的页面，分享没有带上文章链接。\n在微信里点「复制链接」，再对这条笔记运行「重新剪藏当前笔记」。`, 12000);
     }
   };
-  const sweep = () => { for (const file of app.vault.getMarkdownFiles()) void repair(file); };
+  // The share extension saves into the clip folder, the vault root or the folder set for new notes.
+  const sweep = () => {
+    const newNoteFolder = app.vault.getConfig?.("newFileFolderPath");
+    const folders = new Set([clipFolder(plugin), "", typeof newNoteFolder === "string" ? newNoteFolder : ""]);
+    for (const folder of folders) for (const file of notesIn(app, folder, folder === clipFolder(plugin))) void repair(file);
+  };
 
   // Optional: a link copied in another app is offered as soon as Obsidian is back.
   let lastOffered = "";
@@ -413,7 +435,7 @@ export function installWebClip(plugin: IgnorancePlugin) {
     const url = await clipboardUrl();
     if (!url || url === lastOffered) return;
     lastOffered = url;
-    const already = app.vault.getMarkdownFiles().some(file => app.metadataCache.getFileCache(file)?.frontmatter?.source === url);
+    const already = clippedNotes(plugin).some(file => app.metadataCache.getFileCache(file)?.frontmatter?.source === url);
     if (already) return;
     new ConfirmClipModal(plugin, `剪贴板里有一个链接，剪藏到 ${clipFolder(plugin)}/？`, url,
       () => void clipUrl(plugin, url).then(note => app.workspace.getLeaf(false).openFile(note)).catch(() => {})).open();

@@ -17,6 +17,7 @@ import {
   nextFrame,
   resourcePathKey,
   vaultImageIndex,
+  type ImageIndex,
   withExportStage,
   saveExportToVault
 } from "./export.js";
@@ -248,7 +249,7 @@ async function remoteImageDataUri(source: HTMLImageElement) {
   }
 }
 
-async function imageDataUri(plugin: IgnorancePlugin, source: HTMLImageElement, imageIndex: Map<string, TFile>) {
+async function imageDataUri(plugin: IgnorancePlugin, source: HTMLImageElement, imageIndex: ImageIndex) {
   const src = source.currentSrc || source.getAttribute("src") || "";
   if (/^data:image\//i.test(src)) return src;
   const file = imageIndex.get(src) || imageIndex.get(resourcePathKey(src));
@@ -260,7 +261,7 @@ async function imageDataUri(plugin: IgnorancePlugin, source: HTMLImageElement, i
   return null;
 }
 
-async function cloneHtmlNode(source: Node, plugin: IgnorancePlugin, imageIndex: Map<string, TFile>, colors: ColorTokens, headingIds: Map<string, string>, checkpoint: Checkpoint, preview = false): Promise<Node | null> {
+async function cloneHtmlNode(source: Node, plugin: IgnorancePlugin, imageIndex: ImageIndex, colors: ColorTokens, headingIds: Map<string, string>, checkpoint: Checkpoint, preview = false): Promise<Node | null> {
   await checkpoint();
   if (source.nodeType === Node.TEXT_NODE) return document.createTextNode(source.nodeValue || "");
   if (!source.instanceOf(Element) || OMIT_FROM_HTML.has(source.tagName) || source.matches(OMIT_HTML_SELECTOR)) return null;

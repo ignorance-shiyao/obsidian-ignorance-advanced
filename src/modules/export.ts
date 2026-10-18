@@ -250,17 +250,32 @@ function resourcePathKey(value: string) {
   }
 }
 
-function vaultImageIndex(plugin: IgnorancePlugin) {
-  const byResource = new Map<string, TFile>();
-  for (const file of plugin.app.vault.getFiles()) {
-    const resource = plugin.app.vault.getResourcePath(file);
-    byResource.set(resource, file);
-    byResource.set(resourcePathKey(resource), file);
-  }
-  return byResource;
+/** Looks up the vault file behind an image resource URL. */
+export type ImageIndex = { get(resource: string): TFile | undefined };
+
+// A resource URL ends with the file's vault path: try the path's tails, shortest
+// prefix removed first, instead of listing every file in the vault.
+function vaultImageIndex(plugin: IgnorancePlugin): ImageIndex {
+  const { vault } = plugin.app;
+  const found = new Map<string, TFile | undefined>();
+  const get = (resource: string) => {
+    const key = resourcePathKey(resource);
+    if (found.has(key)) return found.get(key);
+    let pathname = key;
+    try { pathname = decodeURI(new URL(resource, window.location.href).pathname); } catch { /* keep the key */ }
+    const parts = pathname.split("/").filter(Boolean);
+    let match: TFile | undefined;
+    for (let start = 0; start < parts.length && !match; start += 1) {
+      const file = vault.getAbstractFileByPath(parts.slice(start).join("/"));
+      if (file instanceof TFile && resourcePathKey(vault.getResourcePath(file)) === key) match = file;
+    }
+    found.set(key, match);
+    return match;
+  };
+  return { get };
 }
 
-async function localImageData(plugin: IgnorancePlugin, src: string, index: Map<string, TFile>, width = 800, height = 600) {
+async function localImageData(plugin: IgnorancePlugin, src: string, index: ImageIndex, width = 800, height = 600) {
   if (!src || src.startsWith("data:")) return src;
   if (/^https?:\/\//i.test(src)) return src;
   const file = index.get(src) || index.get(resourcePathKey(src));
@@ -288,7 +303,7 @@ async function localImageData(plugin: IgnorancePlugin, src: string, index: Map<s
 const OMIT_FROM_CLIPBOARD = new Set(["SCRIPT", "STYLE", "BUTTON", "INPUT", "TEXTAREA", "SELECT", "IFRAME", "OBJECT", "EMBED", "SOURCE"]);
 const OMIT_CLIPBOARD_SELECTOR = ".ibm-block-header, .ibm-mermaid-toolbar, .ibp-page-number, .ib-table-resize-layer, .copy-button";
 
-async function cloneForRichClipboard(source: Node, plugin: IgnorancePlugin, imageIndex: Map<string, TFile>, target: string): Promise<Node | null> {
+async function cloneForRichClipboard(source: Node, plugin: IgnorancePlugin, imageIndex: ImageIndex, target: string): Promise<Node | null> {
   if (source.nodeType === Node.TEXT_NODE) return source.cloneNode(true);
   if (!source.instanceOf(Element) || OMIT_FROM_CLIPBOARD.has(source.tagName) || source.matches(OMIT_CLIPBOARD_SELECTOR)) return null;
 
