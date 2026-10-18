@@ -348,7 +348,7 @@ export async function onload(plugin: IgnorancePlugin) {
       callback: () => {
         const file = plugin.app.workspace.getActiveFile();
         if (!isMarkdownImportSource(file)) {
-          new Notice("请先打开或选中支持导入的本地文件（如 PDF、CSV、JSON、HTML）");
+          new Notice("请先打开或选中支持导入的本地文件（如文字文档、电子表格、演示文稿、PDF、CSV、JSON、HTML）");
           return;
         }
         new MarkdownImportModal(plugin, file).open();

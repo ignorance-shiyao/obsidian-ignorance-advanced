@@ -273,7 +273,7 @@ class TableResizeLayer {
       // Modifier keys and double-click hints only make sense with a mouse.
       if (!document.body.classList.contains("is-mobile")) {
       menu.addSeparator();
-      menu.addItem(item => item.setTitle("拖边线：吸附内容尺寸 · ⌥ 自由 · ⇧ 十像素").setIcon("lucide-info").setDisabled(true));
+      menu.addItem(item => item.setTitle("拖动边线：默认吸附内容 · 按住 ⌥ 自由调整 · 按住 ⇧ 每次调整 10 像素").setIcon("lucide-info").setDisabled(true));
       menu.addItem(item => item.setTitle("双击边线：适应内容").setIcon("lucide-info").setDisabled(true));
       }
       const box = button.getBoundingClientRect();
