@@ -1,19 +1,9 @@
 # Changelog
 
-## Unreleased
-
-- DOCX 的标题和正文默认使用微软雅黑，避免 Word 替换苹方字形；代码继续使用独立的等宽字体。
-
-- 象限图模板的中文坐标、象限和数据点标签使用引号，修复原生 Mermaid 11 解析失败。
-
-- Word 导出图表失败时也清理临时渲染容器，防止错误图残留在笔记窗口。
-
-- Word 导出的代码字体跳过系统别名，沿等宽字体链选取实际字体，避免 Pages 提示缺失。
-
-- 清理已移除图种的专属图表样式，保留现有图种共享规则。
+## 1.0.19
 Split slides lay out in two balanced grid columns measured at build time instead of CSS multi-column (a single list is split between the columns, numbered lists keep counting). Exported HTML pages no longer store reader choices in the browser (they last while the page is open), and web clipping no longer reads the clipboard by itself when it finds a failed shared page; the clipboard is read only when you open the clip dialog, run the re-clip command, or turn on link detection.
 
-Mermaid 12-only snippets and unused layout helpers have been removed. Export and image-tool hints identify supported formats more clearly, and desktop PDF export explains how to save through the print dialog. Word headings now use their intended sizes and real font-family names rather than CSS system aliases. Code blocks fill the reading column unless the fence explicitly places or sizes them. The diagram illustration no longer advertises removed engines.
+Word export: body text and headings use Microsoft YaHei, headings 1–3 get their own sizes, code keeps a real monospace family instead of a CSS system alias, and a diagram that fails to render no longer leaves an error box in the note window. Mermaid 12-only snippets, styles and layout helpers are gone, and the quadrant chart template quotes its Chinese labels so Obsidian's Mermaid 11 parses it. Code blocks fill the reading column unless the fence sets `{align=…}` or `{width=…}`. Export and image-tool hints name the supported formats, desktop PDF export explains how to save from the print dialog, and the diagram illustration no longer advertises removed engines.
 
 ## 1.0.18
 Store review follow-up: main.js no longer contains code that creates script elements. The build removes the old-IE setImmediate fallbacks in the bundled zip and Word libraries and Reveal's script-dependency loader (the plugin never used either); the release check now refuses any such code.
