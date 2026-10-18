@@ -454,7 +454,8 @@ export function readerAppScript() {
     const shell=document.querySelector('.ib-reader');
     const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
     const preferencePrefix='ib-reader-'+(shell.dataset.preferenceId?shell.dataset.preferenceId+'-':'');
-    const store={get(k){try{return localStorage.getItem(preferencePrefix+k)}catch(_){return null}},set(k,v){try{localStorage.setItem(preferencePrefix+k,v)}catch(_){}}};
+    // Reader choices last while the page is open; the exported file stores nothing in the browser.
+    const memory=new Map();const store={get(k){return memory.has(preferencePrefix+k)?memory.get(preferencePrefix+k):null},set(k,v){memory.set(preferencePrefix+k,v)}};
     const narrow=()=>matchMedia('(max-width:760px)').matches;
 
     // Keep the exported appearance unless the reader has a saved manual choice.
