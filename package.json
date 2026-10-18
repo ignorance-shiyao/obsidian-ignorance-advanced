@@ -37,7 +37,7 @@
     "uuid": "11.1.1",
     "image-size": "2.0.4"
   },
-  "version": "1.0.17",
+  "version": "1.0.18",
   "license": "MIT",
   "description": "Companion plugin for the Ignorance Obsidian theme"
 }

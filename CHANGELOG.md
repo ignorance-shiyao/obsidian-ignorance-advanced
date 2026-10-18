@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.18
+Store review follow-up: main.js no longer contains code that creates script elements. The build removes the old-IE setImmediate fallbacks in the bundled zip and Word libraries and Reveal's script-dependency loader (the plugin never used either); the release check now refuses any such code.
+
 ## 1.0.17
 Store review follow-up: the Office / PDF / Notion import converters are now TypeScript, so the directory's type-checked lint finds nothing left to flag. Exports look up each image by its path instead of listing every file in the vault, and web clipping only scans the clip folder (plus the vault root and the new-note folder when repairing shared pages) instead of the whole vault.
 
