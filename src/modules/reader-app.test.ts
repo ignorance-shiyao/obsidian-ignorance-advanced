@@ -6,11 +6,13 @@ import { readerAppScript } from "./reader-app";
 const vm = Platform.isDesktop ? await import("node:vm") : null;
 
 // Execute the emitted reader initialization, not a second implementation.
-function initialTheme(exported: string | undefined, saved: string | null | Record<string, string>, systemDark: boolean, preferenceId?: string) {
+function initialTheme(exported: string | undefined, saved: string | null | Record<string, string>, systemDark: boolean, preferenceId?: string, hash = "") {
   const shell = { dataset: { theme: exported, preferenceId } };
   const script = readerAppScript();
   const initialization = script.slice(0, script.indexOf("    const toggleTheme=")) + "})()";
+  const frame: { top?: object } = {}; frame.top = frame;
   vm.runInNewContext(initialization, {
+    window: frame, location: new URL("file:///reader.html" + hash), history: { state: null, replaceState: () => {} }, URLSearchParams,
     document: { querySelector: () => shell },
     localStorage: { getItem: (key: string) => typeof saved === "object" && saved !== null ? saved[key] ?? null : saved },
     matchMedia: () => ({ matches: systemDark })
@@ -37,4 +39,13 @@ describe("离线阅读器明暗优先级", () => {
     expect(initialTheme(undefined, null, dark)).toBe(dark ? "dark" : "light");
     expect(initialTheme("invalid", null, dark)).toBe(dark ? "dark" : "light");
   });
+});
+
+it("网址中的有效明暗优先于导出默认值，无效值仍保留默认", () => {
+  expect(initialTheme("light", null, false, undefined, "#ib-reader?theme=dark&width=wide")).toBe("dark");
+  expect(initialTheme("dark", null, true, undefined, "#ib-reader?theme=invalid")).toBe("dark");
+});
+
+it("导出的阅读器脚本不包含浏览器存储接口", () => {
+  expect(readerAppScript()).not.toMatch(/localStorage|sessionStorage|indexedDB/);
 });

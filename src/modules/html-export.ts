@@ -1,3 +1,4 @@
+import { readerEarlyScript } from "./reader-url-preferences.js";
 import type { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { requestUrl } from "obsidian";
@@ -552,8 +553,8 @@ async function buildHtmlReader(plugin: IgnorancePlugin, file: TFile, content: HT
     const lists = indexContent(content);
     const html = `<!doctype html>
 <html lang="zh-CN" data-export="ignorance-reader" data-ib-theme="${initialMode}">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>${escapeHtml(title)}</title><style>${buildReaderCss(light, dark)}</style></head>
-<body data-ib-table-alignment="${["left", "center", "right"].includes(plugin.state.appearance?.tableAlignment) ? plugin.state.appearance.tableAlignment : "left"}"><div class="ib-reader${toc ? "" : " ib-reader-toc-hidden"}" data-theme="${initialMode}" data-preference-id="${preferenceId}" data-width="standard" data-font="theme" data-skin="theme"><script data-ib-early>(function(){var s=document.currentScript.parentNode;document.documentElement.dataset.ibTheme=s.dataset.theme})()</script>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>${escapeHtml(title)}</title><script data-ib-early-head>${readerEarlyScript(true)}</script><style>${buildReaderCss(light, dark)}</style></head>
+<body data-ib-table-alignment="${["left", "center", "right"].includes(plugin.state.appearance?.tableAlignment) ? plugin.state.appearance.tableAlignment : "left"}"><div class="ib-reader${toc ? "" : " ib-reader-toc-hidden"}" data-theme="${initialMode}" data-exported-theme="${initialMode}" data-preference-id="${preferenceId}" data-width="standard" data-font="theme" data-skin="theme"><script data-ib-early>${readerEarlyScript()}</script>
   ${headerMarkup(title)}
   <div class="ib-reader-layout">${navigationMarkup(toc, lists)}<main class="ib-reader-main"><article class="ib-reader-note">${cover}${content.innerHTML}${colophon}</article></main>${railMarkup()}</div>
   ${overlayMarkup()}

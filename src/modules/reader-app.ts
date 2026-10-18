@@ -1,3 +1,4 @@
+import { readerUrlPreferencesScript, readerAnchorRestoreScript } from "./reader-url-preferences.js";
 /* The exported HTML reader's navigation and reading tools. Everything is inlined: one offline file.
      - 导航中心: 目录 / 图片 / 表格 / 代码 / 图表 tabs with a filter box
      - header shows the current chapter; a progress bar under it
@@ -453,9 +454,9 @@ export function readerAppScript() {
   return `(()=>{
     const shell=document.querySelector('.ib-reader');
     const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-    const preferencePrefix='ib-reader-'+(shell.dataset.preferenceId?shell.dataset.preferenceId+'-':'');
-    // Reader choices last while the page is open; the exported file stores nothing in the browser.
-    const memory=new Map();const store={get(k){return memory.has(preferencePrefix+k)?memory.get(preferencePrefix+k):null},set(k,v){memory.set(preferencePrefix+k,v)}};
+    // Preferences live in the URL fragment; other transient choices stay in memory.
+    const store=${readerUrlPreferencesScript()};
+    const exportedTheme=shell.dataset.exportedTheme||(shell.dataset.theme==='light'||shell.dataset.theme==='dark'?shell.dataset.theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
     const narrow=()=>matchMedia('(max-width:760px)').matches;
 
     // Keep the exported appearance unless the reader has a saved manual choice.
@@ -490,7 +491,7 @@ export function readerAppScript() {
       const link=e.target.closest('a[href^="#"]');if(!link)return;
       let id;try{id=decodeURIComponent(link.getAttribute('href').slice(1));}catch(_){return;}
       const target=document.getElementById(id);if(!target)return;
-      e.preventDefault();target.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
+      e.preventDefault();store.setAnchor(id);target.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});
     });
 
     // Current chapter, progress, dock.
@@ -500,17 +501,18 @@ export function readerAppScript() {
     let tocInitialized=false;
     const chapter=$('.ib-reader-chapter'), bar=$('.ib-reader-progress span');
     const prevBtn=$('[data-action="prev-chapter"]'), nextBtn=$('[data-action="next-chapter"]');
-    let current=-1;
+    let current=-1,restoringAnchor=Boolean(store.anchor());
     // Heading offsets are measured once (and again when the article resizes);
     // scrolling only binary-searches them, never reading layout per frame.
     let offsets=[];const measure=()=>{offsets=headings.map(h=>h.getBoundingClientRect().top+scrollY);};measure();
     const locate=()=>{const y=scrollY+90;let lo=0,hi=offsets.length-1,index=offsets.length?0:-1;while(lo<=hi){const mid=(lo+hi)>>1;if(offsets[mid]<=y){index=mid;lo=mid+1;}else hi=mid-1;}return index;};
     let remeasure=0;if('ResizeObserver' in window)new ResizeObserver(()=>{clearTimeout(remeasure);remeasure=setTimeout(()=>{measure();current=-2;update();},150);}).observe(document.querySelector('.ib-reader-note'));
-    const update=()=>{
+    const update=(remember=false)=>{
       const max=document.documentElement.scrollHeight-innerHeight;
       bar.style.transform='scaleX('+(max>0?Math.min(1,scrollY/max):0)+')';
       shell.classList.toggle('ib-scrolled',scrollY>240);
       const index=locate();
+      if(remember&&!restoringAnchor&&index>=0&&store.anchor()!==headings[index].id)store.setAnchor(headings[index].id);
       if(index!==current){current=index;chapter.textContent=index>=0?headings[index].textContent.trim():'';
         tocLinks.forEach((a,i)=>a.toggleAttribute('aria-current',i===index));if(index>=0)tocLinks[index]?.setAttribute('aria-current','location');
         // Keep the active entry visible inside the aside only (never scroll the page).
@@ -519,8 +521,8 @@ export function readerAppScript() {
         if(link&&!link.closest('[hidden]')){const a=aside.getBoundingClientRect(),r=link.getBoundingClientRect(),top=a.top+(head?.offsetHeight||0);if(r.top<top)aside.scrollTop-=top-r.top+8;else if(r.bottom>a.bottom)aside.scrollTop+=r.bottom-a.bottom+8;}}
       prevBtn.disabled=current<=0&&scrollY<8; nextBtn.disabled=current>=headings.length-1;
     };
-    let ticking=false;addEventListener('scroll',()=>{if(!ticking){ticking=true;requestAnimationFrame(()=>{ticking=false;update();});}},{passive:true});
-    addEventListener('resize',update);update();
+    let ticking=false;addEventListener('scroll',()=>{if(!ticking){ticking=true;requestAnimationFrame(()=>{ticking=false;update(true);});}},{passive:true});
+    addEventListener('resize',()=>update());update();
     const go=index=>{const target=headings[Math.max(0,Math.min(headings.length-1,index))];if(target)target.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth',block:'start'});};
     prevBtn.addEventListener('click',()=>{const top=headings[current]?.getBoundingClientRect().top;go(top!==undefined&&top<-20?current:current-1);});
     nextBtn.addEventListener('click',()=>go(current+1));
@@ -528,6 +530,7 @@ export function readerAppScript() {
 
     // Width (remembered).
     const widthSelect=$('.ib-reader-width');
+    const exportedWidth=['narrow','standard','wide','full'].includes(shell.dataset.width)?shell.dataset.width:widthSelect.value||'standard';
     const applyWidth=v=>{shell.dataset.width=v;widthSelect.value=v;};
     const savedWidth=store.get('width');if(savedWidth)applyWidth(savedWidth);
     widthSelect.addEventListener('change',()=>{applyWidth(widthSelect.value);store.set('width',widthSelect.value);});
@@ -645,6 +648,9 @@ export function readerAppScript() {
     };
     if(rail){rail.querySelector('[data-action="prev-section"]').addEventListener('click',()=>go(current-1));rail.querySelector('[data-action="next-section"]').addEventListener('click',()=>go(current+1));
       let railTick=false;addEventListener('scroll',()=>{if(!railTick){railTick=true;requestAnimationFrame(()=>{railTick=false;renderRail();});}},{passive:true});addEventListener('resize',()=>{railChapter=-2;renderRail();});wideRail.addEventListener?.('change',()=>{railChapter=-2;renderRail();});renderRail();}
+
+    // Restore fragment preferences and chapter links without browser storage.
+    ${readerAnchorRestoreScript()}
 
     // Keys.
     document.addEventListener('keydown',e=>{
