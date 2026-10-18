@@ -418,7 +418,12 @@ export async function createStructuredDocxBuffer(source: string, options: Struct
   const doc = new Document({
     title: options.title || "Markdown 导出",
     styles: {
-      default: { document: { run: { font: style.fontFamily, size: style.fontSize * 2 } } }
+      default: {
+        document: { run: { font: style.fontFamily, size: style.fontSize * 2 } },
+        heading1: { run: { font: style.fontFamily, size: Math.round(style.fontSize * 1.6) * 2, bold: true } },
+        heading2: { run: { font: style.fontFamily, size: Math.round(style.fontSize * 1.35) * 2, bold: true } },
+        heading3: { run: { font: style.fontFamily, size: Math.round(style.fontSize * 1.15) * 2, bold: true } }
+      }
     },
     sections: [{ children: elements.length ? elements : [new Paragraph({ text: "" })] }]
   });

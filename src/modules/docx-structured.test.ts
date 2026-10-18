@@ -5,6 +5,22 @@ import { createStructuredDocxBuffer, markdownForStructuredWord } from "./docx-st
 const ONE_PIXEL_PNG = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jzV8AAAAASUVORK5CYII="), char => char.charCodeAt(0));
 
 describe("结构化 Word 导出", () => {
+  it("将设定字体和字号应用到一至三级标题，并保留标题段落关联", async () => {
+    const output = await createStructuredDocxBuffer("# 一级\n\n## 二级\n\n### 三级\n\n正文", {
+      style: { fontFamily: "Noto Sans CJK SC", fontSize: 12 }
+    });
+    const archive = await JSZip.loadAsync(output);
+    const styles = await archive.file("word/styles.xml").async("string");
+    const document = await archive.file("word/document.xml").async("string");
+    for (const [level, size] of [[1, 38], [2, 32], [3, 28]]) {
+      const heading = styles.match(new RegExp(`<w:style[^>]*w:styleId="Heading${level}"[\\s\\S]*?</w:style>`))?.[0];
+      expect(heading).toContain('w:ascii="Noto Sans CJK SC"');
+      expect(heading).toContain(`w:sz w:val="${size}"`);
+      expect(heading).toContain("<w:b/>");
+      expect(document).toContain(`w:pStyle w:val="Heading${level}"`);
+    }
+  });
+
   it("生成可解包的 docx，保留标题、行内样式、链接、列表、表格、代码和图片", async () => {
     const markdown = [
       "---",
