@@ -18,7 +18,7 @@ const unique = (plugin: IgnorancePlugin, folder: string, base: string, ext: stri
 export async function cropImage(plugin: IgnorancePlugin, file: TFile, onDone: (result: { mode: "replace" | "new"; file: TFile }) => void) {
   const ext = file.extension.toLowerCase();
   const mime = (OUTPUT as Record<string, string | undefined>)[ext];
-  if (!mime) { new Notice("暂不支持裁切这种格式（支持 PNG、JPG 和网页图片（扩展名 .webp））"); return; }
+  if (!mime) { new Notice("暂不支持裁切这种格式，可裁切 PNG、JPG 和 .webp 图片"); return; }
   const source = await plugin.app.vault.readBinary(file);
   const url = URL.createObjectURL(new Blob([source], { type: mime }));
   const modal = new Modal(plugin.app);

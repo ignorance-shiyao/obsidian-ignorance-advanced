@@ -180,7 +180,7 @@ function startCrop(plugin: IgnorancePlugin, embed: HTMLElement) {
   const linkPath = embed.getAttribute("src");
   const file = linkPath ? plugin.app.metadataCache.getFirstLinkpathDest(decodeURIComponent(linkPath), view?.file?.path || "") : null;
   if (!(file instanceof TFile) || !IMAGE_EXTS.has(file.extension.toLowerCase())) { new Notice("只能裁切库内的图片"); return; }
-  if (!canCrop(file)) { new Notice("暂不支持裁切这种格式（支持 PNG、JPG 和网页图片（扩展名 .webp））"); return; }
+  if (!canCrop(file)) { new Notice("暂不支持裁切这种格式，可裁切 PNG、JPG 和 .webp 图片"); return; }
   void cropImage(plugin, file, ({ mode, file: result }) => {
     if (mode !== "new") return;
     const found = embed.isConnected ? linkFor(view, embed) : null;
