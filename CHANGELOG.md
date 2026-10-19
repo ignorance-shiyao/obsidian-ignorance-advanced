@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Tables span the full width of the text column by default (a table you resized keeps its own width).
+
 The azure palette's light paper is warm white (#FAF8F4, was #F5F8FD); dark mode is unchanged. Heading numbers take the heading's colour.
 
 Heading numbers follow the heading's weight instead of always being bold.

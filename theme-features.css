@@ -2249,7 +2249,7 @@ body.ib-hide-decorations .ibc-chapter__rail { display: none; }
 .ibp-has-book .ib-native-chapter-layer { display:none; }
 .ib-echarts-block { margin:var(--ib-space-3) 0; padding:0; height:clamp(220px, 42vh, 360px); min-height:0; overflow:hidden; }
 .ib-echarts-block > div.ib-canvas-host:not(#_ib) { border:0; background:transparent; box-shadow:none; }
-body[data-ib-table-alignment] .markdown-rendered table { width:auto; max-width:100%; }
+body[data-ib-table-alignment] .markdown-rendered table { width:100%; max-width:100%; }
 body[data-ib-table-alignment="left"] .markdown-rendered table { margin-inline-start:0; margin-inline-end:auto; }
 body[data-ib-table-alignment="center"] .markdown-rendered table { margin-inline:auto; }
 body[data-ib-table-alignment="right"] .markdown-rendered table { margin-inline-start:auto; margin-inline-end:0; }
