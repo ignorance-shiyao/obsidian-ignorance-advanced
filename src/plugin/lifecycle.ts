@@ -1,5 +1,5 @@
 import type { Editor, TAbstractFile } from "obsidian";
-import { tr } from "../i18n.js";
+import { activeLanguage, tr } from "../i18n.js";
 import { MarkdownView,Notice,Platform,TFile,View } from "obsidian";
 import { createAfterPaintQueue } from "../modules/after-paint-queue.js";
 import { applyAppearancePreferences,clearAppearancePreferences,installAppearanceControls } from "../modules/appearance.js";
@@ -65,6 +65,7 @@ import { IgnoranceSettingTab,installTabOpening } from "../modules/settings.js";
 import { exportNotePptx,installPresentationMode,openPresentation } from "../modules/slides.js";
 import { smartPunctuationExtension } from "../modules/smart-punctuation.js";
 import { SNIPPET_TEMPLATES, buildSnippetInsertion } from "../modules/snippets.js";
+import { localizeSnippetBody } from "../modules/snippets-en.js";
 import { openSyntaxGuide,showFirstRunHint } from "../modules/syntax-guide.js";
 import { syncPreviewTableAlignment } from "../modules/table-alignment.js";
 import { installTableCrosshair } from "../modules/table-crosshair.js";
@@ -82,7 +83,7 @@ function insertSnippet(editor: Editor, snippet: (typeof SNIPPET_TEMPLATES)[numbe
   const to = editor.getCursor("to");
   const start = editor.getRange({ line: 0, ch: 0 }, from).length;
   const end = editor.getRange({ line: 0, ch: 0 }, to).length;
-  const insertion = buildSnippetInsertion(editor.getValue(), start, end, snippet.body);
+  const insertion = buildSnippetInsertion(editor.getValue(), start, end, activeLanguage() === "en" ? localizeSnippetBody(snippet.body) : snippet.body);
   editor.replaceRange(insertion.text, editor.offsetToPos(insertion.from), editor.offsetToPos(insertion.to));
   const selectionFrom = insertion.from + insertion.selectionFrom;
   const selectionTo = insertion.from + insertion.selectionTo;

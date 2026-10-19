@@ -1,4 +1,5 @@
 import { readerEarlyScript } from "./reader-url-preferences.js";
+import { tr } from "../i18n.js";
 import type { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { requestUrl } from "obsidian";
@@ -288,7 +289,7 @@ async function cloneHtmlNode(source: Node, plugin: IgnorancePlugin, imageIndex: 
     const size = Math.round(source.getBoundingClientRect().height) || 16;
     checkbox.className = "ib-task-box";
     checkbox.setAttribute("role", "img");
-    checkbox.setAttribute("aria-label", source.checked ? "已完成" : "未完成");
+    checkbox.setAttribute("aria-label", source.checked ? tr("已完成") : tr("未完成"));
     if (source.checked) checkbox.dataset.checked = "";
     Object.assign(checkbox.style, { display: "inline-flex", alignItems: "center", justifyContent: "center", width: `${size}px`, height: `${size}px`, verticalAlign: "-0.15em", fontSize: "0", lineHeight: "0" });
     if (source.checked) setMarkup(checkbox, '<svg viewBox="0 0 16 16" width="72%" height="72%" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>');
@@ -313,7 +314,7 @@ async function cloneHtmlNode(source: Node, plugin: IgnorancePlugin, imageIndex: 
     }
     return svg;
   }
-  if (source.instanceOf(HTMLCanvasElement)) return imageAsPng(source, colors, "图表");
+  if (source.instanceOf(HTMLCanvasElement)) return imageAsPng(source, colors, tr("图表"));
   // Export the chart itself, rather than the interactive zoom/scroll scaffolding.
   // Preserve the authored block position with auto margins at every reader width.
   if (source.matches(".mermaid.ibm-mermaid-enhanced,.ib-echarts-block")) {
@@ -375,7 +376,7 @@ async function cloneHtmlNode(source: Node, plugin: IgnorancePlugin, imageIndex: 
       return linked;
     }
     const fallback = createSpan();
-    fallback.textContent = source.alt || "[无法嵌入的图片]";
+    fallback.textContent = source.alt || tr("[无法嵌入的图片]");
     return fallback;
   }
 
@@ -556,7 +557,7 @@ async function buildHtmlReader(plugin: IgnorancePlugin, file: TFile, content: HT
       heading.id = id;
       const original = sourceHeadings[index];
       if (original?.id) headingIds.set(original.id, id);
-      const label = heading.textContent.trim() || `章节 ${index + 1}`;
+      const label = heading.textContent.trim() || tr("章节 {n}", { n: index + 1 });
       const level = heading.tagName.slice(1);
       if (heading.hasAttribute("data-reader-duplicate-title")) return "";
       heading.setAttribute("data-reader-section", String(index + 1));

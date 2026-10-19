@@ -1,4 +1,5 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
+import { tr } from "../i18n.js";
 import { requestUrl, TFile } from "obsidian";
 /* The exported reader's cover block and colophon, from the note's properties:
    title, description, author, published / created, source, tags, cover image,
@@ -23,7 +24,7 @@ function formatDate(value: unknown) {
   if (!value) return "";
   const date = new Date(value as string | number | Date);
   if (Number.isNaN(date.getTime())) return text(value);
-  return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月 ${date.getDate()} 日`;
+  return tr("{y} 年 {m} 月 {d} 日", { y: date.getFullYear(), m: date.getMonth() + 1, d: date.getDate() });
 }
 
 // CJK characters count one each; other text by words.
@@ -74,8 +75,8 @@ export async function buildCover(plugin: IgnorancePlugin, file: TFile, content: 
   const meta = [
     authors.length ? `<span class="ib-cover-meta-item" data-kind="author">${escapeHtml(authors.join("、"))}</span>` : "",
     published ? `<span class="ib-cover-meta-item" data-kind="date">${escapeHtml(published)}</span>` : "",
-    `<span class="ib-cover-meta-item" data-kind="stats">${count.toLocaleString("zh-CN")} 字 · 约 ${minutes} 分钟</span>`,
-    source ? `<a class="ib-cover-meta-item" data-kind="source" href="${escapeHtml(source)}" target="_blank" rel="noopener">${escapeHtml(host || "原文")}</a>` : ""
+    `<span class="ib-cover-meta-item" data-kind="stats">${tr("{count} 字 · 约 {minutes} 分钟", { count: count.toLocaleString("zh-CN"), minutes })}</span>`,
+    source ? `<a class="ib-cover-meta-item" data-kind="source" href="${escapeHtml(source)}" target="_blank" rel="noopener">${escapeHtml(host || tr("原文"))}</a>` : ""
   ].filter(Boolean).join("");
   const cover = `<header class="ib-cover${image ? " has-image" : ""}" data-minutes="${minutes}">
     ${plugin.state.appearance?.decorations !== false ? `<span class="ib-cover-ambient" aria-hidden="true"></span><span class="ib-cover-watermark" aria-hidden="true">#</span>` : ""}
@@ -92,10 +93,10 @@ export async function buildCover(plugin: IgnorancePlugin, file: TFile, content: 
   const colophon = `<footer class="ib-colophon">
     <div class="ib-colophon-title">${escapeHtml(title)}</div>
     <div class="ib-colophon-lines">
-      ${authors.length ? `<span>作者：${escapeHtml(authors.join("、"))}</span>` : ""}
-      ${published || created ? `<span>日期：${escapeHtml(published || created)}</span>` : ""}
-      ${source ? `<span>原文：<a href="${escapeHtml(source)}" target="_blank" rel="noopener">${escapeHtml(source)}</a></span>` : ""}
-      <span>导出：${escapeHtml(exported)} · Obsidian · Ignorance</span>
+      ${authors.length ? `<span>${tr("作者：{v}", { v: escapeHtml(authors.join("、")) })}</span>` : ""}
+      ${published || created ? `<span>${tr("日期：{v}", { v: escapeHtml(published || created) })}</span>` : ""}
+      ${source ? `<span>${tr("原文：")}<a href="${escapeHtml(source)}" target="_blank" rel="noopener">${escapeHtml(source)}</a></span>` : ""}
+      <span>${tr("导出：{exported} · Obsidian · Ignorance", { exported: escapeHtml(exported) })}</span>
     </div>
   </footer>`;
   return { cover, colophon, title };

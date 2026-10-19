@@ -841,6 +841,18 @@ export const EN: Readonly<Record<string, string>> = {
   "剩余约 {left} 分钟": "About {left} min left",
   "即将读完": "Almost done",
   "图片": "Images",
+  // Cover and exported documents
+  "{y} 年 {m} 月 {d} 日": "{y}-{m}-{d}",
+  "{count} 字 · 约 {minutes} 分钟": "{count} characters · about {minutes} min",
+  "原文": "Original",
+  "作者：{v}": "Author: {v}",
+  "日期：{v}": "Date: {v}",
+  "原文：": "Original: ",
+  "导出：{exported} · Obsidian · Ignorance": "Exported {exported} · Obsidian · Ignorance",
+  "[图片]": "[image]",
+  "Markdown 导出": "Markdown export",
+  "[无法嵌入的图片]": "[image could not be embedded]",
+  "章节 {n}": "Section {n}",
   // Import
   "请先打开或选中支持导入的本地文件（如文字文档（.docx）、电子表格（.xlsx）、演示文稿（.pptx）、PDF、CSV、JSON、HTML）": "Open or select a local file that can be imported (e.g. Word .docx, Excel .xlsx, PowerPoint .pptx, PDF, CSV, JSON, HTML)"
 };

@@ -1,5 +1,6 @@
 // 移植自 morphdraft/src/core/export/docx2.ts：Markdown token → docx.js 对象。
 import MarkdownIt from "markdown-it";
+import { tr } from "../i18n.js";
 import { WORD_TEXT_FONT } from "./word-font.js";
 import {
   BorderStyle,
@@ -76,7 +77,7 @@ function flattenInlineComponents(source: string) {
   return source
     .replace(/\(\((?:green|red|amber|blue|purple|teal|gray|grey):([^()]*)\)\)/gi, "$1")
     .replace(/\(\(bar:(\d+(?:\.\d+)?)\)\)/gi, "$1%")
-    .replace(/\(\(spark:([^()]*)\)\)/gi, "趋势：$1")
+    .replace(/\(\(spark:([^()]*)\)\)/gi, tr("趋势：{v}", { v: "$1" }))
     .replace(/\(\(spoiler:([^()]*)\)\)/gi, "$1")
     .replace(/\(\(ruby:\s*([^()|]*?)\s*\|\s*([^()]*?)\s*\)\)/gi, "$1（$2）")
     .replace(/\(\(crumb:\s*([^()]*?)\s*\)\)/gi, (_, path: string) => path.split(/\s*(?:>|›|→|\/)\s*/).join(" › "))
@@ -169,7 +170,7 @@ async function inlineTokensToRuns(tokens: Token[], context: DocxContext, inherit
       const src = token.attrGet("src") || "";
       const image = await context.resolveImage?.(src);
       if (!image) {
-        runs.push(new TextRun({ text: token.content || "[图片]", ...runStyle(current(), context.style) }));
+        runs.push(new TextRun({ text: token.content || tr("[图片]"), ...runStyle(current(), context.style) }));
         continue;
       }
       const transformation = fitImage(image);
@@ -177,7 +178,7 @@ async function inlineTokensToRuns(tokens: Token[], context: DocxContext, inherit
         type: image.type as ImageType,
         data: image.data,
         transformation,
-        altText: { name: token.content || "图片", title: token.content || "图片", description: token.content || "" }
+        altText: { name: token.content || tr("图片"), title: token.content || tr("图片"), description: token.content || "" }
       }));
       continue;
     }
@@ -422,7 +423,7 @@ export async function createStructuredDocxBuffer(source: string, options: Struct
   const tokens = markdown.parse(markdownForStructuredWord(source), {});
   const elements = await blocksToDocx(tokens, context);
   const doc = new Document({
-    title: options.title || "Markdown 导出",
+    title: options.title || tr("Markdown 导出"),
     styles: {
       default: {
         document: { run: { font: style.fontFamily, size: style.fontSize * 2 } },
