@@ -5,6 +5,8 @@ Undo after writing a sorted table back now restores only that table's rows; edit
 
 Merging several notes into one Word file resolves each note's images and links from its own folder, so two notes that both use `assets/图.png` each get their own picture.
 
+The plugin marks the page with `ib-header-path` while it manages the note-header folder path, so the Ignorance theme hides Obsidian's path only when the plugin is there to bring it back.
+
 Closing the batch web-clip dialog stops the links not yet started instead of clipping them in the background.
 
 ## 1.0.21

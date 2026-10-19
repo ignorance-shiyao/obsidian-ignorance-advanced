@@ -8,10 +8,12 @@ import { setIcon } from "./ui-icons.js";
    The folder button overrides that for the current note (desktop), or opens
    the path as a small tree (mobile) — each folder from the vault root down,
    and picking one reveals it in the file explorer.
-   Hiding the breadcrumb itself is the theme's job (.ib-path-shown). */
+   Hiding the breadcrumb itself is the theme's job (.ib-path-shown); the theme only does so while
+   body.ib-header-path is set, so with the theme alone Obsidian's path stays visible. */
 
 const BUTTON = "ib-path-toggle";
 const SHOWN = "ib-path-shown";
+const ACTIVE = "ib-header-path";
 const observed = new WeakMap<Element, ResizeObserver>();
 
 // The view of a note tab: the published View type does not list its file.
@@ -129,7 +131,11 @@ export function installHeaderPath(plugin: IgnorancePlugin) {
   plugin.registerEvent(plugin.app.workspace.on("file-open", () => window.setTimeout(sweep, 0)));
   plugin.registerEvent(plugin.app.vault.on("rename", () => window.setTimeout(sweep, 0)));
   plugin.app.workspace.onLayoutReady(sweep);
+  document.body.addClass(ACTIVE);
+  plugin.registerEvent(plugin.app.workspace.on("window-open", win => win.doc.body.addClass(ACTIVE)));
   plugin.register(() => {
+    plugin.app.workspace.iterateAllLeaves(leaf => leaf.view?.containerEl.doc.body.removeClass(ACTIVE));
+    document.body.removeClass(ACTIVE);
     document.querySelectorAll(`.${SHOWN}`).forEach(el => el.removeClass(SHOWN));
     document.querySelectorAll(`.${BUTTON}`).forEach(el => el.remove());
   });
