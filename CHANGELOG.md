@@ -1,9 +1,9 @@
 # Changelog
 
-## Unreleased
+## 1.0.20
 Word export offers Microsoft YaHei (default), the current theme body font for both body text and headings, or SimSun in settings. Standalone HTML readers preserve light/dark mode, content width and chapter anchors in the URL fragment across reloads without browser storage. Chapter restoration waits for page load, and the initial theme is applied before styles load. Embedded previews keep their URL unchanged.
 
-Page zoom keeps table and image controls aligned, and block resizing, diagram panning and chart zooming use consistent coordinates. The width menu separates the current note from the device default.
+Page zoom keeps table and image controls aligned, and block resizing, diagram panning and chart zooming use consistent coordinates. The width menu separates the current note from the device default. On phones code blocks start wrapped (the wrap button still switches it). Use with Ignorance 1.0.20 or later.
 
 ## 1.0.19
 Split slides lay out in two balanced grid columns measured at build time instead of CSS multi-column (a single list is split between the columns, numbered lists keep counting). Exported HTML pages no longer store reader choices in the browser (they last while the page is open), and web clipping no longer reads the clipboard by itself when it finds a failed shared page; the clipboard is read only when you open the clip dialog, run the re-clip command, or turn on link detection.
