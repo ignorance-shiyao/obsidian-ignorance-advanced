@@ -12,6 +12,8 @@ import { colorSwatchExtension,colorSwatchPostProcessor } from "../modules/color-
 import { containerEditorExtension } from "../modules/container-editor.js";
 import { renderContainerBlocks } from "../modules/containers.js";
 import { clearContextMarkers,markContext } from "../modules/context-markers.js";
+import { openTaskExamples } from "../modules/task-examples.js";
+import { installEditorMenu } from "../modules/editor-menu.js";
 import { showActiveEnhancements } from "../modules/enhancement-gate.js";
 import { renderEChartsBlock } from "../modules/echarts-renderer.js";
 import { echartsSourceHighlighter } from "../modules/echarts-source.js";
@@ -117,6 +119,7 @@ export async function onload(plugin: IgnorancePlugin) {
   installGifClick(plugin);
   installTableCrosshair(plugin);
   installTableSort(plugin);
+  installEditorMenu(plugin);
   installNativeChapterSource(plugin);
   installCodeFold(plugin);
   // Warming every diagram in the open note loads the 1 MB ECharts and 5 MB Mermaid engines in the
@@ -278,6 +281,12 @@ export async function onload(plugin: IgnorancePlugin) {
   plugin.register(() => plugin.themeObserver.disconnect());
 
   plugin.collapseSelectionAfterEdit();
+
+  plugin.addCommand({
+    id: "task-examples",
+    name: "新建任务式示例",
+    callback: () => openTaskExamples(plugin)
+  });
 
   plugin.addCommand({
     id: "active-enhancements",

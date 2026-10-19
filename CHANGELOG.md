@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Formats for selected text: right-click a selection and choose "Ignorance" for highlight colours, badges, spoiler, ruby, caption, cross reference, callout conversion, tabs and columns. Every item is also a command named "Format: …", so you can give it a shortcut, and each is one edit that a single undo reverses. A new command, "New task example", writes one of four example notes (weekly report, ten-slide deck, Word hand-off, web clipping) into its own folder, only when you choose one.
+
 Enhancement switches: tables, images, code blocks and charts can each be turned off in settings ("Enhancement scope"), or for a single note by adding `ib-no-tables`, `ib-no-images`, `ib-no-code` or `ib-no-charts` to its cssclasses. Turning one off removes what it added to open notes. Blocks that Code Styler, Dataview, Bases or Excalidraw have already handled are no longer wrapped a second time. The command "Active enhancements for this note" lists what is on and why anything is off.
 
 My layouts: in the page menu's layout submenu you can save the current page settings (reading width, paper, margins, page numbers, header and footer, paged reading and the Word font) under a name, and apply one later. Before it is applied a list shows exactly which settings change; colours and zoom are never part of a layout. A manage window renames, copies and deletes layouts and imports or exports them as a JSON file; unknown or invalid fields in an imported file are ignored and reported, and a file made by a newer version is refused.
