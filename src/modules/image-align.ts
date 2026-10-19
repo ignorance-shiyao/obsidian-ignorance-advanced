@@ -1,3 +1,4 @@
+import { enhancementOn, handledByOther } from "./enhancement-gate.js";
 import { controlScale, controlBox } from "./control-geometry.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { MarkdownView, Menu, Modal, Notice, TFile, requestUrl, setTooltip } from "obsidian";
@@ -42,7 +43,7 @@ export function installImageAlignment(plugin: IgnorancePlugin) {
   plugin.registerDomEvent(document, "contextmenu", event => {
     target = event.target instanceof Element ? event.target.closest(".image-embed") : null;
     // Reading view has no image menu of its own; offer the alignment menu there.
-    if (!target || !target.closest(".markdown-reading-view")) return;
+    if (!target || !target.closest(".markdown-reading-view") || !enhancementOn(plugin, "images", target)) return;
     const view = markdownViews(plugin).find(view => view.file && view.containerEl.contains(target));
     const found = view && readingLink(view, target);
     if (!found) return;
@@ -205,6 +206,7 @@ function addButton(bar: HTMLElement, icon: string, label: string, run: (event: M
 }
 
 function decorate(plugin: IgnorancePlugin, embed: HTMLElement) {
+  if (!enhancementOn(plugin, "images", embed) || handledByOther("images", embed)) return;
   const wrapper = embed.querySelector<HTMLElement>(":scope > .image-wrapper") || embed;
   if (wrapper.querySelector(`:scope > .${TOOLBAR}`)) return;
   if (embed.closest(".ibp-book, .ibp-staging, .ibp-export, .reveal")) return;

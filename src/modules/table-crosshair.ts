@@ -1,3 +1,4 @@
+import { enhancementOn } from "./enhancement-gate.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 /* Table reading aid: pointing at a cell lights up its whole row and column. Reading view only; on with the
    setting "table crosshair" or per note with the `ib-crosshair` cssclass. */
@@ -9,7 +10,7 @@ export function installTableCrosshair(plugin: IgnorancePlugin) {
     current?.querySelectorAll(`.${ROW}, .${COLUMN}`).forEach(element => element.classList.remove(ROW, COLUMN));
     current = null;
   };
-  const enabled = (table: Element) => plugin.state?.tableCrosshair === true || Boolean(table.closest(".ib-crosshair"));
+  const enabled = (table: Element) => enhancementOn(plugin, "tables", table) && (plugin.state?.tableCrosshair === true || Boolean(table.closest(".ib-crosshair")));
   plugin.registerDomEvent(document, "mouseover", (event: MouseEvent) => {
     const cell = event.target instanceof Element ? event.target.closest<HTMLTableCellElement>("td, th") : null;
     const table = cell?.closest("table");

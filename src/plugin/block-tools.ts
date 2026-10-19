@@ -1,3 +1,4 @@
+import { enhancementOn, handledByOther } from "../modules/enhancement-gate.js";
 import { MarkdownRenderChild,MarkdownRenderer,MarkdownView,Notice,TFile,Platform } from "obsidian";
 import type { MarkdownPostProcessorContext } from "obsidian";
 import { chartAlignment,mountChartAlignment } from "../modules/chart-alignment.js";
@@ -23,10 +24,11 @@ interface BlockHeaderOptions {
 /* Block tools: the header on rendered code / diagram / chart blocks (language, copy, edit), and finding a block's source in the note. */
 
 export function enhanceCodeBlocks(plugin: IgnorancePlugin, root: HTMLElement, context?: MarkdownPostProcessorContext) {
+  if (!enhancementOn(plugin, "code", root, context?.frontmatter)) return;
   for (const code of root.querySelectorAll<HTMLElement>("pre > code")) {
     const pre = code.parentElement;
     // Front matter is shown as the Properties box; its raw <pre> stays hidden.
-    if (code.closest(".mermaid") || pre.matches(".frontmatter")) continue;
+    if (code.closest(".mermaid") || pre.matches(".frontmatter") || handledByOther("code", pre)) continue;
     const section = context?.getSectionInfo?.(pre);
     const fenceLine = section?.text != null ? lineAt(section.text, section.lineStart) : undefined;
     const hasFenceLine = /^\s*(?:`{3,}|~{3,})/.test(fenceLine || "");

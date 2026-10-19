@@ -34,6 +34,7 @@ export async function loadStoredState(plugin: IgnorancePlugin) {
   plugin.state.captions = plugin.state.captions === true;
   plugin.state.wordFont = normalizeWordFont(plugin.state.wordFont);
   plugin.state.layouts = cleanLayouts(plugin.state.layouts);
+  plugin.state.enhance = Object.fromEntries(Object.entries(plugin.state.enhance ?? {}).filter(([, value]) => value === false));
   plugin.state.grayDates = typeof plugin.state.grayDates === "string" ? plugin.state.grayDates : "";
   plugin.state.writingModes = Object.assign(writingModeDefaults(), plugin.state.writingModes || {});
   plugin.state.fileTools = Object.assign(fileToolsDefaults(), plugin.state.fileTools || {});

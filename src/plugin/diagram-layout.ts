@@ -1,3 +1,4 @@
+import { enhancementOn } from "../modules/enhancement-gate.js";
 import { controlScale } from "../modules/control-geometry.js";
 import { markContext } from "../modules/context-markers.js";
 import { DIAGRAM_HEADER_HEIGHT,HALF_A4_HEIGHT,diagramFit } from "../modules/diagram-fit.js";
@@ -28,6 +29,7 @@ export function enhanceAll(plugin: IgnorancePlugin, root: HTMLElement) {
    forced a full layout of the note for every rendered diagram. */
 export function enhanceDiagrams(plugin: IgnorancePlugin, diagrams: HTMLElement[]) {
   for (const diagram of diagrams) {
+    if (!enhancementOn(plugin, "charts", diagram)) continue;
     if (diagram.classList.contains("ibm-mermaid-enhanced") && !diagram.querySelector(":scope > svg")) continue;
     // A deck mounts every slide at once; enhancing each synchronously held the thread for seconds.
     if (diagram.closest(".ibp-staging, .ibp-presentation-stage")) plugin.diagramEnhancements.enqueue(diagram);

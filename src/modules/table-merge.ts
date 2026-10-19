@@ -1,3 +1,4 @@
+import { enhancementOn, handledByOther } from "./enhancement-gate.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 /* Table extras in Reading view and exports (plain Markdown tables, nothing changes in the file):
      - a cell holding only `<` joins the cell on its left, one holding only `^` joins the cell above
@@ -138,7 +139,8 @@ function enhanceGroups(table: HTMLTableElement) {
 }
 
 export function installTableExtras(plugin: IgnorancePlugin) {
-  plugin.registerMarkdownPostProcessor(element => {
-    element.querySelectorAll("table").forEach(table => enhanceTable(table));
+  plugin.registerMarkdownPostProcessor((element, context) => {
+    if (!enhancementOn(plugin, "tables", element, context.frontmatter)) return;
+    element.querySelectorAll("table").forEach(table => { if (!handledByOther("tables", table)) enhanceTable(table); });
   });
 }

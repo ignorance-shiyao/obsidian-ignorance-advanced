@@ -1,3 +1,4 @@
+import { enhancementOn, handledByOther } from "../modules/enhancement-gate.js";
 import { MarkdownView } from "obsidian";
 import type { MarkdownPostProcessorContext } from "obsidian";
 import { TableResizeLayer,headerCells,rowSelectors,tableKey,tableOrdinal } from "../modules/editor-tools.js";
@@ -46,8 +47,9 @@ export function storeSizes(plugin: IgnorancePlugin, path: string, ordinal: numbe
 }
 
 export function enhanceTables(plugin: IgnorancePlugin, root: HTMLElement, context: MarkdownPostProcessorContext | null) {
+  if (!enhancementOn(plugin, "tables", root, context?.frontmatter)) return;
   for (const table of root.querySelectorAll<HTMLTableElement>("table")) {
-    if (table.closest(".cm-table-widget")) continue; // Live Preview is handled separately
+    if (table.closest(".cm-table-widget") || handledByOther("tables", table)) continue; // Live Preview is handled separately
     const info = context?.getSectionInfo?.(table);
     const path = context?.sourcePath;
     const ordinal = info && path ? tableOrdinal(info.text, info.lineStart) : null;
@@ -60,7 +62,7 @@ export function enhanceTables(plugin: IgnorancePlugin, root: HTMLElement, contex
    the source through the editor, then attach as for reading view. */
 export function enhanceLiveTable(plugin: IgnorancePlugin, table: HTMLTableElement) {
   const widget = table.closest<HTMLElement>(".cm-table-widget");
-  if (!widget) return;
+  if (!widget || !enhancementOn(plugin, "tables", widget)) return;
   let path: string | null = null, ordinal: number | null = null;
   plugin.app.workspace.iterateAllLeaves?.(leaf => {
     const view = leaf.view;
@@ -75,6 +77,13 @@ export function enhanceLiveTable(plugin: IgnorancePlugin, table: HTMLTableElemen
     } catch { /* the widget is not mounted in this editor */ }
   });
   plugin.attachTable(table, path, ordinal);
+}
+
+/** Takes the column and row handles off every table (the saved sizes stay in the notes' data). */
+export function releaseTableLayers(plugin: IgnorancePlugin) {
+  for (const layer of plugin.tableLayers) { layer.table.classList.remove("ibt-enhanced"); delete layer.table.dataset.ibtKey; layer.destroy(); }
+  plugin.tableLayers.clear();
+  document.querySelectorAll(".ibp-table-anchor").forEach(anchor => anchor.remove());
 }
 
 export function attachTable(plugin: IgnorancePlugin, table: HTMLTableElement, path: string | null, ordinal: number | null) {

@@ -44,6 +44,8 @@ export interface PluginState {
   tabs: TabState;
   page: PageState;
   smartPunctuation: boolean;
+  /** Enhancement kinds the user switched off (only `false` entries are kept). */
+  enhance?: Partial<Record<import("./modules/enhancement-gate-core.js").EnhancementKind, boolean>>;
   layouts?: import("./modules/layout-library-core.js").LayoutRecord[];
   pasteLink?: boolean;
   pasteTable?: boolean;

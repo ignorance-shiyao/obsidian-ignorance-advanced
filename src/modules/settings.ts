@@ -1,3 +1,5 @@
+import { releaseTableLayers } from "../plugin/table-sizes.js";
+import { ENHANCEMENTS, noteOffClass } from "./enhancement-gate-core.js";
 import { WORD_FONT_OPTIONS, normalizeWordFont } from "./word-font.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { MarkdownView, PluginSettingTab, Setting } from "obsidian";
@@ -47,6 +49,14 @@ class IgnoranceSettingTab extends PluginSettingTab {
 
     // 主题预设与主题色只在左下角调色板中设置；明暗模式用左下角按钮或 Obsidian 外观设置。
     const groups: SettingGroup[] = [
+      { heading: "增强范围", items: ENHANCEMENTS.map(({ kind, label, desc }) => ({
+        name: label, desc: `${desc}关闭后新渲染的内容不再增强；只想关某一篇，在笔记属性 cssclasses 里加 ${noteOffClass(kind)}。`,
+        add: toggle(() => state.enhance?.[kind] !== false, value => {
+          state.enhance = { ...state.enhance, [kind]: value ? undefined : false };
+          if (kind === "tables" && !value) releaseTableLayers(plugin);
+          plugin.saveStoredState(); rerenderPreviews(); plugin.app.workspace.updateOptions();
+        })
+      })) },
       { heading: "排版", items: [
         { name: "行距", desc: "同时作用于阅读视图与编辑视图。", aliases: ["line height"], add: (setting: Setting) => setting.addDropdown(dropdown => {
           for (const { value, label } of LINE_HEIGHT_PRESETS) dropdown.addOption(String(value), label);

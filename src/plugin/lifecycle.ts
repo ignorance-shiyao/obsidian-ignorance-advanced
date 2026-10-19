@@ -12,6 +12,7 @@ import { colorSwatchExtension,colorSwatchPostProcessor } from "../modules/color-
 import { containerEditorExtension } from "../modules/container-editor.js";
 import { renderContainerBlocks } from "../modules/containers.js";
 import { clearContextMarkers,markContext } from "../modules/context-markers.js";
+import { showActiveEnhancements } from "../modules/enhancement-gate.js";
 import { renderEChartsBlock } from "../modules/echarts-renderer.js";
 import { echartsSourceHighlighter } from "../modules/echarts-source.js";
 import { TableSizeStyles,codeCopyButtons,installCodeLanguagePicker,installQuietTaskToggle,mermaidHighlighter,tableKey,toggleWritingMode,writingModesExtension } from "../modules/editor-tools.js";
@@ -60,6 +61,7 @@ import { renderTocBlocks,tocExtension } from "../modules/toc.js";
 import { installWebClip } from "../modules/web-clip.js";
 import { wrapSelectionExtension } from "../modules/wrap-selection.js";
 import type { IgnorancePlugin, TableLayer } from "../plugin-types.js";
+import { releaseTableLayers } from "./table-sizes.js";
 
 function insertSnippet(editor: Editor, snippet: (typeof SNIPPET_TEMPLATES)[number]) {
   const from = editor.getCursor("from");
@@ -174,7 +176,7 @@ export async function onload(plugin: IgnorancePlugin) {
   plugin.tableLayers = new Set();
   plugin.register(() => {
     plugin.tableStyles.destroy();
-    for (const layer of plugin.tableLayers) layer.destroy();
+    releaseTableLayers(plugin);
     document.querySelectorAll<HTMLElement>("table.ibt-enhanced").forEach(table => {
       table.classList.remove("ibt-enhanced");
       delete table.dataset.ibtKey;
@@ -276,6 +278,12 @@ export async function onload(plugin: IgnorancePlugin) {
   plugin.register(() => plugin.themeObserver.disconnect());
 
   plugin.collapseSelectionAfterEdit();
+
+  plugin.addCommand({
+    id: "active-enhancements",
+    name: "当前笔记生效的增强",
+    callback: () => showActiveEnhancements(plugin, plugin.app.workspace.getActiveViewOfType(MarkdownView))
+  });
 
   plugin.addCommand({
     id: "cycle-table-density",

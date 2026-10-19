@@ -1,3 +1,4 @@
+import { enhancementOn, handledByOther } from "./enhancement-gate.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Notice, TFile, setIcon } from "obsidian";
 import { saveExportToVault } from "./export.js";
@@ -13,6 +14,7 @@ const states = new WeakMap<HTMLTableElement, SortState>();
 const cellText = (cell: Element | undefined) => (cell?.textContent || "").replace(/\s+/g, " ").trim();
 const sortable = (table: HTMLTableElement) => Boolean(table.tHead?.rows.length === 1 && table.tBodies[0]?.rows.length > 1)
   && !table.classList.contains("ib-table-merged") && !table.querySelector("[data-ib-level]");
+const usable = (plugin: IgnorancePlugin, table: HTMLTableElement) => sortable(table) && enhancementOn(plugin, "tables", table) && !handledByOther("tables", table);
 const inReading = (table: Element | null): table is HTMLTableElement => Boolean(table?.instanceOf(HTMLTableElement) && table.closest(".markdown-preview-view"));
 
 function stateOf(table: HTMLTableElement): SortState {
@@ -108,7 +110,7 @@ export function installTableSort(plugin: IgnorancePlugin) {
   });
   const reveal = (event: Event) => {
     const table = event.target instanceof Element ? event.target.closest("table") : null;
-    if (!inReading(table) || !sortable(table)) return;
+    if (!inReading(table) || !usable(plugin, table)) return;
     const host = table.closest<HTMLElement>(".el-table") ?? table.parentElement;
     if (host && !host.previousElementSibling?.classList.contains("ibp-table-anchor")) buildTools(plugin, table, host);
   };
@@ -117,7 +119,7 @@ export function installTableSort(plugin: IgnorancePlugin) {
   plugin.registerDomEvent(document, "click", (event: MouseEvent) => {
     const heading = event.target instanceof Element ? event.target.closest<HTMLTableCellElement>("th") : null;
     const table = heading?.closest("table") ?? null;
-    if (!heading || !inReading(table) || !sortable(table) || heading.parentElement?.parentElement !== table.tHead) return;
+    if (!heading || !inReading(table) || !usable(plugin, table) || heading.parentElement?.parentElement !== table.tHead) return;
     if ((event.target as Element).closest("a, button") || window.getSelection()?.toString()) return;
     const state = stateOf(table);
     const column = heading.cellIndex;

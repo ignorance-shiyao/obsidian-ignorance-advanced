@@ -1,3 +1,4 @@
+import { enhancementOn } from "./enhancement-gate.js";
 import type { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 /* Click-to-play GIFs: write `click` in the alt text (![click|400](a.gif)). The image shows its first frame with a play
@@ -7,6 +8,7 @@ const wantsClick = (alt: string) => alt.split("|").some(part => part.trim().toLo
 
 export function installGifClick(plugin: IgnorancePlugin) {
   plugin.registerMarkdownPostProcessor(async (element, context) => {
+    if (!enhancementOn(plugin, "images", element, context.frontmatter)) return;
     for (const holder of element.querySelectorAll<HTMLElement>(".internal-embed")) {
       const src = holder.getAttribute("src") || "";
       if (holder.dataset.ibGifDone || !/\.gif$/i.test(src.split("#")[0]) || !wantsClick(holder.getAttribute("alt") || "")) continue;
