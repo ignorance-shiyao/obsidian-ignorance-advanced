@@ -18,6 +18,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - run: npm run check
       - name: Tag must match manifest version
         run: node -e "if(require('./manifest.json').version!=process.env.GITHUB_REF_NAME){console.error('tag != manifest version');process.exit(1)}"
       - name: Attest build provenance
