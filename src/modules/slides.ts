@@ -820,7 +820,7 @@ class PresentationView extends ItemView {
       const full = await buildDeck(this.plugin, file, component, current);
       if (!full || !current()) return;
       // The one-slide deck cannot have moved; keep the page asked for.
-      await this.mountDeck(full, token);
+      await this.mountDeck(full, token, true);
     } catch (error) {
       if (current()) {
         this.stage.empty();
@@ -829,13 +829,17 @@ class PresentationView extends ItemView {
     }
   }
 
-  async mountDeck({ reveal, entries, width, height }: { reveal: HTMLElement; entries: SlideEntry[]; width: number; height: number }, token: number) {
-    if (this.deck) {
+  async mountDeck({ reveal, entries, width, height }: { reveal: HTMLElement; entries: SlideEntry[]; width: number; height: number }, token: number, swap = false) {
+    // A swap keeps the old deck on screen until the new one is laid out underneath it, so nothing blinks.
+    const previousDeck = swap ? this.deck : null;
+    const previousRoot = swap ? this.root : null;
+    if (this.deck && !swap) {
       try { this.deck.destroy(); } catch { /* already gone */ }
       this.deck = null;
     }
-    this.stage.empty();
+    if (!swap) this.stage.empty();
     this.slideEntries = entries;
+    if (swap) reveal.setCssStyles({ position: "absolute", inset: "0", opacity: "0" });
     this.stage.appendChild(reveal);
     this.root = reveal;
     this.buildFullscreenNav(reveal);
@@ -866,6 +870,11 @@ class PresentationView extends ItemView {
     if (token !== this.renderToken) { deck.destroy(); return; }
     deck.layout();
     deck.slide(this.preferredIndices[0], this.preferredIndices[1]);
+    if (swap) {
+      reveal.setCssStyles({ opacity: "1" });
+      try { previousDeck?.destroy(); } catch { /* already gone */ }
+      previousRoot?.remove();
+    }
     deck.on("slidechanged", (event: Event) => { this.onSlideChanged(event as Event & { indexh?: number }); this.updateCounter(); this.speakerListeners.forEach(listener => listener()); });
     this.lastSlideH = deck.getIndices().h ?? 0;
     // Capture phase, so a step is taken before Reveal sees the key.
