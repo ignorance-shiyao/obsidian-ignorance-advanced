@@ -12,7 +12,10 @@ export interface LayoutSettings {
   pageNumber: string; pageNumberFormat: string; runningHeader: string; footerText: string; breakMode: string;
   wordFont: WordFontChoice;
 }
-export interface LayoutRecord { id: string; name: string; settings: Partial<LayoutSettings> }
+/** `updatedAt` (ms) is what lets two devices decide which copy of the same layout is newer. */
+export interface LayoutRecord { id: string; name: string; settings: Partial<LayoutSettings>; updatedAt?: number }
+/** A deleted layout is remembered by id, so a device that still has it does not bring it back on the next sync. */
+export interface LayoutTombstone { id: string; at: number }
 export type PageLike = Omit<LayoutSettings, "wordFont"> & Record<string, unknown>;
 
 const ONE_OF = {
@@ -138,7 +141,43 @@ export function cleanLayouts(raw: unknown): LayoutRecord[] {
     if (!isRecord(item) || typeof item.name !== "string" || !item.name.trim()) continue;
     const { settings } = sanitizeLayout(item.settings);
     if (!Object.keys(settings).length) continue;
-    records.push({ id: typeof item.id === "string" && item.id ? item.id : `layout-${records.length + 1}`, name: item.name.trim().slice(0, 40), settings });
+    const updatedAt = typeof item.updatedAt === "number" && Number.isFinite(item.updatedAt) ? item.updatedAt : undefined;
+    records.push({ id: typeof item.id === "string" && item.id ? item.id : `layout-${records.length + 1}`, name: item.name.trim().slice(0, 40), settings, ...(updatedAt === undefined ? {} : { updatedAt }) });
   }
   return records;
+}
+
+export function cleanTombstones(raw: unknown): LayoutTombstone[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((item): item is LayoutTombstone => isRecord(item) && typeof item.id === "string" && typeof item.at === "number" && Number.isFinite(item.at))
+    .map(({ id, at }) => ({ id, at }));
+}
+
+const TOMBSTONE_KEEP_MS = 90 * 24 * 3600 * 1000;
+
+/** Merges this device's layouts with the ones another device synced: layouts are matched by id, the newer
+    `updatedAt` wins, a deletion beats an edit that is not newer than it, and two different layouts that ended up
+    with the same name are told apart by id order, so every device settles on the same names. */
+export function mergeLayouts(local: LayoutRecord[], remote: LayoutRecord[], localTombs: LayoutTombstone[], remoteTombs: LayoutTombstone[], now = Date.now()) {
+  const tombs = new Map<string, number>();
+  for (const { id, at } of [...localTombs, ...remoteTombs]) tombs.set(id, Math.max(at, tombs.get(id) ?? 0));
+  const byId = new Map<string, LayoutRecord>();
+  for (const record of local) byId.set(record.id, record);
+  for (const record of remote) {
+    const mine = byId.get(record.id);
+    if (!mine || (record.updatedAt ?? 0) > (mine.updatedAt ?? 0)) byId.set(record.id, record);
+  }
+  const alive = [...byId.values()].filter(record => (tombs.get(record.id) ?? -1) < (record.updatedAt ?? 0));
+  const order = new Map(alive.map((record, index) => [record.id, index] as const));
+  const used = new Set<string>();
+  const named = new Map<string, string>();
+  for (const record of [...alive].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0)) {
+    const name = used.has(record.name) ? uniqueLayoutName(record.name, [...used]) : record.name;
+    used.add(name);
+    named.set(record.id, name);
+  }
+  const position = (record: LayoutRecord) => order.get(record.id) ?? 0;
+  const layouts = alive.sort((a, b) => position(a) - position(b)).map(record => { const name = named.get(record.id) ?? record.name; return name === record.name ? record : { ...record, name }; });
+  const tombstones = [...tombs].filter(([, at]) => now - at < TOMBSTONE_KEEP_MS).map(([id, at]) => ({ id, at }));
+  return { layouts, tombstones };
 }

@@ -47,6 +47,9 @@ export interface PluginState {
   /** Enhancement kinds the user switched off (only `false` entries are kept). */
   enhance?: Partial<Record<import("./modules/enhancement-gate-core.js").EnhancementKind, boolean>>;
   layouts?: import("./modules/layout-library-core.js").LayoutRecord[];
+  userTemplates?: { folder: string; author: string };
+  language?: import("./i18n-core.js").Preference;
+  layoutTombstones?: import("./modules/layout-library-core.js").LayoutTombstone[];
   pasteLink?: boolean;
   pasteTable?: boolean;
   codeLineNumbers: boolean;

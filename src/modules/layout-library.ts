@@ -59,7 +59,7 @@ export function applyUserLayout(plugin: IgnorancePlugin, record: LayoutRecord, o
 export function saveCurrentAsLayout(plugin: IgnorancePlugin, onChanged: () => void) {
   new TextModal(plugin, "保存当前设置为版式", "保存宽度、纸张、页边距、页眉页脚、分页和 Word 字体；不保存颜色和缩放。", "", false, value => {
     const name = uniqueLayoutName(value, layouts(plugin).map(item => item.name));
-    layouts(plugin).push({ id: window.crypto.randomUUID(), name, settings: current(plugin) });
+    layouts(plugin).push({ id: window.crypto.randomUUID(), name, settings: current(plugin), updatedAt: Date.now() });
     persist(plugin);
     onChanged();
     new Notice(`已保存版式「${name}」`);
@@ -85,13 +85,18 @@ class ManageModal extends Modal {
       button("套用", () => { this.close(); applyUserLayout(plugin, record, this.onApplied); });
       button("改名", () => new TextModal(plugin, "重命名版式", "", record.name, false, value => {
         record.name = uniqueLayoutName(value, list.filter(item => item !== record).map(item => item.name));
+        record.updatedAt = Date.now();
         persist(plugin); this.render();
       }).open());
       button("复制", () => {
-        list.push({ id: window.crypto.randomUUID(), name: uniqueLayoutName(`${record.name} 副本`, list.map(item => item.name)), settings: { ...record.settings } });
+        list.push({ id: window.crypto.randomUUID(), name: uniqueLayoutName(`${record.name} 副本`, list.map(item => item.name)), settings: { ...record.settings }, updatedAt: Date.now() });
         persist(plugin); this.render();
       });
-      button("删除", () => { list.splice(list.indexOf(record), 1); persist(plugin); this.render(); });
+      button("删除", () => {
+        list.splice(list.indexOf(record), 1);
+        (plugin.state.layoutTombstones ??= []).push({ id: record.id, at: Date.now() });
+        persist(plugin); this.render();
+      });
     }
     const footer = contentEl.createDiv({ cls: "modal-button-container" });
     footer.createEl("button", { text: "导入…" }).addEventListener("click", () => importFromText(plugin, () => this.render()));
@@ -110,7 +115,7 @@ function importFromText(plugin: IgnorancePlugin, onDone: () => void) {
     const list = layouts(plugin);
     for (const item of result.layouts) {
       const base = snapshotLayout(plugin.state.page as unknown as PageLike, plugin.state.wordFont);
-      list.push({ id: window.crypto.randomUUID(), name: uniqueLayoutName(item.name, list.map(entry => entry.name)), settings: { ...base, ...item.settings } });
+      list.push({ id: window.crypto.randomUUID(), name: uniqueLayoutName(item.name, list.map(entry => entry.name)), settings: { ...base, ...item.settings }, updatedAt: Date.now() });
     }
     persist(plugin);
     onDone();

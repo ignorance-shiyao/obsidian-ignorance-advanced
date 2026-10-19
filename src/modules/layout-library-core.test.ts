@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyLayout, exportLayouts, importLayouts, layoutChanges, sanitizeLayout, snapshotLayout, uniqueLayoutName, type PageLike } from "./layout-library-core";
+import { mergeLayouts, applyLayout, exportLayouts, importLayouts, layoutChanges, sanitizeLayout, snapshotLayout, uniqueLayoutName, type PageLike } from "./layout-library-core";
 
 const page = (): PageLike => ({
   width: "standard", customWidth: 80, paged: true, paper: "A4", customPaper: { w: 210, h: 297 }, landscape: false,
@@ -63,5 +63,34 @@ describe("stored layouts", () => {
     expect(cleanLayouts("nope")).toEqual([]);
     const kept = cleanLayouts([{ name: "好", settings: { paged: true } }, { name: "", settings: { paged: true } }, { name: "空", settings: { bogus: 1 } }, 7]);
     expect(kept).toEqual([{ id: "layout-1", name: "好", settings: { paged: true } }]);
+  });
+});
+
+describe("merging layouts across devices", () => {
+  const rec = (id: string, name: string, updatedAt?: number) => ({ id, name, settings: { paged: true }, ...(updatedAt === undefined ? {} : { updatedAt }) });
+  it("keeps a layout added on each device", () => {
+    const { layouts } = mergeLayouts([rec("a", "周报", 1)], [rec("b", "方案", 2)], [], []);
+    expect(layouts.map(item => item.id)).toEqual(["a", "b"]);
+  });
+  it("takes the newer copy of the same layout", () => {
+    const { layouts } = mergeLayouts([rec("a", "旧名", 1)], [rec("a", "新名", 5)], [], []);
+    expect(layouts).toEqual([rec("a", "新名", 5)]);
+    expect(mergeLayouts([rec("a", "本机", 9)], [rec("a", "远端", 5)], [], []).layouts[0].name).toBe("本机");
+  });
+  it("a deletion wins over an edit that is not newer, but not over a later edit", () => {
+    expect(mergeLayouts([rec("a", "x", 3)], [], [], [{ id: "a", at: 4 }]).layouts).toEqual([]);
+    expect(mergeLayouts([rec("a", "x", 6)], [], [], [{ id: "a", at: 4 }]).layouts.length).toBe(1);
+    expect(mergeLayouts([], [rec("a", "x", 3)], [{ id: "a", at: 4 }], []).layouts).toEqual([]);
+  });
+  it("names two different layouts that share a name the same way on every device", () => {
+    const one = mergeLayouts([rec("b", "版式", 1)], [rec("a", "版式", 1)], [], []).layouts;
+    const two = mergeLayouts([rec("a", "版式", 1)], [rec("b", "版式", 1)], [], []).layouts;
+    const byId = (list: typeof one) => Object.fromEntries(list.map(item => [item.id, item.name]));
+    expect(byId(one)).toEqual(byId(two));
+    expect(byId(one)).toEqual({ a: "版式", b: "版式 2" });
+  });
+  it("forgets old tombstones", () => {
+    const old = Date.now() - 100 * 24 * 3600 * 1000;
+    expect(mergeLayouts([], [], [{ id: "a", at: old }], []).tombstones).toEqual([]);
   });
 });

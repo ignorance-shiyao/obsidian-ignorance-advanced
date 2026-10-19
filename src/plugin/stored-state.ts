@@ -1,4 +1,5 @@
 import { normalizeWordFont } from "../modules/word-font.js";
+import { setLanguagePreference } from "../i18n.js";
 import { Notice } from "obsidian";
 import { appearanceDefaults,applyAppearancePreferences,tabDefaults } from "../modules/appearance.js";
 import { DENSITIES,writingModeDefaults } from "../modules/editor-tools.js";
@@ -6,7 +7,7 @@ import { fileToolsDefaults } from "../modules/file-tools.js";
 import { t } from "../modules/mermaid-core.js";
 import { normalizePresentationSkin } from "../modules/skin-choice.js";
 import type { IgnorancePlugin, PluginState } from "../plugin-types.js";
-import { cleanLayouts } from "../modules/layout-library-core.js";
+import { cleanLayouts, cleanTombstones, mergeLayouts } from "../modules/layout-library-core.js";
 import { mergeReadingPositions } from "../modules/reading-position.js";
 
 /* Settings and per-note state: load, save (debounced), and the body classes that follow them. */
@@ -35,7 +36,11 @@ export async function loadStoredState(plugin: IgnorancePlugin) {
   plugin.state.captions = plugin.state.captions === true;
   plugin.state.wordFont = normalizeWordFont(plugin.state.wordFont);
   plugin.state.layouts = cleanLayouts(plugin.state.layouts);
+  plugin.state.layoutTombstones = cleanTombstones(plugin.state.layoutTombstones);
   plugin.state.enhance = Object.fromEntries(Object.entries(plugin.state.enhance ?? {}).filter(([, value]) => value === false));
+  plugin.state.userTemplates = { folder: typeof plugin.state.userTemplates?.folder === "string" ? plugin.state.userTemplates.folder : "", author: typeof plugin.state.userTemplates?.author === "string" ? plugin.state.userTemplates.author : "" };
+  plugin.state.language = plugin.state.language === "zh" || plugin.state.language === "en" ? plugin.state.language : "auto";
+  setLanguagePreference(plugin.state.language);
   plugin.state.customCallouts = typeof plugin.state.customCallouts === "string" ? plugin.state.customCallouts : "";
   plugin.state.grayDates = typeof plugin.state.grayDates === "string" ? plugin.state.grayDates : "";
   plugin.state.writingModes = Object.assign(writingModeDefaults(), plugin.state.writingModes || {});
@@ -56,7 +61,14 @@ export async function loadStoredState(plugin: IgnorancePlugin) {
 export async function mergeExternalState(plugin: IgnorancePlugin) {
   const stored: unknown = await plugin.loadData();
   if (typeof stored !== "object" || stored === null || !plugin.state) return;
-  mergeReadingPositions(plugin, (stored as Partial<PluginState>).readingPositions);
+  const remote = stored as Partial<PluginState>;
+  mergeReadingPositions(plugin, remote.readingPositions);
+  // Layouts are merged by id so a layout added on another device is neither lost nor overwritten by this device's next save.
+  const merged = mergeLayouts(plugin.state.layouts ?? [], cleanLayouts(remote.layouts), plugin.state.layoutTombstones ?? [], cleanTombstones(remote.layoutTombstones));
+  const changed = JSON.stringify(merged.layouts) !== JSON.stringify(plugin.state.layouts) || JSON.stringify(merged.tombstones) !== JSON.stringify(plugin.state.layoutTombstones);
+  plugin.state.layouts = merged.layouts;
+  plugin.state.layoutTombstones = merged.tombstones;
+  if (changed) saveStoredState(plugin);
 }
 
 export function saveStoredState(plugin: IgnorancePlugin) {
