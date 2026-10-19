@@ -526,6 +526,7 @@ body.is-mobile .ib-image-actions .ib-image-action { width:34px; height:34px; }
 .ib-nav-view__list { display: flex; flex-direction: column; gap: 1px; }
 .ib-nav-view__row { display: grid; grid-template-columns: 1.6em 1fr; gap: .4em; align-items: baseline; padding: 3px 6px 3px calc(6px + var(--ib-nav-indent, 0)); border-radius: var(--radius-s); cursor: pointer; }
 .ib-nav-view__row:hover { background: var(--background-modifier-hover); }
+.ib-nav-view__row:focus-visible { background: var(--background-modifier-hover); outline: 2px solid var(--interactive-accent); outline-offset: -2px; }
 .ib-nav-view__icon { color: var(--text-muted); text-align: center; }
 .ib-nav-view__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ib-nav-view__row--heading .ib-nav-view__label { font-weight: 600; }

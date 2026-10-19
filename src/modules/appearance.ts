@@ -88,6 +88,8 @@ function applyAppearancePreferences(plugin: IgnorancePlugin) {
   body.classList.toggle("ib-hide-heading-labels", Boolean(appearance.hideHeadingLabels));
   body.classList.toggle("ib-heading-badge", Boolean(appearance.headingBadge));
   body.dataset.ibTableAlignment = ["left", "center", "right"].includes(appearance.tableAlignment) ? appearance.tableAlignment : "left";
+  // Table width and alignment styles step back when table enhancement is off (theme-features.css).
+  body.classList.toggle("ib-tables-off", plugin.state.enhance?.tables === false);
   body.classList.toggle("ib-hide-decorations", appearance.decorations === false);
   body.style.setProperty("--ib-card-radius", String(Math.max(0, Math.min(16, Number(appearance.cardRadius) || 0)) + "px"));
   const stamp = `${selected}|${currentThemeMode()}|${accentOverride || ""}|${appearance.fontHeading}|${appearance.lineHeight}`;
@@ -99,7 +101,7 @@ function applyAppearancePreferences(plugin: IgnorancePlugin) {
 }
 
 function clearAppearancePreferences() {
-  document.body.classList.remove(CUSTOM_ACCENT, "ib-hide-heading-labels", "ib-heading-badge", "ib-hide-decorations", "ib-theme-text-size");
+  document.body.classList.remove(CUSTOM_ACCENT, "ib-hide-heading-labels", "ib-heading-badge", "ib-hide-decorations", "ib-theme-text-size", "ib-tables-off");
   delete document.body.dataset.ibThemePreset;
   delete document.body.dataset.ibTableAlignment;
   document.body.style.removeProperty("--ib-card-radius");

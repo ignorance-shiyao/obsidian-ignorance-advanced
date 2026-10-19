@@ -33,6 +33,7 @@ function apply(table: HTMLTableElement, state: SortState) {
   body.append(...order.map(index => state.rows[index]));
   [...table.tHead.rows[0].cells].forEach((cell, index) => {
     if (index === state.column && state.direction) cell.dataset.ibSort = state.direction; else delete cell.dataset.ibSort;
+    cell.setAttribute("aria-sort", index === state.column && state.direction ? (state.direction === "asc" ? "ascending" : "descending") : "none");
   });
   table.classList.toggle("ib-table-sorted", state.direction !== null);
   table.closest(".el-table")?.previousElementSibling?.querySelector<HTMLElement>("[data-act=writeback]")?.toggleAttribute("hidden", state.direction === null);
@@ -112,6 +113,8 @@ export function installTableSort(plugin: IgnorancePlugin) {
     if (tables.length !== 1 || !info) return;
     tables[0].dataset.ibLines = `${info.lineStart}-${info.lineEnd}`;
     tables[0].dataset.ibPath = context.sourcePath;
+    // Headings take keyboard focus so a table can be sorted without a mouse (Enter or Space, below).
+    if (sortable(tables[0])) for (const cell of tables[0].tHead.rows[0].cells) cell.tabIndex = 0;
   });
   const reveal = (event: Event) => {
     const table = event.target instanceof Element ? event.target.closest("table") : null;
@@ -121,15 +124,24 @@ export function installTableSort(plugin: IgnorancePlugin) {
   };
   plugin.registerDomEvent(document, "pointerover", reveal);
   plugin.registerDomEvent(document, "pointerdown", reveal);
-  plugin.registerDomEvent(document, "click", (event: MouseEvent) => {
-    const heading = event.target instanceof Element ? event.target.closest<HTMLTableCellElement>("th") : null;
+  plugin.registerDomEvent(document, "focusin", reveal);
+  const sortBy = (heading: HTMLTableCellElement | null) => {
     const table = heading?.closest("table") ?? null;
-    if (!heading || !inReading(table) || !usable(plugin, table) || heading.parentElement?.parentElement !== table.tHead) return;
-    if ((event.target as Element).closest("a, button") || window.getSelection()?.toString()) return;
+    if (!heading || !inReading(table) || !usable(plugin, table) || heading.parentElement?.parentElement !== table.tHead) return false;
     const state = stateOf(table);
     const column = heading.cellIndex;
     state.direction = state.column !== column || state.direction === null ? "asc" : state.direction === "asc" ? "desc" : null;
     state.column = column;
     apply(table, state);
+    return true;
+  };
+  plugin.registerDomEvent(document, "click", (event: MouseEvent) => {
+    if (!(event.target instanceof Element) || event.target.closest("a, button") || window.getSelection()?.toString()) return;
+    sortBy(event.target.closest<HTMLTableCellElement>("th"));
+  });
+  plugin.registerDomEvent(document, "keydown", (event: KeyboardEvent) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const target = event.target instanceof Element && event.target.matches("th") ? event.target as HTMLTableCellElement : null;
+    if (sortBy(target)) event.preventDefault();
   });
 }

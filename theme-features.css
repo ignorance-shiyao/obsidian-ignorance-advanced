@@ -2273,10 +2273,11 @@ body.ib-hide-decorations .ibc-chapter__rail { display: none; }
 .ibp-has-book .ib-native-chapter-layer { display:none; }
 .ib-echarts-block { margin:var(--ib-space-3) 0; padding:0; height:clamp(220px, 42vh, 360px); min-height:0; overflow:hidden; }
 .ib-echarts-block > div.ib-canvas-host:not(#_ib) { border:0; background:transparent; box-shadow:none; }
-body[data-ib-table-alignment] .markdown-rendered table { width:100%; max-width:100%; }
-body[data-ib-table-alignment="left"] .markdown-rendered table { margin-inline-start:0; margin-inline-end:auto; }
-body[data-ib-table-alignment="center"] .markdown-rendered table { margin-inline:auto; }
-body[data-ib-table-alignment="right"] .markdown-rendered table { margin-inline-start:auto; margin-inline-end:0; }
+/* Only tables this plugin dresses: not when table enhancement is off (setting or the note's ib-no-tables), not Dataview/Bases tables. */
+body[data-ib-table-alignment]:not(.ib-tables-off) .markdown-rendered:not(.ib-no-tables) table:not(.dataview):not(.bases-table) { width:100%; max-width:100%; }
+body[data-ib-table-alignment="left"]:not(.ib-tables-off) .markdown-rendered:not(.ib-no-tables) table:not(.dataview):not(.bases-table) { margin-inline-start:0; margin-inline-end:auto; }
+body[data-ib-table-alignment="center"]:not(.ib-tables-off) .markdown-rendered:not(.ib-no-tables) table:not(.dataview):not(.bases-table) { margin-inline:auto; }
+body[data-ib-table-alignment="right"]:not(.ib-tables-off) .markdown-rendered:not(.ib-no-tables) table:not(.dataview):not(.bases-table) { margin-inline-start:auto; margin-inline-end:0; }
 .ib-reader-note mark { font-family:inherit; border-radius:var(--ib-radius-xs); padding:0 .12em; }
 .ib-image-resize-layer { position:absolute; pointer-events:none; z-index:3; }
 .ib-image-resize-handle { position:absolute; pointer-events:auto; padding:0; margin:0; min-width:0; width:10px; height:10px; border:1px solid var(--ib-accent-solid); border-radius:3px; background:var(--ib-bg-primary); box-shadow:var(--ib-shadow-1); opacity:0; touch-action:none; transform:translate(-50%,-50%); }
@@ -2301,9 +2302,9 @@ body[data-ib-table-alignment="right"] .markdown-rendered table { margin-inline-s
 }
 .ib-echarts-block { width: min(100%, 720px); margin-inline: auto; }
 .markdown-source-view.mod-cm6 .cm-content > .cm-embed-block[data-ib-chart-align="left"]:not(#_ib) { margin-left: 0; margin-right: auto; }
-body[data-ib-table-alignment="left"] .markdown-source-view.mod-cm6 .cm-table-widget .table-wrapper { margin-inline: 0 auto; }
-body[data-ib-table-alignment="center"] .markdown-source-view.mod-cm6 .cm-table-widget .table-wrapper { margin-inline: auto; }
-body[data-ib-table-alignment="right"] .markdown-source-view.mod-cm6 .cm-table-widget .table-wrapper { margin-inline: auto 0; }
+body[data-ib-table-alignment="left"]:not(.ib-tables-off) .markdown-source-view.mod-cm6:not(.ib-no-tables) .cm-table-widget .table-wrapper { margin-inline: 0 auto; }
+body[data-ib-table-alignment="center"]:not(.ib-tables-off) .markdown-source-view.mod-cm6:not(.ib-no-tables) .cm-table-widget .table-wrapper { margin-inline: auto; }
+body[data-ib-table-alignment="right"]:not(.ib-tables-off) .markdown-source-view.mod-cm6:not(.ib-no-tables) .cm-table-widget .table-wrapper { margin-inline: auto 0; }
 .markdown-source-view.mod-cm6 .cm-table-widget .table-wrapper[data-ib-table-align="left"]:not(#_ib) { margin-inline: 0 auto; }
 .markdown-source-view.mod-cm6 .cm-table-widget .table-wrapper[data-ib-table-align="center"]:not(#_ib) { margin-inline: auto; }
 .markdown-source-view.mod-cm6 .cm-table-widget .table-wrapper[data-ib-table-align="right"]:not(#_ib) { margin-inline: auto 0; }

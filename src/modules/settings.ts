@@ -55,7 +55,7 @@ class IgnoranceSettingTab extends PluginSettingTab {
         add: toggle(() => state.enhance?.[kind] !== false, value => {
           state.enhance = { ...state.enhance, [kind]: value ? undefined : false };
           if (kind === "tables" && !value) releaseTableLayers(plugin);
-          plugin.saveStoredState(); rerenderPreviews(); plugin.app.workspace.updateOptions();
+          plugin.saveStoredState(); refreshAppearance(); rerenderPreviews(); plugin.app.workspace.updateOptions();
         })
       })) },
       { heading: "排版", items: [

@@ -7,6 +7,10 @@ Merging several notes into one Word file resolves each note's images and links f
 
 The plugin marks the page with `ib-header-path` while it manages the note-header folder path, so the Ignorance theme hides Obsidian's path only when the plugin is there to bring it back.
 
+Table width and alignment styles now apply only to tables this plugin enhances: they step back when table enhancement is off in settings or for a note with `ib-no-tables`, and leave Dataview and Bases tables alone.
+
+Keyboard: in the 导航 sidebar, ↓ from the search box enters the list, ↑/↓/Home/End move, Enter or Space jumps (Enter in the search box opens the first match). In reading view, table headings can be focused with Tab and sorted with Enter or Space, and report their sort state to screen readers.
+
 Closing the batch web-clip dialog stops the links not yet started instead of clipping them in the background.
 
 ## 1.0.21

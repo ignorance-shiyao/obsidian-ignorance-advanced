@@ -28,7 +28,23 @@ export function createNavigationView(_plugin: IgnorancePlugin) {
       const bar = this.contentEl.createDiv({ cls: "ib-nav-view__bar" });
       const input = bar.createEl("input", { cls: "ib-nav-view__search", attr: { type: "search", placeholder: "搜索标题、图表、表格、代码…", spellcheck: "false" } });
       input.addEventListener("input", () => { this.query = input.value.trim().toLowerCase(); this.paint(); });
-      this.listEl = this.contentEl.createDiv({ cls: "ib-nav-view__list" });
+      this.listEl = this.contentEl.createDiv({ cls: "ib-nav-view__list", attr: { role: "list", "aria-label": "笔记结构" } });
+      // Keyboard: ↓ from the search box enters the list, Enter there opens the first match; in the list ↑/↓/Home/End
+      // move and Enter or Space jumps. ↑ on the first row goes back to the search box.
+      const rows = () => [...this.listEl.querySelectorAll<HTMLElement>(".ib-nav-view__row")];
+      input.addEventListener("keydown", event => {
+        if (event.key === "ArrowDown") { event.preventDefault(); rows()[0]?.focus(); }
+        else if (event.key === "Enter") { event.preventDefault(); rows()[0]?.click(); }
+      });
+      this.listEl.addEventListener("keydown", event => {
+        const list = rows(), index = list.indexOf(event.target as HTMLElement);
+        if (index < 0) return;
+        const move = { ArrowDown: index + 1, ArrowUp: index - 1, Home: 0, End: list.length - 1 }[event.key];
+        if (move !== undefined) {
+          event.preventDefault();
+          if (move < 0) input.focus(); else list[Math.min(move, list.length - 1)].focus();
+        } else if (event.key === "Enter" || event.key === " ") { event.preventDefault(); list[index].click(); }
+      });
       const schedule = () => { window.clearTimeout(this.timer); this.timer = window.setTimeout(() => void this.refresh(), 400); };
       this.registerEvent(this.app.workspace.on("active-leaf-change", leaf => {
         if (leaf?.view instanceof MarkdownView) { this.target = leaf.view; schedule(); }
@@ -60,7 +76,7 @@ export function createNavigationView(_plugin: IgnorancePlugin) {
         return;
       }
       for (const item of items) {
-        const row = this.listEl.createDiv({ cls: `ib-nav-view__row ib-nav-view__row--${item.kind}` });
+        const row = this.listEl.createDiv({ cls: `ib-nav-view__row ib-nav-view__row--${item.kind}`, attr: { role: "listitem", tabindex: "0" } });
         row.style.setProperty("--ib-nav-indent", `${Math.max(0, (item.level || 1) - 1) * 0.9}em`);
         row.createSpan({ cls: "ib-nav-view__icon", text: NAV_ICONS[item.kind] });
         row.createSpan({ cls: "ib-nav-view__label", text: item.label });
