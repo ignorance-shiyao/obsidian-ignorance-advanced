@@ -65,6 +65,12 @@ function visibleSizer(host: HTMLElement): HTMLElement | null {
   return null;
 }
 
+/** Apply the page settings and remember them on this device; also used by the layout commands. */
+export function savePageSettings(plugin: IgnorancePlugin) {
+  applyPageSettings(plugin);
+  plugin.app.saveLocalStorage?.("ibp-page", plugin.state.page);
+}
+
 function applyPageSettings(plugin: IgnorancePlugin) {
   const page = plugin.state.page;
   const body = document.body;

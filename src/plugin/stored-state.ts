@@ -36,6 +36,7 @@ export async function loadStoredState(plugin: IgnorancePlugin) {
   plugin.state.wordFont = normalizeWordFont(plugin.state.wordFont);
   plugin.state.layouts = cleanLayouts(plugin.state.layouts);
   plugin.state.enhance = Object.fromEntries(Object.entries(plugin.state.enhance ?? {}).filter(([, value]) => value === false));
+  plugin.state.customCallouts = typeof plugin.state.customCallouts === "string" ? plugin.state.customCallouts : "";
   plugin.state.grayDates = typeof plugin.state.grayDates === "string" ? plugin.state.grayDates : "";
   plugin.state.writingModes = Object.assign(writingModeDefaults(), plugin.state.writingModes || {});
   plugin.state.fileTools = Object.assign(fileToolsDefaults(), plugin.state.fileTools || {});

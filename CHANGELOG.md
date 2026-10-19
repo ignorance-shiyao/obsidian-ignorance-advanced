@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+Saved layouts are reachable from the command palette too (保存当前页面设置为版式, 套用已保存的版式, 管理已保存的版式), so they can be used on a phone where the page toolbar is not shown.
+
+Your own callout types: in settings, one line per type as `名称 | 颜色 | 图标` (colour as #RGB, #RRGGBB or one of info, warning, success, error; icon is a Lucide name), then write `> [!名称]`. Unreadable lines are reported and ignored.
+
 E-book export now passes epubcheck 5.4 with no errors or warnings on a test book (images, table, code, callout, heading links): callout icons and resize handles are left out, and chapters with inline SVG or MathML are declared as such in the package file.
 
 On phones the table tools (filter, copy, save, write back) are 36 px buttons, easier to hit with a finger.

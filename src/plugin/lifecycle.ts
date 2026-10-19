@@ -46,6 +46,8 @@ import { installPageControls,setPageRefreshHandler } from "../modules/page-contr
 import { guardedCleanup } from "../modules/plugin-cleanup.js";
 import { installPreviewOverscan } from "../modules/preview-overscan.js";
 import { quoteIndentExtension } from "../modules/quote-indent.js";
+import { installCustomCallouts } from "../modules/custom-callouts.js";
+import { installLayoutCommands } from "../modules/layout-commands.js";
 import { installBookExport } from "../modules/book-export.js";
 import { installSourceCard } from "../modules/source-card.js";
 import { installSectionMove } from "../modules/section-move.js";
@@ -128,6 +130,8 @@ export async function onload(plugin: IgnorancePlugin) {
   installEditorMenu(plugin);
   installSectionMove(plugin);
   installBookExport(plugin);
+  installLayoutCommands(plugin);
+  installCustomCallouts(plugin);
   installSourceCard(plugin);
   installNativeChapterSource(plugin);
   installCodeFold(plugin);

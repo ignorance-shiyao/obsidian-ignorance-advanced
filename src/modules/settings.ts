@@ -1,3 +1,4 @@
+import { applyCustomCallouts } from "./custom-callouts.js";
 import { releaseTableLayers } from "../plugin/table-sizes.js";
 import { ENHANCEMENTS, noteOffClass } from "./enhancement-gate-core.js";
 import { WORD_FONT_OPTIONS, normalizeWordFont } from "./word-font.js";
@@ -128,6 +129,17 @@ class IgnoranceSettingTab extends PluginSettingTab {
         { name: "灰度日期", desc: "这些日期整个界面变为灰度，每行一个，写成 月-日，例如 4-4。默认不启用。", aliases: ["gray mode", "grayscale"], add: (setting: Setting) => setting.addTextArea((text) => {
           text.setPlaceholder("4-4\n9-18").setValue(state.grayDates || "").onChange(value => { state.grayDates = value; plugin.saveStoredState(); plugin.applyGrayMode?.(); });
           text.inputEl.rows = 3;
+        }) }
+      ] },
+      { heading: "标注块", items: [
+        { name: "自定义标注块类型", desc: "每行一个：名称 | 颜色 | 图标。例如 faq | #7C5CFF | help-circle。颜色可写 #RGB、#RRGGBB，或 info、warning、success、error 这四种主题配色；图标是 Lucide 图标名，可留空。之后在笔记里写 > [!faq] 就能用。", aliases: ["custom callouts", "admonition"], add: (setting: Setting) => setting.addTextArea((text) => {
+          const hint = setting.descEl.createDiv({ cls: "ib-form-hint" });
+          text.setPlaceholder("名称 | 颜色 | 图标").setValue(state.customCallouts || "").onChange(value => {
+            state.customCallouts = value; plugin.saveStoredState();
+            const ignored = applyCustomCallouts(plugin);
+            hint.setText(ignored.length ? `无法识别，已忽略：${ignored.slice(0, 3).join("；")}` : "");
+          });
+          text.inputEl.rows = 4;
         }) }
       ] },
       { heading: "状态栏", items: [

@@ -66,6 +66,9 @@ export function saveCurrentAsLayout(plugin: IgnorancePlugin, onChanged: () => vo
   }).open();
 }
 
+export function openLayoutManager(plugin: IgnorancePlugin, onApplied: () => void) { new ManageModal(plugin, onApplied).open(); }
+export const savedLayouts = layouts;
+
 class ManageModal extends Modal {
   constructor(private plugin: IgnorancePlugin, private onApplied: () => void) { super(plugin.app); }
   onOpen() { this.setTitle("我的版式"); this.render(); }
