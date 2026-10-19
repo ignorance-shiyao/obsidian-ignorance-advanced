@@ -3,7 +3,7 @@ import { renderMermaidForExport } from "./mermaid-export.js";
 import { wordExportFonts, wordFontFromToken } from "./word-font.js";
 import { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { Menu, Notice, Component, MarkdownView, Platform } from "obsidian";
+import { Menu, Notice, Component, MarkdownView, Platform, requestUrl } from "obsidian";
 import { setDocSheet, removeDocSheet } from "./doc-sheets.js";
 import { hasDesktopExports } from "./desktop-runtime.js";
 import { prepareMarkdownTextForPandoc } from "./pandoc-markdown.js";
@@ -507,29 +507,63 @@ async function mermaidToPngDataUri(source: string, index: number) {
   }
 }
 
+const WORD_IMAGE_LIMIT = 20 * 1024 * 1024;
+
+// Word embeds PNG, JPEG, GIF and BMP as they are; the file's own bytes decide which it is.
+function wordImageType(bytes: Uint8Array) {
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "png";
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) return "jpg";
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return "gif";
+  if (bytes[0] === 0x42 && bytes[1] === 0x4d) return "bmp";
+  return "";
+}
+
+// WebP, SVG, AVIF…: let the browser decode and re-encode as PNG. An <img> also
+// decodes SVG on WebKit, where createImageBitmap rejects it.
+async function imageBytesToPng(bytes: Uint8Array, mime: string) {
+  const url = URL.createObjectURL(new Blob([bytes], { type: mime }));
+  try {
+    const image = new Image();
+    image.src = url;
+    await image.decode();
+    const canvas = createEl("canvas");
+    canvas.width = image.naturalWidth || 800;
+    canvas.height = image.naturalHeight || 600;
+    canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+    return base64ToBytes(canvas.toDataURL("image/png").split(",")[1]);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function wordImageFromBytes(bytes: Uint8Array, mime: string) {
+  if (!bytes.byteLength || bytes.byteLength > WORD_IMAGE_LIMIT) return null;
+  const type = wordImageType(bytes);
+  if (type) return { type, data: bytes };
+  try { return { type: "png", data: await imageBytesToPng(bytes, mime) }; } catch { return null; }
+}
+
 async function vaultImageForWord(plugin: IgnorancePlugin, file: TFile, source: string) {
-  const dataUri = String(source).match(/^data:image\/(png|jpe?g|gif|bmp);base64,([\s\S]+)$/i);
-  if (dataUri) return { type: dataUri[1].toLowerCase().replace("jpeg", "jpg"), data: base64ToBytes(dataUri[2]) };
-  if (/^(?:https?:|mailto:)/i.test(source)) return null;
-  const clean = decodeURIComponent(String(source).replace(/^<|>$/g, "").split("#")[0]);
+  const dataUri = String(source).match(/^data:(image\/[\w.+-]+);base64,([\s\S]+)$/i);
+  if (dataUri) return wordImageFromBytes(base64ToBytes(dataUri[2]), dataUri[1]);
+  // Remote pictures the note shows are fetched once, only while exporting.
+  if (/^https?:/i.test(source)) {
+    try {
+      const response = await requestUrl({ url: source, throw: false });
+      if (response.status < 200 || response.status >= 300) return null;
+      return wordImageFromBytes(new Uint8Array(response.arrayBuffer), String(response.headers["content-type"] || "image/png"));
+    } catch {
+      return null;
+    }
+  }
+  if (/^mailto:/i.test(source)) return null;
+  let clean = String(source).replace(/^<|>$/g, "").split("#")[0];
+  try { clean = decodeURIComponent(clean); } catch { /* keep the path as written */ }
   const linked = plugin.app.metadataCache.getFirstLinkpathDest(clean, file.path) || plugin.app.vault.getAbstractFileByPath(clean);
   if (!(linked instanceof TFile)) return null;
-  const bytes = new Uint8Array(await plugin.app.vault.readBinary(linked));
   const extension = linked.extension.toLowerCase();
-  if (["png", "jpg", "jpeg", "gif", "bmp"].includes(extension)) return { type: extension === "jpeg" ? "jpg" : extension, data: bytes };
-  // WebP, SVG, AVIF…: let the browser decode and re-encode as PNG.
-  try {
-    const mime = extension === "svg" ? "image/svg+xml" : `image/${extension}`;
-    const bitmap = await createImageBitmap(new Blob([bytes], { type: mime }));
-    const canvas = createEl("canvas");
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
-    canvas.getContext("2d").drawImage(bitmap, 0, 0);
-    bitmap.close();
-    return { type: "png", data: base64ToBytes(canvas.toDataURL("image/png").split(",")[1]) };
-  } catch {
-    return null;
-  }
+  const mime = extension === "svg" ? "image/svg+xml" : `image/${extension === "jpg" ? "jpeg" : extension}`;
+  return wordImageFromBytes(new Uint8Array(await plugin.app.vault.readBinary(linked)), mime);
 }
 
 async function exportWord(plugin: IgnorancePlugin, file: TFile) {

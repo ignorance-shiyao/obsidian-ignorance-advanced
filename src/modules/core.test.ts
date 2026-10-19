@@ -147,6 +147,23 @@ describe("Pandoc Markdown 改写", () => {
     expect(result).toContain("正文");
     expect(result).not.toContain("内部注释");
   });
+
+  it("HTML 图片转成 Markdown，代码里的示例和图片标题保持原样", async () => {
+    const resolve = (target: string) => `/vault/${target}`;
+    const source = [
+      '<img src="pic.png" alt="示意">',
+      '<img alt=x src="https://example.com/a.jpg">',
+      '![带标题](assets/b.png "说明")',
+      "```md\n![[keep.png]] ![](keep.png) <img src=\"keep.png\">\n```",
+      "行内 `![[inline.png]]` 不改"
+    ].join("\n\n");
+    const result = await prepareMarkdownTextForPandoc(source, [], resolve);
+    expect(result).toContain("![示意](</vault/pic.png>)");
+    expect(result).toContain("![x](<https://example.com/a.jpg>)");
+    expect(result).toContain("![带标题](</vault/assets/b.png>)");
+    expect(result).toContain('![[keep.png]] ![](keep.png) <img src="keep.png">');
+    expect(result).toContain("`![[inline.png]]`");
+  });
 });
 
 describe("目录与页码纯函数", () => {

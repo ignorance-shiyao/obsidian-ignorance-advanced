@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+Word export now includes remote images (fetched once while exporting), HTML `<img>` tags and SVG pictures on phones, and keeps image paths with a Markdown title. Image and embed syntax inside code blocks and inline code is left as written.
+
 ## 1.0.20
 Word export offers Microsoft YaHei (default), the current theme body font for both body text and headings, or SimSun in settings. Standalone HTML readers preserve light/dark mode, content width and chapter anchors in the URL fragment across reloads without browser storage. Chapter restoration waits for page load, and the initial theme is applied before styles load. Embedded previews keep their URL unchanged.
 
