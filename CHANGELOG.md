@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.21
 Making an e-book now has a note picker (从库中选择笔记或文件夹…): only Markdown notes are listed, a folder can be chosen to list everything in it including subfolders, and 全选当前列表 ticks them all.
 
 WeChat and Zhihu copies no longer carry a measured height on text blocks, which left blank space at the bottom of quote blocks.
