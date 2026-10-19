@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Two commands, 章节上移 and 章节下移, swap the section under the cursor with its neighbour of the same level, taking sub-sections along. Headings inside code blocks and front matter are ignored, only the swapped lines are rewritten, and one undo restores them.
+
 Batch clipping lists every link with its result (clipped, already there, failed) and offers a retry for the failures. A link counts as already clipped even if it differs only by tracking parameters, a #fragment or a trailing slash, so a retry never makes a second file.
 
 Charts from a note's table: start an `echarts` block with `source: {#tab-id}` and the table whose caption ends in that id becomes the chart data (header row first, `1,200` and `5%` read as numbers). The chart redraws when the note changes; a missing id or a non-table caption shows a clear error. An authored `dataset` is kept.

@@ -46,6 +46,7 @@ import { installPageControls,setPageRefreshHandler } from "../modules/page-contr
 import { guardedCleanup } from "../modules/plugin-cleanup.js";
 import { installPreviewOverscan } from "../modules/preview-overscan.js";
 import { quoteIndentExtension } from "../modules/quote-indent.js";
+import { installSectionMove } from "../modules/section-move.js";
 import { installReadingBanner } from "../modules/reading-banner.js";
 import { installReadingCover } from "../modules/reading-cover.js";
 import { refreshBooks } from "../modules/reading-pagination.js";
@@ -123,6 +124,7 @@ export async function onload(plugin: IgnorancePlugin) {
   installTableCrosshair(plugin);
   installTableSort(plugin);
   installEditorMenu(plugin);
+  installSectionMove(plugin);
   installNativeChapterSource(plugin);
   installCodeFold(plugin);
   // Warming every diagram in the open note loads the 1 MB ECharts and 5 MB Mermaid engines in the
