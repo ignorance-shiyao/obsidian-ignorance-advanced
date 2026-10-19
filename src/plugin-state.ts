@@ -54,6 +54,7 @@ export interface PluginState {
   headingNumberStyle: "decimal" | "chinese";
   headingNumberStart: "auto" | "h1" | "h2";
   headingNumberDepth: number;
+  headingNumberSkipOwn?: boolean;
   lenientBlocks: boolean;
   tableCrosshair: boolean;
   autoFoldCode: boolean;

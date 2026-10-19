@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chineseNumeral, formatNumber, numberHeadings, scanHeadings, unpublishedIndexes } from "./heading-numbers";
+import { chineseNumeral, formatNumber, hasOwnNumber, isSelfNumbered, numberHeadings, numberWithOptions, scanHeadings, unpublishedIndexes } from "./heading-numbers";
 
 const at = (levels: number[]) => levels.map((level, index) => ({ level, line: index }));
 const texts = (levels: number[]) => [...numberHeadings(at(levels)).values()];
@@ -42,7 +42,7 @@ describe("标题编号", () => {
 
   it("扫描文档里的标题，跳过属性区和代码块", () => {
     const lines = ["---", "title: x", "---", "# 标题", "```md", "## 不算", "```", "## 概述", "正文", "### 细节"];
-    expect(scanHeadings(lines)).toEqual([{ level: 1, line: 3, offset: 2, struck: false }, { level: 2, line: 7, offset: 3, struck: false }, { level: 3, line: 9, offset: 4, struck: false }]);
+    expect(scanHeadings(lines)).toEqual([{ level: 1, line: 3, offset: 2, text: "标题", struck: false }, { level: 2, line: 7, offset: 3, text: "概述", struck: false }, { level: 3, line: 9, offset: 4, text: "细节", struck: false }]);
   });
 
   it("长围栏里嵌套的短围栏和标题都不算", () => {
@@ -58,5 +58,24 @@ describe("标题编号", () => {
     const entries = [{ level: 2, line: 0 }, { level: 2, line: 3, struck: true }, { level: 3, line: 5 }, { level: 2, line: 8 }];
     expect([...unpublishedIndexes(entries)]).toEqual([1, 2]);
     expect(scanHeadings(["## ~~草稿~~", "## 正式"]).map(item => item.struck)).toEqual([true, false]);
+  });
+});
+
+describe("标题自带编号", () => {
+  it("认出各种自带编号，不误伤普通标题", () => {
+    for (const text of ["1. 背景", "1.2 方法", "2、范围", "一、概述", "（一）目标", "(2) 步骤", "第三章 结论", "第3节 小结", "① 要点", "IV. 附录", "A. 附件", "3 Ways to Rest"]) expect(hasOwnNumber(text)).toBe(true);
+    for (const text of ["A Quiet Life", "Why We Write", "2024 年度报告", "3D 建模", "一种更安静的生活", "概述", "Introduction"]) expect(hasOwnNumber(text)).toBe(false);
+  });
+  it("多数标题自带编号的笔记不再自动编号，开关关闭后仍编号", () => {
+    const own = scanHeadings(["# 标题", "## 1. 背景", "## 2. 方法", "## 附录"]);
+    expect(isSelfNumbered(own)).toBe(true);
+    expect(numberWithOptions(own, { depth: 4, style: "decimal", start: "auto" }).size).toBe(0);
+    expect(numberWithOptions(own, { depth: 4, style: "decimal", start: "auto", skipOwn: false }).size).toBeGreaterThan(0);
+    const plain = scanHeadings(["# 标题", "## 背景", "## 方法"]);
+    expect(isSelfNumbered(plain)).toBe(false);
+    expect(numberWithOptions(plain, { depth: 4, style: "decimal", start: "auto" }).size).toBe(2);
+  });
+  it("没有文字信息的标题条目按未编号处理", () => {
+    expect(isSelfNumbered([{ level: 2, line: 0 }])).toBe(false);
   });
 });

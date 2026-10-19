@@ -3,7 +3,7 @@ import type { RenderingContext, PluginState } from "../rendering-context.js";
 /* Heading numbers in Reading view: "1", "1.1", "1.1.1". A lone H1 is treated as the note's title and left
    out, so numbering starts at the first H2. Turned on globally in settings, or per note with the `ib-numbered`
    cssclass (`ib-unnumbered` turns it off for a note). */
-export interface HeadingEntry { level: number; line: number; struck?: boolean }
+export interface HeadingEntry { level: number; line: number; struck?: boolean; text?: string }
 
 const DIGITS = "零一二三四五六七八九";
 /** 1 → 一, 10 → 十, 23 → 二十三 (up to 99; larger numbers fall back to digits). */
@@ -39,7 +39,26 @@ export function unpublishedIndexes(headings: HeadingEntry[]): Set<number> {
 /** Where numbering begins: "auto" leaves out a lone H1 (the note's title), "h1" numbers every heading, "h2" leaves H1s out. */
 export type NumberStart = "auto" | "h1" | "h2";
 
-export interface NumberOptions { depth: number; style: NumberStyle; start: NumberStart }
+export interface NumberOptions { depth: number; style: NumberStyle; start: NumberStart; skipOwn?: boolean }
+
+/** Does the heading text already begin with a number of its own: 1、1.2、一、（一）、第三章、(1)、①、A.、IV. ? */
+const OWN_NUMBER = new RegExp([
+  "^\\d{1,3}(?:\\.\\d+)*(?:[.、．)）]|\\s)",
+  "^[一二三四五六七八九十百零〇]+[、.．)）]",
+  "^[（(][一二三四五六七八九十百零〇\\d]+[）)]",
+  "^第[一二三四五六七八九十百零〇\\d]+[章节篇部分条讲课]",
+  "^[①-⑳㈠-㈩]",
+  "^[IVXLC]+[.)、]\\s",
+  "^[A-Za-z][.、)）]\\s"
+].join("|"));
+export const hasOwnNumber = (text: string) => OWN_NUMBER.test(text.trim());
+
+/** A note whose headings mostly carry their own numbers is numbered by its author; adding more would double up. */
+export function isSelfNumbered(headings: HeadingEntry[]): boolean {
+  const known = headings.filter(heading => heading.text !== undefined);
+  if (!known.length) return false;
+  return known.filter(heading => hasOwnNumber(heading.text ?? "")).length * 2 >= known.length;
+}
 
 export function numberingOptions(plugin: RenderingContext): NumberOptions {
   const state: Partial<PluginState> = plugin?.state || {};
@@ -47,7 +66,8 @@ export function numberingOptions(plugin: RenderingContext): NumberOptions {
   return {
     depth: depth >= 1 && depth <= 6 ? depth : 4,
     style: state.headingNumberStyle === "chinese" ? "chinese" : "decimal",
-    start: state.headingNumberStart === "h1" || state.headingNumberStart === "h2" ? state.headingNumberStart : "auto"
+    start: state.headingNumberStart === "h1" || state.headingNumberStart === "h2" ? state.headingNumberStart : "auto",
+    skipOwn: state.headingNumberSkipOwn !== false
   };
 }
 
@@ -74,6 +94,7 @@ export function numberHeadings(headings: HeadingEntry[], depth = 4, style: Numbe
 
 /** Number a document's headings the way the settings ask. */
 export function numberWithOptions(headings: HeadingEntry[], options: NumberOptions) {
+  if (options.skipOwn !== false && isSelfNumbered(headings)) return new Map<number, string>();
   return numberHeadings(headings, options.depth, options.style, options.start);
 }
 
@@ -107,14 +128,14 @@ export function scanHeadings(lines: string[]) {
     if (math) continue;
     const heading = /^ {0,3}(#{1,6})[ \t]+\S/.exec(line);
     if (heading) {
-      found.push({ level: heading[1].length, line: index, offset: heading[0].length - 1, struck: /^ {0,3}#{1,6}[ \t]+~~.+~~[ \t]*#*[ \t]*$/.test(line) });
+      found.push({ level: heading[1].length, line: index, offset: heading[0].length - 1, text: line.slice(heading[0].length - 1).replace(/[ \t]+#+[ \t]*$/, "").trim(), struck: /^ {0,3}#{1,6}[ \t]+~~.+~~[ \t]*#*[ \t]*$/.test(line) });
       continue;
     }
     // A single text line right under a blank line and over === or --- is a heading too.
     const underline = /^ {0,3}(=+|-+)[ \t]*$/.exec(lines[index + 1] ?? "");
     const plain = /^\S/.test(line) && !/^(?:[>|#*+-]|\d+[.)]|<|!\[\[|\[\^|:::)/.test(line);
     if (underline && plain && (index === start || !lines[index - 1].trim())) {
-      found.push({ level: underline[1][0] === "=" ? 1 : 2, line: index, offset: 0, struck: /^~~.+~~\s*$/.test(line) });
+      found.push({ level: underline[1][0] === "=" ? 1 : 2, line: index, offset: 0, text: line.trim(), struck: /^~~.+~~\s*$/.test(line) });
       index += 1;
     }
   }

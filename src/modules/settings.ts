@@ -95,6 +95,10 @@ class IgnoranceSettingTab extends PluginSettingTab {
             state.headingNumberStart = value === "h1" || value === "h2" ? value : "auto"; plugin.saveStoredState(); plugin.app.workspace.updateOptions();
             rerenderPreviews();
           })) },
+        { name: "笔记已有编号时不再自动编号", desc: "标题本身已经写了编号（1、1.1、一、（一）、第三章、①、A. 等）时，这篇笔记不再叠加自动编号；关闭后仍会添加。", aliases: ["skip numbered headings"], add: toggle(() => state.headingNumberSkipOwn !== false, value => {
+          state.headingNumberSkipOwn = value; plugin.saveStoredState(); plugin.app.workspace.updateOptions();
+          rerenderPreviews();
+        }) },
         { name: "标题编号层级", desc: "最多编到第几层，更深的标题不编号。", aliases: ["heading number depth"], add: (setting: Setting) => setting.addDropdown(dropdown => dropdown
           .addOptions({ 1: "1 层", 2: "2 层", 3: "3 层", 4: "4 层", 5: "5 层", 6: "6 层" }).setValue(String(state.headingNumberDepth || 4)).onChange(value => {
             state.headingNumberDepth = Number(value); plugin.saveStoredState(); plugin.app.workspace.updateOptions();

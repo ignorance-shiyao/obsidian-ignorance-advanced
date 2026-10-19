@@ -30,6 +30,7 @@ export async function loadStoredState(plugin: IgnorancePlugin) {
   plugin.state.autoFoldCode = plugin.state.autoFoldCode === true;
   plugin.state.headingNumberStyle = plugin.state.headingNumberStyle === "chinese" ? "chinese" : "decimal";
   plugin.state.headingNumberStart = plugin.state.headingNumberStart === "h1" || plugin.state.headingNumberStart === "h2" ? plugin.state.headingNumberStart : "auto";
+  plugin.state.headingNumberSkipOwn = plugin.state.headingNumberSkipOwn !== false;
   plugin.state.headingNumberDepth = Math.min(6, Math.max(1, Math.round(Number(plugin.state.headingNumberDepth)) || 4));
   plugin.state.captions = plugin.state.captions === true;
   plugin.state.wordFont = normalizeWordFont(plugin.state.wordFont);
