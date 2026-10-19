@@ -1,4 +1,5 @@
 import type { MenuItem, TFile, TFolder, WorkspaceLeaf } from "obsidian";
+import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Menu, Platform, setTooltip } from "obsidian";
 import { setIcon } from "./ui-icons.js";
@@ -121,8 +122,8 @@ function decorate(plugin: IgnorancePlugin, leaf: WorkspaceLeaf) {
 }
 
 function tooltip(leaf: WorkspaceLeaf, file: TFile) {
-  if (Platform.isMobile) return "所在目录";
-  return leaf.view?.containerEl?.hasClass(SHOWN) ? "收起路径" : `展开路径：${file.parent.path}`;
+  if (Platform.isMobile) return tr("所在目录");
+  return leaf.view?.containerEl?.hasClass(SHOWN) ? tr("收起路径") : tr("展开路径：{path}", { path: file.parent.path });
 }
 
 export function installHeaderPath(plugin: IgnorancePlugin) {

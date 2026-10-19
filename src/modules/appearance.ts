@@ -159,7 +159,7 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
 
   const fillModeMenu = (menu: Menu) => {
     const current = themeMode(app);
-    for (const [mode, title, icon] of [["light", "浅色", "lucide-sun"], ["dark", "深色", "lucide-moon"], ["system", "跟随系统", "lucide-sun-moon"]]) {
+    for (const [mode, title, icon] of [["light", tr("浅色"), "lucide-sun"], ["dark", tr("深色"), "lucide-moon"], ["system", tr("跟随系统"), "lucide-sun-moon"]]) {
       menu.addItem(item => item.setTitle(title).setIcon(icon).setChecked(current === mode).onClick(() => {
         setThemeMode(app, mode);
         refresh();
@@ -180,7 +180,7 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
     menu.addItem(item => {
       item.setTitle(tr("主题配色")).setIcon("lucide-palette");
       const colors = item.setSubmenu();
-      for (const preset of ACCENT_PRESETS) colors.addItem(choice => choice.setTitle(preset.label).setIcon("lucide-palette")
+      for (const preset of ACCENT_PRESETS) colors.addItem(choice => choice.setTitle(tr(preset.label)).setIcon("lucide-palette")
         .setChecked(currentAccent(plugin) === preset.value).onClick(() => applyAccent(plugin, preset.value)));
     });
   };
@@ -199,7 +199,7 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
     popover.createDiv({ cls: "ibm-accent-popover-title", text: tr("完整主题预设") });
     const grid = popover.createDiv({ cls: "ibm-accent-grid" });
     for (const preset of ACCENT_PRESETS) {
-      const swatch = grid.createEl("button", { cls: "ibm-accent-swatch", attr: { "aria-label": preset.label, "data-tooltip-position": "top" } });
+      const swatch = grid.createEl("button", { cls: "ibm-accent-swatch", attr: { "aria-label": tr(preset.label), "data-tooltip-position": "top" } });
       swatch.style.setProperty("--swatch", preset.color);
       swatch.toggleClass("is-active", preset.value === current);
       swatch.addEventListener("click", () => {
@@ -259,9 +259,9 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
     }
   };
 
-  plugin.addCommand({ id: "theme-and-palette", name: "主题明暗与配色", icon: "lucide-palette", callback: () => openThemeMenu(null) });
+  plugin.addCommand({ id: "theme-and-palette", name: tr("主题明暗与配色"), icon: "lucide-palette", callback: () => openThemeMenu(null) });
   if (Platform.isMobile) {
-    const ribbon = plugin.addRibbonIcon("lucide-palette", "主题明暗与配色", openThemeMenu);
+    const ribbon = plugin.addRibbonIcon("lucide-palette", tr("主题明暗与配色"), openThemeMenu);
     ribbon.addClass("ibm-mobile-theme-button");
     plugin.registerEvent(app.workspace.on("file-menu", (menu, file, source) => {
       if (source !== "more-options") return;

@@ -1,5 +1,5 @@
 import type { IgnorancePlugin, PageState } from "../plugin-types.js";
-import { tr } from "../i18n.js";
+import { tr, zh } from "../i18n.js";
 import { MarkdownView, Menu, Platform } from "obsidian";
 import type { TFile } from "obsidian";
 import { setDocSheet, removeDocSheet } from "./doc-sheets.js";
@@ -24,8 +24,8 @@ const MM = 96 / 25.4;
 // Full width is Obsidian's own "Readable line length" switched off; these
 // presets are the share of the window the page takes while it is on.
 // Each preset also has a line-length cap in pixels: on a wide monitor a bare share gives lines too long to read.
-const MARGIN_KEYS: [keyof PageState["margins"], string][] = [["t", "上"], ["b", "下"], ["l", "左"], ["r", "右"]];
-const WIDTH_PRESETS: [string, string, number, number][] = [["narrow", "窄", 62, 800], ["standard", "标准", 84, 1100], ["wide", "宽", 95, 1400]];
+const MARGIN_KEYS: [keyof PageState["margins"], string][] = [["t", zh("上")], ["b", zh("下")], ["l", zh("左")], ["r", zh("右")]];
+const WIDTH_PRESETS: [string, string, number, number][] = [["narrow", zh("窄"), 62, 800], ["standard", zh("标准"), 84, 1100], ["wide", zh("宽"), 95, 1400]];
 const ZOOM_MIN = 0.5, ZOOM_MAX = 3;
 const PAGE_GAP = 24;
 
@@ -156,15 +156,15 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
     const classes = file?.extension === "md" ? noteClasses(plugin, file) : [];
     const own = classes.includes("ib-wide") ? "ib-wide" : classes.includes("ib-narrow") ? "ib-narrow" : "";
     for (const [id, label] of WIDTH_PRESETS) {
-      menu.addItem(item => item.setTitle(label).setChecked(!own && page().width === id).onClick(() => { page().width = id; save(); }));
+      menu.addItem(item => item.setTitle(tr(label)).setChecked(!own && page().width === id).onClick(() => { page().width = id; save(); }));
     }
-    menu.addItem(item => item.setTitle(page().width === "custom" ? `自定义 ${page().customWidth}%…` : "自定义…").setChecked(!own && page().width === "custom").onClick(() => openWidthInput(anchor)));
+    menu.addItem(item => item.setTitle(page().width === "custom" ? tr("自定义 {customWidth}%…", { customWidth: page().customWidth }) : tr("自定义…")).setChecked(!own && page().width === "custom").onClick(() => openWidthInput(anchor)));
     if (!file || file.extension !== "md") return;
     menu.addSeparator();
     menu.addItem(item => {
-      item.setTitle(own ? `本篇单独：${own === "ib-wide" ? "宽" : "窄"}` : "本篇单独设置");
+      item.setTitle(own ? `本篇单独：${own === "ib-wide" ? tr("宽") : tr("窄")}` : tr("本篇单独设置"));
       const single = item.setSubmenu();
-      for (const [cls, label] of [["", "不单独设置"], ["ib-narrow", "窄"], ["ib-wide", "宽"]]) {
+      for (const [cls, label] of [["", tr("不单独设置")], ["ib-narrow", tr("窄")], ["ib-wide", tr("宽")]]) {
         single.addItem(option => option.setTitle(label).setChecked(own === cls).onClick(() => { if (own !== cls) void setNoteWidthClass(plugin, file, cls); }));
       }
     });
@@ -224,9 +224,9 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       popover.createEl("button", { text: tr("完成"), cls: "mod-cta" }).addEventListener("click", closePopover);
       placePopover(anchor);
     };
-    submenu(menu, "宽度", "move-horizontal", widths => addWidthItems(widths, anchor));
-    submenu(menu, "标题字体", "type", fonts => {
-      for (const [value, label] of HEADING_FONT_OPTIONS) choice(fonts, label, plugin.state.appearance.fontHeading === value, () => {
+    submenu(menu, tr("宽度"), "move-horizontal", widths => addWidthItems(widths, anchor));
+    submenu(menu, tr("标题字体"), "type", fonts => {
+      for (const [value, label] of HEADING_FONT_OPTIONS) choice(fonts, tr(label), plugin.state.appearance.fontHeading === value, () => {
         plugin.state.appearance.fontHeading = value;
         applyAppearancePreferences(plugin);
         plugin.app.workspace.trigger("css-change");
@@ -238,52 +238,52 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
         plugin.app.setting.openTabById("appearance");
       }));
     });
-    submenu(menu, "版式", "layout-template", (presets: Menu) => {
-      for (const preset of PAGE_PRESETS) choice(presets, preset.label.split("：")[0], false, () => { applyPagePreset(p, preset.id); save(); });
+    submenu(menu, tr("版式"), "layout-template", (presets: Menu) => {
+      for (const preset of PAGE_PRESETS) choice(presets, tr(preset.label).split(/[：:]/)[0], false, () => { applyPagePreset(p, preset.id); save(); });
       addLayoutItems(plugin, presets, save);
     });
     menu.addItem(item => item.setTitle(tr("分页阅读")).setIcon("book-open").setChecked(Boolean(p.paged)).onClick(() => { p.paged = !p.paged; save(); }));
     // Paper, margins and page furniture only matter for paged reading and export.
-    submenu(menu, "纸张与打印", "printer", print => {
-    submenu(print, "纸张", "file", papers => {
-      for (const [id, paper] of Object.entries(PAPERS)) choice(papers, paper.label, p.paper === id, () => {
+    submenu(menu, tr("纸张与打印"), "printer", print => {
+    submenu(print, tr("纸张"), "file", papers => {
+      for (const [id, paper] of Object.entries(PAPERS)) choice(papers, tr(paper.label), p.paper === id, () => {
         p.paper = id;
         if ("margins" in paper) { p.marginPreset = "gov"; p.margins = paperMarginsForPreset("gov", id); }
         else if (p.marginPreset !== "custom") p.margins = paperMarginsForPreset(p.marginPreset, id) || p.margins;
         save();
       });
-      choice(papers, "自定义尺寸…", p.paper === "CUSTOM", () => { p.paper = "CUSTOM"; save(); customFields("自定义纸张（mm）", [
-        ["宽", p.customPaper.w, (value: number) => { p.paper = "CUSTOM"; p.customPaper.w = value || 210; save(); }],
-        ["高", p.customPaper.h, (value: number) => { p.paper = "CUSTOM"; p.customPaper.h = value || 297; save(); }]
+      choice(papers, tr("自定义尺寸…"), p.paper === "CUSTOM", () => { p.paper = "CUSTOM"; save(); customFields(tr("自定义纸张（mm）"), [
+        [tr("宽"), p.customPaper.w, (value: number) => { p.paper = "CUSTOM"; p.customPaper.w = value || 210; save(); }],
+        [tr("高"), p.customPaper.h, (value: number) => { p.paper = "CUSTOM"; p.customPaper.h = value || 297; save(); }]
       ]); });
       papers.addSeparator();
-      choice(papers, "横向", Boolean(p.landscape), () => { p.landscape = !p.landscape; save(); });
+      choice(papers, tr("横向"), Boolean(p.landscape), () => { p.landscape = !p.landscape; save(); });
     });
-    submenu(print, "页边距", "scan", (margins: Menu) => {
-      for (const [id, preset] of Object.entries(MARGIN_PRESETS)) choice(margins, preset.label, p.marginPreset === id, () => {
+    submenu(print, tr("页边距"), "scan", (margins: Menu) => {
+      for (const [id, preset] of Object.entries(MARGIN_PRESETS)) choice(margins, tr(preset.label), p.marginPreset === id, () => {
         p.marginPreset = id;
         p.margins = paperMarginsForPreset(id, p.paper) || { t: preset.t, r: preset.r, b: preset.b, l: preset.l };
         save();
       });
-      choice(margins, "自定义页边距…", p.marginPreset === "custom", () => customFields("自定义页边距（mm）",
+      choice(margins, tr("自定义页边距…"), p.marginPreset === "custom", () => customFields(tr("自定义页边距（mm）"),
         MARGIN_KEYS.map(([key, label]): [string, number, (value: number) => void] =>
-          [label, p.margins[key], value => { p.marginPreset = "custom"; p.margins[key] = value; save(); }])));
+          [tr(label), p.margins[key], value => { p.marginPreset = "custom"; p.margins[key] = value; save(); }])));
     });
-    submenu(print, "页码", "list-ordered", (numbers: Menu) => {
-      for (const [id, label] of [["none", "不显示"], ["center", "底部居中"], ["right", "底部右侧"]]) choice(numbers, label, p.pageNumber === id, () => { p.pageNumber = id; save(); });
+    submenu(print, tr("页码"), "list-ordered", (numbers: Menu) => {
+      for (const [id, label] of [["none", tr("不显示")], ["center", tr("底部居中")], ["right", tr("底部右侧")]]) choice(numbers, label, p.pageNumber === id, () => { p.pageNumber = id; save(); });
       numbers.addSeparator();
-      for (const [id, label] of [["plain", "1"], ["total", "1 / 5"], ["gov", "- 1 -"], ["zh", "第 1 页"]]) choice(numbers, label, p.pageNumberFormat === id, () => { p.pageNumberFormat = id; save(); });
+      for (const [id, label] of [["plain", "1"], ["total", "1 / 5"], ["gov", "- 1 -"], ["zh", tr("第 1 页")]]) choice(numbers, label, p.pageNumberFormat === id, () => { p.pageNumberFormat = id; save(); });
     });
-    submenu(print, "页眉", "panel-top", (headers: Menu) => {
-      for (const [id, label] of [["none", "不显示"], ["chapter", "章节名"]]) choice(headers, label, (p.runningHeader || "none") === id, () => { p.runningHeader = id; save(); });
+    submenu(print, tr("页眉"), "panel-top", (headers: Menu) => {
+      for (const [id, label] of [["none", tr("不显示")], ["chapter", tr("章节名")]]) choice(headers, label, (p.runningHeader || "none") === id, () => { p.runningHeader = id; save(); });
     });
-    submenu(print, "页脚", "panel-bottom", (footers: Menu) => {
-      for (const [template, label] of FOOTER_CHOICES) choice(footers, label, (p.footerText || "") === template, () => { p.footerText = template; save(); });
+    submenu(print, tr("页脚"), "panel-bottom", (footers: Menu) => {
+      for (const [template, label] of FOOTER_CHOICES) choice(footers, tr(label), (p.footerText || "") === template, () => { p.footerText = template; save(); });
       const custom = !FOOTER_CHOICES.some(([template]) => template === (p.footerText || ""));
-      choice(footers, custom ? `自定义：${p.footerText}` : "自定义…", custom, () => promptFooter(plugin, p.footerText || "", value => { p.footerText = value.trim(); save(); }));
+      choice(footers, custom ? tr("自定义：{footerText}", { footerText: p.footerText }) : tr("自定义…"), custom, () => promptFooter(plugin, p.footerText || "", value => { p.footerText = value.trim(); save(); }));
     });
-    submenu(print, "内容跨页", "split", (breaks: Menu) => {
-      for (const [id, label] of [["whitespace", "整块移到下一页"], ["cut", "在页底切开"]]) choice(breaks, label, p.breakMode === id, () => { p.breakMode = id; save(); });
+    submenu(print, tr("内容跨页"), "split", (breaks: Menu) => {
+      for (const [id, label] of [["whitespace", tr("整块移到下一页")], ["cut", tr("在页底切开")]]) choice(breaks, label, p.breakMode === id, () => { p.breakMode = id; save(); });
     });
     });
     const box = anchor.getBoundingClientRect();
@@ -306,8 +306,8 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
     const widthText = width.createSpan({ cls: "ibp-text-button-label" });
     width.addEventListener("click", () => openPageSettings(width));
     bar.createDiv({ cls: "ibp-sep" });
-    const typewriter = button("lucide-align-center", "打字机滚动", () => toggleWritingMode(plugin, "typewriterScroll"));
-    const focus = button("lucide-eye-off", "专注模式", () => toggleWritingMode(plugin, "focusMode"));
+    const typewriter = button("lucide-align-center", tr("打字机滚动"), () => toggleWritingMode(plugin, "typewriterScroll"));
+    const focus = button("lucide-eye-off", tr("专注模式"), () => toggleWritingMode(plugin, "focusMode"));
     typewriter.addClass("ibp-edit-only");
     focus.addClass("ibp-edit-only");
     bar.createDiv({ cls: "ibp-sep ibp-edit-only" });
@@ -322,11 +322,11 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       void view.setState(state, { history: false });
     });
     bar.createDiv({ cls: "ibp-sep" });
-    button("lucide-presentation", "演示", () => { void openPresentation(plugin, view.file, view.leaf); });
-    button("lucide-share", "导出", event => showExportMenu(plugin, view, event));
+    button("lucide-presentation", tr("演示"), () => { void openPresentation(plugin, view.file, view.leaf); });
+    button("lucide-share", tr("导出"), event => showExportMenu(plugin, view, event));
     bar.createDiv({ cls: "ibp-sep" });
-    button("lucide-columns-2", "左右分屏", () => { if (view.file) void plugin.app.workspace.getLeaf("split", "vertical").openFile(view.file); });
-    button("lucide-rows-2", "上下分屏", () => { if (view.file) void plugin.app.workspace.getLeaf("split", "horizontal").openFile(view.file); });
+    button("lucide-columns-2", tr("左右分屏"), () => { if (view.file) void plugin.app.workspace.getLeaf("split", "vertical").openFile(view.file); });
+    button("lucide-rows-2", tr("上下分屏"), () => { if (view.file) void plugin.app.workspace.getLeaf("split", "horizontal").openFile(view.file); });
     const refresh = () => {
       const p = page();
       const preset = WIDTH_PRESETS.find(([id]) => id === p.width);
@@ -334,8 +334,8 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       const sizer = visibleSizer(host);
       const px = sizer ? Math.round(parseFloat(getComputedStyle(sizer).width)) : 0;
       const own = view.file ? noteClasses(plugin, view.file) : [];
-      const noteLabel = own.includes("ib-wide") ? "宽（本篇）" : own.includes("ib-narrow") ? "窄（本篇）" : "";
-      const widthName = noteLabel || (p.width === "custom" ? `${p.customWidth}%` : preset ? preset[1] : "标准");
+      const noteLabel = own.includes("ib-wide") ? tr("宽（本篇）") : own.includes("ib-narrow") ? tr("窄（本篇）") : "";
+      const widthName = noteLabel || (p.width === "custom" ? `${p.customWidth}%` : preset ? tr(preset[1]) : tr("标准"));
       widthText.setText(`${widthName}${px ? ` · ${px}px` : ""}${Number(p.zoom) && Number(p.zoom) !== 1 ? ` · ${Math.round(Number(p.zoom) * 100)}%` : ""}`);
 
       typewriter.toggleClass("is-active", Boolean(plugin.state.writingModes?.typewriterScroll));
@@ -344,7 +344,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       focus.setAttr("aria-pressed", String(Boolean(plugin.state.writingModes?.focusMode)));
       const size = paperSize(p);
       const name = p.paper === "CUSTOM" ? `${size.w}×${size.h}` : PAPERS[p.paper as keyof typeof PAPERS]?.label.replace(/（.*）/, "") || "A4";
-      width.setAttr("aria-label", `页面设置（${name}${p.landscape ? " 横向" : ""}；宽度 ${widthName}）`);
+      width.setAttr("aria-label", `页面设置（${name}${p.landscape ? tr(" 横向") : ""}；宽度 ${widthName}）`);
     };
     bar.addEventListener("ibp-refresh", refresh);
     refresh();
@@ -489,7 +489,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
     // The editor measures its lines again after a zoom and may move the scroll; correct once that has settled.
     window.requestAnimationFrame(() => { adjust(); window.setTimeout(adjust, 120); });
   }, { capture: true, passive: false });
-  plugin.addCommand({ id: "reset-page-zoom", name: "重置页面缩放", callback: () => { page().zoom = 1; save(); } });
+  plugin.addCommand({ id: "reset-page-zoom", name: tr("重置页面缩放"), callback: () => { page().zoom = 1; save(); } });
   plugin.register(() => {
     closePopover();
     document.querySelectorAll(".ibp-toolbar, .ibp-book, .ibp-staging").forEach(el => el.remove());

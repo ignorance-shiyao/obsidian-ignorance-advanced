@@ -1,4 +1,5 @@
 import { controlScale } from "./control-geometry.js";
+import { tr } from "../i18n.js";
 import type { RenderingContext } from "../rendering-context.js";
 import { Menu, Notice, MarkdownView, TFile, type Editor } from "obsidian";
 import { applyTableSourceAlignment } from "./table-alignment.js";
@@ -26,7 +27,7 @@ export function mountChartAlignment(plugin: RenderingContext, container: HTMLEle
     if (wrapper) wrapper.dataset.ibChartAlign = alignment;
   };
   apply(container.closest<HTMLElement>("[data-ib-chart-align]")?.dataset.ibChartAlign || "center");
-  const label = container.tagName === "PRE" ? "代码块位置" : "图表位置";
+  const label = container.tagName === "PRE" ? tr("代码块位置") : tr("图表位置");
   const button = actions.createEl("button", { cls: "ib-chart-align", attr: { type: "button", "aria-label": label, title: label } });
   setIcon(button, UI_ICONS.alignCenter);
   const locateIn = async (element: HTMLElement): Promise<LocatedFence | null> => {
@@ -74,13 +75,13 @@ export function mountChartAlignment(plugin: RenderingContext, container: HTMLEle
       apply(id);
       try {
         const found = await locate();
-        if (!found) throw new Error("未找到块源代码位置");
+        if (!found) throw new Error(tr("未找到块源代码位置"));
         const fence = withChartAlignment(found.lines[found.line], id);
         if (found.editor) replaceLineQuietly(found.editor, found.line, fence);
-        else { if (!found.file) throw Error("未找到块所在文件"); found.lines[found.line] = fence; await plugin.app.vault.process(found.file, () => found.lines.join("\n")); }
-      } catch (error) { release(); apply(previous); new Notice(`块位置未保存：${saveErrorMessage(error)}`); }
+        else { if (!found.file) throw Error(tr("未找到块所在文件")); found.lines[found.line] = fence; await plugin.app.vault.process(found.file, () => found.lines.join("\n")); }
+      } catch (error) { release(); apply(previous); new Notice(tr("块位置未保存：{v}", { v: saveErrorMessage(error) })); }
     };
-    for (const [id, label] of [["left", "居左"], ["center", "居中"], ["right", "居右"]]) menu.addItem(item => item.setTitle(label).setIcon(UI_ICONS[ALIGN_ICONS[id]]).setChecked(container.dataset.ibChartAlign === id).onClick(() => { void choose(id); }));
+    for (const [id, label] of [["left", tr("居左")], ["center", tr("居中")], ["right", tr("居右")]]) menu.addItem(item => item.setTitle(label).setIcon(UI_ICONS[ALIGN_ICONS[id]]).setChecked(container.dataset.ibChartAlign === id).onClick(() => { void choose(id); }));
     const box = button.getBoundingClientRect(); menu.showAtPosition({ x: box.left, y: box.bottom + 4 });
   });
 }
@@ -149,13 +150,13 @@ async function persistWidth(plugin: RenderingContext, container: HTMLElement, lo
   const release = holdScrollPosition(container);
   try {
     const found = await locate();
-    if (!found) throw new Error("未找到块源代码位置");
+    if (!found) throw new Error(tr("未找到块源代码位置"));
     const fence = withChartWidth(found.lines[found.line], width);
     if (found.editor) replaceLineQuietly(found.editor, found.line, fence);
-    else { if (!found.file) throw Error("未找到块所在文件"); found.lines[found.line] = fence; await plugin.app.vault.process(found.file, () => found.lines.join("\n")); }
+    else { if (!found.file) throw Error(tr("未找到块所在文件")); found.lines[found.line] = fence; await plugin.app.vault.process(found.file, () => found.lines.join("\n")); }
   } catch (error) {
     release(); setBlockWidth(container, previous); refit(plugin, container);
-    new Notice(`块宽度未保存：${saveErrorMessage(error)}`);
+    new Notice(tr("块宽度未保存：{v}", { v: saveErrorMessage(error) }));
   }
 }
 

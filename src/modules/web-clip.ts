@@ -131,16 +131,16 @@ function generic(doc: Document): Article {
 
 async function fetchArticle(url: string): Promise<Article> {
   const response = await requestUrl({ url, headers: { "User-Agent": BROWSER_UA, "Accept-Language": "zh-CN,zh;q=0.9" }, throw: false });
-  if (response.status >= 400) throw new Error(`网页返回 ${response.status}`);
+  if (response.status >= 400) throw new Error(tr("网页返回 {status}", { status: response.status }));
   const html = response.text;
-  if (FAILED_CLIP.test(html) && !/id="js_content"/.test(html)) throw new Error("网站要求验证，暂时无法抓取");
+  if (FAILED_CLIP.test(html) && !/id="js_content"/.test(html)) throw new Error(tr("网站要求验证，暂时无法抓取"));
   const doc = new DOMParser().parseFromString(html, "text/html");
   // Relative links and images resolve against the page.
   const base = createEl("base");
   base.href = response.headers?.["location"] || url;
   doc.head.prepend(base);
   const article = (isWeChat(url) && wechat(doc, html)) || generic(doc);
-  if (!article.body || !article.body.textContent.trim()) throw new Error("没有找到正文");
+  if (!article.body || !article.body.textContent.trim()) throw new Error(tr("没有找到正文"));
   article.body.querySelectorAll("img[src]").forEach(img => { img.setAttribute("src", new URL(img.getAttribute("src"), base.href).href); });
   article.body.querySelectorAll("a[href]").forEach(a => { try { a.setAttribute("href", new URL(a.getAttribute("href"), base.href).href); } catch { /* an unparseable link stays as written */ } });
   return article;
@@ -200,7 +200,7 @@ export async function clipUrl(plugin: IgnorancePlugin, url: string, target: TFil
     const site = !inPlace && plugin.state.webClip?.byDomain ? siteFolder(url) : "";
     const folder = inPlace ? target.parent.path : site ? `${base}/${site}` : base;
     for (const path of [base, folder]) if (!vault.getAbstractFileByPath(path)) await vault.createFolder(path).catch(() => undefined);
-    await saveImages(plugin, article.body, folder, safeAssetStem(name), (i: number, n: number) => notice.setMessage(`正在剪藏：保存图片 ${i} / ${n}`));
+    await saveImages(plugin, article.body, folder, safeAssetStem(name), (i: number, n: number) => notice.setMessage(tr("正在剪藏：保存图片 {i} / {n}", { i, n })));
     const markdown = tidyMarkdown(htmlToMarkdown(article.body.innerHTML));
     const text = `${frontmatter({ ...article, title, url, tag: (inPlace ? folder : base).split("/").pop() })}${markdown}\n`;
     let note = target;
@@ -212,11 +212,11 @@ export async function clipUrl(plugin: IgnorancePlugin, url: string, target: TFil
       note = await vault.create(uniquePath(vault, folder, name), text);
     }
     notice.hide();
-    new Notice(`已剪藏：${note.basename}`, 4000);
+    new Notice(tr("已剪藏：{basename}", { basename: note.basename }), 4000);
     return note;
   } catch (error) {
     notice.hide();
-    new Notice(`剪藏失败：${errorText(error)}`, 8000);
+    new Notice(tr("剪藏失败：{v}", { v: errorText(error) }), 8000);
     throw error;
   }
 }
@@ -249,7 +249,7 @@ class ClipModal extends Modal {
       attr: { id: "ib-clip-url", type: "url", placeholder: tr("长按此处粘贴链接"), autocapitalize: "off", autocorrect: "off", spellcheck: "false", enterkeyhint: "go" }
     });
     label.setAttribute("for", "ib-clip-url");
-    this.contentEl.createDiv({ cls: "ib-form-hint", text: `支持公众号、X 与大多数文章网页。粘贴后自动开始，正文与图片保存到 ${clipFolder(this.plugin)}/。` });
+    this.contentEl.createDiv({ cls: "ib-form-hint", text: tr("支持公众号、X 与大多数文章网页。粘贴后自动开始，正文与图片保存到 {v}/。", { v: clipFolder(this.plugin) }) });
     const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
     footer.createEl("button", { text: tr("取消") }).addEventListener("click", () => this.close());
     this.confirm = footer.createEl("button", { cls: "mod-cta", text: tr("剪藏") });
@@ -288,7 +288,7 @@ class BatchClipModal extends Modal {
   constructor(plugin: IgnorancePlugin) { super(plugin.app); this.plugin = plugin; this.busy = false; }
   onOpen() {
     this.titleEl.setText(tr("批量剪藏网页"));
-    this.contentEl.createDiv({ cls: "ib-form-hint", text: `每行一个链接，已经剪藏过的会跳过。保存到 ${clipFolder(this.plugin)}/。` });
+    this.contentEl.createDiv({ cls: "ib-form-hint", text: tr("每行一个链接，已经剪藏过的会跳过。保存到 {v}/。", { v: clipFolder(this.plugin) }) });
     this.area = this.contentEl.createEl("textarea", { cls: "ib-clip-batch__area", attr: { rows: "8", placeholder: tr("粘贴链接，每行一个"), spellcheck: "false" } });
     this.status = this.contentEl.createDiv({ cls: "ib-form-hint" });
     this.results = this.contentEl.createDiv({ cls: "ib-clip-batch__results" });
@@ -316,10 +316,10 @@ class BatchClipModal extends Modal {
     for (const [index, url] of urls.entries()) {
       // Closing the dialog stops the links not yet started; the one in flight finishes and is reported.
       if (this.cancelled) {
-        if (done) new Notice(`批量剪藏已停止：已保存 ${done} 篇，其余 ${urls.length - index} 个链接未处理。`, 8000);
+        if (done) new Notice(tr("批量剪藏已停止：已保存 {done} 篇，其余 {n} 个链接未处理。", { done, n: urls.length - index }), 8000);
         return;
       }
-      this.status.setText(`第 ${index + 1} / ${urls.length} 篇`);
+      this.status.setText(tr("第 {v} / {n} 篇", { v: index + 1, n: urls.length }));
       const row = this.results.createDiv({ cls: "ib-clip-batch__row" });
       const mark = row.createSpan({ cls: "ib-clip-batch__mark" });
       row.createSpan({ cls: "ib-clip-batch__url", text: url });
@@ -329,7 +329,7 @@ class BatchClipModal extends Modal {
       if (note) { done += 1; mark.setText(tr("成功")); known.add(clipKey(url)); }
       else { failedUrls.push(url); mark.setText(tr("失败")); row.addClass("is-failed"); }
     }
-    this.status.setText(`完成：成功 ${done}，跳过 ${skipped}，失败 ${failedUrls.length}`);
+    this.status.setText(tr("完成：成功 {done}，跳过 {skipped}，失败 {n}", { done, skipped, n: failedUrls.length }));
     this.busy = false;
     this.start.removeAttribute("disabled");
     if (failedUrls.length) {
@@ -365,19 +365,19 @@ export function installWebClip(plugin: IgnorancePlugin) {
   const { app } = plugin;
   plugin.addCommand({
     id: "clip-web-pages-batch",
-    name: "批量剪藏网页",
+    name: tr("批量剪藏网页"),
     icon: "lucide-scissors",
     callback: () => new BatchClipModal(plugin).open()
   });
   plugin.addCommand({
     id: "clip-web-page",
-    name: "剪藏网页",
+    name: tr("剪藏网页"),
     icon: "lucide-scissors",
     callback: () => new ClipModal(plugin).open()
   });
   plugin.addCommand({
     id: "reclip-current-note",
-    name: "重新剪藏当前笔记（按来源链接）",
+    name: tr("重新剪藏当前笔记（按来源链接）"),
     checkCallback: checking => {
       const file = app.workspace.getActiveFile();
       if (!file || file.extension !== "md") return false;
@@ -396,8 +396,8 @@ export function installWebClip(plugin: IgnorancePlugin) {
     }
   });
   const openClip = () => new ClipModal(plugin).open();
-  plugin.addCommand({ id: "clip-clipboard-link", name: "粘贴链接剪藏", icon: "lucide-scissors", callback: openClip });
-  plugin.addRibbonIcon("lucide-scissors", "剪藏网页", openClip);
+  plugin.addCommand({ id: "clip-clipboard-link", name: tr("粘贴链接剪藏"), icon: "lucide-scissors", callback: openClip });
+  plugin.addRibbonIcon("lucide-scissors", tr("剪藏网页"), openClip);
   // 剪藏网页 in the note's "⋯" menu (no permanent header button).
   plugin.registerEvent(app.workspace.on("file-menu", (menu, _file, source) => {
     if (source !== "more-options") return;
@@ -437,7 +437,7 @@ export function installWebClip(plugin: IgnorancePlugin) {
     // link. The clipboard is only read when the user runs the command below.
     if (!FAILED_CLIP.test(text) || told.has(file.path)) return;
     told.add(file.path);
-    new Notice(`「${file.basename}」是分享时抓取失败的页面，分享没有带上文章链接。\n在微信里点「复制链接」，再对这条笔记运行「重新剪藏当前笔记」。`, 12000);
+    new Notice(tr("「{basename}」是分享时抓取失败的页面，分享没有带上文章链接。\n在微信里点「复制链接」，再对这条笔记运行「重新剪藏当前笔记」。", { basename: file.basename }), 12000);
   };
   // The share extension saves into the clip folder, the vault root or the folder set for new notes.
   const sweep = () => {
@@ -455,7 +455,7 @@ export function installWebClip(plugin: IgnorancePlugin) {
     lastOffered = url;
     const already = clippedNotes(plugin).some(file => app.metadataCache.getFileCache(file)?.frontmatter?.source === url || clipKey(String(app.metadataCache.getFileCache(file)?.frontmatter?.source ?? "")) === clipKey(url));
     if (already) return;
-    new ConfirmClipModal(plugin, `剪贴板里有一个链接，剪藏到 ${clipFolder(plugin)}/？`, url,
+    new ConfirmClipModal(plugin, tr("剪贴板里有一个链接，剪藏到 {v}/？", { v: clipFolder(plugin) }), url,
       () => void clipUrl(plugin, url).then(note => app.workspace.getLeaf(false).openFile(note)).catch(() => {})).open();
   };
 

@@ -3,6 +3,7 @@
 // far from the cursor threw the reader back to it, and saving re-renders the note on top of that.
 
 import type { Editor } from "obsidian";
+import { tr } from "../i18n.js";
 import type { EditorView } from "@codemirror/view";
 
 // Rewrites a range without letting CodeMirror scroll the cursor into view.
@@ -48,7 +49,7 @@ export function holdScrollPosition(from: HTMLElement, duration = 1500) {
 // Saving fails with a raw errno when the note is read-only on disk; say what to do instead.
 export function saveErrorMessage(error: unknown): string {
   const text = error instanceof Error ? error.message : typeof error === "string" ? error : JSON.stringify(error);
-  if (/EACCES|EPERM|EROFS/.test(text)) return "文件在磁盘上是只读的，请先解除只读（访达 → 显示简介 → 取消“已锁定”或修改权限）";
+  if (/EACCES|EPERM|EROFS/.test(text)) return tr("文件在磁盘上是只读的，请先解除只读（访达 → 显示简介 → 取消“已锁定”或修改权限）");
   return text;
 }
 

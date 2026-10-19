@@ -26,7 +26,7 @@ export function buildNavItems(source: string, headings: Array<{ text: string; le
       if (!fence) { fence = marker[1]; fenceLanguage = (marker[2] || "").toLowerCase(); fenceStart = index; }
       else if (marker[1][0] === fence[0] && marker[1].length >= fence.length && !line.replace(marker[1], "").trim()) {
         const diagram = DIAGRAM_LANGUAGES.has(fenceLanguage);
-        items.push({ kind: diagram ? "diagram" : "code", label: diagram ? `图表 ${fenceLanguage}` : `代码 ${fenceLanguage || "text"}`, line: fenceStart });
+        items.push({ kind: diagram ? "diagram" : "code", label: diagram ? tr("图表 {fenceLanguage}", { fenceLanguage }) : tr("代码 {v}", { v: fenceLanguage || "text" }), line: fenceStart });
         fence = "";
       }
       return;
@@ -41,12 +41,12 @@ export function buildNavItems(source: string, headings: Array<{ text: string; le
     }
     const image = /!\[\[([^\]|]+)|!\[[^\]]*\]\(([^)]+)\)/.exec(line);
     if (image && IMAGE_EXTENSION.test((image[1] || image[2] || "").split("?")[0])) {
-      items.push({ kind: "figure", label: `图片 ${(image[1] || image[2]).split("/").pop()}`, line: index });
+      items.push({ kind: "figure", label: tr("图片 {name}", { name: (image[1] || image[2]).split("/").pop() }), line: index });
       return;
     }
     if (/^\s*\|/.test(line) && !(index > 0 && /^\s*\|/.test(lines[index - 1]))) {
       tableCount += 1;
-      lastTable = { kind: "table", label: `表格 ${tableCount}`, line: index };
+      lastTable = { kind: "table", label: tr("表格 {tableCount}", { tableCount }), line: index };
       items.push(lastTable);
     }
   });
@@ -74,7 +74,7 @@ export function openNavigation(plugin: IgnorancePlugin) {
         el.addClass("ib-nav-item");
         el.createSpan({ cls: "ib-nav-item__icon", text: ICON[item.kind] });
         el.createSpan({ cls: "ib-nav-item__label", text: item.label }).style.setProperty("--ib-nav-indent", `${Math.max(0, (item.level || 1) - 1)}em`);
-        el.createSpan({ cls: "ib-nav-item__line", text: `第 ${item.line + 1} 行` });
+        el.createSpan({ cls: "ib-nav-item__line", text: tr("第 {v} 行", { v: item.line + 1 }) });
       }
       onChooseSuggestion(item: NavItem) { view.setEphemeralState({ line: item.line }); }
     }

@@ -64,7 +64,7 @@ export function enhanceTable(table: HTMLTableElement) {
     const checked = match[1] !== " ";
     cell.empty();
     cell.createSpan({ cls: `ib-table-check${checked ? " is-checked" : ""}`, text: checked ? "☑" : "☐" })
-      .setAttribute("aria-label", checked ? "已完成" : "未完成");
+      .setAttribute("aria-label", checked ? tr("已完成") : tr("未完成"));
   }
 }
 

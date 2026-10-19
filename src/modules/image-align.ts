@@ -1,5 +1,5 @@
 import { enhancementOn, handledByOther } from "./enhancement-gate.js";
-import { tr } from "../i18n.js";
+import { tr, zh } from "../i18n.js";
 import { controlScale, controlBox } from "./control-geometry.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { MarkdownView, Menu, Modal, Notice, TFile, requestUrl, setTooltip } from "obsidian";
@@ -12,8 +12,8 @@ import { keepViewport } from "./reading-position.js";
 
 
 const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif"]);
-const FILTER_LABELS: Record<string, string> = { gray: "灰度", sepia: "复古", invert: "反色", "dark-invert": "深色模式下反色", blur: "模糊（鼠标移上去恢复）" };
-const LABELS: Array<[string, string, string]> = [["left", "左对齐", "lucide-align-left"], ["center", "居中", "lucide-align-center"], ["right", "右对齐", "lucide-align-right"]];
+const FILTER_LABELS: Record<string, string> = { gray: zh("灰度"), sepia: zh("复古"), invert: zh("反色"), "dark-invert": zh("深色模式下反色"), blur: zh("模糊（鼠标移上去恢复）") };
+const LABELS: Array<[string, string, string]> = [["left", zh("左对齐"), "lucide-align-left"], ["center", zh("居中"), "lucide-align-center"], ["right", zh("右对齐"), "lucide-align-right"]];
 
 type ImageLink = NonNullable<ReturnType<typeof imageLinkAt>>;
 interface FoundLink { link: ImageLink; apply: (insert: string) => void | Promise<unknown> }
@@ -218,35 +218,35 @@ function decorate(plugin: IgnorancePlugin, embed: HTMLElement) {
   const native = (label: string) => embed.querySelector<HTMLElement>(`.embed-actions .embed-action${label}`);
   // Zoom stays on double-click; only the edit action is carried over.
   const edit = native(".edit-block-button");
-  if (edit) addButton(bar, "lucide-code-xml", edit.getAttribute("aria-label") || "编辑源码", () => edit.click());
-  addButton(bar, "lucide-copy", "复制图片", () => { void copyImage(plugin, embed); });
-  addButton(bar, "lucide-crop", "裁切图片", () => startCrop(plugin, embed));
+  if (edit) addButton(bar, "lucide-code-xml", edit.getAttribute("aria-label") || tr("编辑源码"), () => edit.click());
+  addButton(bar, "lucide-copy", tr("复制图片"), () => { void copyImage(plugin, embed); });
+  addButton(bar, "lucide-crop", tr("裁切图片"), () => startCrop(plugin, embed));
   const change = (make: (link: ImageLink) => string, label: string) => () => {
     const view = viewFor(plugin, embed);
     const found = linkFor(view, embed);
-    if (!found) { new Notice(`无法定位图片链接，未${label}`); return; }
+    if (!found) { new Notice(tr("无法定位图片链接")); return; }
     void keepViewport(view, () => found.apply(make(found.link)));
   };
   // Filters and click-to-play are written into the link; this menu is the way to set them without the source.
-  addButton(bar, "lucide-sparkles", "图片样式：滤镜、点击播放", (event: MouseEvent) => {
+  addButton(bar, "lucide-sparkles", tr("图片样式：滤镜、点击播放"), (event: MouseEvent) => {
     const found = linkFor(viewFor(plugin, embed), embed);
     if (!found) { new Notice(tr("无法定位图片链接")); return; }
     const now = imageFilter(found.link);
     const menu = new Menu();
-    menu.addItem(item => item.setTitle(tr("无滤镜")).setChecked(!now).onClick(change(link => withImageFilter(link, null), "设置滤镜")));
+    menu.addItem(item => item.setTitle(tr("无滤镜")).setChecked(!now).onClick(change(link => withImageFilter(link, null), tr("设置滤镜"))));
     for (const filter of IMAGE_FILTERS) {
-      menu.addItem(item => item.setTitle(FILTER_LABELS[filter]).setChecked(now === filter).onClick(change(link => withImageFilter(link, filter), "设置滤镜")));
+      menu.addItem(item => item.setTitle(tr(FILTER_LABELS[filter])).setChecked(now === filter).onClick(change(link => withImageFilter(link, filter), tr("设置滤镜"))));
     }
     if (/\.gif(?:$|[?#])/i.test(embed.getAttribute("src") || "")) {
       menu.addSeparator();
       const playing = hasImageKeyword(found.link, "click");
-      menu.addItem(item => item.setTitle(tr("GIF 点击后才播放")).setChecked(playing).onClick(change(link => withImageKeyword(link, "click", !playing), "设置播放方式")));
+      menu.addItem(item => item.setTitle(tr("GIF 点击后才播放")).setChecked(playing).onClick(change(link => withImageKeyword(link, "click", !playing), tr("设置播放方式"))));
     }
     menu.showAtMouseEvent(event);
   });
-  addButton(bar, "lucide-rotate-ccw", "重置大小", change(withoutImageWidth, "重置大小"));
-  const remove = change(() => "", "删除");
-  addButton(bar, "lucide-trash-2", "删除图片", () => confirmRemoval(plugin, remove));
+  addButton(bar, "lucide-rotate-ccw", tr("重置大小"), change(withoutImageWidth, tr("重置大小")));
+  const remove = change(() => "", tr("删除"));
+  addButton(bar, "lucide-trash-2", tr("删除图片"), () => confirmRemoval(plugin, remove));
   bar.createDiv({ cls: "ib-image-action-divider" });
   const current = () => {
     const found = linkFor(viewFor(plugin, embed), embed);
@@ -366,7 +366,7 @@ function installResizeHandles(plugin: IgnorancePlugin, embed: HTMLElement, wrapp
   sizeObserver.observe(img, { attributes: true, attributeFilter: ["width", "height"] });
   let cancelDrag: (() => void) | null = null;
   for (const direction of ["nw", "n", "ne", "e", "se", "s", "sw", "w"]) {
-    const handle: ResizeHandle = layer.createEl("button", { cls: `ib-image-resize-handle is-${direction}`, attr: { type: "button", "aria-label": direction.length === 2 ? "等比例缩放图片" : "单方向缩放图片" } });
+    const handle: ResizeHandle = layer.createEl("button", { cls: `ib-image-resize-handle is-${direction}`, attr: { type: "button", "aria-label": direction.length === 2 ? tr("等比例缩放图片") : tr("单方向缩放图片") } });
     handle.__ibResizeStart = event => {
       if (event.button !== 0) return;
       const view = viewFor(plugin, embed), found = linkFor(view, embed);
@@ -402,7 +402,7 @@ function installResizeHandles(plugin: IgnorancePlugin, embed: HTMLElement, wrapp
             await keepViewport(view, () => found.apply(withImageSize(found.link, next.width, next.height)));
             saved = true;
           } }
-          catch (error) { new Notice(`图片尺寸保存失败：${errorText(error)}`); }
+          catch (error) { new Notice(tr("图片尺寸保存失败：{v}", { v: errorText(error) })); }
           finally {
             if (saved) { img.style.removeProperty("width"); img.style.removeProperty("height"); update(); }
             else restore();

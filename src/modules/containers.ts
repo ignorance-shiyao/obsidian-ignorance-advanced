@@ -56,7 +56,7 @@ function makeContainer(node: ContainerNode) {
 
   if (node.kind === "details") {
     const summary = createEl("summary");
-    summary.textContent = node.title || "详情";
+    summary.textContent = node.title || tr("详情");
     element.appendChild(summary);
   } else if (node.kind === "panel" && node.title) {
     const header = createDiv();
@@ -65,7 +65,7 @@ function makeContainer(node: ContainerNode) {
     element.appendChild(header);
   }
 
-  if (node.kind === "tab") element.dataset.ibcTitle = node.title || "标签";
+  if (node.kind === "tab") element.dataset.ibcTitle = node.title || tr("标签");
 
   if (node.kind === "matrix" && node.title.includes("|")) {
     const split = node.title.indexOf("|");
@@ -116,7 +116,7 @@ function finishTabs(container: HTMLElement, interactive: boolean) {
     const label = createEl("label");
     label.htmlFor = input.id;
     label.className = "ibc-tabs__label";
-    label.textContent = panel.dataset.ibcTitle || `标签 ${index + 1}`;
+    label.textContent = panel.dataset.ibcTitle || tr("标签 {v}", { v: index + 1 });
     container.insertBefore(input, before);
     container.insertBefore(label, before);
   });

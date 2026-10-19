@@ -50,11 +50,11 @@ function exportActions(plugin: IgnorancePlugin, file: TFile): Record<ExportActio
     // PPTX uses the presentation settings (skin, aspect ratio) and its own progress notice.
     pptxEditable: { title: tr("导出 PPTX（可编辑）"), icon: "lucide-presentation", run: preview("pptx-editable", () => { void exportNotePptx(plugin, file, "editable"); }) },
     pptxImage: { title: tr("导出 PPTX（图片版）"), icon: "lucide-image", run: preview("pptx-image", () => { void exportNotePptx(plugin, file, "image"); }) },
-    wechat: { title: tr("复制为公众号格式"), icon: "lucide-copy", run: preview("wechat", () => { void runCopy("公众号", () => copyFormattedNote(plugin, file, "wechat")); }) },
-    zhihu: { title: tr("复制为知乎格式"), icon: "lucide-copy", run: preview("zhihu", () => { void runCopy("知乎", () => copyFormattedNote(plugin, file, "zhihu")); }) },
+    wechat: { title: tr("复制为公众号格式"), icon: "lucide-copy", run: preview("wechat", () => { void runCopy(tr("公众号"), () => copyFormattedNote(plugin, file, "wechat")); }) },
+    zhihu: { title: tr("复制为知乎格式"), icon: "lucide-copy", run: preview("zhihu", () => { void runCopy(tr("知乎"), () => copyFormattedNote(plugin, file, "zhihu")); }) },
     html: { title: tr("导出为 HTML"), icon: "lucide-globe", run: preview("html", () => { void runExport("HTML", () => plugin.exporters.exportHtml(plugin, file)); }) },
-    pages: { title: tr("导出分页图片"), icon: "lucide-images", run: preview("pages", () => { void runExport("分页图片", () => exportImages(plugin, file, "pages")); }) },
-    long: { title: tr("导出长图"), icon: "lucide-image", run: preview("long", () => { void runExport("长图", () => exportImages(plugin, file, "long")); }) },
+    pages: { title: tr("导出分页图片"), icon: "lucide-images", run: preview("pages", () => { void runExport(tr("分页图片"), () => exportImages(plugin, file, "pages")); }) },
+    long: { title: tr("导出长图"), icon: "lucide-image", run: preview("long", () => { void runExport(tr("长图"), () => exportImages(plugin, file, "long")); }) },
     // Several notes become one book, so there is no single-note preview first.
     book: { title: tr("合成电子书（多篇）"), icon: "lucide-book-open", run: () => openBookExport(plugin) }
   };
@@ -83,28 +83,28 @@ function addPortableExportItems(plugin: IgnorancePlugin, menu: Menu, file: TFile
 }
 
 async function runExport(label: string, task: () => Promise<string | null | undefined | void>) {
-  const notice = new Notice(`正在导出${label}…`, 0);
+  const notice = new Notice(tr("正在导出{label}…", { label }), 0);
   try {
     const result = await task();
     notice.hide();
-    if (result) new Notice(`已导出${label}：${result}`, 6000);
+    if (result) new Notice(tr("已导出{label}：{result}", { label, result }), 6000);
   } catch (error) {
     notice.hide();
     console.error("Ignorance Advanced: export failed —", error);
-    new Notice(`导出${label}失败：${errorText(error)}`, 8000);
+    new Notice(tr("导出{label}失败：{v}", { label, v: errorText(error) }), 8000);
   }
 }
 
 async function runCopy(label: string, task: () => Promise<unknown>) {
-  const notice = new Notice(`正在整理${label}格式…`, 0);
+  const notice = new Notice(tr("正在整理{label}格式…", { label }), 0);
   try {
     await task();
     notice.hide();
-    new Notice(`已复制为${label}格式，可直接粘贴。`, 5000);
+    new Notice(tr("已复制为{label}格式，可直接粘贴。", { label }), 5000);
   } catch (error) {
     notice.hide();
     console.error("Ignorance Advanced: rich copy failed —", error);
-    new Notice(`复制${label}格式失败：${errorText(error)}`, 8000);
+    new Notice(tr("复制{label}格式失败：{v}", { label, v: errorText(error) }), 8000);
   }
 }
 
@@ -155,7 +155,7 @@ async function withExportStage<T>(plugin: IgnorancePlugin, file: TFile, { visibl
       ? active.editor.getValue() : await plugin.app.vault.cachedRead(file);
     result = await composePages(plugin, file, text, stage, component, { keepStrip, expandDetails: true, onProgress, signal });
     signal?.throwIfAborted();
-    if (!result) throw new Error("排版失败：页面尺寸无效");
+    if (!result) throw new Error(tr("排版失败：页面尺寸无效"));
     return await task(stage, result, text);
   } finally {
     signal?.removeEventListener("abort", cancel);
@@ -322,7 +322,7 @@ async function cloneForRichClipboard(source: Node, plugin: IgnorancePlugin, imag
   }
 
   if (source.instanceOf(HTMLCanvasElement)) {
-    return renderedElementPng(source, "图表");
+    return renderedElementPng(source, tr("图表"));
   }
 
   const copy = createEl(source.tagName.toLowerCase() as keyof HTMLElementTagNameMap);
@@ -399,7 +399,7 @@ async function prepareRichCopyMarkup(plugin: IgnorancePlugin, file: TFile, targe
 
 async function copyFormattedNote(plugin: IgnorancePlugin, file: TFile, target = "wechat") {
   const payload = await prepareRichCopyMarkup(plugin, file, target);
-  if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") throw new Error("当前设备没有可用的剪贴板接口");
+  if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") throw new Error(tr("当前设备没有可用的剪贴板接口"));
   // The web clipboard carries rich HTML on desktop and mobile alike.
   await navigator.clipboard.write([new ClipboardItem({
     "text/html": new Blob([payload.html], { type: "text/html" }),
@@ -470,7 +470,7 @@ async function exportImages(plugin: IgnorancePlugin, file: TFile, kind: string) 
         pages[i].setCssStyles({ display: "none" });
         await nextFrame(); // let taps and the progress notice through between pages
       }
-      return `${first.replace(/[^/]+$/, "")}（${pages.length} 张）`;
+      return tr("{v}（{n} 张）", { v: first.replace(/[^/]+$/, ""), n: pages.length });
     }
     pages.forEach(p => p.remove());
     const sheet = stage.createDiv({ cls: "ibp-long-sheet" });
@@ -610,7 +610,7 @@ async function exportWord(plugin: IgnorancePlugin, file: TFile, combined?: { tex
   });
   const failedDiagrams = diagrams.filter(png => !png).length;
   if (missingImages || failedDiagrams) {
-    new Notice([missingImages && `${missingImages} 张图片没能放进文档`, failedDiagrams && `${failedDiagrams} 个 Mermaid 图表渲染失败`].filter(Boolean).join("，") + "，Word 里留下的是替代文字或源码。", 10000);
+    new Notice([missingImages && tr("{missingImages} 张图片没能放进文档", { missingImages }), failedDiagrams && tr("{failedDiagrams} 个 Mermaid 图表渲染失败", { failedDiagrams })].filter(Boolean).join(tr("，")) + tr("，Word 里留下的是替代文字或源码。"), 10000);
   }
   return saveExportToVault(plugin, `${combined?.title ?? file.basename}.docx`, bytes);
 }

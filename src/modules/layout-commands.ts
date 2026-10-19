@@ -21,10 +21,10 @@ class LayoutPicker extends SuggestModal<LayoutRecord> {
 
 export function installLayoutCommands(plugin: IgnorancePlugin) {
   const refresh = () => savePageSettings(plugin);
-  plugin.addCommand({ id: "layout-save", name: "保存当前页面设置为版式", icon: "lucide-save", callback: () => saveCurrentAsLayout(plugin, refresh) });
+  plugin.addCommand({ id: "layout-save", name: tr("保存当前页面设置为版式"), icon: "lucide-save", callback: () => saveCurrentAsLayout(plugin, refresh) });
   plugin.addCommand({
-    id: "layout-apply", name: "套用已保存的版式", icon: "lucide-bookmark",
+    id: "layout-apply", name: tr("套用已保存的版式"), icon: "lucide-bookmark",
     callback: () => { if (!savedLayouts(plugin).length) { new Notice(tr("还没有保存过版式，先用「保存当前页面设置为版式」"), 5000); return; } new LayoutPicker(plugin, refresh).open(); }
   });
-  plugin.addCommand({ id: "layout-manage", name: "管理已保存的版式", icon: "lucide-settings-2", callback: () => openLayoutManager(plugin, refresh) });
+  plugin.addCommand({ id: "layout-manage", name: tr("管理已保存的版式"), icon: "lucide-settings-2", callback: () => openLayoutManager(plugin, refresh) });
 }

@@ -37,7 +37,7 @@ async function shrink(row: Row, options: { maxEdge: number; quality: number; for
     canvas.width = size.width;
     canvas.height = size.height;
     const context = canvas.getContext("2d", { willReadFrequently: true });
-    if (!context) throw new Error("无法创建画布");
+    if (!context) throw new Error(tr("无法创建画布"));
     context.drawImage(bitmap, 0, 0, size.width, size.height);
     const alpha = sourceMime !== "image/jpeg" && hasTransparency(context, size.width, size.height);
     const mime = outputType(sourceMime, alpha, options.format);
@@ -46,7 +46,7 @@ async function shrink(row: Row, options: { maxEdge: number; quality: number; for
       const flat = createEl("canvas");
       flat.width = size.width; flat.height = size.height;
       const flatContext = flat.getContext("2d");
-      if (!flatContext) throw new Error("无法创建画布");
+      if (!flatContext) throw new Error(tr("无法创建画布"));
       flatContext.fillStyle = "#fff";
       flatContext.fillRect(0, 0, size.width, size.height);
       flatContext.drawImage(canvas, 0, 0);
@@ -59,11 +59,11 @@ async function shrink(row: Row, options: { maxEdge: number; quality: number; for
 
 async function finish(row: Row, canvas: HTMLCanvasElement, mime: string, quality: number, size: { width: number; height: number }, original: { width: number; height: number }) {
   const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, mime, quality));
-  if (!blob) throw new Error("浏览器不能输出这种格式");
+  if (!blob) throw new Error(tr("浏览器不能输出这种格式"));
   const bytes = new Uint8Array(await blob.arrayBuffer());
   const resized = size.width !== original.width || size.height !== original.height;
-  if (bytes.byteLength >= row.before && !resized && mime === (MIME[row.file.extension.toLowerCase()] ?? "")) { row.state = "same"; row.detail = "已经够小，保持原图"; return; }
-  if (bytes.byteLength >= row.before) { row.state = "same"; row.detail = "处理后没有更小，保持原图"; return; }
+  if (bytes.byteLength >= row.before && !resized && mime === (MIME[row.file.extension.toLowerCase()] ?? "")) { row.state = "same"; row.detail = tr("已经够小，保持原图"); return; }
+  if (bytes.byteLength >= row.before) { row.state = "same"; row.detail = tr("处理后没有更小，保持原图"); return; }
   row.state = "done"; row.bytes = bytes; row.mime = mime;
   row.detail = `${formatBytes(row.before)} → ${formatBytes(bytes.byteLength)}（${original.width}×${original.height}${resized ? ` → ${size.width}×${size.height}` : ""}，-${Math.round((1 - bytes.byteLength / row.before) * 100)}%）`;
 }
@@ -81,7 +81,7 @@ class ImageBatchModal extends Modal {
     super(plugin.app);
     for (const target of targets) {
       const file = plugin.app.metadataCache.getFirstLinkpathDest(target, note.path);
-      if (file) this.rows.push({ target, file, before: file.stat.size, state: "waiting", detail: "等待处理" });
+      if (file) this.rows.push({ target, file, before: file.stat.size, state: "waiting", detail: tr("等待处理") });
     }
   }
 
@@ -89,13 +89,13 @@ class ImageBatchModal extends Modal {
     this.setTitle(tr("处理本篇的图片"));
     const controls = this.contentEl.createDiv({ cls: "ibp-image-batch__controls" });
     const field = (label: string) => { const wrap = controls.createDiv({ cls: "ibp-field" }); wrap.createSpan({ text: label }); return wrap; };
-    const edge = field("最长边（像素，0 表示不缩小）").createEl("input", { attr: { type: "number", min: "0", step: "100" } });
+    const edge = field(tr("最长边（像素，0 表示不缩小）")).createEl("input", { attr: { type: "number", min: "0", step: "100" } });
     edge.value = String(this.options.maxEdge);
     edge.addEventListener("change", () => { this.options.maxEdge = Math.max(0, Number(edge.value) || 0); this.reset(); });
-    const quality = field("质量").createEl("input", { attr: { type: "range", min: "40", max: "100", step: "1" } });
+    const quality = field(tr("质量")).createEl("input", { attr: { type: "range", min: "40", max: "100", step: "1" } });
     quality.value = String(Math.round(this.options.quality * 100));
     quality.addEventListener("change", () => { this.options.quality = Number(quality.value) / 100; this.reset(); });
-    const format = field("格式").createEl("select");
+    const format = field(tr("格式")).createEl("select");
     format.createEl("option", { value: "keep", text: tr("保持格式（透明图保持 PNG）") });
     format.createEl("option", { value: "webp", text: tr("全部转为 .webp 格式") });
     format.addEventListener("change", () => { this.options.format = format.value === "webp" ? "webp" : "keep"; this.reset(); });
@@ -121,7 +121,7 @@ class ImageBatchModal extends Modal {
   private show(row: Row) { row.cell?.setText(row.detail); row.cell?.toggleClass("is-error", row.state === "failed"); }
 
   private reset() {
-    for (const row of this.rows) { row.state = "waiting"; row.detail = "等待处理"; row.bytes = undefined; this.show(row); }
+    for (const row of this.rows) { row.state = "waiting"; row.detail = tr("等待处理"); row.bytes = undefined; this.show(row); }
     this.applyButton.disabled = true;
     this.summary.setText("");
   }
@@ -133,18 +133,18 @@ class ImageBatchModal extends Modal {
     for (const row of this.rows) {
       if (this.cancelled) break;
       if (row.state === "done" || row.state === "same") continue;
-      row.state = "working"; row.detail = "处理中…"; this.show(row);
+      row.state = "working"; row.detail = tr("处理中…"); this.show(row);
       try { await shrink(row, this.options, await this.app.vault.readBinary(row.file)); }
-      catch (error) { row.state = "failed"; row.detail = `失败：${error instanceof Error ? error.message : String(error)}（再点「预览处理结果」重试）`; }
+      catch (error) { row.state = "failed"; row.detail = tr("失败：{v}（再点「预览处理结果」重试）", { v: error instanceof Error ? error.message : String(error) }); }
       this.show(row);
       await new Promise(resolve => window.setTimeout(resolve, 0));
     }
-    for (const row of this.rows) if (this.cancelled && row.state === "working") { row.state = "waiting"; row.detail = "已取消"; this.show(row); }
+    for (const row of this.rows) if (this.cancelled && row.state === "working") { row.state = "waiting"; row.detail = tr("已取消"); this.show(row); }
     this.running = false;
     this.runButton.setText(tr("预览处理结果"));
     const done = this.rows.filter(row => row.state === "done");
     const saved = done.reduce((sum, row) => sum + row.before - (row.bytes?.byteLength ?? row.before), 0);
-    this.summary.setText(done.length ? `${done.length} 张可以变小，合计节省 ${formatBytes(saved)}。保存后原图不动。` : this.cancelled ? "已取消。" : "没有需要处理的图片。");
+    this.summary.setText(done.length ? tr("{n} 张可以变小，合计节省 {v}。保存后原图不动。", { n: done.length, v: formatBytes(saved) }) : this.cancelled ? tr("已取消。") : tr("没有需要处理的图片。"));
     this.applyButton.disabled = !done.length;
   }
 
@@ -173,11 +173,11 @@ class ImageBatchModal extends Modal {
       while (end < source.length - start && end < next.length - start && source[source.length - 1 - end] === next[next.length - 1 - end]) end += 1;
       // One replacement over the changed span, so one undo restores every link.
       editor.replaceRange(next.slice(start, next.length - end), editor.offsetToPos(start), editor.offsetToPos(source.length - end));
-      new Notice(`已保存 ${created.length} 张处理后的图片，并更新了本篇的引用。想改回来：撤销一次。`, 8000);
+      new Notice(tr("已保存 {n} 张处理后的图片，并更新了本篇的引用。想改回来：撤销一次。", { n: created.length }), 8000);
       this.close();
     } catch (error) {
       for (const file of created) await this.app.fileManager.trashFile(file).catch(() => {});
-      new Notice(`没有改动：${error instanceof Error ? error.message : String(error)}。已清理刚写入的副本。`, 8000);
+      new Notice(tr("没有改动：{v}。已清理刚写入的副本。", { v: error instanceof Error ? error.message : String(error) }), 8000);
       this.applyButton.disabled = false;
     }
   }

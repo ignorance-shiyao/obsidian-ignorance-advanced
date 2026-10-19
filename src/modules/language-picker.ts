@@ -73,7 +73,7 @@ export function openLanguagePicker({ anchor, current, onPick }: { anchor: HTMLEl
     if (typed && !items.some(entry => entry.id.toLowerCase() === typed.toLowerCase())) {
       const row = list.createEl("li", { cls: "ib-lang-item ib-lang-custom", attr: { role: "option" } });
       row.appendChild(createLanguageIcon("__custom__"));
-      row.createSpan({ cls: "ib-lang-name", text: `使用“${typed}”` });
+      row.createSpan({ cls: "ib-lang-name", text: tr("使用“{typed}”", { typed }) });
       row.addEventListener("pointerdown", event => { event.preventDefault(); choose(typed); });
       if (!items.length) row.addClass("is-active");
     }

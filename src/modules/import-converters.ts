@@ -3,6 +3,7 @@
 // JSZip and DOMParser; PDF text and HTML conversion use the libraries Obsidian
 // ships (loadPdfJs, htmlToMarkdown), handed in by the caller.
 import JSZip from "jszip";
+import { tr } from "../i18n.js";
 
 const IMAGE_EXTENSIONS = /\.(?:png|jpe?g|gif|webp|bmp|tiff?|svg|avif|heic)$/i;
 const MAX_ARCHIVE_ENTRIES = 4000;
@@ -86,7 +87,7 @@ function isFlatRecord(value: unknown): value is Record<string, Cell> {
 function jsonToMarkdown(text: string): string {
   let parsed: unknown;
   try { parsed = JSON.parse(String(text ?? "")); }
-  catch { throw new Error("JSON 文件格式无效，未导入"); }
+  catch { throw new Error(tr("JSON 文件格式无效，未导入")); }
   if (Array.isArray(parsed) && parsed.length && parsed.every(isFlatRecord)) {
     const keys = [...new Set(parsed.flatMap(record => Object.keys(record)))];
     return rowsToTable([keys, ...parsed.map(record => keys.map(key => record[key]))]);
@@ -149,7 +150,7 @@ async function xlsxToMarkdown(bytes: ZipInput): Promise<string> {
     const table = rowsToTable(rows);
     if (table) sections.push(`## ${String(sheet.getAttribute("name") || "").replace(/\n/g, " ")}\n\n${table}`);
   }
-  if (!sections.length) throw new Error("工作簿中没有可导入的表格数据");
+  if (!sections.length) throw new Error(tr("工作簿中没有可导入的表格数据"));
   return sections.join("\n\n");
 }
 
@@ -201,7 +202,7 @@ function plainParagraphText(paragraph: Element): string {
 async function docxToMarkdown(bytes: ZipInput, media = "./assets/"): Promise<{ markdown: string; images: DocxImage[] }> {
   const archive = await JSZip.loadAsync(bytes);
   const documentFile = archive.file("word/document.xml");
-  if (!documentFile) throw new Error("不是有效的 Word 文档");
+  if (!documentFile) throw new Error(tr("不是有效的 Word 文档"));
   const document = parseXml(await documentFile.async("string"));
   const relationsFile = archive.file("word/_rels/document.xml.rels");
   const relations = relationsFile ? parseXml(await relationsFile.async("string")) : null;
@@ -348,7 +349,7 @@ async function pptxToMarkdown(bytes: ZipInput): Promise<string> {
   const archive = await JSZip.loadAsync(bytes);
   const slides = Object.keys(archive.files).filter(name => /^ppt\/slides\/slide\d+\.xml$/.test(name))
     .sort((left, right) => slideNumber(left) - slideNumber(right));
-  if (!slides.length) throw new Error("PPTX 中没有可读取的幻灯片");
+  if (!slides.length) throw new Error(tr("PPTX 中没有可读取的幻灯片"));
   const sections: string[] = [];
   for (let index = 0; index < slides.length; index += 1) {
     const xml = await archive.files[slides[index]].async("string");
@@ -407,7 +408,7 @@ async function pdfToMarkdown(bytes: Uint8Array | ArrayBuffer, pdfjs: PdfJs): Pro
   }
   const markdown = pages.join("\n\n---\n\n").trim();
   if (!markdown || pages.every(page => page.endsWith("（本页无可提取文本）"))) {
-    throw new Error("PDF 没有可提取的文本；扫描版 PDF 暂不支持 OCR");
+    throw new Error(tr("PDF 没有可提取的文本；扫描版 PDF 暂不支持 OCR"));
   }
   return markdown;
 }
@@ -514,15 +515,15 @@ function rewriteNotionReferences(markdown: string, sourcePath: string, targetPat
 async function notionZipToMarkdown(bytes: ZipInput, importRoot: string): Promise<NotionArchive> {
   const archive = await JSZip.loadAsync(bytes);
   const entries = Object.values(archive.files).filter(entry => !entry.dir);
-  if (!entries.length) throw new Error("Notion 导出包为空");
-  if (entries.length > MAX_ARCHIVE_ENTRIES) throw new Error("Notion 导出包文件过多，已停止导入");
+  if (!entries.length) throw new Error(tr("Notion 导出包为空"));
+  if (entries.length > MAX_ARCHIVE_ENTRIES) throw new Error(tr("Notion 导出包文件过多，已停止导入"));
   let totalBytes = 0;
   for (const entry of entries) {
     const size = Number((entry as JSZip.JSZipObject & SizedEntry)._data?.uncompressedSize || 0);
     if (size > MAX_ARCHIVE_ENTRY_BYTES) throw new Error(`Notion 导出包中有过大的文件：${entry.name}`);
     totalBytes += size;
   }
-  if (totalBytes > MAX_ARCHIVE_TOTAL_BYTES) throw new Error("Notion 导出包解压后超过 256 MB，已停止导入");
+  if (totalBytes > MAX_ARCHIVE_TOTAL_BYTES) throw new Error(tr("Notion 导出包解压后超过 256 MB，已停止导入"));
 
   const valid = entries.flatMap(entry => {
     const sourcePath = safeZipPath(entry.name);
@@ -531,7 +532,7 @@ async function notionZipToMarkdown(bytes: ZipInput, importRoot: string): Promise
   const prefix = commonZipRoot(valid.map(item => item.sourcePath));
   const prepared = valid.map(item => ({ ...item, relativePath: prefix && item.sourcePath.startsWith(prefix) ? item.sourcePath.slice(prefix.length) : item.sourcePath }));
   const documents = prepared.filter(item => /\.(?:md|csv)$/i.test(item.relativePath));
-  if (!documents.length) throw new Error("Notion 导出包里没有 Markdown 或 CSV 页面");
+  if (!documents.length) throw new Error(tr("Notion 导出包里没有 Markdown 或 CSV 页面"));
   const media = prepared.filter(item => IMAGE_EXTENSIONS.test(item.relativePath));
   const root = String(importRoot || "Notion 导入").split("/").filter(Boolean).map(safePathSegment).join("/");
   const occupied = new Set<string>();

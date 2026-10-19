@@ -1,3 +1,4 @@
+import { tr } from "../i18n.js";
 import { IMAGE_EXTENSIONS } from "./import-converters.js";
 import { parseCaptions } from "./captions.js";
 
@@ -41,10 +42,10 @@ export function scanExportIssues(source: string, options: ExportCheckOptions): E
         fence = marker[1];
         const language = marker[2].toLowerCase();
         if (DYNAMIC_FENCES.has(language)) {
-          issues.push({ line, level: "note", message: word ? `${language} 动态块：Word 会把它当作普通代码，不含查询结果` : `${language} 动态块：只导出阅读视图当时显示的结果，请先确认内容已出现` });
+          issues.push({ line, level: "note", message: word ? tr("{language} 动态块：Word 会把它当作普通代码，不含查询结果", { language }) : tr("{language} 动态块：只导出阅读视图当时显示的结果，请先确认内容已出现", { language }) });
         } else if (language === "mermaid") {
           diagrams += 1;
-          if (word) issues.push({ line, level: "note", message: "Mermaid 图表会转成图片；渲染失败时 Word 里会留下源码" });
+          if (word) issues.push({ line, level: "note", message: tr("Mermaid 图表会转成图片；渲染失败时 Word 里会留下源码") });
         }
       } else if (marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2] && !marker[3].trim()) fence = "";
       return;
@@ -54,21 +55,21 @@ export function scanExportIssues(source: string, options: ExportCheckOptions): E
     for (const match of text.matchAll(/!\[\[([^\]]+)\]\]/g)) {
       const target = cleanTarget(match[1]);
       if (!IMAGE_EXTENSIONS.test(target) || options.exists(target)) continue;
-      issues.push({ line, level: "warn", message: `找不到图片「${target}」，导出里会缺这张图` });
+      issues.push({ line, level: "warn", message: tr("找不到图片「{target}」，导出里会缺这张图", { target }) });
     }
     for (const match of text.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)) {
       const target = match[1].trim().replace(/^<|>$/g, "");
       if (REMOTE.test(target)) { remoteCount += 1; remoteLine ||= line; continue; }
       if (SKIP_TARGET.test(target)) continue;
       const path = cleanTarget(match[1]);
-      if (path && !options.exists(path)) issues.push({ line, level: "warn", message: `找不到图片「${path}」，导出里会缺这张图` });
+      if (path && !options.exists(path)) issues.push({ line, level: "warn", message: tr("找不到图片「{path}」，导出里会缺这张图", { path }) });
     }
     for (const match of text.matchAll(/\(\(ref:([^)\s]+)\)\)/g)) {
-      if (!ids.has(match[1])) issues.push({ line, level: "warn", message: `交叉引用「${match[1]}」没有对应的题注标识，会显示为 ?${match[1]}` });
+      if (!ids.has(match[1])) issues.push({ line, level: "warn", message: tr("交叉引用「{id}」没有对应的题注标识，会显示为 ?{id}", { id: match[1] }) });
     }
   });
-  if (remoteCount) issues.push({ line: remoteLine, level: "note", message: `${remoteCount} 张网络图片，导出时才下载（离线或链接失效会缺图）` });
-  if (diagrams && !word) issues.push({ line: 0, level: "note", message: `${diagrams} 个 Mermaid 图表，以导出时的渲染结果为准` });
-  if (word && options.wordFont) issues.push({ line: 0, level: "note", message: `Word 字体为「${options.wordFont}」，打开文档的电脑没有这个字体时会被替换` });
+  if (remoteCount) issues.push({ line: remoteLine, level: "note", message: tr("{remoteCount} 张网络图片，导出时才下载（离线或链接失效会缺图）", { remoteCount }) });
+  if (diagrams && !word) issues.push({ line: 0, level: "note", message: tr("{diagrams} 个 Mermaid 图表，以导出时的渲染结果为准", { diagrams }) });
+  if (word && options.wordFont) issues.push({ line: 0, level: "note", message: tr("Word 字体为「{wordFont}」，打开文档的电脑没有这个字体时会被替换", { wordFont: options.wordFont }) });
   return issues.filter(issue => issue.line > 0 || issue.level === "note").sort((a, b) => (a.line || Infinity) - (b.line || Infinity));
 }

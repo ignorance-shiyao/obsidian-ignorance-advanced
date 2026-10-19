@@ -1,4 +1,5 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
+import { tr } from "../i18n.js";
 import { MarkdownRenderChild, MarkdownRenderer, Notice } from "obsidian";
 import { ViewPlugin, type EditorView, type ViewUpdate } from "@codemirror/view";
 import { missingBlankLines, wantsLenient, withBlankLines } from "./missing-blank-lines-core.js";
@@ -62,11 +63,11 @@ export function lenientBlocksEditorExtension(plugin: IgnorancePlugin) {
 export function addLenientCommand(plugin: IgnorancePlugin) {
   plugin.addCommand({
     id: "fix-missing-blank-lines",
-    name: "补全缺失的空行（让表格被识别）",
+    name: tr("补全缺失的空行（让表格被识别）"),
     editorCallback: editor => {
       const view = editor.cm;
       const count = view ? fixDocument(view) : 0;
-      new Notice(count ? `已在 ${count} 个表格前补上空行（可撤销）` : "没有发现缺少空行的表格");
+      new Notice(count ? tr("已在 {count} 个表格前补上空行（可撤销）", { count }) : tr("没有发现缺少空行的表格"));
     }
   });
 }

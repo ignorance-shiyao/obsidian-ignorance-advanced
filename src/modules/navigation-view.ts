@@ -20,7 +20,7 @@ export function createNavigationView(_plugin: IgnorancePlugin) {
 
     constructor(leaf: WorkspaceLeaf) { super(leaf); this.target = null; this.timer = 0; this.query = ""; }
     getViewType() { return NAVIGATION_VIEW; }
-    getDisplayText() { return "导航"; }
+    getDisplayText() { return tr("导航"); }
     getIcon() { return "lucide-list-tree"; }
 
     async onOpen() {
@@ -73,7 +73,7 @@ export function createNavigationView(_plugin: IgnorancePlugin) {
       this.listEl.empty();
       const items = (this.items || []).filter(item => !this.query || item.label.toLowerCase().includes(this.query));
       if (!items.length) {
-        this.listEl.createDiv({ cls: "ib-nav-view__empty", text: this.target ? "没有可跳转的内容" : "打开一篇笔记后显示它的结构" });
+        this.listEl.createDiv({ cls: "ib-nav-view__empty", text: this.target ? tr("没有可跳转的内容") : tr("打开一篇笔记后显示它的结构") });
         return;
       }
       for (const item of items) {

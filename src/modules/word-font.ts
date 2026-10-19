@@ -1,3 +1,4 @@
+import { zh } from "../i18n.js";
 export const WORD_TEXT_FONT = "Microsoft YaHei";
 
 const CSS_FONT_ALIASES = new Set([
@@ -14,7 +15,7 @@ export function wordFontFromToken(value: string, fallback: string) {
 
 export type WordFontChoice = "yahei" | "theme" | "simsun";
 export const WORD_FONT_OPTIONS: readonly [WordFontChoice, string][] = [
-  ["yahei", "微软雅黑"], ["theme", "跟随主题"], ["simsun", "宋体"]
+  ["yahei", "微软雅黑"], ["theme", zh("跟随主题")], ["simsun", "宋体"]
 ];
 export function normalizeWordFont(value: unknown): WordFontChoice {
   return value === "theme" || value === "simsun" ? value : "yahei";

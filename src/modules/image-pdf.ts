@@ -2,6 +2,8 @@
    is missing. Text is not selectable, but the pages match the paged view.
    JPEG goes in as-is (DCTDecode), so no image library is needed. */
 
+import { tr } from "../i18n.js";
+
 function jpegSize(bytes: Uint8Array) {
   // Walk the markers to the first SOFn frame header.
   for (let i = 2; i < bytes.length - 8;) {
@@ -13,7 +15,7 @@ function jpegSize(bytes: Uint8Array) {
     }
     i += 2 + length;
   }
-  throw new Error("无法读取页面图片尺寸");
+  throw new Error(tr("无法读取页面图片尺寸"));
 }
 
 // pages: [{ jpeg: Uint8Array }], size in millimetres (every page the same paper).

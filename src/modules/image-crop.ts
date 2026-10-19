@@ -1,11 +1,11 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { tr } from "../i18n.js";
+import { tr, zh } from "../i18n.js";
 import { Modal, Notice, TFile } from "obsidian";
 // Crop a vault image: drag a box over it, then choose to replace the original file or add the crop
 // as a new image. Raster formats only (png, jpg, webp); the output keeps the original's format.
 
 const OUTPUT = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp" } as const;
-const RATIOS: Array<[string, number]> = [["自由", 0], ["1:1", 1], ["4:3", 4 / 3], ["3:2", 3 / 2], ["16:9", 16 / 9], ["3:4", 3 / 4], ["9:16", 9 / 16]];
+const RATIOS: Array<[string, number]> = [[zh("自由"), 0], ["1:1", 1], ["4:3", 4 / 3], ["3:2", 3 / 2], ["16:9", 16 / 9], ["3:4", 3 / 4], ["9:16", 9 / 16]];
 
 export function canCrop(file: TFile) { return file instanceof TFile && Object.keys(OUTPUT).includes(file.extension.toLowerCase()); }
 
@@ -41,7 +41,7 @@ export async function cropImage(plugin: IgnorancePlugin, file: TFile, onDone: (r
   const paint = () => {
     const k = scale();
     Object.assign(frame.style, { left: `${box.x * k}px`, top: `${box.y * k}px`, width: `${box.w * k}px`, height: `${box.h * k}px` });
-    readout.setText(`${Math.round(box.w)} × ${Math.round(box.h)} 像素`);
+    readout.setText(tr("{w} × {h} 像素", { w: Math.round(box.w), h: Math.round(box.h) }));
   };
   const ready = () => {
     natural = { w: img.naturalWidth, h: img.naturalHeight };
@@ -95,16 +95,16 @@ function confirmCrop(plugin: IgnorancePlugin, file: TFile, canvas: HTMLCanvasEle
   modal.titleEl.setText(tr("应用裁切"));
   const preview = modal.contentEl.createDiv({ cls: "ib-crop-confirm" });
   const thumb = preview.createEl("img", { cls: "ib-crop-thumb", attr: { src: canvas.toDataURL() } });
-  thumb.alt = "裁切结果";
-  preview.createDiv({ cls: "ib-crop-confirm-text" }).setText(`裁切结果 ${canvas.width} × ${canvas.height} 像素，${(data.byteLength / 1024).toFixed(0)} KB。`);
-  modal.contentEl.createEl("p", { text: `替换原图：覆盖「${file.name}」${refs > 1 ? `，另有 ${refs - 1} 篇笔记引用它，也会一起变化` : ""}。` });
+  thumb.alt = tr("裁切结果");
+  preview.createDiv({ cls: "ib-crop-confirm-text" }).setText(tr("裁切结果 {width} × {height} 像素，{v} KB。", { width: canvas.width, height: canvas.height, v: (data.byteLength / 1024).toFixed(0) }));
+  modal.contentEl.createEl("p", { text: refs > 1 ? tr("替换原图：覆盖「{name}」，另有 {n} 篇笔记引用它，也会一起变化。", { name: file.name, n: refs - 1 }) : tr("替换原图：覆盖「{name}」。", { name: file.name }) });
   modal.contentEl.createEl("p", { text: tr("新增图片：另存为新文件，当前位置改用新图片，原图保留。") });
   const buttons = modal.contentEl.createDiv({ cls: "modal-button-container" });
   buttons.createEl("button", { text: tr("替换原图"), cls: "mod-warning" }).addEventListener("click", () => {
     modal.close();
     void (async () => {
       try { await plugin.app.vault.modifyBinary(file, data); onDone({ mode: "replace", file }); new Notice(tr("已替换原图")); }
-      catch (error) { new Notice(`替换失败：${errorText(error)}`); }
+      catch (error) { new Notice(tr("替换失败：{v}", { v: errorText(error) })); }
     })();
   });
   const addNew = buttons.createEl("button", { text: tr("新增图片"), cls: "mod-cta" });
@@ -115,8 +115,8 @@ function confirmCrop(plugin: IgnorancePlugin, file: TFile, canvas: HTMLCanvasEle
         const path = unique(plugin, file.parent?.path === "/" ? "" : file.parent?.path || "", `${file.basename}-裁切`, file.extension);
         const created = await plugin.app.vault.createBinary(path, data);
         onDone({ mode: "new", file: created });
-        new Notice(`已新增图片：${created.name}`);
-      } catch (error) { new Notice(`新增失败：${errorText(error)}`); }
+        new Notice(tr("已新增图片：{name}", { name: created.name }));
+      } catch (error) { new Notice(tr("新增失败：{v}", { v: errorText(error) })); }
     })();
   });
   buttons.createEl("button", { text: tr("取消") }).addEventListener("click", () => modal.close());

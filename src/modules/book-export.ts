@@ -118,7 +118,7 @@ class NotePickerModal extends Modal {
     const none = footer.createEl("button", { text: tr("清空选择") });
     const add = footer.createEl("button", { cls: "mod-cta", text: tr("加入") });
     let shown: TFile[] = [];
-    const refreshCount = () => { count.setText(`已选 ${this.picked.size} 篇`); add.toggleAttribute("disabled", !this.picked.size); };
+    const refreshCount = () => { count.setText(tr("已选 {n} 篇", { n: this.picked.size })); add.toggleAttribute("disabled", !this.picked.size); };
     const draw = () => {
       const text = search.value.trim().toLowerCase(), base = folder.value;
       shown = files.filter(file => (!base || file.path.startsWith(`${base}/`)) && file.path.toLowerCase().includes(text));
@@ -176,26 +176,26 @@ class BookModal extends Modal {
         if (file && file.extension === "md" && !files.includes(file)) files.push(file); else if (!file) missing.push(name);
       }
       if (!files.length) { status.setText(tr("没有找到可用的笔记")); return; }
-      if (missing.length) { status.setText(`找不到：${missing.join("、")}。请改正后再试。`); return; }
+      if (missing.length) { status.setText(tr("找不到：{v}。请改正后再试。", { v: missing.join("、") })); return; }
       go.setAttr("disabled", "true");
       word.setAttr("disabled", "true");
-      status.setText(`正在处理 ${files.length} 篇…`);
+      status.setText(tr("正在处理 {n} 篇…", { n: files.length }));
       const bookTitle = title.value.trim() || files[0].basename;
       try {
         if (kind === "word") {
           const text = combineMarkdown(await Promise.all(files.map(async file => absolutizeLinks(await app.vault.cachedRead(file),
             target => app.metadataCache.getFirstLinkpathDest(target, file.path)?.path ?? null))));
           const path = await exportWord(this.plugin, files[0], { text, title: bookTitle });
-          new Notice(`已生成 ${path}`, 8000);
+          new Notice(tr("已生成 {path}", { path }), 8000);
         } else {
           const { bytes, report } = await buildBook(this.plugin, files, { title: bookTitle, author: author.value.trim() });
           const path = await saveExportToVault(this.plugin, `${bookTitle}.epub`, bytes);
-          const notes = [report.missingImages ? `缺失图片 ${report.missingImages}` : "", report.remoteImages ? `网络图片未收入 ${report.remoteImages}` : "", report.charts ? `图表未收入 ${report.charts}` : "", report.slow ? `渲染超时 ${report.slow} 篇，内容可能不全` : "", report.brokenLinks ? `指向书外的链接改为普通文字 ${report.brokenLinks}` : ""].filter(Boolean);
-          new Notice(`已生成 ${path}${notes.length ? `（${notes.join("，")}）` : ""}`, 10000);
+          const notes = [report.missingImages ? tr("缺失图片 {missingImages}", { missingImages: report.missingImages }) : "", report.remoteImages ? tr("网络图片未收入 {remoteImages}", { remoteImages: report.remoteImages }) : "", report.charts ? tr("图表未收入 {charts}", { charts: report.charts }) : "", report.slow ? tr("渲染超时 {slow} 篇，内容可能不全", { slow: report.slow }) : "", report.brokenLinks ? tr("指向书外的链接改为普通文字 {brokenLinks}", { brokenLinks: report.brokenLinks }) : ""].filter(Boolean);
+          new Notice(notes.length ? tr("已生成 {path}（{notes}）", { path, notes: notes.join("，") }) : tr("已生成 {path}", { path }), 10000);
         }
         this.close();
       } catch (error) {
-        status.setText(`生成失败：${error instanceof Error ? error.message : "未知错误"}`);
+        status.setText(tr("生成失败：{v}", { v: error instanceof Error ? error.message : tr("未知错误") }));
         go.removeAttribute("disabled");
         word.removeAttribute("disabled");
       }
@@ -209,5 +209,5 @@ class BookModal extends Modal {
 export function openBookExport(plugin: IgnorancePlugin) { new BookModal(plugin).open(); }
 
 export function installBookExport(plugin: IgnorancePlugin) {
-  plugin.addCommand({ id: "export-book-epub", name: "把多篇笔记合成电子书", icon: "lucide-book-open", callback: () => openBookExport(plugin) });
+  plugin.addCommand({ id: "export-book-epub", name: tr("把多篇笔记合成电子书"), icon: "lucide-book-open", callback: () => openBookExport(plugin) });
 }

@@ -1,4 +1,5 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
+import { tr } from "../i18n.js";
 /* Long code blocks in Reading view start folded to their first lines, with a button to show everything.
    Off by default (setting "fold long code blocks"). Paged reading and exports always show the whole block. */
 export const FOLD_ABOVE = 40;
@@ -15,10 +16,10 @@ export function installCodeFold(plugin: IgnorancePlugin) {
       const lines = codeLineCount(pre.textContent || "");
       if (lines <= FOLD_ABOVE) continue;
       pre.classList.add("ib-code-folded");
-      const button = createEl("button", { cls: "ib-code-expand", text: `展开全部 ${lines} 行`, attr: { type: "button" } });
+      const button = createEl("button", { cls: "ib-code-expand", text: tr("展开全部 {lines} 行", { lines }), attr: { type: "button" } });
       button.addEventListener("click", () => {
         const folded = pre.classList.toggle("ib-code-folded");
-        button.textContent = folded ? `展开全部 ${lines} 行` : "收起";
+        button.textContent = folded ? tr("展开全部 {lines} 行", { lines }) : tr("收起");
       });
       pre.after(button);
     }

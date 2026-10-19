@@ -100,7 +100,7 @@ export async function openSyntaxGuide(plugin: IgnorancePlugin) {
   let file = vault.getFileByPath(path);
   if (!file) {
     file = await vault.create(path, GUIDE_TEXT);
-    new Notice(`已生成「${GUIDE_PATH}」`);
+    new Notice(tr("已生成「{GUIDE_PATH}」", { GUIDE_PATH }));
   }
   await workspace.getLeaf("tab").openFile(file);
 }

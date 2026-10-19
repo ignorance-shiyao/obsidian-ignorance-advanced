@@ -41,14 +41,14 @@ export async function syncPreviewTableAlignment(plugin: RenderingContext, view: 
 }
 export function tableAlignmentControl(plugin: RenderingContext, table: HTMLElement, path: string, ordinal: number) {
   const locate = async () => {
-    if (!path || ordinal == null || ordinal < 0) throw Error("未找到表格源码位置");
+    if (!path || ordinal == null || ordinal < 0) throw Error(tr("未找到表格源码位置"));
     const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
     const editor = view?.file?.path === path && view.getMode() === "source" ? view.editor : null;
     const file = plugin.app.vault.getAbstractFileByPath(path);
-    if (!(file instanceof TFile)) throw Error("未找到表格源码位置");
+    if (!(file instanceof TFile)) throw Error(tr("未找到表格源码位置"));
     const source = editor ? editor.getValue() : await plugin.app.vault.cachedRead(file);
     const entry = tables(source)[ordinal];
-    if (!entry) throw Error("表格已发生变化，请重新打开位置菜单");
+    if (!entry) throw Error(tr("表格已发生变化，请重新打开位置菜单"));
     const lines = source.split("\n"), start = entry.map[0];
     return { editor, file, source, lines, start, ...metadata(lines, start) };
   };
@@ -84,10 +84,10 @@ export function tableAlignmentControl(plugin: RenderingContext, table: HTMLEleme
         } catch(error) {
           release();
           setAlignment(table, previous === "default" ? null : previous);
-          new Notice(`表格位置未保存：${saveErrorMessage(error)}`);
+          new Notice(tr("表格位置未保存：{v}", { v: saveErrorMessage(error) }));
         }
       };
-      for (const [id,label] of [["default","跟随默认"],["left","居左"],["center","居中"],["right","居右"]]) menu.addItem(item => item.setTitle(label).setChecked((table.dataset.ibTableAlign || "default") === id).onClick(() => { void apply(id); }));
+      for (const [id,label] of [["default",tr("跟随默认")],["left",tr("居左")],["center",tr("居中")],["right",tr("居右")]]) menu.addItem(item => item.setTitle(label).setChecked((table.dataset.ibTableAlign || "default") === id).onClick(() => { void apply(id); }));
       const box=button.getBoundingClientRect();menu.showAtPosition({x:box.left,y:box.bottom+4});
     });
   };

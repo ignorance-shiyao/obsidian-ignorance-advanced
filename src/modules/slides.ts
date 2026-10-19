@@ -1,5 +1,5 @@
 import type { MarkdownView, WorkspaceLeaf } from "obsidian";
-import { tr } from "../i18n.js";
+import { tr, zh } from "../i18n.js";
 import type { RevealApi } from "reveal.js";
 import type PptxGenJS from "pptxgenjs";
 import type { IgnorancePlugin } from "../plugin-types.js";
@@ -49,14 +49,14 @@ function canvasEntry(settings: PresentationSettings | undefined) {
   return CANVASES.find(([entry]) => entry === id) || CANVASES[0];
 }
 const ANIMATIONS: [string, string, string][] = [
-  ["none", "无", "不加动效"],
-  ["smooth", "淡入上移", "整页轻轻升起"],
-  ["fade", "淡入", "整页渐显"],
-  ["slide", "右侧滑入", "整页从右侧滑入"],
-  ["zoom", "缩放", "由小放大"],
-  ["blur", "模糊聚焦", "由模糊变清晰"],
-  ["pop", "弹出", "略带回弹的放大"],
-  ["cascade", "逐块依次", "每个内容块依次升起"]
+  ["none", zh("无"), zh("不加动效")],
+  ["smooth", zh("淡入上移"), zh("整页轻轻升起")],
+  ["fade", zh("淡入"), zh("整页渐显")],
+  ["slide", zh("右侧滑入"), zh("整页从右侧滑入")],
+  ["zoom", zh("缩放"), zh("由小放大")],
+  ["blur", zh("模糊聚焦"), zh("由模糊变清晰")],
+  ["pop", zh("弹出"), zh("略带回弹的放大")],
+  ["cascade", zh("逐块依次"), zh("每个内容块依次升起")]
 ];
 
 function presentationDefaults() {
@@ -69,7 +69,7 @@ function stripFrontmatter(markdown: string) {
 
 function errorText(error: unknown): string {
   if (error instanceof Error) return error.message || error.name;
-  return typeof error === "string" ? error : "未知错误";
+  return typeof error === "string" ? error : tr("未知错误");
 }
 
 function delay(ms: number) {
@@ -204,7 +204,7 @@ function addThemePicker(parent: HTMLElement, plugin: IgnorancePlugin, onFollow: 
   const dark = () => button.ownerDocument.body.classList.contains("theme-dark");
   const refresh = () => {
     const preset = THEME_PRESETS.find(entry => entry.id === plugin.state.accent);
-    text.setText(preset ? `${preset.label} · ${dark() ? "深色" : "浅色"}` : "跟随主题");
+    text.setText(preset ? `${preset.label} · ${dark() ? tr("深色") : tr("浅色")}` : tr("跟随主题"));
   };
   button.addEventListener("click", () => openPopoverUnder(button, "ibp-theme-popover", (panel, close) => {
     const follow = panel.createEl("button", { cls: "ibp-theme-follow", attr: { type: "button" }, text: tr("跟随主题") });
@@ -215,7 +215,7 @@ function addThemePicker(parent: HTMLElement, plugin: IgnorancePlugin, onFollow: 
       card.createDiv({ cls: "ibp-theme-name", text: preset.label });
       const halves = card.createDiv({ cls: "ibp-theme-halves" });
       for (const mode of ["light", "dark"] as const) {
-        const half = halves.createEl("button", { cls: "ibp-theme-half", attr: { type: "button", "aria-label": `${preset.label} · ${mode === "light" ? "浅色" : "深色"}` } });
+        const half = halves.createEl("button", { cls: "ibp-theme-half", attr: { type: "button", "aria-label": `${preset.label} · ${mode === "light" ? tr("浅色") : tr("深色")}` } });
         const paper = mode === "light" ? preset.lightPaper : preset.darkPaper;
         const ink = mode === "light" ? preset.lightInk : preset.darkInk;
         half.style.setProperty("--p-paper", paper);
@@ -239,7 +239,7 @@ function addAnimationPicker(parent: HTMLElement, options: [string, string, strin
   const button = parent.createEl("button", { cls: "ibp-presentation-picker", attr: { type: "button", "aria-label": tr("进入动效"), "aria-haspopup": "dialog", "data-tooltip-position": "top" } });
   const text = button.createSpan({ cls: "ibp-presentation-picker-label" });
   setIcon(button.createSpan({ cls: "ibp-presentation-picker-chevron" }), "lucide-chevron-down");
-  const refresh = () => text.setText(options.find(([value]) => value === current())?.[1] || options[0][1]);
+  const refresh = () => text.setText(tr(options.find(([value]) => value === current())?.[1] || options[0][1]));
   button.addEventListener("click", () => openPopoverUnder(button, "ibp-anim-popover", (panel, close) => {
     for (const [value, title, hint] of options) {
       const row = panel.createEl("button", { cls: "ibp-anim-row", attr: { type: "button" } });
@@ -249,8 +249,8 @@ function addAnimationPicker(parent: HTMLElement, options: [string, string, strin
       demo.createSpan({ cls: "ibp-anim-line" });
       demo.createSpan({ cls: "ibp-anim-line is-short" });
       const label = row.createDiv({ cls: "ibp-anim-label" });
-      label.createDiv({ cls: "ibp-anim-title", text: title });
-      label.createDiv({ cls: "ibp-anim-hint", text: hint });
+      label.createDiv({ cls: "ibp-anim-title", text: tr(title) });
+      label.createDiv({ cls: "ibp-anim-hint", text: tr(hint) });
       const replay = () => { demo.removeClass("is-playing"); void demo.offsetWidth; demo.addClass("is-playing"); };
       row.addEventListener("pointerenter", replay);
       row.addEventListener("click", () => { onPick(value); close(); refresh(); });
@@ -266,7 +266,7 @@ function addToolbarPicker(parent: HTMLElement, label: string, options: [string |
   const button = parent.createEl("button", { cls: "ibp-presentation-picker", attr: { type: "button", "aria-label": label, "aria-haspopup": "menu", "data-tooltip-position": "top" } });
   const text = button.createSpan({ cls: "ibp-presentation-picker-label" });
   setIcon(button.createSpan({ cls: "ibp-presentation-picker-chevron" }), "lucide-chevron-down");
-  const refresh = () => text.setText(options.find(([value]) => value === current())?.[1] || options[0][1]);
+  const refresh = () => text.setText(tr(options.find(([value]) => value === current())?.[1] || options[0][1]));
   button.addEventListener("click", () => {
     const menu = new Menu();
     for (const [value, title] of options) {
@@ -507,7 +507,7 @@ class PresentationView extends ItemView {
 
   getDisplayText() {
     const file = this.noteFile();
-    return file?.basename ? `${file.basename} · 演示` : "演示模式";
+    return file?.basename ? tr("{basename} · 演示", { basename: file.basename }) : tr("演示模式");
   }
   getIcon() { return "lucide-presentation"; }
   getState() { return { filePath: this.filePath, returnMode: this.returnMode }; }
@@ -543,7 +543,7 @@ class PresentationView extends ItemView {
     if (!this.deck) return;
     this.speaker?.leaf.detach();
     const source: SpeakerSource = {
-      title: this.noteFile()?.basename ?? "演示",
+      title: this.noteFile()?.basename ?? tr("演示"),
       size: this.slideSize(),
       slides: () => this.slideEntries,
       indices: () => { const index = this.deck?.getIndices(); return { h: index?.h ?? 0, v: index?.v ?? 0 }; },
@@ -569,11 +569,11 @@ class PresentationView extends ItemView {
   /* One bar holds everything for this view: slide navigation, look, output and
      layout. Reveal's own controls and the header's "more" menu are not used. */
   buildToolbar() {
-    addToolbarButton(this.toolbar, "lucide-file-text", "返回笔记", () => { void this.returnToNote(); });
+    addToolbarButton(this.toolbar, "lucide-file-text", tr("返回笔记"), () => { void this.returnToNote(); });
     addToolbarSeparator(this.toolbar);
-    this.prevButton = addToolbarButton(this.toolbar, "lucide-chevron-left", "上一页", () => this.goPrev());
+    this.prevButton = addToolbarButton(this.toolbar, "lucide-chevron-left", tr("上一页"), () => this.goPrev());
     this.counter = this.toolbar.createDiv({ cls: "ibp-presentation-counter", text: "– / –" });
-    this.nextButton = addToolbarButton(this.toolbar, "lucide-chevron-right", "下一页", () => this.goNext());
+    this.nextButton = addToolbarButton(this.toolbar, "lucide-chevron-right", tr("下一页"), () => this.goNext());
     addToolbarSeparator(this.toolbar);
 
     const settings = this.plugin.state.presentation;
@@ -581,7 +581,7 @@ class PresentationView extends ItemView {
     addThemePicker(this.toolbar, this.plugin,
       () => { choose("skin", "none"); void this.renderSlides(); },
       (id: string, mode: string) => { choose("skin", "none"); applyAccent(this.plugin, id); setThemeMode(this.plugin.app, mode); });
-    addToolbarPicker(this.toolbar, "演示画幅", CANVASES.filter(([id]) => Platform.isPhone || id !== "9:16").map(([id]) => [id, id]),
+    addToolbarPicker(this.toolbar, tr("演示画幅"), CANVASES.filter(([id]) => Platform.isPhone || id !== "9:16").map(([id]) => [id, id]),
       () => canvasId(settings), (value: string) => { choose(Platform.isPhone ? "phoneCanvas" : "canvas", value); void this.renderSlides(); });
     addAnimationPicker(this.toolbar, ANIMATIONS,
       () => settings.animation || "none", (value: string) => {
@@ -592,17 +592,17 @@ class PresentationView extends ItemView {
 
     addToolbarSeparator(this.toolbar);
     this.pointerButtons = [];
-    this.pointerButtons.push(addToolbarButton(this.toolbar, "lucide-crosshair", "激光笔（再点一次关闭）", () => this.setPointerTool("laser"), { tool: "laser" }));
-    this.pointerButtons.push(addToolbarButton(this.toolbar, "lucide-flashlight", "聚光灯（再点一次关闭）", () => this.setPointerTool("spot"), { tool: "spot" }));
-    this.stepButtons = [addToolbarButton(this.toolbar, "lucide-list-start", "逐段显示：每按一次下一页先显示下一段（再点一次关闭）", () => this.setStepMode(!this.stepMode))];
-    addToolbarButton(this.toolbar, "lucide-monitor-up", "演讲者视图：备注、下一页预览和计时", () => { void this.openSpeaker(); });
-    addToolbarButton(this.toolbar, "lucide-eye-off", "安静视图：隐藏工具栏，鼠标移到顶部时显示", () => this.contentEl.classList.toggle("ibp-quiet"));
+    this.pointerButtons.push(addToolbarButton(this.toolbar, "lucide-crosshair", tr("激光笔（再点一次关闭）"), () => this.setPointerTool("laser"), { tool: "laser" }));
+    this.pointerButtons.push(addToolbarButton(this.toolbar, "lucide-flashlight", tr("聚光灯（再点一次关闭）"), () => this.setPointerTool("spot"), { tool: "spot" }));
+    this.stepButtons = [addToolbarButton(this.toolbar, "lucide-list-start", tr("逐段显示：每按一次下一页先显示下一段（再点一次关闭）"), () => this.setStepMode(!this.stepMode))];
+    addToolbarButton(this.toolbar, "lucide-monitor-up", tr("演讲者视图：备注、下一页预览和计时"), () => { void this.openSpeaker(); });
+    addToolbarButton(this.toolbar, "lucide-eye-off", tr("安静视图：隐藏工具栏，鼠标移到顶部时显示"), () => this.contentEl.classList.toggle("ibp-quiet"));
     addToolbarSeparator(this.toolbar);
-    addToolbarButton(this.toolbar, "lucide-maximize", "全屏放映", () => {
+    addToolbarButton(this.toolbar, "lucide-maximize", tr("全屏放映"), () => {
       const root = this.stage.querySelector(".reveal");
       if (root?.requestFullscreen) void root.requestFullscreen();
     });
-    this.exportButton = addToolbarButton(this.toolbar, "lucide-file-down", "导出 PPTX", () => {
+    this.exportButton = addToolbarButton(this.toolbar, "lucide-file-down", tr("导出 PPTX"), () => {
       const menu = new Menu();
       menu.addItem(item => item.setTitle(tr("微软演示文稿（.pptx，可编辑）")).setIcon("lucide-presentation").onClick(() => this.previewPptx("editable")));
       menu.addItem(item => item.setTitle(tr("微软演示文稿（.pptx，图片版，高保真、不可编辑）")).setIcon("lucide-image").onClick(() => this.previewPptx("image")));
@@ -610,8 +610,8 @@ class PresentationView extends ItemView {
       menu.showAtPosition({ x: box.left, y: box.bottom + 4 });
     });
     addToolbarSeparator(this.toolbar);
-    addToolbarButton(this.toolbar, "lucide-columns-2", "左右分屏", () => this.split("vertical"));
-    addToolbarButton(this.toolbar, "lucide-rows-2", "上下分屏", () => this.split("horizontal"));
+    addToolbarButton(this.toolbar, "lucide-columns-2", tr("左右分屏"), () => this.split("vertical"));
+    addToolbarButton(this.toolbar, "lucide-rows-2", tr("上下分屏"), () => this.split("horizontal"));
   }
 
   async returnToNote() {
@@ -668,15 +668,15 @@ class PresentationView extends ItemView {
      control: shown while the pointer moves, faded out after a short idle. */
   buildFullscreenNav(reveal: HTMLElement) {
     const nav = reveal.createDiv({ cls: "ibp-fullscreen-nav" });
-    this.fullscreenPrev = addToolbarButton(nav, "lucide-chevron-left", "上一页", () => this.goPrev());
+    this.fullscreenPrev = addToolbarButton(nav, "lucide-chevron-left", tr("上一页"), () => this.goPrev());
     this.fullscreenCounter = nav.createDiv({ cls: "ibp-presentation-counter" });
-    this.fullscreenNext = addToolbarButton(nav, "lucide-chevron-right", "下一页", () => this.goNext());
+    this.fullscreenNext = addToolbarButton(nav, "lucide-chevron-right", tr("下一页"), () => this.goNext());
     addToolbarSeparator(nav);
     this.pointerButtons = (this.pointerButtons || []).filter(button => button.isConnected && !nav.contains(button));
-    this.pointerButtons.push(addToolbarButton(nav, "lucide-crosshair", "激光笔", () => this.setPointerTool("laser"), { tool: "laser" }));
-    this.pointerButtons.push(addToolbarButton(nav, "lucide-flashlight", "聚光灯", () => this.setPointerTool("spot"), { tool: "spot" }));
+    this.pointerButtons.push(addToolbarButton(nav, "lucide-crosshair", tr("激光笔"), () => this.setPointerTool("laser"), { tool: "laser" }));
+    this.pointerButtons.push(addToolbarButton(nav, "lucide-flashlight", tr("聚光灯"), () => this.setPointerTool("spot"), { tool: "spot" }));
     this.stepButtons = (this.stepButtons || []).filter(button => button.isConnected && !nav.contains(button));
-    this.stepButtons.push(addToolbarButton(nav, "lucide-list-start", "逐段显示", () => this.setStepMode(!this.stepMode)));
+    this.stepButtons.push(addToolbarButton(nav, "lucide-list-start", tr("逐段显示"), () => this.setStepMode(!this.stepMode)));
     this.buildPointerOverlay(reveal);
     let idle = 0;
     const wake = () => {
@@ -804,7 +804,7 @@ class PresentationView extends ItemView {
     this.slideEntries = [];
     const file = this.noteFile();
     if (!file || file.extension !== "md") {
-      this.stage.createDiv({ cls: "ibp-presentation-empty", text: this.filePath ? `找不到笔记「${this.filePath}」，它可能已被移动或删除。` : "请从 Markdown 笔记打开演示模式。" });
+      this.stage.createDiv({ cls: "ibp-presentation-empty", text: this.filePath ? tr("找不到笔记「{filePath}」，它可能已被移动或删除。", { filePath: this.filePath }) : tr("请从 Markdown 笔记打开演示模式。") });
       return;
     }
     const component = new Component();
@@ -825,7 +825,7 @@ class PresentationView extends ItemView {
     } catch (error) {
       if (current()) {
         this.stage.empty();
-        this.stage.createDiv({ cls: "ibp-presentation-error", text: `演示排版失败：${errorText(error)}` });
+        this.stage.createDiv({ cls: "ibp-presentation-error", text: tr("演示排版失败：{v}", { v: errorText(error) }) });
       }
     }
   }
@@ -984,7 +984,7 @@ async function exportDeckPptx(deck: { plugin: IgnorancePlugin; reveal: HTMLEleme
   pptx.defineLayout({ name: "IGNORANCE_WIDE", width: slideWidth, height: slideHeight });
   pptx.layout = "IGNORANCE_WIDE";
   const total = entries.length;
-  const progress = new Notice(`正在导出 PPTX：0 / ${total} 页`, 0);
+  const progress = new Notice(tr("正在导出 PPTX：0 / {total} 页", { total }), 0);
   try {
     for (const [index, entry] of entries.entries()) {
       const staged = stageSlide(reveal, entry.el, canvasWidth, canvasHeight) as StagedSlide;
@@ -998,22 +998,22 @@ async function exportDeckPptx(deck: { plugin: IgnorancePlugin; reveal: HTMLEleme
       } finally {
         staged.remove();
       }
-      progress.setMessage(`正在导出 PPTX：${index + 1} / ${total} 页`);
+      progress.setMessage(tr("正在导出 PPTX：{v} / {total} 页", { v: index + 1, total }));
       // Each slide is a burst of main-thread work; yield so the app stays usable.
       await nextFrame();
     }
-    progress.setMessage("正在写入 PPTX 文件…");
+    progress.setMessage(tr("正在写入 PPTX 文件…"));
     // pptxgenjs's writeFile() imports node:fs dynamically; take the bytes
     // and write them through the vault instead.
     const bytes = await pptx.write({ outputType: "uint8array" });
-    if (!(bytes instanceof Uint8Array)) throw new Error("PPTX 输出格式不正确");
+    if (!(bytes instanceof Uint8Array)) throw new Error(tr("PPTX 输出格式不正确"));
     const savedPath = await saveExportToVault(deck.plugin, filePath.replace(VAULT_TARGET, ""), bytes);
     progress.hide();
-    new Notice(`PPTX 已导出：${savedPath}`, 7000);
+    new Notice(tr("PPTX 已导出：{savedPath}", { savedPath }), 7000);
     return savedPath;
   } catch (error) {
     progress.hide();
-    new Notice(`PPTX 导出失败：${errorText(error)}`, 7000);
+    new Notice(tr("PPTX 导出失败：{v}", { v: errorText(error) }), 7000);
     return null;
   } finally {
     progress.hide();
@@ -1034,7 +1034,7 @@ export async function exportNotePptx(plugin: IgnorancePlugin, file: TFile, mode 
     preparing.hide();
     return deck ? await exportDeckPptx({ ...deck, plugin }, filePath, mode) : null;
   } catch (error) {
-    new Notice(`PPTX 导出失败：${errorText(error)}`, 7000);
+    new Notice(tr("PPTX 导出失败：{v}", { v: errorText(error) }), 7000);
     return null;
   } finally {
     preparing.hide();
@@ -1060,7 +1060,7 @@ export function installPresentationMode(plugin: IgnorancePlugin) {
   plugin.registerView(SPEAKER_VIEW, leaf => new SpeakerView(leaf, plugin));
   plugin.addCommand({
     id: "open-presentation-mode",
-    name: "在演示视图中打开当前笔记",
+    name: tr("在演示视图中打开当前笔记"),
     callback: () => openPresentation(plugin, plugin.app.workspace.getActiveFile()),
   });
   plugin.registerEvent(plugin.app.vault.on("modify", file => {

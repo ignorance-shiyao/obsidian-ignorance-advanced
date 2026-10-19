@@ -32,7 +32,7 @@ export class SpeakerView extends ItemView {
 
   constructor(leaf: WorkspaceLeaf, private plugin: IgnorancePlugin) { super(leaf); }
   getViewType() { return SPEAKER_VIEW; }
-  getDisplayText() { return this.source ? `${this.source.title} · 演讲者` : "演讲者视图"; }
+  getDisplayText() { return this.source ? tr("{title} · 演讲者", { title: this.source.title }) : tr("演讲者视图"); }
   getIcon() { return "lucide-presentation"; }
   getState() { return {}; }
 
@@ -52,10 +52,10 @@ export class SpeakerView extends ItemView {
       element.addEventListener("click", action);
       return element;
     };
-    button("lucide-chevron-left", "上一页", () => this.source?.prev());
-    button("lucide-chevron-right", "下一页", () => this.source?.next());
-    this.pauseButton = button("lucide-pause", "暂停计时", () => this.togglePause());
-    button("lucide-rotate-ccw", "计时归零", () => { this.started = Date.now(); this.pausedAt = this.pauseButton.dataset.paused ? Date.now() : 0; this.tick(); });
+    button("lucide-chevron-left", tr("上一页"), () => this.source?.prev());
+    button("lucide-chevron-right", tr("下一页"), () => this.source?.next());
+    this.pauseButton = button("lucide-pause", tr("暂停计时"), () => this.togglePause());
+    button("lucide-rotate-ccw", tr("计时归零"), () => { this.started = Date.now(); this.pausedAt = this.pauseButton.dataset.paused ? Date.now() : 0; this.tick(); });
     this.registerInterval(window.setInterval(() => this.tick(), 500));
     // A speaker view restored from a saved layout has no presentation to read from.
     window.setTimeout(() => { if (!this.source) this.leaf.detach(); }, 1500);

@@ -17,13 +17,13 @@ export function analyzeNote(refs: LinkRef[], headings: Array<{ text: string; lev
     const subpath = rest.join("#");
     const targetHeadings = path ? resolve(path) : headings.map(heading => heading.text);
     if (!targetHeadings) {
-      problems.push({ kind: "missing-file", text: ref.link, line: ref.line, detail: ref.kind === "embed" ? "嵌入的文件不存在" : "链接的笔记不存在" });
+      problems.push({ kind: "missing-file", text: ref.link, line: ref.line, detail: ref.kind === "embed" ? tr("嵌入的文件不存在") : tr("链接的笔记不存在") });
       continue;
     }
     if (subpath && !subpath.startsWith("^")) {
       const wanted = normalizeHeading(subpath.split("#").pop() || "");
       if (wanted && !targetHeadings.some(text => normalizeHeading(text) === wanted)) {
-        problems.push({ kind: "missing-heading", text: ref.link, line: ref.line, detail: "目标笔记里没有这个标题" });
+        problems.push({ kind: "missing-heading", text: ref.link, line: ref.line, detail: tr("目标笔记里没有这个标题") });
       }
     }
   }
@@ -33,7 +33,7 @@ export function analyzeNote(refs: LinkRef[], headings: Array<{ text: string; lev
     seen.set(key, [...(seen.get(key) || []), heading.line]);
   }
   for (const [key, lines] of seen) {
-    if (lines.length > 1) problems.push({ kind: "duplicate-heading", text: key.split("|")[1], line: lines[1], detail: `同级标题重名，共 ${lines.length} 处` });
+    if (lines.length > 1) problems.push({ kind: "duplicate-heading", text: key.split("|")[1], line: lines[1], detail: tr("同级标题重名，共 {n} 处", { n: lines.length }) });
   }
   return problems.sort((a, b) => a.line - b.line);
 }
@@ -60,20 +60,20 @@ export function openLinkCheck(plugin: IgnorancePlugin) {
   const structure = checkStructure(source);
   const rows: { line: number; text: string; detail: string }[] = [
     ...linkProblems.map(problem => ({ line: problem.line, text: problem.text, detail: problem.detail || "" })),
-    ...structure.map(issue => ({ line: issue.line, text: issue.message, detail: issue.fix ? "可自动修复" : "" }))
+    ...structure.map(issue => ({ line: issue.line, text: issue.message, detail: issue.fix ? tr("可自动修复") : "" }))
   ].sort((a, b) => a.line - b.line);
   if (!rows.length) { new Notice(tr("没有发现失效的链接、结构或排版问题")); return; }
   const fixable = structure.filter((issue): issue is StructureIssue & { fix: NonNullable<StructureIssue["fix"]> } => Boolean(issue.fix));
 
   class LinkCheckModal extends Modal {
-    onOpen() { this.setTitle(`发现 ${rows.length} 个问题`); this.showList(); }
+    onOpen() { this.setTitle(tr("发现 {n} 个问题", { n: rows.length })); this.showList(); }
     showList() {
       const { contentEl } = this;
       contentEl.empty();
       const list = contentEl.createDiv({ cls: "ib-link-check" });
       for (const problem of rows) {
         const row = list.createDiv({ cls: "ib-link-check__row" });
-        row.createSpan({ cls: "ib-link-check__line", text: `第 ${problem.line + 1} 行` });
+        row.createSpan({ cls: "ib-link-check__line", text: tr("第 {v} 行", { v: problem.line + 1 }) });
         row.createSpan({ cls: "ib-link-check__text", text: problem.text });
         row.createSpan({ cls: "ib-link-check__detail", text: problem.detail });
         row.addEventListener("click", () => {
@@ -83,7 +83,7 @@ export function openLinkCheck(plugin: IgnorancePlugin) {
       }
       if (fixable.length) {
         const footer = contentEl.createDiv({ cls: "modal-button-container" });
-        footer.createEl("button", { cls: "mod-cta", text: `预览修复（${fixable.length} 处排版）` }).addEventListener("click", () => this.showDiff());
+        footer.createEl("button", { cls: "mod-cta", text: tr("预览修复（{n} 处排版）", { n: fixable.length }) }).addEventListener("click", () => this.showDiff());
       }
     }
     // The repair is shown first, line by line; nothing is written until it is confirmed.
@@ -95,7 +95,7 @@ export function openLinkCheck(plugin: IgnorancePlugin) {
       before.forEach((line, index) => {
         if (line === after[index]) return;
         const row = list.createDiv({ cls: "ib-link-check__row ibp-diff-row" });
-        row.createSpan({ cls: "ib-link-check__line", text: `第 ${index + 1} 行` });
+        row.createSpan({ cls: "ib-link-check__line", text: tr("第 {v} 行", { v: index + 1 }) });
         row.createSpan({ cls: "ibp-diff-old", text: line });
         row.createSpan({ cls: "ibp-diff-new", text: after[index] });
       });
@@ -104,7 +104,7 @@ export function openLinkCheck(plugin: IgnorancePlugin) {
       footer.createEl("button", { cls: "mod-cta", text: tr("写入") }).addEventListener("click", () => {
         // One transaction, so a single undo restores the note.
         editor.transaction({ changes: fixable.map(({ fix }) => ({ from: editor.offsetToPos(fix.from), to: editor.offsetToPos(fix.to), text: fix.insert })) });
-        new Notice(`已修复 ${fixable.length} 处排版问题`);
+        new Notice(tr("已修复 {n} 处排版问题", { n: fixable.length }));
         this.close();
       });
     }

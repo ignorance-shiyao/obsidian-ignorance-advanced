@@ -88,7 +88,7 @@ function handleImageTransfer(plugin: IgnorancePlugin, event: TransferEvent, edit
         new Notice(tr("图片已取消插入，已清理本次生成的附件。"), 6000);
       });
     }
-    new Notice(`已保存 ${result.createdFiles.length} 张图片到同级 assets/。`);
+    new Notice(tr("已保存 {n} 张图片到同级 assets/。", { n: result.createdFiles.length }));
   }).catch(error => {
     replacePendingImageMarker(editor, marker, originalText);
     console.error("Ignorance Advanced: 图片粘贴转换失败 —", error);
@@ -120,7 +120,7 @@ async function encodePastedImage(file: File) {
     };
   }
 
-  if (typeof createImageBitmap !== "function") throw new Error("当前设备无法解码粘贴的图片");
+  if (typeof createImageBitmap !== "function") throw new Error(tr("当前设备无法解码粘贴的图片"));
   let bitmap: ImageBitmap | undefined;
   try {
     bitmap = await createImageBitmap(file);
@@ -128,12 +128,12 @@ async function encodePastedImage(file: File) {
     canvas.width = bitmap.width;
     canvas.height = bitmap.height;
     const context = canvas.getContext("2d");
-    if (!context || !canvas.width || !canvas.height) throw new Error("图片尺寸无效或无法绘制");
+    if (!context || !canvas.width || !canvas.height) throw new Error(tr("图片尺寸无效或无法绘制"));
     context.drawImage(bitmap, 0, 0);
     const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(result => result ? resolve(result) : reject(new Error("WebP 编码失败")), "image/webp", 0.85);
+      canvas.toBlob(result => result ? resolve(result) : reject(new Error(tr("WebP 编码失败"))), "image/webp", 0.85);
     });
-    if (blob.type !== "image/webp") throw new Error("当前设备不支持 WebP 编码");
+    if (blob.type !== "image/webp") throw new Error(tr("当前设备不支持 WebP 编码"));
     return { extension: "webp", bytes: new Uint8Array(await blob.arrayBuffer()) };
   } finally {
     bitmap?.close();
@@ -167,7 +167,7 @@ async function savePastedImages(plugin: IgnorancePlugin, note: TFile, files: Fil
   const parentPath = note.parent?.path || "";
   const assetDir = [parentPath, "assets"].filter(Boolean).join("/");
   const existingFolder = vault.getAbstractFileByPath(assetDir);
-  if (existingFolder && !folderChildren(existingFolder)) throw new Error("assets 路径已被同名文件占用：" + assetDir);
+  if (existingFolder && !folderChildren(existingFolder)) throw new Error(tr("assets 路径已被同名文件占用：") + assetDir);
   const stem = safeAssetStem(note.basename || "image");
   let sequence = nextPastedImageSequence(vault, assetDir, stem);
   let createdFolder: TFolder | null = null;
@@ -177,7 +177,7 @@ async function savePastedImages(plugin: IgnorancePlugin, note: TFile, files: Fil
   try {
     for (const file of files) {
       const encoded = await encodePastedImage(file);
-      if (!editor.getValue().includes(marker)) throw new Error("编辑位置已取消，未保存图片");
+      if (!editor.getValue().includes(marker)) throw new Error(tr("编辑位置已取消，未保存图片"));
 
       if (!vault.getAbstractFileByPath(assetDir)) {
         try {
@@ -239,10 +239,10 @@ function isMarkdownImportSource(file: TFile | null | undefined) {
 async function runFileTool(label: string, task: () => Promise<string | undefined>) {
   try {
     const result = await task();
-    if (result) new Notice(label + "：" + result, 6000);
+    if (result) new Notice(tr("{label}：{result}", { label, result }), 6000);
   } catch (error) {
-    console.error("Ignorance Advanced: " + label + "失败 —", error);
-    new Notice(label + "失败：" + errorText(error), 8000);
+    console.error("Ignorance Advanced: " + label + " failed —", error);
+    new Notice(tr("{label}失败：{error}", { label, error: errorText(error) }), 8000);
   }
 }
 
@@ -284,7 +284,7 @@ class HtmlReadOnlyView extends FileView {
     this.contentEl.empty();
     const iframe = this.contentEl.createEl("iframe", {
       cls: "ibm-html-reader-frame",
-      attr: { title: file.basename + "（只读 HTML 预览）", sandbox: "" }
+      attr: { title: file.basename + tr("（只读 HTML 预览）"), sandbox: "" }
     });
     iframe.setAttribute("sandbox", "");
     try {
@@ -325,12 +325,12 @@ class MarkdownImportModal extends Modal {
     const { contentEl } = this;
     contentEl.empty();
     const description = extension === "docx"
-      ? "在本机转换 Word 文档；其中的图片会转为 WebP 并放进目标笔记同级的 assets/。"
+      ? tr("在本机转换 Word 文档；其中的图片会转为 WebP 并放进目标笔记同级的 assets/。")
       : extension === "zip"
-        ? "按 Notion 导出包导入 Markdown 页面、CSV 表格和图片；页面目录与内链会保留，图片转为 WebP。"
-        : "本地转换为 Markdown；生成的笔记与源文件放在同一目录。PDF 扫描件暂不做 OCR。";
+        ? tr("按 Notion 导出包导入 Markdown 页面、CSV 表格和图片；页面目录与内链会保留，图片转为 WebP。")
+        : tr("本地转换为 Markdown；生成的笔记与源文件放在同一目录。PDF 扫描件暂不做 OCR。");
     contentEl.createEl("p", { text: description });
-    new Setting(contentEl).setName(extension === "zip" ? "Notion 导入文件夹" : "Markdown 文件名").setDesc(tr("可改成语义化名称；不会覆盖已有文件。"))
+    new Setting(contentEl).setName(extension === "zip" ? "Notion 导入文件夹" : tr("Markdown 文件名")).setDesc(tr("可改成语义化名称；不会覆盖已有文件。"))
       .addText(text => text.setValue(this.noteName).onChange(value => { this.noteName = value; }));
     new Setting(contentEl).addButton(button => button
       .setButtonText(tr("取消"))
@@ -348,7 +348,7 @@ class MarkdownImportModal extends Modal {
       return;
     }
     this.close();
-    await runFileTool("导入 Markdown", () => importVaultFileAsMarkdown(this.plugin, this.file, noteName));
+    await runFileTool(tr("导入 Markdown"), () => importVaultFileAsMarkdown(this.plugin, this.file, noteName));
   }
 }
 
@@ -362,7 +362,7 @@ async function createMissingVaultFolders(vault: Vault, targetPaths: string[], cr
   for (const folderPath of [...folders].sort((a, b) => a.split("/").length - b.split("/").length)) {
     const existing = vault.getAbstractFileByPath(folderPath);
     if (existing) {
-      if (!folderChildren(existing)) throw new Error("目標目錄被同名文件占用：" + folderPath);
+      if (!folderChildren(existing)) throw new Error(tr("目标目录被同名文件占用：") + folderPath);
       continue;
     }
     try {
@@ -392,12 +392,12 @@ async function openImportedNote(plugin: IgnorancePlugin, note: TFile) {
   try {
     await plugin.app.workspace.getLeaf(false).openFile(note);
   } catch (error) {
-    new Notice(tr("已导入 ") + note.path + "，但未能自动打开：" + errorText(error), 8000);
+    new Notice(tr("已导入 {path}，但未能自动打开：{error}", { path: note.path, error: errorText(error) }), 8000);
   }
 }
 
 async function importVaultFileAsMarkdown(plugin: IgnorancePlugin, file: TFile, noteName: string) {
-  if (!isMarkdownImportSource(file)) throw new Error("不支持导入此文件类型");
+  if (!isMarkdownImportSource(file)) throw new Error(tr("不支持导入此文件类型"));
   const extension = String(file.extension).toLowerCase();
   const normalizedName = normalizeMarkdownImportName(noteName);
   if (extension === "docx") return importDocxAsMarkdown(plugin, file, normalizedName);
@@ -406,7 +406,7 @@ async function importVaultFileAsMarkdown(plugin: IgnorancePlugin, file: TFile, n
   const vault = plugin.app.vault;
   const parentPath = file.parent?.path || "";
   const notePath = [parentPath, normalizedName + ".md"].filter(Boolean).join("/");
-  if (vault.getAbstractFileByPath(notePath)) throw new Error("目标笔记已存在：" + notePath);
+  if (vault.getAbstractFileByPath(notePath)) throw new Error(tr("目标笔记已存在：") + notePath);
 
   const text = () => vault.cachedRead(file);
   const bytes = async () => new Uint8Array(await vault.readBinary(file));
@@ -420,9 +420,9 @@ async function importVaultFileAsMarkdown(plugin: IgnorancePlugin, file: TFile, n
     case "xlsx": markdown = await xlsxToMarkdown(await bytes()); break;
     case "pptx": markdown = await pptxToMarkdown(await bytes()); break;
     case "pdf": markdown = await pdfToMarkdown(await bytes(), (await loadPdfJs()) as PdfJs); break;
-    default: throw new Error("不支持导入此文件类型");
+    default: throw new Error(tr("不支持导入此文件类型"));
   }
-  if (!String(markdown || "").trim()) throw new Error("文件中没有可导入的内容");
+  if (!String(markdown || "").trim()) throw new Error(tr("文件中没有可导入的内容"));
   const note = await vault.create(notePath, String(markdown).trim() + "\n");
   await openImportedNote(plugin, note);
   return notePath;
@@ -431,7 +431,7 @@ async function importVaultFileAsMarkdown(plugin: IgnorancePlugin, file: TFile, n
 function normalizeMarkdownImportName(value: string) {
   const name = String(value || "").trim().replace(/\.md$/i, "");
   if (!name || hasInvalidNameChar(name) || name === "." || name === "..") {
-    throw new Error("Markdown 文件名无效");
+    throw new Error(tr("Markdown 文件名无效"));
   }
   return name;
 }
@@ -440,18 +440,18 @@ async function importNotionZipAsMarkdown(plugin: IgnorancePlugin, file: TFile, f
   const vault = plugin.app.vault;
   const parentPath = file.parent?.path || "";
   const importRoot = [parentPath, normalizeMarkdownImportName(folderName)].filter(Boolean).join("/");
-  if (vault.getAbstractFileByPath(importRoot)) throw new Error("目标文件夹已存在：" + importRoot);
+  if (vault.getAbstractFileByPath(importRoot)) throw new Error(tr("目标文件夹已存在：") + importRoot);
   const archive = await notionZipToMarkdown(await vault.readBinary(file), importRoot);
   const plannedPaths = [...archive.files.map(item => item.path), ...archive.assets.map(item => item.path)];
   const normalized = new Set<string>();
   const plannedFiles = new Set(plannedPaths.map(target => target.toLowerCase()));
   for (const target of plannedPaths) {
     const key = target.toLowerCase();
-    if (normalized.has(key)) throw new Error("Notion 导出包中存在重名目标：" + target);
+    if (normalized.has(key)) throw new Error(tr("Notion 导出包中存在重名目标：") + target);
     normalized.add(key);
-    if (vault.getAbstractFileByPath(target)) throw new Error("目标文件已存在：" + target);
+    if (vault.getAbstractFileByPath(target)) throw new Error(tr("目标文件已存在：") + target);
     for (let parent = parentFolder(target); parent; parent = parentFolder(parent)) {
-      if (plannedFiles.has(parent.toLowerCase())) throw new Error("Notion 导出包中的文件与目录路径冲突：" + parent);
+      if (plannedFiles.has(parent.toLowerCase())) throw new Error(tr("Notion 导出包中的文件与目录路径冲突：") + parent);
     }
   }
 
@@ -472,11 +472,11 @@ async function importNotionZipAsMarkdown(plugin: IgnorancePlugin, file: TFile, f
     }
     const firstNote = createdFiles.find(created => String(created.extension).toLowerCase() === "md");
     if (firstNote) await openImportedNote(plugin, firstNote);
-    return `${archive.root}（${archive.files.length} 篇笔记，${preparedAssets.length} 张 WebP 图片）`;
+    return tr("{root}（{notes} 篇笔记，{n} 张 WebP 图片）", { root: archive.root, notes: archive.files.length, n: preparedAssets.length });
   } catch (error) {
     const rollbackFailures = await rollbackImportedFiles(plugin, createdFiles, createdFolders);
     if (rollbackFailures.length) {
-      throw new Error(errorText(error) + "；部分导入文件未能移入废纸篓：" + rollbackFailures.join("、"));
+      throw new Error(tr("{error}；部分导入文件未能移入废纸篓：{files}", { error: errorText(error), files: rollbackFailures.join("、") }));
     }
     throw error;
   }
@@ -497,13 +497,13 @@ async function convertImageToWebp(bytes: Uint8Array, name: string): Promise<Arra
     canvas.width = bitmap.width;
     canvas.height = bitmap.height;
     const context = canvas.getContext("2d");
-    if (!context || !canvas.width || !canvas.height) throw new Error("无法解码图片");
+    if (!context || !canvas.width || !canvas.height) throw new Error(tr("无法解码图片"));
     context.drawImage(bitmap, 0, 0);
     const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/webp", 0.85));
-    if (!blob || blob.type !== "image/webp") throw new Error("当前 Obsidian 不支持 WebP 编码");
+    if (!blob || blob.type !== "image/webp") throw new Error(tr("当前 Obsidian 不支持 WebP 编码"));
     return await blob.arrayBuffer();
   } catch (error) {
-    throw new Error(name.split("/").pop() + " 转 WebP 失败：" + errorText(error));
+    throw new Error(tr("{file} 转 WebP 失败：{error}", { file: name.split("/").pop() ?? name, error: errorText(error) }));
   } finally {
     bitmap?.close();
   }
@@ -517,16 +517,16 @@ async function importDocxAsMarkdown(plugin: IgnorancePlugin, file: TFile, noteNa
   const vault = plugin.app.vault;
   const parentPath = file.parent?.path || "";
   const notePath = [parentPath, noteName + ".md"].filter(Boolean).join("/");
-  if (vault.getAbstractFileByPath(notePath)) throw new Error("目标笔记已存在：" + notePath);
+  if (vault.getAbstractFileByPath(notePath)) throw new Error(tr("目标笔记已存在：") + notePath);
   const assetDir = [parentPath, "assets"].filter(Boolean).join("/");
   const assetFolder = vault.getAbstractFileByPath(assetDir);
-  if (assetFolder && !folderChildren(assetFolder)) throw new Error("assets 路径已被同名文件占用：" + assetDir);
+  if (assetFolder && !folderChildren(assetFolder)) throw new Error(tr("assets 路径已被同名文件占用：") + assetDir);
 
   const placeholder = "ib-docx-media:";
   const docx = await docxToMarkdown(new Uint8Array(await vault.readBinary(file)), placeholder);
   const converted = docx.markdown;
   const images = docx.images;
-  if (!converted.trim() && !images.length) throw new Error("文件中没有可导入的内容");
+  if (!converted.trim() && !images.length) throw new Error(tr("文件中没有可导入的内容"));
   const stem = safeAssetStem(noteName);
   const pending: Array<{ path: string; bytes: ArrayBuffer }> = [];
   const links = new Map<string, string>();
@@ -549,7 +549,7 @@ async function importDocxAsMarkdown(plugin: IgnorancePlugin, file: TFile, noteNa
     const note = await vault.create(notePath, markdown.trim() + "\n");
     createdFiles.push(note);
     await openImportedNote(plugin, note);
-    return notePath + (pending.length ? "（含 " + pending.length + " 张 WebP 图片）" : "");
+    return pending.length ? tr("{path}（含 {n} 张 WebP 图片）", { path: notePath, n: pending.length }) : notePath;
   } catch (error) {
     for (const created of createdFiles.reverse()) {
       try { await plugin.app.fileManager.trashFile(created); } catch { /* best effort */ }

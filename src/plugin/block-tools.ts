@@ -60,7 +60,7 @@ export function enhanceCodeBlocks(plugin: IgnorancePlugin, root: HTMLElement, co
     wrap.type = "button";
     wrap.className = "ibm-code-wrap";
     setIcon(wrap, UI_ICONS.wrap);
-    wrap.title = "代码换行";
+    wrap.title = tr("代码换行");
     wrap.setAttribute("aria-label", tr("代码换行"));
     // Phones start wrapped so long lines remain readable inside the narrow page.
     const startWrapped = pre.dataset.ibCodeWrap ? pre.dataset.ibCodeWrap === "1" : Platform.isPhone;

@@ -1,20 +1,21 @@
+import { zh } from "../i18n.js";
 /* Body, interface and code fonts come from Obsidian's own Appearance settings
    (the theme supplies CJK-friendly defaults when those are empty). Obsidian
    has no separate heading font, so that is the only font preference here. */
 
 export const HEADING_FONTS: readonly { value: string; label: string; stack: string | null }[] = [
-  { value: "match-text", label: "跟随正文", stack: "var(--font-text)" },
+  { value: "match-text", label: zh("跟随正文"), stack: "var(--font-text)" },
   {
     value: "system-sans",
-    label: "系统黑体",
+    label: zh("系统黑体"),
     stack: '-apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Segoe UI", sans-serif'
   },
   {
     value: "rice-serif",
-    label: "宣纸宋体",
+    label: zh("宣纸宋体"),
     stack: '"Songti SC", "STSong", "SimSun", "Noto Serif CJK SC", serif'
   },
-  { value: "theme", label: "跟随主题", stack: null }
+  { value: "theme", label: zh("跟随主题"), stack: null }
 ];
 
 export const HEADING_FONT_OPTIONS = HEADING_FONTS.map(({ value, label }): [string, string] => [value, label]);

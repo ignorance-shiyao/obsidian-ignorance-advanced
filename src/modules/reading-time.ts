@@ -1,4 +1,5 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
+import { tr } from "../i18n.js";
 import { MarkdownView } from "obsidian";
 /* Reading time in the status bar: "约 3 分钟". CJK text is counted by character (400 per minute), other text by
    word (230 per minute). Front matter, code blocks and HTML comments are left out. */
@@ -28,8 +29,8 @@ export function installReadingTime(plugin: IgnorancePlugin) {
     const { minutes, cjk, words } = estimateReading(text);
     if (!minutes) { item.hide(); return; }
     item.show();
-    item.setText(`约 ${minutes} 分钟`);
-    item.setAttribute("aria-label", `预计阅读 ${minutes} 分钟（${cjk} 个汉字，${words} 个词）`);
+    item.setText(tr("约 {minutes} 分钟", { minutes }));
+    item.setAttribute("aria-label", tr("预计阅读 {minutes} 分钟（{cjk} 个汉字，{words} 个词）", { minutes, cjk, words }));
   };
   const schedule = () => { window.clearTimeout(timer); timer = window.setTimeout(() => void update(), 400); };
   plugin.register(() => window.clearTimeout(timer));

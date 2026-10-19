@@ -306,19 +306,19 @@ export async function onload(plugin: IgnorancePlugin) {
 
   plugin.addCommand({
     id: "process-note-images",
-    name: "处理本篇的图片（压缩、缩小）",
+    name: tr("处理本篇的图片（压缩、缩小）"),
     callback: () => openImageBatch(plugin)
   });
 
   plugin.addCommand({
     id: "task-examples",
-    name: "新建任务式示例",
+    name: tr("新建任务式示例"),
     callback: () => openTaskExamples(plugin)
   });
 
   plugin.addCommand({
     id: "active-enhancements",
-    name: "当前笔记生效的增强",
+    name: tr("当前笔记生效的增强"),
     callback: () => showActiveEnhancements(plugin, plugin.app.workspace.getActiveViewOfType(MarkdownView))
   });
 
@@ -356,7 +356,7 @@ export async function onload(plugin: IgnorancePlugin) {
   for (const command of TABLE_COMMANDS) {
     plugin.addCommand({
       id: `table-${command.action}`,
-      name: command.name,
+      name: tr(command.name),
       editorCheckCallback: (checking, editor) => {
         const view = editor?.cm;
         if (!view || !canEditTable(view)) return false;
@@ -368,7 +368,7 @@ export async function onload(plugin: IgnorancePlugin) {
   for (const snippet of SNIPPET_TEMPLATES) {
     plugin.addCommand({
       id: "insert-" + snippet.id,
-      name: snippet.name,
+      name: tr(snippet.name),
       editorCheckCallback: (checking, editor) => {
         if (!editor) return false;
         if (checking) return true;
@@ -380,20 +380,20 @@ export async function onload(plugin: IgnorancePlugin) {
 
   plugin.addCommand({
     id: "toggle-typewriter-scroll",
-    name: "切换打字机滚动",
+    name: tr("切换打字机滚动"),
     callback: () => toggleWritingMode(plugin, "typewriterScroll")
   });
 
   plugin.addCommand({
     id: "toggle-writing-focus",
-    name: "切换专注模式",
+    name: tr("切换专注模式"),
     callback: () => toggleWritingMode(plugin, "focusMode")
   });
 
   if (!Platform.isMobile) {
     plugin.addCommand({
       id: "import-docx-markdown",
-      name: "导入当前文件为 Markdown",
+      name: tr("导入当前文件为 Markdown"),
       callback: () => {
         const file = plugin.app.workspace.getActiveFile();
         if (!isMarkdownImportSource(file)) {
@@ -408,25 +408,25 @@ export async function onload(plugin: IgnorancePlugin) {
   plugin.registerView(NAVIGATION_VIEW, leaf => new (createNavigationView(plugin))(leaf));
   plugin.addCommand({
     id: "open-navigation-view",
-    name: "在侧栏打开导航",
+    name: tr("在侧栏打开导航"),
     callback: () => void openNavigationView(plugin)
   });
 
   plugin.addCommand({
     id: "note-navigation",
-    name: "跳到标题、图表、表格或代码",
+    name: tr("跳到标题、图表、表格或代码"),
     callback: () => openNavigation(plugin)
   });
 
   plugin.addCommand({
     id: "check-note-links",
-    name: "检查当前笔记的链接、结构与排版",
+    name: tr("检查当前笔记的链接、结构与排版"),
     callback: () => openLinkCheck(plugin)
   });
 
   plugin.addCommand({
     id: "open-syntax-guide",
-    name: "打开语法速查",
+    name: tr("打开语法速查"),
     callback: () => void openSyntaxGuide(plugin)
   });
 
@@ -449,7 +449,7 @@ export function onunload(plugin: IgnorancePlugin) {
     guardedCleanup(() => {
     pre.querySelector(":scope > .ibm-block-header")?.remove();
     pre.classList.remove("ibc-enhanced", "ib-code-soft-wrap");
-    }, "代码块清理")();
+    }, tr("代码块清理"))();
   });
 
   document.querySelectorAll<HTMLElement>(".mermaid.ibm-mermaid-enhanced").forEach(element => {
@@ -464,6 +464,6 @@ export function onunload(plugin: IgnorancePlugin) {
       svg.style.removeProperty("transform");
       svg.style.removeProperty("transform-origin");
     }
-    }, "图表清理")();
+    }, tr("图表清理"))();
   });
 }

@@ -1,5 +1,6 @@
 /* Structure and typesetting checks on the note source. Read-only reports plus a list of exact text edits for the
    typesetting rules; nothing here touches code, math, links, URLs, front matter or other inline syntax. */
+import { tr } from "../i18n.js";
 import { parseCaptions } from "./captions.js";
 
 export interface StructureIssue {
@@ -54,15 +55,15 @@ function typesettingEdits(text: string, offset: number, index: number): Structur
   const issues: StructureIssue[] = [];
   for (const match of masked.matchAll(new RegExp(`(?<=[${CJK}])(?=[A-Za-z])|(?<=[A-Za-z])(?=[${CJK}])`, "g"))) {
     const at = match.index;
-    issues.push({ line: index, kind: "cjk-space", message: `中文与英文之间缺少空格：「${text.slice(Math.max(0, at - 2), at + 2)}」`, fix: { from: offset + at, to: offset + at, insert: " " } });
+    issues.push({ line: index, kind: "cjk-space", message: tr("中文与英文之间缺少空格：「{v}」", { v: text.slice(Math.max(0, at - 2), at + 2) }), fix: { from: offset + at, to: offset + at, insert: " " } });
   }
   for (const match of masked.matchAll(/([㐀-鿿])([,;?!:])(?!\/)/g)) {
     const at = match.index + 1;
-    issues.push({ line: index, kind: "punctuation", message: `中文后面用了半角标点「${match[2]}」`, fix: { from: offset + at, to: offset + at + 1, insert: HALF_TO_FULL[match[2]] } });
+    issues.push({ line: index, kind: "punctuation", message: tr("中文后面用了半角标点「{v}」", { v: match[2] }), fix: { from: offset + at, to: offset + at + 1, insert: HALF_TO_FULL[match[2]] } });
   }
   for (const match of masked.matchAll(/([㐀-鿿])\.(?=\s|$)/g)) {
     const at = match.index + 1;
-    issues.push({ line: index, kind: "punctuation", message: "中文句末用了半角句号「.」", fix: { from: offset + at, to: offset + at + 1, insert: "。" } });
+    issues.push({ line: index, kind: "punctuation", message: tr("中文句末用了半角句号「.」"), fix: { from: offset + at, to: offset + at + 1, insert: "。" } });
   }
   return issues;
 }
@@ -76,7 +77,7 @@ export function checkStructure(source: string): StructureIssue[] {
     const heading = /^(#{1,6})\s+\S/.exec(line.text);
     if (heading) {
       const level = heading[1].length;
-      if (previous && level > previous + 1) issues.push({ line: line.index, kind: "heading-skip", message: `标题从 H${previous} 直接跳到 H${level}，中间缺一级` });
+      if (previous && level > previous + 1) issues.push({ line: line.index, kind: "heading-skip", message: tr("标题从 H{previous} 直接跳到 H{level}，中间缺一级", { previous, level }) });
       previous = level;
     }
     issues.push(...typesettingEdits(line.text, line.offset, line.index));
@@ -85,13 +86,13 @@ export function checkStructure(source: string): StructureIssue[] {
   const seen = new Map<string, number>();
   for (const caption of captions) {
     if (!caption.id) continue;
-    if (seen.has(caption.id)) issues.push({ line: caption.line, kind: "duplicate-id", message: `题注标识「${caption.id}」重复，第一次出现在第 ${seen.get(caption.id) + 1} 行` });
+    if (seen.has(caption.id)) issues.push({ line: caption.line, kind: "duplicate-id", message: tr("题注标识「{id}」重复，第一次出现在第 {v} 行", { id: caption.id, v: seen.get(caption.id) + 1 }) });
     else seen.set(caption.id, caption.line);
   }
   for (const line of lines) {
     if (!line.prose) continue;
     for (const match of line.text.replace(/`[^`\n]*`/g, span => " ".repeat(span.length)).matchAll(/\(\(ref:([\w-]+)\)\)/g)) {
-      if (!seen.has(match[1])) issues.push({ line: line.index, kind: "broken-ref", message: `交叉引用「${match[1]}」找不到对应的题注标识` });
+      if (!seen.has(match[1])) issues.push({ line: line.index, kind: "broken-ref", message: tr("交叉引用「{v}」找不到对应的题注标识", { v: match[1] }) });
     }
   }
   return issues.sort((a, b) => a.line - b.line);

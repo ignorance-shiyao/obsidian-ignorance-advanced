@@ -94,19 +94,19 @@ function buildTools(plugin: IgnorancePlugin, table: HTMLTableElement, host: HTML
   };
   const search = bar.createEl("input", { cls: "ibp-table-search", attr: { type: "search", placeholder: tr("筛选行"), "aria-label": tr("筛选表格行") } });
   search.hidden = true;
-  button("search", "search", "筛选行").addEventListener("click", () => { search.hidden = !search.hidden; if (!search.hidden) search.focus(); });
+  button("search", "search", tr("筛选行")).addEventListener("click", () => { search.hidden = !search.hidden; if (!search.hidden) search.focus(); });
   search.addEventListener("input", () => {
     const query = search.value.trim().toLowerCase();
     for (const row of table.tBodies[0].rows) row.classList.toggle("ib-row-filtered", Boolean(query) && !cellText(row).toLowerCase().includes(query));
   });
-  button("copy", "copy", "复制为 TSV").addEventListener("click", () => {
+  button("copy", "copy", tr("复制为 TSV")).addEventListener("click", () => {
     void navigator.clipboard.writeText(rowsToTsv(tableText(table))).then(() => new Notice(tr("已复制表格，可直接粘贴到电子表格")));
   });
-  button("csv", "file-down", "保存为 CSV").addEventListener("click", () => {
+  button("csv", "file-down", tr("保存为 CSV")).addEventListener("click", () => {
     void saveExportToVault(plugin, `${table.closest(".markdown-preview-view")?.querySelector(".inline-title")?.textContent || "表格"}.csv`, rowsToCsv(tableText(table)))
-      .then(path => new Notice(`已保存：${path}`));
+      .then(path => new Notice(tr("已保存：{path}", { path })));
   });
-  button("writeback", "arrow-down-up", "按此顺序写回笔记", true).addEventListener("click", () => { void writeBack(plugin, table); });
+  button("writeback", "arrow-down-up", tr("按此顺序写回笔记"), true).addEventListener("click", () => { void writeBack(plugin, table); });
 }
 
 export function installTableSort(plugin: IgnorancePlugin) {

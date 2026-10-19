@@ -156,7 +156,7 @@ function makeChipElement(token: InlineSyntaxToken) {
   if (token.type === "crumb") {
     const crumb = createSpan();
     crumb.className = "ib-inline-crumb";
-    crumb.title = "点击复制路径";
+    crumb.title = tr("点击复制路径");
     crumb.addEventListener("click", () => { void navigator.clipboard?.writeText(token.parts.join(" > ")).catch(() => {}); });
     token.parts.forEach((part: string, index: number) => {
       if (index) {
@@ -200,7 +200,7 @@ function makeChipElement(token: InlineSyntaxToken) {
   const spark = createSpan();
   spark.className = "ib-inline-spark";
   spark.setAttribute("role", "img");
-  spark.setAttribute("aria-label", `趋势：${token.values.join("，")}`);
+  spark.setAttribute("aria-label", tr("趋势：{v}", { v: token.values.join("，") }));
   const svg = createSvg("svg");
   svg.setAttribute("viewBox", "0 0 100 24");
   svg.setAttribute("aria-hidden", "true");

@@ -1,8 +1,9 @@
+import { zh } from "../i18n.js";
 export const LINE_HEIGHT_PRESETS = [
-  { value: "theme", label: "主题默认（1.8）", leading: 1.8 },
-  { value: "compact", label: "紧凑（1.55）", leading: 1.55 },
-  { value: "standard", label: "标准（1.72）", leading: 1.72 },
-  { value: "spacious", label: "宽松（1.95）", leading: 1.95 }
+  { value: "theme", label: zh("主题默认（1.8）"), leading: 1.8 },
+  { value: "compact", label: zh("紧凑（1.55）"), leading: 1.55 },
+  { value: "standard", label: zh("标准（1.72）"), leading: 1.72 },
+  { value: "spacious", label: zh("宽松（1.95）"), leading: 1.95 }
 ] as const;
 
 export function resolveLineHeight(value: string | undefined) {

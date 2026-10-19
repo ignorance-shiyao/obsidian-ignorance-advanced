@@ -1,5 +1,5 @@
 import type { TFile } from "obsidian";
-import { tr } from "../i18n.js";
+import { tr, zh } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Component, Modal, Platform, setIcon } from "obsidian";
 /* Every export opens a preview window first: the result laid out the way the
@@ -12,23 +12,23 @@ import { scanExportIssues } from "./export-check-core.js";
 import { WORD_FONT_OPTIONS, normalizeWordFont } from "./word-font.js";
 
 
-const TITLES: Record<string, string> = {
-  pdf: "导出 PDF",
-  word: "导出 Word",
-  html: "导出为 HTML",
-  pages: "导出分页图片",
-  long: "导出长图",
-  "pptx-editable": "导出 PPTX（可编辑）",
-  "pptx-image": "导出 PPTX（图片版）",
-  wechat: "复制为公众号格式",
-  zhihu: "复制为知乎格式"
-};
+const titles = (): Record<string, string> => ({
+  pdf: tr("导出 PDF"),
+  word: tr("导出 Word"),
+  html: tr("导出为 HTML"),
+  pages: tr("导出分页图片"),
+  long: tr("导出长图"),
+  "pptx-editable": tr("导出 PPTX（可编辑）"),
+  "pptx-image": tr("导出 PPTX（图片版）"),
+  wechat: tr("复制为公众号格式"),
+  zhihu: tr("复制为知乎格式")
+});
 
 const NOTES: Record<string, string> = {
-  word: "Word 的最终版式由 Word 决定，这里是按内容排版的近似效果。",
-  "pptx-editable": "文字、表格与图片会成为 PowerPoint 里可编辑的对象，背景与装饰保持为图片。",
-  wechat: "粘贴到公众号编辑器后的内容与样式。",
-  zhihu: "粘贴到知乎编辑器后的内容与样式。"
+  word: zh("Word 的最终版式由 Word 决定，这里是按内容排版的近似效果。"),
+  "pptx-editable": zh("文字、表格与图片会成为 PowerPoint 里可编辑的对象，背景与装饰保持为图片。"),
+  wechat: zh("粘贴到公众号编辑器后的内容与样式。"),
+  zhihu: zh("粘贴到知乎编辑器后的内容与样式。")
 };
 
 // Builders the preview borrows from the exporters, passed in to avoid an import cycle.
@@ -40,7 +40,7 @@ export interface ExportPreviewDeps {
 }
 
 // A thin note at the foot of the first-screen preview, so it does not read as the whole document while the rest is still being built.
-const loadingBar = (html: string) => html.replace("</body>", '<div style="position:fixed;left:0;right:0;bottom:0;padding:10px 16px;text-align:center;font:12px system-ui,sans-serif;color:#64748b;background:linear-gradient(rgba(255,255,255,0),#fff 55%);pointer-events:none">正在加载后续内容…</div></body>');
+const loadingBar = (html: string) => html.replace("</body>", "<div style=\"position:fixed;left:0;right:0;bottom:0;padding:10px 16px;text-align:center;font:12px system-ui,sans-serif;color:#64748b;background:linear-gradient(rgba(255,255,255,0),#fff 55%);pointer-events:none\">" + tr("正在加载后续内容…") + "</div></body>");
 
 export class ExportPreviewModal extends Modal {
   plugin: IgnorancePlugin;
@@ -75,8 +75,8 @@ export class ExportPreviewModal extends Modal {
     this.plugin.exportPreview = this;
     modalEl.dataset.exportKind = this.kind;
     modalEl.addClass("ibp-export-preview");
-    this.titleEl.setText(`${TITLES[this.kind] || "导出"} · 预览`);
-    if (NOTES[this.kind]) contentEl.createDiv({ cls: "ibp-export-preview__note", text: NOTES[this.kind] });
+    this.titleEl.setText(tr("{v} · 预览", { v: titles()[this.kind] || tr("导出") }));
+    if (NOTES[this.kind]) contentEl.createDiv({ cls: "ibp-export-preview__note", text: tr(NOTES[this.kind]) });
     const report = contentEl.createDiv({ cls: "ibp-export-check" });
     void this.showReport(report);
     this.viewport = contentEl.createDiv({ cls: "ibp-export-preview__viewport" });
@@ -86,14 +86,14 @@ export class ExportPreviewModal extends Modal {
     const statusText = this.status.createDiv({ cls: "ibp-export-preview__status-text", text: tr("正在生成预览…") });
     const started = Date.now();
     this.statusTimer = window.setInterval(() => {
-      statusText.setText(`正在生成预览… ${Math.round((Date.now() - started) / 1000)} 秒`);
+      statusText.setText(tr("正在生成预览… {v} 秒", { v: Math.round((Date.now() - started) / 1000) }));
     }, 1000);
     // Opaque while generating: the palette switch behind it would flash the app.
     this.containerEl.addClass("ibp-export-generating");
     const footer = contentEl.createDiv({ cls: "modal-button-container ibp-export-preview__footer" });
     this.summary = footer.createDiv({ cls: "ibp-export-preview__summary" });
     footer.createEl("button", { text: tr("取消") }).addEventListener("click", () => this.close());
-    this.confirm = footer.createEl("button", { cls: "mod-cta", text: this.kind === "wechat" || this.kind === "zhihu" ? "复制" : "导出" });
+    this.confirm = footer.createEl("button", { cls: "mod-cta", text: this.kind === "wechat" || this.kind === "zhihu" ? tr("复制") : tr("导出") });
     this.confirm.disabled = true;
     this.confirm.addEventListener("click", () => {
       this.close();
@@ -126,7 +126,7 @@ export class ExportPreviewModal extends Modal {
       console.error("Ignorance Advanced: export preview failed —", error);
       if (!this.status.isConnected) this.viewport.appendChild(this.status);
       this.summary.setText("");
-      this.status.setText(`预览生成失败：${error instanceof Error ? error.message : typeof error === "string" ? error : JSON.stringify(error)}。仍可直接导出。`);
+      this.status.setText(tr("预览生成失败：{v}。仍可直接导出。", { v: error instanceof Error ? error.message : typeof error === "string" ? error : JSON.stringify(error) }));
       this.confirm.disabled = false;
     });
   }
@@ -149,7 +149,7 @@ export class ExportPreviewModal extends Modal {
     setIcon(top.createDiv({ cls: "ibp-export-check__symbol" }), problems ? "lucide-triangle-alert" : "lucide-info");
     const content = top.createDiv({ cls: "ibp-export-check__content" });
     content.createSpan({ cls: "ibp-export-check__heading", text: tr("导出检查") });
-    content.createSpan({ cls: "ibp-export-check__count", text: problems ? `${problems} 处需要处理${issues.length > problems ? `，${issues.length - problems} 项说明` : ""}` : `${issues.length} 项说明` });
+    content.createSpan({ cls: "ibp-export-check__count", text: problems ? (issues.length > problems ? tr("{problems} 处需要处理，{n} 项说明", { problems, n: issues.length - problems }) : tr("{problems} 处需要处理", { problems })) : tr("{n} 项说明", { n: issues.length }) });
     content.createSpan({ cls: "ibp-export-check__summary", text: issues.map(issue => issue.message).join(" · ") });
     const tools = top.createDiv({ cls: "ibp-export-check__tools" });
     const toggle = tools.createEl("button", { cls: "ibp-export-check__toggle", attr: { type: "button", "aria-expanded": "false" } });
@@ -161,7 +161,7 @@ export class ExportPreviewModal extends Modal {
     const setExpanded = (value: boolean) => {
       box.toggleClass("is-expanded", value);
       toggle.setAttribute("aria-expanded", String(value));
-      toggleText.setText(value ? "收起详情" : "展开详情");
+      toggleText.setText(value ? tr("收起详情") : tr("展开详情"));
     };
     toggle.addEventListener("click", () => setExpanded(!box.hasClass("is-expanded")));
     // Things that need fixing are shown open; plain notes stay on one line.
@@ -170,7 +170,7 @@ export class ExportPreviewModal extends Modal {
       const row = list.createDiv({ cls: `ibp-export-check__row is-${issue.level}` });
       const text = row.createSpan({ cls: "ibp-export-check__text" });
       if (issue.line) {
-        const jump = text.createEl("button", { cls: "ibp-export-check__line", text: `第 ${issue.line} 行`, attr: { type: "button" } });
+        const jump = text.createEl("button", { cls: "ibp-export-check__line", text: tr("第 {line} 行", { line: issue.line }), attr: { type: "button" } });
         jump.addEventListener("click", () => {
           this.close();
           void app.workspace.getLeaf(false).openFile(this.file, { eState: { line: issue.line - 1 } });
@@ -224,7 +224,7 @@ export class ExportPreviewModal extends Modal {
     if (kind === "html") {
       const html = await this.deps.prepareHtmlDocument(this.plugin, this.file, {
         cover: false, signal: this.controller.signal,
-        onProgress: async (html: string) => { await this.renderFrame(loadingBar(html)); this.showPartial("首屏已加载，正在生成后续内容…"); }
+        onProgress: async (html: string) => { await this.renderFrame(loadingBar(html)); this.showPartial(tr("首屏已加载，正在生成后续内容…")); }
       });
       this.controller.signal.throwIfAborted();
       return this.renderFrame(html);
@@ -255,11 +255,11 @@ export class ExportPreviewModal extends Modal {
     await new Promise((resolve, reject) => {
       const signal = this.controller.signal;
       const cleanup = () => { window.clearTimeout(timer); frame.onload = frame.onerror = null; signal.removeEventListener("abort", aborted); };
-      const aborted = () => { cleanup(); reject(signal.reason instanceof Error ? signal.reason : new Error("预览已取消")); };
-      const timer = window.setTimeout(() => { cleanup(); reject(new Error("预览页面加载超时")); }, 10000);
+      const aborted = () => { cleanup(); reject(signal.reason instanceof Error ? signal.reason : new Error(tr("预览已取消"))); };
+      const timer = window.setTimeout(() => { cleanup(); reject(new Error(tr("预览页面加载超时"))); }, 10000);
       signal.addEventListener("abort", aborted, { once: true });
       frame.onload = () => { cleanup(); frame.contentWindow?.scrollTo(0, scrollTop); resolve(undefined); };
-      frame.onerror = () => { cleanup(); reject(new Error("预览页面加载失败")); };
+      frame.onerror = () => { cleanup(); reject(new Error(tr("预览页面加载失败"))); };
       frame.srcdoc = html;
     });
     this.controller.signal.throwIfAborted();
@@ -286,10 +286,10 @@ export class ExportPreviewModal extends Modal {
       keepStrip: long, signal: this.controller.signal,
       onProgress: !long ? async ({ pages }) => {
         this.fit(book, pages[0]?.getBoundingClientRect().width || 800);
-        this.showPartial(`已加载前 ${pages.length} 页，正在生成后续页面…`);
+        this.showPartial(tr("已加载前 {n} 页，正在生成后续页面…", { n: pages.length }));
       } : null
     });
-    if (!result) throw new Error("页面尺寸无效");
+    if (!result) throw new Error(tr("页面尺寸无效"));
     if (long) {
       result.pages.forEach(sheet => sheet.remove());
       const sheet = book.createDiv({ cls: "ibp-long-sheet" });
@@ -301,13 +301,13 @@ export class ExportPreviewModal extends Modal {
     }
     const width = result.pages[0]?.getBoundingClientRect().width || 800;
     this.fit(book, width);
-    this.summary.setText(`共 ${result.pages.length} 页`);
+    this.summary.setText(tr("共 {n} 页", { n: result.pages.length }));
   }
 
   async renderSlides() {
     this.forceLight();
     const deck = await this.deps.buildDeck(this.plugin, this.file, this.component);
-    if (!deck) throw new Error("没有可放映的内容");
+    if (!deck) throw new Error(tr("没有可放映的内容"));
     const list = this.viewport.createDiv({ cls: "ibp-export-preview__slides" });
     const total = deck.entries.length;
     const addSlide = (entry: { el: HTMLElement }) => {
@@ -326,12 +326,12 @@ export class ExportPreviewModal extends Modal {
     const FIRST = 2, BATCH = 3;
     deck.entries.slice(0, FIRST).forEach(addSlide);
     for (let index = FIRST; index < total; index += BATCH) {
-      this.showPartial(`已加载 ${Math.min(index, total)} / ${total} 页，正在继续加载…`);
+      this.showPartial(tr("已加载 {v} / {total} 页，正在继续加载…", { v: Math.min(index, total), total }));
       await new Promise(resolve => window.requestAnimationFrame(() => window.setTimeout(resolve, 0)));
       this.controller.signal.throwIfAborted();
       deck.entries.slice(index, index + BATCH).forEach(addSlide);
     }
-    this.summary.setText(`共 ${total} 页`);
+    this.summary.setText(tr("共 {total} 页", { total }));
   }
 }
 
@@ -346,7 +346,7 @@ class DismissNoticeModal extends Modal {
   constructor(plugin: IgnorancePlugin, private count: number, private onConfirm: () => void) { super(plugin.app); }
   onOpen() {
     this.titleEl.setText(tr("关闭导出检查提示？"));
-    this.contentEl.createEl("p", { cls: "ibp-export-check__confirm", text: `关闭后，本次预览将不再显示这 ${this.count} 项说明。导出过程和潜在的缺图风险不会因此改变。` });
+    this.contentEl.createEl("p", { cls: "ibp-export-check__confirm", text: tr("关闭后，本次预览将不再显示这 {n} 项说明。导出过程和潜在的缺图风险不会因此改变。", { n: this.count }) });
     const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
     const keep = footer.createEl("button", { text: tr("保留提示") });
     keep.addEventListener("click", () => this.close());

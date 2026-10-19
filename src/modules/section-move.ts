@@ -10,7 +10,7 @@ function run(editor: Editor, direction: "up" | "down") {
   const cursor = editor.getCursor();
   const text = editor.getValue();
   const moved = moveSection(text, cursor.line, direction);
-  if (!moved) { new Notice(direction === "up" ? "上面没有同级章节可以交换" : "下面没有同级章节可以交换", 3000); return; }
+  if (!moved) { new Notice(direction === "up" ? tr("上面没有同级章节可以交换") : tr("下面没有同级章节可以交换"), 3000); return; }
   // Only the swapped span is rewritten, so the rest of the note keeps its folds and scroll position.
   const before = text.split("\n"), after = moved.text.split("\n");
   let head = 0, tail = 0;
@@ -30,7 +30,7 @@ function insertMindmap(plugin: IgnorancePlugin, editor: Editor) {
 }
 
 export function installSectionMove(plugin: IgnorancePlugin) {
-  plugin.addCommand({ id: "headings-to-mindmap", name: "把标题结构插入为思维导图", icon: "lucide-network", editorCallback: editor => insertMindmap(plugin, editor) });
-  plugin.addCommand({ id: "move-section-up", name: "章节上移（连同子章节）", icon: "lucide-arrow-up", editorCallback: editor => run(editor, "up") });
-  plugin.addCommand({ id: "move-section-down", name: "章节下移（连同子章节）", icon: "lucide-arrow-down", editorCallback: editor => run(editor, "down") });
+  plugin.addCommand({ id: "headings-to-mindmap", name: tr("把标题结构插入为思维导图"), icon: "lucide-network", editorCallback: editor => insertMindmap(plugin, editor) });
+  plugin.addCommand({ id: "move-section-up", name: tr("章节上移（连同子章节）"), icon: "lucide-arrow-up", editorCallback: editor => run(editor, "up") });
+  plugin.addCommand({ id: "move-section-down", name: tr("章节下移（连同子章节）"), icon: "lucide-arrow-down", editorCallback: editor => run(editor, "down") });
 }

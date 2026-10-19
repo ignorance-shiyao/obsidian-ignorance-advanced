@@ -258,7 +258,7 @@ class TableResizeLayer {
     const button = createEl("button");
     button.type = "button";
     button.className = "ibt-size";
-    button.title = "表格尺寸";
+    button.title = tr("表格尺寸");
     button.setAttribute("aria-label", tr("表格尺寸"));
     setIcon(button, UI_ICONS.width);
     button.addEventListener("pointerdown", event => { event.preventDefault(); event.stopPropagation(); });
@@ -266,14 +266,14 @@ class TableResizeLayer {
       event.preventDefault(); event.stopPropagation();
       const menu = new Menu();
       const add = (title: string, icon: string, run: () => void) => menu.addItem(item => item.setTitle(title).setIcon(icon).onClick(() => { this.build(); run(); }));
-      add("所有列适应内容", "lucide-between-vertical-start", () => this.fitAll());
-      add("等分列宽", "lucide-columns-3", () => this.equalize());
-      add("撑满正文宽度", "lucide-move-horizontal", () => this.fillWidth());
+      add(tr("所有列适应内容"), "lucide-between-vertical-start", () => this.fitAll());
+      add(tr("等分列宽"), "lucide-columns-3", () => this.equalize());
+      add(tr("撑满正文宽度"), "lucide-move-horizontal", () => this.fillWidth());
       menu.addSeparator();
-      add("所有行适应内容", "lucide-between-horizontal-start", () => this.autoRows());
-      add("统一行高", "lucide-rows-3", () => this.equalizeRows());
+      add(tr("所有行适应内容"), "lucide-between-horizontal-start", () => this.autoRows());
+      add(tr("统一行高"), "lucide-rows-3", () => this.equalizeRows());
       menu.addSeparator();
-      add("重置列宽与行高", "lucide-rotate-ccw", () => this.resetAll());
+      add(tr("重置列宽与行高"), "lucide-rotate-ccw", () => this.resetAll());
       // Modifier keys and double-click hints only make sense with a mouse.
       if (!document.body.classList.contains("is-mobile")) {
       menu.addSeparator();
@@ -533,7 +533,7 @@ class TableResizeLayer {
       frame = 0;
       this.options.resize(axis, index, size);
       this.build();
-      this.readout.textContent = `${axis === "col" ? "列宽" : "行高"} ${size} 像素${stuck ? ` · ${stuck.label}` : ""}`;
+      this.readout.textContent = `${axis === "col" ? tr("列宽") : tr("行高")} ${size} 像素${stuck ? ` · ${stuck.label}` : ""}`;
       const box = handle.getBoundingClientRect();
       this.readout.style.left = `${Math.max(80, Math.min(window.innerWidth - 80, box.left))}px`;
       this.readout.style.top = `${Math.max(36, Math.min(window.innerHeight - 36, box.top))}px`;
@@ -653,7 +653,7 @@ class CodeCopyWidget extends WidgetType {
     actions.appendChild(button);
     const align = createEl("button");
     align.type = "button"; align.className = "ibc-live-copy ibc-live-align";
-    align.title = "代码块位置"; align.setAttribute("aria-label", tr("代码块位置"));
+    align.title = tr("代码块位置"); align.setAttribute("aria-label", tr("代码块位置"));
     setIcon(align, UI_ICONS.alignCenter);
     align.addEventListener("mousedown", e => { e.preventDefault(); e.stopPropagation(); });
     align.addEventListener("click", event => {
@@ -661,7 +661,7 @@ class CodeCopyWidget extends WidgetType {
       const menu = new Menu();
       const line = () => view.state.doc.lineAt(view.posAtDOM(align));
       const current = line().text.match(/\{align=(left|center|right)\}/)?.[1] || "default";
-      for (const [id, label] of [["default","跟随默认"],["left","居左"],["center","居中"],["right","居右"]]) menu.addItem(item => item.setTitle(label).setChecked(current === id).onClick(() => {
+      for (const [id, label] of [["default",tr("跟随默认")],["left",tr("居左")],["center",tr("居中")],["right",tr("居右")]]) menu.addItem(item => item.setTitle(label).setChecked(current === id).onClick(() => {
         const opening = line();
         if (!FENCE_OPEN.test(opening.text)) return;
         const clean = opening.text.replace(/\s*\{align=(?:left|center|right)\}/g, "").trimEnd();
@@ -885,8 +885,10 @@ function setWritingMode(plugin: IgnorancePlugin, mode: string, value: boolean) {
 function toggleWritingMode(plugin: IgnorancePlugin, mode: string) {
   const current = Boolean(plugin.state.writingModes?.[mode]);
   setWritingMode(plugin, mode, !current);
-  const label = mode === "typewriterScroll" ? "打字机滚动" : "专注模式";
-  new Notice(`${label}已${current ? "关闭" : "开启"}`);
+  const typewriter = mode === "typewriterScroll";
+  new Notice(current
+    ? (typewriter ? tr("打字机滚动已关闭") : tr("专注模式已关闭"))
+    : (typewriter ? tr("打字机滚动已开启") : tr("专注模式已开启")));
 }
 
 

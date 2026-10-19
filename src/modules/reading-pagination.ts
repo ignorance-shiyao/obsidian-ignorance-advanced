@@ -67,7 +67,7 @@ function annotateTaskCheckboxes(staging: HTMLElement, text: string) {
     // A mismatched source/render order must not turn a different task in the file.
     checkboxes.forEach(input => {
       input.disabled = true;
-      input.title = "当前分页无法定位此任务，请在无分页阅读模式中修改";
+      input.title = tr("当前分页无法定位此任务，请在无分页阅读模式中修改");
     });
     return;
   }
@@ -151,10 +151,10 @@ function installBookInteractions(plugin: RenderingContext, view: MarkdownView, b
     void (async () => {
       try {
         const current = await plugin.app.vault.read(file);
-        if (current.split("\n")[lineIndex] !== sourceLine) throw new Error("任务所在行已变化");
+        if (current.split("\n")[lineIndex] !== sourceLine) throw new Error(tr("任务所在行已变化"));
         await plugin.app.vault.process(file, data => {
           const lines = data.split("\n");
-          if (lines[lineIndex] !== sourceLine) throw new Error("任务所在行已变化");
+          if (lines[lineIndex] !== sourceLine) throw new Error(tr("任务所在行已变化"));
           lines[lineIndex] = `${sourceMatch[1]}${wanted ? "x" : " "}${sourceMatch[3]}`;
           return lines.join("\n");
         });

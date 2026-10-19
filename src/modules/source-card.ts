@@ -15,7 +15,7 @@ async function address(editor: Editor): Promise<string> {
 export function installSourceCard(plugin: IgnorancePlugin) {
   plugin.addCommand({
     id: "insert-source-card",
-    name: "把链接变成来源卡片（选中链接或使用剪贴板）",
+    name: tr("把链接变成来源卡片（选中链接或使用剪贴板）"),
     icon: "lucide-link",
     editorCallback: editor => {
       void (async () => {

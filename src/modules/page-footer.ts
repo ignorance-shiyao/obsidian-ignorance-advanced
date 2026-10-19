@@ -1,13 +1,13 @@
 import type { RenderingContext } from "../rendering-context.js";
-import { tr } from "../i18n.js";
+import { tr, zh } from "../i18n.js";
 import { Modal } from "obsidian";
 /* Page footer text for the paged reading view and its exports: a template with {title}, {page}, {pages} and
    {date}, shown at the bottom left of every page. */
 export const FOOTER_CHOICES: Array<[string, string]> = [
-  ["", "不显示"],
-  ["{title}", "笔记标题"],
-  ["{title} · {date}", "笔记标题 · 日期"],
-  ["第 {page} 页，共 {pages} 页", "第 N 页，共 M 页"]
+  ["", zh("不显示")],
+  ["{title}", zh("笔记标题")],
+  ["{title} · {date}", zh("笔记标题 · 日期")],
+  ["第 {page} 页，共 {pages} 页", zh("第 N 页，共 M 页")]
 ];
 
 export function renderFooter(template: string, values: { title: string; page: number; pages: number; date: string }) {

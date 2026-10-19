@@ -1,17 +1,18 @@
+import { zh } from "../i18n.js";
 import { derivePalette } from "./accent-palette.js";
 
 /* The eight curated palettes. Each is tuned by hand for its paper, ink and
    accent in both modes; everything else (surfaces, borders, diagram and chart
    colours) is derived from these so the theme, slides and exports agree. */
 export const THEME_PRESETS = [
-  { id: "azure", label: "天蓝", accent: "#3B6FE8", lightPaper: "#FAF8F4", darkPaper: "#0E1420", lightInk: "#123258", darkInk: "#EAF3FF" },
-  { id: "pine", label: "松绿", accent: "#2E7D5B", lightPaper: "#F7FAF7", darkPaper: "#0F1A16", lightInk: "#1F2C26", darkInk: "#E6F0EA" },
-  { id: "book", label: "书卷", accent: "#8B5E34", lightPaper: "#FBF7EE", darkPaper: "#1C1914", lightInk: "#2F2A22", darkInk: "#EFE7D8" },
-  { id: "graphite", label: "石墨", accent: "#4A5568", lightPaper: "#FAFAFA", darkPaper: "#121315", lightInk: "#1F2328", darkInk: "#E8E9EB" },
-  { id: "terracotta", label: "赤陶", accent: "#B4533C", lightPaper: "#FBF6F2", darkPaper: "#1E1715", lightInk: "#33241F", darkInk: "#F3E7E1" },
-  { id: "teal", label: "深海青", accent: "#177E89", lightPaper: "#F5F9FA", darkPaper: "#0D1A1D", lightInk: "#1B2E31", darkInk: "#E3F1F2" },
-  { id: "wisteria", label: "紫藤", accent: "#6A55B5", lightPaper: "#F9F8FC", darkPaper: "#16131F", lightInk: "#282339", darkInk: "#ECE8F7" },
-  { id: "amber", label: "琥珀", accent: "#B26B12", lightPaper: "#FCF8F0", darkPaper: "#1D1812", lightInk: "#33291B", darkInk: "#F3EADB" }
+  { id: "azure", label: zh("天蓝"), accent: "#3B6FE8", lightPaper: "#FAF8F4", darkPaper: "#0E1420", lightInk: "#123258", darkInk: "#EAF3FF" },
+  { id: "pine", label: zh("松绿"), accent: "#2E7D5B", lightPaper: "#F7FAF7", darkPaper: "#0F1A16", lightInk: "#1F2C26", darkInk: "#E6F0EA" },
+  { id: "book", label: zh("书卷"), accent: "#8B5E34", lightPaper: "#FBF7EE", darkPaper: "#1C1914", lightInk: "#2F2A22", darkInk: "#EFE7D8" },
+  { id: "graphite", label: zh("石墨"), accent: "#4A5568", lightPaper: "#FAFAFA", darkPaper: "#121315", lightInk: "#1F2328", darkInk: "#E8E9EB" },
+  { id: "terracotta", label: zh("赤陶"), accent: "#B4533C", lightPaper: "#FBF6F2", darkPaper: "#1E1715", lightInk: "#33241F", darkInk: "#F3E7E1" },
+  { id: "teal", label: zh("深海青"), accent: "#177E89", lightPaper: "#F5F9FA", darkPaper: "#0D1A1D", lightInk: "#1B2E31", darkInk: "#E3F1F2" },
+  { id: "wisteria", label: zh("紫藤"), accent: "#6A55B5", lightPaper: "#F9F8FC", darkPaper: "#16131F", lightInk: "#282339", darkInk: "#ECE8F7" },
+  { id: "amber", label: zh("琥珀"), accent: "#B26B12", lightPaper: "#FCF8F0", darkPaper: "#1D1812", lightInk: "#33291B", darkInk: "#F3EADB" }
 ] as const;
 
 export const THEME_TOKEN_NAMES = [
