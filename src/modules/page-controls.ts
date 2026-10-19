@@ -24,7 +24,7 @@ const MM = 96 / 25.4;
 // presets are the share of the window the page takes while it is on.
 // Each preset also has a line-length cap in pixels: on a wide monitor a bare share gives lines too long to read.
 const MARGIN_KEYS: [keyof PageState["margins"], string][] = [["t", "上"], ["b", "下"], ["l", "左"], ["r", "右"]];
-const WIDTH_PRESETS: [string, string, number, number][] = [["narrow", "窄", 55, 720], ["standard", "标准", 70, 900], ["wide", "宽", 88, 1200]];
+const WIDTH_PRESETS: [string, string, number, number][] = [["narrow", "窄", 62, 800], ["standard", "标准", 84, 1100], ["wide", "宽", 95, 1400]];
 const ZOOM_MIN = 0.5, ZOOM_MAX = 3;
 const PAGE_GAP = 24;
 

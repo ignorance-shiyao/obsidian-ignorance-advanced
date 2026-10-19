@@ -659,7 +659,7 @@ body.is-phone .markdown-rendered pre.ibc-enhanced > code {
 .ibp-export-check__restore:hover { color: var(--ib-accent-solid); }
 .ibp-export-check__confirm { margin: 0 0 var(--ib-space-3, 12px); line-height: 1.7; color: var(--ib-text-secondary); }
 @media (max-width: 560px) {
-  .ibp-export-check__content { flex-wrap: wrap; row-gap: 3px; column-gap: 6px; }
+  .ibp-export-check__content { flex-wrap: wrap; gap: 3px 6px; }
   .ibp-export-check__summary { flex: 0 0 100%; white-space: normal; }
   .ibp-export-check__list { padding-left: 13px; }
 }
@@ -3405,7 +3405,7 @@ body.ib-theme-text-size:not(#_ib) { --font-text-size: var(--ib-text-size); }
   position: absolute; inset-block-end: 2px; inset-inline-end: 0; z-index: 4;
   display: flex; gap: 2px; align-items: center; opacity: 0; transition: opacity 0.15s;
 }
-.ibp-table-anchor:hover > .ibp-table-tools, .ibp-table-anchor:focus-within > .ibp-table-tools, .ibp-table-anchor:has(+ .el-table:hover) > .ibp-table-tools, .is-mobile .ibp-table-tools { opacity: 1; }
+.ibp-table-anchor:hover > .ibp-table-tools, .ibp-table-anchor:focus-within > .ibp-table-tools, .ibp-table-anchor.is-table-hover > .ibp-table-tools, .is-mobile .ibp-table-tools { opacity: 1; }
 .ibp-table-tool { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; background: transparent; box-shadow: none; color: var(--ib-text-muted); }
 .is-phone .ibp-table-tool { width: 36px; height: 36px; }
 .is-phone .ibp-table-search { height: 36px; }
@@ -3461,3 +3461,186 @@ body.ib-theme-text-size:not(#_ib) { --font-text-size: var(--ib-text-size); }
 .ib-note-picker__list { max-height: 45vh; overflow: auto; border: 1px solid var(--ib-border-default); border-radius: 8px; padding: 4px 8px; }
 .ib-note-picker__row { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; font-size: var(--font-ui-small); }
 .ib-note-picker__count { margin-inline-end: auto; align-self: center; color: var(--ib-text-muted); font-size: var(--font-ui-smaller); }
+
+/* Presentation view styles (used by the Ignorance Advanced plugin) */
+/* 部分移植自 MorphDraft src/styles/slides.css（MIT）；适配 Ignorance Advanced 演示视图。 */
+/* ===== 幻灯片视觉：统一放在 .slide-surface，供 reveal 预览与导出离屏截图共用 ===== */
+/* reveal.css 默认会给容器/letterbox 铺白底，缩放居中后在幻灯片四周露出"白边框"，
+   在暗色主题下尤其割裂。强制透明 → letterbox 直接透出 .slide-frame(=var(--bg))，无缝一片。 */
+/* reveal.css 默认给容器/letterbox 铺白底，缩放居中后在幻灯片四周露出白边框（暗色尤其割裂）。
+   只把这些容器底色透明 → letterbox 透出 .slide-frame，无缝。注意：不要动 section 的 padding——
+   .slide-surface 自身的内容内边距来自它，清零会让内容越界。 */
+
+/* Presentation controls use Ignorance design tokens; the plugin stylesheet
+   owns only the geometry required by the view. */
+/* 操作栏：翻页、外观、输出、分屏都在这一条里；按钮与下拉统一为 30px 高的无边框控件。 */
+/* 皮肤、画幅、动效用按钮 + Obsidian 菜单，菜单样式由主题统一，不走系统下拉。 */
+
+/* 全屏翻页：只在全屏出现；鼠标移动时淡入，静止约 2 秒后淡出，不打扰放映。 */
+/* 这个视图的全部操作都在顶部操作栏，标题栏不再放「⋯」菜单。 */
+.workspace-leaf-content[data-type="ignorance-presentation"] .view-header .view-actions {
+  display: none;
+}
+/* 演示舞台跟随 Ignorance 主题的桌面底色（与笔记纸面外的底色一致），幻灯片皮肤只作用于画幅内部。
+   幻灯片作为一块悬浮画幅居中（Reveal margin 留出四周空间），操作区是舞台顶部的悬浮条。 */
+
+/* Reveal.js 会把幻灯片的 class 复制到铺满舞台的背景层（.backgrounds > .slide-background）上，
+   皮肤写给 .slide-surface 的底色、边框和条纹装饰会连带画满整个舞台，看起来像多叠了一页。
+   背景层只保留透明，画幅外露出舞台底色。 */
+
+/* fragment（\3c !-- step --> 分步块）默认全显：编辑预览、缩略图、导出都不因分步而隐藏内容。
+   放映时由 SlidePreview 的 .is-presenting 规则恢复「未 .visible 则隐藏」的分步行为。
+   用 !important 压过 reveal.css 的 .fragment{opacity:0}。 */
+/* S1: 内容页顶部主色细线，赋予「成套设计」观感（封面/章节页不加，它们另有处理） */
+
+/* 自动续页：顶对齐（无论原版式），内容从顶部顺排；重复的 H1 作为「章节眉头」略收敛 */
+
+/* ---- 标题排印 ---- */
+
+/* ---- 正文元素 ---- */
+
+/* ---- 容器与图表 ---- */
+
+/* 图片：圆角 + 细边 + 轻阴影 */
+
+/* ===== 版式 ===== */
+/* Blocks keep their height: shrinking squashed code and formula blocks into
+   slivers and hid the overflow that moves them to the next page. */
+/* 封面仅保留右上单角环境光，正文沿用静态底色。 */
+/* S1: 章节页大色块底，强分隔感 */
+
+/* 图文版式（借鉴 Gamma 图左/图右）：首张图浮到一侧，正文环绕 */
+
+/* ===== 新增版式：split（自动双栏）/ grid（卡片栅格）/ image-full（整图铺底）===== */
+/* split / grid 复用 default 的容器与标题骨架，仅正文排布不同 */
+/* split：正文自动分两栏（磁带式流排），块不被栏切断 */
+/* The divider sits in the middle of the gap between the two columns. */
+/* 内容自带分栏（:::cols）时不再二次分栏（见上，仅 :not(.ib-has-cols) 分栏），否则整个容器挤进左栏 */
+/* 列表是最常见的“厚重内容”：让条目跨栏流动，只保证单个条目不被栏切断 */
+/* grid：正文块排成 2 列卡片栅格 */
+
+/* image-full：首图整屏铺底，标题/正文叠加在底部，暗角保证可读 */
+
+/* 多栏：直接子元素（.col 或直接放 :::panel/:::card 等）一律等宽 */
+
+/* PPT 组件在幻灯片内的收口：画廊图去掉全局图片边框/限高，KPI 数字随画布略收 */
+
+/* ===== 逐语法适配（PPT 设计稿）：幻灯片内各 markdown 语法的样式精修，token 驱动 =====
+   注意：不动通用 ul/ol 标记（::marker 已着色），以免与 .kpi-grid/.steps/.process/.timeline
+   等复用 ul>li 的组件互相打架。这里只补「原本幻灯片里缺样式」的语法。 */
+
+/* 无序/有序列表：仅调间距，标记沿用既有 ::marker 主色 */
+
+/* 任务清单：复选框对齐主色、已完成项淡出 */
+
+/* 行内：键位 kbd / 高亮 mark（base.css 仅给 .doc-preview，幻灯片这里补齐） */
+
+/* 提示框/标注：幻灯片内统一圆角，贴近设计稿卡片 */
+
+/* 时间线 / 步骤：幻灯片内字号与间距收口，避免溢出 */
+
+/* 分隔线（幻灯片内的 *** / ___；--- 是分页符不走这里）：纤细主色渐隐 */
+/* 图注 figure/figcaption（base.css 的同名样式仅作用于 .doc-preview，幻灯片这里补齐） */
+/* 脚注：幻灯片内缩小、收口 */
+
+/* 内容较多时的兜底：保持画布比例，不让正文越过 16:9 边界。 */
+
+/* V3.3 翻页：复用主题时长，只允许opacity/transform。 */
+@keyframes ib-ppt-page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 导出 PPTX 时逐页截图，冻结过渡与进入动效，避免截到半透明的中间帧。 */
+
+/* M4-4: 演讲者备注只在演讲者窗口可见，幻灯片正文/缩略图/导出中隐藏 */
+.speaker-notes { display: none; }
+
+/* ::: 容器在幻灯片里：阅读视图的尺寸按像素设计，放到放大的画布上要改成按比例分配 */
+
+/* Palette skins carry their own light or dark mode, whatever the app is in;
+   code colours follow the slide, not the window. */
+
+/* End of presentation view styles */
+
+
+/* Mermaid colour tokens (kept here rather than in the theme: only this plugin renders diagrams). */
+.theme-light {
+  --ib-mm-canvas: var(--ib-bg-primary);
+  --ib-mm-text: var(--ib-text-primary);
+  --ib-mm-muted: var(--ib-text-secondary);
+  --ib-mm-card: #FFFFFF;
+  --ib-mm-node-fill: var(--ib-accent-subtle);
+  --ib-mm-node-stroke: color-mix(in srgb, var(--ib-accent-brand) 40%, transparent);
+  --ib-mm-cluster-fill: var(--ib-bg-secondary);
+  --ib-mm-cluster-stroke: var(--ib-border-default);
+  --ib-mm-alt-fill: #EDF2F9;
+  --ib-mm-note-fill: #EBF2FC;
+  --ib-mm-note-stroke: #B0C5E8;
+  --ib-mm-line: #8FA6CC;
+  --ib-mm-arrow: #6F8FC9;
+  --ib-mm-grid: rgba(107, 114, 128, 0.22);
+  --ib-mm-crit-fill: #FCEBEB;
+  --ib-mm-crit-stroke: #B63D49;
+  --ib-mm-active-fill: #E9F0FF;
+  --ib-mm-active-stroke: #356FD8;
+  --ib-mm-done-fill: #EBFCF1;
+  --ib-mm-done-stroke: #247A49;
+  --ib-mm-group-cluster: 8%;
+  --ib-mm-group-stroke: 28%;
+  --ib-mm-group-base: transparent;
+  --ib-mm-section-tint: 16%;
+  --ib-mm-group-node: 14%;
+  --ib-mm-on-series: #F5F9FF;
+  --ib-mm-shadow: drop-shadow(0 1px 1.5px rgba(31, 55, 110, 0.07)) drop-shadow(0 4px 10px color-mix(in srgb, var(--ib-accent-brand) 8%, transparent));
+}
+.theme-dark {
+  --ib-mm-canvas: var(--ib-bg-primary);
+  --ib-mm-text: var(--ib-text-primary);
+  --ib-mm-muted: var(--ib-text-secondary);
+  --ib-mm-card: #243249;
+  --ib-mm-node-fill: var(--ib-accent-subtle);
+  --ib-mm-node-stroke: color-mix(in srgb, var(--ib-accent-brand) 80%, transparent);
+  --ib-mm-cluster-fill: #111827;
+  --ib-mm-cluster-stroke: #52678A;
+  --ib-mm-alt-fill: #1B2537;
+  --ib-mm-note-fill: #141F2C;
+  --ib-mm-note-stroke: #324A67;
+  --ib-mm-line: #8AA3CF;
+  --ib-mm-arrow: #A9BFE6;
+  --ib-mm-grid: rgba(156, 163, 175, 0.24);
+  --ib-mm-crit-fill: #2C1414;
+  --ib-mm-crit-stroke: #F87171;
+  --ib-mm-active-fill: #1B2B48;
+  --ib-mm-active-stroke: #6F9AF4;
+  --ib-mm-done-fill: #142C23;
+  --ib-mm-done-stroke: #34D399;
+  --ib-mm-group-cluster: 4%;
+  --ib-mm-group-stroke: 65%;
+  --ib-mm-group-base: #1A2538;
+  --ib-mm-section-tint: 7%;
+  --ib-mm-group-node: 22%;
+  --ib-mm-on-series: #10151F;
+  --ib-mm-shadow: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.35));
+}
+body {
+  --ib-mm-accent-stroke: var(--ib-accent-brand);
+  --ib-mm-text-accent: var(--ib-text-accent);
+  --ib-mm-series-1: var(--ib-chart-1);
+  --ib-mm-series-text-1: var(--ib-mm-text);
+  --ib-mm-series-2: var(--ib-chart-2);
+  --ib-mm-series-text-2: var(--ib-mm-text);
+  --ib-mm-series-3: var(--ib-chart-3);
+  --ib-mm-series-text-3: var(--ib-mm-text);
+  --ib-mm-series-4: var(--ib-chart-4);
+  --ib-mm-series-text-4: var(--ib-mm-text);
+  --ib-mm-series-5: var(--ib-chart-5);
+  --ib-mm-series-text-5: var(--ib-mm-text);
+  --ib-mm-series-6: var(--ib-chart-6);
+  --ib-mm-series-7: var(--ib-chart-7);
+  --ib-mm-series-text-7: var(--ib-mm-text);
+  --ib-mm-series-8: var(--ib-chart-8);
+}
+.theme-dark {
+  --ib-mm-accent-stroke: color-mix(in srgb, var(--ib-accent-brand) 70%, #FFFFFF);
+}

@@ -81,6 +81,9 @@ function buildTools(plugin: IgnorancePlugin, table: HTMLTableElement, host: HTML
   const anchor = createDiv({ cls: "ibp-table-anchor" });
   anchor.setCssProps({ width: `${table.offsetWidth}px` });
   host.before(anchor);
+  // The bar shows while the pointer is over the table (a class instead of a :has() selector, which is slow to invalidate).
+  host.addEventListener("pointerenter", () => anchor.addClass("is-table-hover"));
+  host.addEventListener("pointerleave", () => anchor.removeClass("is-table-hover"));
   const bar = anchor.createDiv({ cls: "ibp-table-tools" });
   const button = (act: string, icon: string, label: string, hidden = false) => {
     const element = bar.createEl("button", { cls: "ibp-table-tool", attr: { "data-act": act, "aria-label": label, type: "button" } });
