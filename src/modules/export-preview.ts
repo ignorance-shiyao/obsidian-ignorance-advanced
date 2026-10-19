@@ -38,6 +38,9 @@ export interface ExportPreviewDeps {
   buildDeck(plugin: IgnorancePlugin, file: TFile, component: Component): Promise<{ reveal: HTMLElement; entries: { el: HTMLElement }[]; width: number; height: number } | null>;
 }
 
+// A thin note at the foot of the first-screen preview, so it does not read as the whole document while the rest is still being built.
+const loadingBar = (html: string) => html.replace("</body>", '<div style="position:fixed;left:0;right:0;bottom:0;padding:10px 16px;text-align:center;font:12px system-ui,sans-serif;color:#64748b;background:linear-gradient(rgba(255,255,255,0),#fff 55%);pointer-events:none">正在加载后续内容…</div></body>');
+
 export class ExportPreviewModal extends Modal {
   plugin: IgnorancePlugin;
   file: TFile;
@@ -196,7 +199,7 @@ export class ExportPreviewModal extends Modal {
     if (kind === "html") {
       const html = await this.deps.prepareHtmlDocument(this.plugin, this.file, {
         cover: false, signal: this.controller.signal,
-        onProgress: async (html: string) => { await this.renderFrame(html); this.showPartial("首屏已加载，正在生成后续内容…"); }
+        onProgress: async (html: string) => { await this.renderFrame(loadingBar(html)); this.showPartial("首屏已加载，正在生成后续内容…"); }
       });
       this.controller.signal.throwIfAborted();
       return this.renderFrame(html);
@@ -221,8 +224,8 @@ export class ExportPreviewModal extends Modal {
     const previous = this.frame;
     const scrollTop = previous?.contentWindow?.scrollY || 0;
     const frame = this.viewport.createEl("iframe", { cls: "ibp-export-preview__frame" });
-    // Keep the first screen painted while the completed reader loads.
-    if (previous) frame.setCssStyles({ visibility: "hidden" });
+    // Keep the first screen painted while the completed reader loads; the new one fades in over it.
+    if (previous) frame.setCssStyles({ opacity: "0" });
     frame.setAttribute("sandbox", "allow-scripts allow-same-origin");
     await new Promise((resolve, reject) => {
       const signal = this.controller.signal;
@@ -235,9 +238,15 @@ export class ExportPreviewModal extends Modal {
       frame.srcdoc = html;
     });
     this.controller.signal.throwIfAborted();
-    frame.setCssStyles({ visibility: "" });
-    if (!previous) frame.addClass("ibp-export-preview__reveal");
+    // Wait until the new page has painted, then cross-fade, so nothing blinks or jumps back to the top.
+    await new Promise(resolve => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
+    this.controller.signal.throwIfAborted();
+    if (previous) {
+      frame.setCssStyles({ transition: "opacity 0.18s ease", opacity: "1" });
+      await new Promise(resolve => window.setTimeout(resolve, 200));
+    } else frame.addClass("ibp-export-preview__reveal");
     previous?.remove();
+    frame.setCssStyles({ transition: "" });
     this.frame = frame;
     this.summary.setText("");
   }
@@ -275,7 +284,8 @@ export class ExportPreviewModal extends Modal {
     const deck = await this.deps.buildDeck(this.plugin, this.file, this.component);
     if (!deck) throw new Error("没有可放映的内容");
     const list = this.viewport.createDiv({ cls: "ibp-export-preview__slides" });
-    for (const entry of deck.entries) {
+    const total = deck.entries.length;
+    const addSlide = (entry: { el: HTMLElement }) => {
       const staged = stageSlide(deck.reveal, entry.el, deck.width, deck.height);
       const frame = list.createDiv({ cls: "ibp-export-preview__slide" });
       // Move the off-screen stage into the preview, laid out in place.
@@ -285,8 +295,18 @@ export class ExportPreviewModal extends Modal {
       // Slides read best at a comfortable size, not stretched to the window.
       const available = Math.min(760, Math.max(200, this.viewport.clientWidth - 32));
       frame.style.setProperty("zoom", String(Math.min(1, available / deck.width)));
+    };
+    // The first slides appear at once and the rest follow in small batches, without waiting for a scroll,
+    // so the preview is usable straight away and never rebuilt.
+    const FIRST = 2, BATCH = 3;
+    deck.entries.slice(0, FIRST).forEach(addSlide);
+    for (let index = FIRST; index < total; index += BATCH) {
+      this.showPartial(`已加载 ${Math.min(index, total)} / ${total} 页，正在继续加载…`);
+      await new Promise(resolve => window.requestAnimationFrame(() => window.setTimeout(resolve, 0)));
+      this.controller.signal.throwIfAborted();
+      deck.entries.slice(index, index + BATCH).forEach(addSlide);
     }
-    this.summary.setText(`共 ${deck.entries.length} 页`);
+    this.summary.setText(`共 ${total} 页`);
   }
 }
 
