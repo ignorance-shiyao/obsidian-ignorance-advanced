@@ -16,7 +16,7 @@ describe("export check", () => {
     expect(issues[1].message).toContain("assets/lost.png");
   });
   it("counts remote images and leaves absolute paths alone", () => {
-    const note = "![](https://a.com/1.png)\n![](https://a.com/2.png)\n![](/Users/x/y.png)";
+    const note = "![](https://a.com/1.png)\n![](https://a.com/2.png)\n![](/home/x/y.png)";
     const issues = scanExportIssues(note, options());
     expect(issues).toHaveLength(1);
     expect(issues[0]).toMatchObject({ line: 1, level: "note" });
