@@ -7,6 +7,8 @@ import { Component, Modal, Platform } from "obsidian";
 import { applyAppearancePreferences } from "./appearance.js";
 import { composePages } from "./reading-pagination.js";
 import { stageSlide } from "./offscreen-capture.js";
+import { scanExportIssues } from "./export-check-core.js";
+import { WORD_FONT_OPTIONS, normalizeWordFont } from "./word-font.js";
 
 
 const TITLES: Record<string, string> = {
@@ -71,6 +73,8 @@ export class ExportPreviewModal extends Modal {
     modalEl.addClass("ibp-export-preview");
     this.titleEl.setText(`${TITLES[this.kind] || "导出"} · 预览`);
     if (NOTES[this.kind]) contentEl.createDiv({ cls: "ibp-export-preview__note", text: NOTES[this.kind] });
+    const report = contentEl.createDiv({ cls: "ibp-export-check" });
+    void this.showReport(report);
     this.viewport = contentEl.createDiv({ cls: "ibp-export-preview__viewport" });
     // A visible busy state: generating a long note takes seconds.
     this.status = this.viewport.createDiv({ cls: "ibp-export-preview__status" });
@@ -121,6 +125,35 @@ export class ExportPreviewModal extends Modal {
       this.status.setText(`预览生成失败：${error instanceof Error ? error.message : typeof error === "string" ? error : JSON.stringify(error)}。仍可直接导出。`);
       this.confirm.disabled = false;
     });
+  }
+
+  // What this export cannot carry over, read from the note source; a line number jumps to it.
+  async showReport(host: HTMLElement) {
+    const { app } = this.plugin;
+    const source = await app.vault.cachedRead(this.file);
+    if (this.controller.signal.aborted) return;
+    const wordFont = WORD_FONT_OPTIONS.find(([value]) => value === normalizeWordFont(this.plugin.state.wordFont))?.[1];
+    const issues = scanExportIssues(source, {
+      kind: this.kind,
+      wordFont,
+      exists: target => Boolean(app.metadataCache.getFirstLinkpathDest(target, this.file.path) || app.vault.getAbstractFileByPath(target))
+    });
+    const problems = issues.filter(issue => issue.level === "warn").length;
+    if (!issues.length) { host.createDiv({ cls: "ibp-export-check__ok", text: "导出检查：没有发现问题" }); return; }
+    const box = host.createEl("details", { cls: "ibp-export-check__box" });
+    if (problems) box.open = true;
+    box.createEl("summary", { text: problems ? `导出检查：${problems} 处需要处理，另有 ${issues.length - problems} 条说明` : `导出检查：${issues.length} 条说明` });
+    for (const issue of issues) {
+      const row = box.createDiv({ cls: `ibp-export-check__row is-${issue.level}` });
+      if (issue.line) {
+        const jump = row.createEl("button", { cls: "ibp-export-check__line", text: `第 ${issue.line} 行` });
+        jump.addEventListener("click", () => {
+          this.close();
+          void app.workspace.getLeaf(false).openFile(this.file, { eState: { line: issue.line - 1 } });
+        });
+      }
+      row.createSpan({ text: issue.message });
+    }
   }
 
   finishGenerating() {

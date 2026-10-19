@@ -632,6 +632,14 @@ body.is-phone .markdown-rendered pre.ibc-enhanced > code {
 }
 .ibp-export-preview .modal-content { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; gap: var(--ib-space-3); }
 .ibp-export-preview__note { color: var(--ib-text-muted); font-size: var(--ib-tiny-size); }
+.ibp-export-check { font-size: var(--ib-tiny-size); color: var(--ib-text-muted); }
+.ibp-export-check__box > summary { cursor: pointer; }
+.ibp-export-check__box[open] { max-height: 12em; overflow: auto; }
+.ibp-export-check__row { display: flex; gap: var(--ib-space-2); align-items: center; padding-block: 3px; padding-inline-start: 14px; }
+.ibp-export-check__row.is-warn { color: var(--ib-text-primary); }
+.ibp-export-check__row.is-warn { position: relative; }
+.ibp-export-check__row.is-warn::before { content: ""; position: absolute; inset-inline-start: 2px; width: 6px; height: 6px; border-radius: 50%; background: var(--ib-warning-icon); }
+.ibp-export-check__line { flex: none; height: auto; min-height: 0; padding: 1px var(--ib-space-2); font-size: inherit; line-height: 1.4; box-shadow: none; }
 .ibp-export-preview__viewport {
   position: relative;
   flex: 1 1 auto;

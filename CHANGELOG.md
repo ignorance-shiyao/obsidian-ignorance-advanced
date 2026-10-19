@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Export check: the export preview now lists what the chosen format cannot carry over, read from the note itself and each with a line number that jumps to it. It finds images that cannot be found, broken cross references, dynamic blocks (dataview, base, tasks), remote images that are only fetched while exporting, Mermaid diagrams and the Word font. Word export also tells you how many images or diagrams did not make it into the file.
+
 Paste enhancement: pasting a URL over selected text makes a Markdown link, and spreadsheet cells copied from Excel or Numbers paste as a Markdown table (not inside code blocks). Each has its own switch in settings and nothing is fetched from the network.
 
 One page entry in the toolbar, labelled with the current width (for example "Standard · 785px"). Its menu is down to five items: width (narrow, standard, wide, custom, plus an optional width for this note only), heading font, layout preset, paged reading on/off, and paper & print (paper and orientation, margins, page numbers, header, footer, page breaks). In paged reading the width figure is dimmed but the menu stays available.

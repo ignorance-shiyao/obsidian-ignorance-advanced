@@ -569,6 +569,7 @@ async function vaultImageForWord(plugin: IgnorancePlugin, file: TFile, source: s
 async function exportWord(plugin: IgnorancePlugin, file: TFile) {
   const text = await plugin.app.vault.cachedRead(file);
   const diagrams: string[] = [];
+  let missingImages = 0;
   // Same fences, in the same order, as prepareMarkdownTextForPandoc replaces.
   const fences = [...text.matchAll(/```mermaid\n([\s\S]*?)```/g)];
   for (const [index, fence] of fences.entries()) {
@@ -589,8 +590,16 @@ async function exportWord(plugin: IgnorancePlugin, file: TFile) {
       }),
       codeFamily: wordFontFromToken(bodyStyle.getPropertyValue("--ib-font-mono"), "Consolas")
     },
-    resolveImage: (source: string) => vaultImageForWord(plugin, file, source)
+    resolveImage: async (source: string) => {
+      const image = await vaultImageForWord(plugin, file, source);
+      if (!image) missingImages += 1;
+      return image;
+    }
   });
+  const failedDiagrams = diagrams.filter(png => !png).length;
+  if (missingImages || failedDiagrams) {
+    new Notice([missingImages && `${missingImages} 张图片没能放进文档`, failedDiagrams && `${failedDiagrams} 个 Mermaid 图表渲染失败`].filter(Boolean).join("，") + "，Word 里留下的是替代文字或源码。", 10000);
+  }
   return saveExportToVault(plugin, `${file.basename}.docx`, bytes);
 }
 
