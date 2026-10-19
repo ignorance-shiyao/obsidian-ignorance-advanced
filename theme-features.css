@@ -3417,3 +3417,7 @@ body.ib-theme-text-size:not(#_ib) { --font-text-size: var(--ib-text-size); }
 .ibp-image-batch__controls { display: grid; gap: var(--ib-space-2); margin-bottom: var(--ib-space-3); }
 .ibp-image-batch__list { max-height: 40vh; }
 .ib-link-check__detail.is-error { color: var(--ib-error-icon); }
+
+/* Banner image (cssclasses: ib-banner, property: banner). */
+.ib-banner-block { margin: 0 0 var(--ib-space-4, 16px); border-radius: var(--ib-radius-md); overflow: hidden; }
+.ib-banner-block img { display: block; width: 100%; max-height: 220px; margin: 0; object-fit: cover; }

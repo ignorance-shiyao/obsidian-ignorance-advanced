@@ -46,6 +46,7 @@ import { installPageControls,setPageRefreshHandler } from "../modules/page-contr
 import { guardedCleanup } from "../modules/plugin-cleanup.js";
 import { installPreviewOverscan } from "../modules/preview-overscan.js";
 import { quoteIndentExtension } from "../modules/quote-indent.js";
+import { installReadingBanner } from "../modules/reading-banner.js";
 import { installReadingCover } from "../modules/reading-cover.js";
 import { refreshBooks } from "../modules/reading-pagination.js";
 import { installReadingPosition } from "../modules/reading-position.js";
@@ -117,6 +118,7 @@ export async function onload(plugin: IgnorancePlugin) {
   installTableExtras(plugin);
   installCaptions(plugin);
   installReadingCover(plugin);
+  installReadingBanner(plugin);
   installGifClick(plugin);
   installTableCrosshair(plugin);
   installTableSort(plugin);
