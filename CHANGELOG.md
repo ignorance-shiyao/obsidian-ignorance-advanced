@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Combine notes into an e-book: the command 把多篇笔记合成电子书 takes a list of notes (prefilled from the current note's links), makes each one a chapter in that order and writes an ePub 3 file to the export folder. Links between the listed notes point at the right chapter, a repeated image is stored once, and remote images, missing images and links leaving the book are counted in the final notice. Prototype: heading anchors, charts and Word output are not covered yet.
+
 Two commands, 章节上移 and 章节下移, swap the section under the cursor with its neighbour of the same level, taking sub-sections along. Headings inside code blocks and front matter are ignored, only the swapped lines are rewritten, and one undo restores them.
 
 Batch clipping lists every link with its result (clipped, already there, failed) and offers a retry for the failures. A link counts as already clipped even if it differs only by tracking parameters, a #fragment or a trailing slash, so a retry never makes a second file.
