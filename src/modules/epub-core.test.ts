@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
-import { buildEpub, combineMarkdown, imageMime, parseNoteList, chapterFile, escapeXml, navDocument, packageDocument } from "./epub-core";
+import { buildEpub, combineMarkdown, itemProperties, imageMime, parseNoteList, chapterFile, escapeXml, navDocument, packageDocument } from "./epub-core";
 
 const meta = { title: "三章 & 样本", author: "作者", language: "zh-CN", id: "urn:uuid:1", date: "2026-10-19T00:00:00Z" };
 const chapters = [{ title: "第一章", body: "<h1>一</h1><p>x</p>" }, { title: "第一章", body: "<p>同名章节</p>" }, { title: "三 <3>", body: "<p>z</p>" }];
@@ -43,5 +43,11 @@ describe("epub packaging", () => {
   });
   it("joins notes for Word without their front matter", () => {
     expect(combineMarkdown(["---\ntags: x\n---\n# 一\n文", "# 二\n\n", "", "---\na: 1\n---\n# 三"])).toBe("# 一\n文\n\n# 二\n\n# 三");
+  });
+  it("declares svg and mathml chapters in the package document", () => {
+    expect(itemProperties("<p>x</p>")).toBe("");
+    expect(itemProperties('<p><svg width="1"></svg></p>')).toBe(' properties="svg"');
+    expect(itemProperties("<math><mi>x</mi></math><svg/>")).toBe(' properties="svg mathml"');
+    expect(packageDocument(meta, [{ title: "a", body: "<svg></svg>" }], [])).toContain('href="ch-01.xhtml" media-type="application/xhtml+xml" properties="svg"');
   });
 });

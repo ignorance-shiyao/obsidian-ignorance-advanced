@@ -6,7 +6,7 @@ import { exportWord, saveExportToVault } from "./export.js";
 /* "Combine notes into an ePub": the notes listed in the dialog become chapters in that order. Links between the
    listed notes point at the right chapter, images are embedded once however often they are used, and anything that
    cannot go into an ePub (remote images, scripts, buttons) is dropped and counted in the final notice. */
-const DROP = "script, style, button, .copy-button, .ibm-block-header, .ibm-mermaid-toolbar, .metadata-container, .frontmatter, .frontmatter-container, .ib-table-resize-layer, .ibt-layer, .ib-image-actions, .ib-image-resize-layer, .ibp-table-anchor";
+const DROP = ".ib-block-resize, .callout-icon, .collapse-indicator, script, style, button, .copy-button, .ibm-block-header, .ibm-mermaid-toolbar, .metadata-container, .frontmatter, .frontmatter-container, .ib-table-resize-layer, .ibt-layer, .ib-image-actions, .ib-image-resize-layer, .ibp-table-anchor";
 const wait = (ms: number) => new Promise<void>(resolve => window.setTimeout(resolve, ms));
 
 interface BookReport { missingNotes: string[]; charts: number; missingImages: number; remoteImages: number; brokenLinks: number }

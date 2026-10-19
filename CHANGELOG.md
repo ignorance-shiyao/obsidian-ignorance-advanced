@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+E-book export now passes epubcheck 5.4 with no errors or warnings on a test book (images, table, code, callout, heading links): callout icons and resize handles are left out, and chapters with inline SVG or MathML are declared as such in the package file.
+
 On phones the table tools (filter, copy, save, write back) are 36 px buttons, easier to hit with a finger.
 
 Tables span the full width of the text column by default. Tables whose column widths were set by hand have not been re-checked against this change yet.

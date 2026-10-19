@@ -19,11 +19,17 @@ export function navDocument(meta: EpubMeta, chapters: EpubChapter[]) {
   return page(meta.title, meta.language, `<nav epub:type="toc" id="toc"><h1>${escapeXml(meta.title)}</h1><ol>${items}</ol></nav>`);
 }
 
+// Chapters with inline SVG or MathML must say so in the package document, or readers may refuse them.
+export function itemProperties(body: string): string {
+  const found = [/<svg[\s>/]/.test(body) ? "svg" : "", /<math[\s>/]/.test(body) ? "mathml" : ""].filter(Boolean);
+  return found.length ? ` properties="${found.join(" ")}"` : "";
+}
+
 export function packageDocument(meta: EpubMeta, chapters: EpubChapter[], images: EpubImage[]) {
   const manifest = [
     '<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>',
     '<item id="css" href="style.css" media-type="text/css"/>',
-    ...chapters.map((_, index) => `<item id="c${index + 1}" href="${chapterFile(index)}" media-type="application/xhtml+xml"/>`),
+    ...chapters.map((chapter, index) => `<item id="c${index + 1}" href="${chapterFile(index)}" media-type="application/xhtml+xml"${itemProperties(chapter.body)}/>`),
     ...images.map((image, index) => `<item id="i${index + 1}" href="images/${escapeXml(image.name)}" media-type="${image.mime}"/>`)
   ].join("");
   const spine = chapters.map((_, index) => `<itemref idref="c${index + 1}"/>`).join("");
