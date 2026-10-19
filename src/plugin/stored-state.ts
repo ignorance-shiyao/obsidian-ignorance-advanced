@@ -6,6 +6,7 @@ import { fileToolsDefaults } from "../modules/file-tools.js";
 import { t } from "../modules/mermaid-core.js";
 import { normalizePresentationSkin } from "../modules/skin-choice.js";
 import type { IgnorancePlugin, PluginState } from "../plugin-types.js";
+import { cleanLayouts } from "../modules/layout-library-core.js";
 import { mergeReadingPositions } from "../modules/reading-position.js";
 
 /* Settings and per-note state: load, save (debounced), and the body classes that follow them. */
@@ -32,6 +33,7 @@ export async function loadStoredState(plugin: IgnorancePlugin) {
   plugin.state.headingNumberDepth = Math.min(6, Math.max(1, Math.round(Number(plugin.state.headingNumberDepth)) || 4));
   plugin.state.captions = plugin.state.captions === true;
   plugin.state.wordFont = normalizeWordFont(plugin.state.wordFont);
+  plugin.state.layouts = cleanLayouts(plugin.state.layouts);
   plugin.state.grayDates = typeof plugin.state.grayDates === "string" ? plugin.state.grayDates : "";
   plugin.state.writingModes = Object.assign(writingModeDefaults(), plugin.state.writingModes || {});
   plugin.state.fileTools = Object.assign(fileToolsDefaults(), plugin.state.fileTools || {});

@@ -44,6 +44,7 @@ export interface PluginState {
   tabs: TabState;
   page: PageState;
   smartPunctuation: boolean;
+  layouts?: import("./modules/layout-library-core.js").LayoutRecord[];
   pasteLink?: boolean;
   pasteTable?: boolean;
   codeLineNumbers: boolean;

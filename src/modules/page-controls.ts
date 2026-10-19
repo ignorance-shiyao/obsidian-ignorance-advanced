@@ -7,6 +7,7 @@ import { toggleWritingMode } from "./editor-tools.js";
 import { openPresentation } from "./slides.js";
 import { PAPERS, MARGIN_PRESETS, paperSize, paperMarginsForPreset } from "./paper.js";
 import { PAGE_PRESETS, applyPagePreset } from "./page-presets.js";
+import { addLayoutItems } from "./layout-library.js";
 import { FOOTER_CHOICES, promptFooter } from "./page-footer.js";
 import { HEADING_FONT_OPTIONS } from "./fonts.js";
 import { applyAppearancePreferences } from "./appearance.js";
@@ -232,6 +233,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
     });
     submenu(menu, "版式", "layout-template", (presets: Menu) => {
       for (const preset of PAGE_PRESETS) choice(presets, preset.label.split("：")[0], false, () => { applyPagePreset(p, preset.id); save(); });
+      addLayoutItems(plugin, presets, save);
     });
     menu.addItem(item => item.setTitle("分页阅读").setIcon("book-open").setChecked(Boolean(p.paged)).onClick(() => { p.paged = !p.paged; save(); }));
     // Paper, margins and page furniture only matter for paged reading and export.

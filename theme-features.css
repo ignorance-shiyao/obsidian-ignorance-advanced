@@ -3384,3 +3384,9 @@ body.ib-theme-text-size:not(#_ib) { --font-text-size: var(--ib-text-size); }
 .ibp-table-tool .svg-icon { width: 14px; height: 14px; }
 .ibp-table-search { width: 8em; height: 24px; font-size: var(--ib-tiny-size); }
 .ibp-table-undo { margin-inline-start: var(--ib-space-2); }
+
+/* My layouts */
+.ibp-layout-row { display: flex; gap: var(--ib-space-2); align-items: center; padding-block: var(--ib-space-2); border-bottom: var(--ib-border-1) solid var(--ib-border-default); }
+.ibp-layout-name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.ibp-layout-changes { margin-block: var(--ib-space-2); padding-inline-start: 1.2em; }
+.ibp-layout-text { width: 100%; font-family: var(--font-monospace); font-size: var(--ib-tiny-size); }

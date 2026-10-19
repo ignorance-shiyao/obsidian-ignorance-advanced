@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+My layouts: in the page menu's layout submenu you can save the current page settings (reading width, paper, margins, page numbers, header and footer, paged reading and the Word font) under a name, and apply one later. Before it is applied a list shows exactly which settings change; colours and zoom are never part of a layout. A manage window renames, copies and deletes layouts and imports or exports them as a JSON file; unknown or invalid fields in an imported file are ignored and reported, and a file made by a newer version is refused.
+
 Table aids in reading view: click a column heading to sort (ascending, descending, original order; numbers with signs, thousands separators and percents, dates and Chinese text are understood, empty cells stay last), filter rows, copy the table as TSV for a spreadsheet, or save it as CSV. Sorting only changes what is shown; "write back" rewrites the Markdown table in the note and offers an undo. Tables with merged cells or row groups are left alone.
 
 Export check: the export preview now lists what the chosen format cannot carry over, read from the note itself and each with a line number that jumps to it. It finds images that cannot be found, broken cross references, dynamic blocks (dataview, base, tasks), remote images that are only fetched while exporting, Mermaid diagrams and the Word font. Word export also tells you how many images or diagrams did not make it into the file.
