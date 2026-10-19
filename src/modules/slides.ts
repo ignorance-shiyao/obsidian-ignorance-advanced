@@ -974,7 +974,7 @@ async function capturePortableStage(staged: StagedSlide) {
   }
 }
 
-async function exportDeckPptx(deck: { plugin: IgnorancePlugin; reveal: HTMLElement; entries: SlideEntry[]; width: number; height: number }, filePath: string, mode = "editable") {
+async function exportDeckPptx(deck: { plugin: IgnorancePlugin; reveal: HTMLElement; entries: SlideEntry[]; width: number; height: number }, filePath: string, mode = "editable"): Promise<string | null> {
   const { reveal, entries, width: canvasWidth, height: canvasHeight } = deck;
   const { PptxGenJS } = await loadChunk("chunk-pptx.cjs");
   const pptx = new PptxGenJS();
@@ -1009,9 +1009,11 @@ async function exportDeckPptx(deck: { plugin: IgnorancePlugin; reveal: HTMLEleme
     const savedPath = await saveExportToVault(deck.plugin, filePath.replace(VAULT_TARGET, ""), bytes);
     progress.hide();
     new Notice(`PPTX 已导出：${savedPath}`, 7000);
+    return savedPath;
   } catch (error) {
     progress.hide();
     new Notice(`PPTX 导出失败：${errorText(error)}`, 7000);
+    return null;
   } finally {
     progress.hide();
   }
@@ -1019,19 +1021,20 @@ async function exportDeckPptx(deck: { plugin: IgnorancePlugin; reveal: HTMLEleme
 
 /* Export straight from a note: build the deck off-screen with the current
    presentation settings, without opening the presentation view. */
-export async function exportNotePptx(plugin: IgnorancePlugin, file: TFile, mode = "editable", targetPath = "") {
-  if (!(file instanceof TFile) || file.extension !== "md") return;
+export async function exportNotePptx(plugin: IgnorancePlugin, file: TFile, mode = "editable", targetPath = ""): Promise<string | null> {
+  if (!(file instanceof TFile) || file.extension !== "md") return null;
   const filePath = choosePptxPath(file, targetPath);
-  if (!filePath) return;
+  if (!filePath) return null;
   const preparing = new Notice("正在排版幻灯片…", 0);
   const component = new Component();
   component.load();
   try {
     const deck = await buildDeck(plugin, file, component);
     preparing.hide();
-    if (deck) await exportDeckPptx({ ...deck, plugin }, filePath, mode);
+    return deck ? await exportDeckPptx({ ...deck, plugin }, filePath, mode) : null;
   } catch (error) {
     new Notice(`PPTX 导出失败：${errorText(error)}`, 7000);
+    return null;
   } finally {
     preparing.hide();
     component.unload();

@@ -543,3 +543,25 @@ svg.ibm-unclamp:not(#_ib):not(#_ib2):not(#_ib3) { max-width: none; max-height: n
 .ibp-callout-open:not(#_ib):not(#_ib2):not(#_ib3) { display: block; height: auto; opacity: 1; }
 .ibt-width-probe { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; width: max-content; max-width: none; table-layout: auto; white-space: nowrap; margin: 0; }
 .ibt-width-probe-cell { width: auto; min-width: 0; max-width: none; white-space: nowrap; }
+
+/* Export support table dialog */
+.ibp-support-modal { width: min(960px, 94vw); }
+.ibp-support-table { width: 100%; border-collapse: collapse; font-size: var(--font-ui-small); }
+.ibp-support-table th, .ibp-support-table td { padding: 6px 8px; border-bottom: 1px solid var(--background-modifier-border); text-align: start; vertical-align: top; }
+.ibp-support-table thead th { color: var(--text-muted); font-weight: 600; }
+.ibp-support-level { font-weight: 600; }
+.ibp-support-cell.is-full .ibp-support-level { color: var(--color-green); }
+.ibp-support-cell.is-image .ibp-support-level { color: var(--color-blue); }
+.ibp-support-cell.is-partial .ibp-support-level { color: var(--color-orange); }
+.ibp-support-cell.is-none .ibp-support-level { color: var(--color-red); }
+.ibp-support-note { margin-top: 2px; color: var(--text-muted); }
+
+/* Starter page */
+.ibp-start-modal { width: min(820px, 94vw); }
+.ibp-start-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--size-4-3); margin-top: var(--size-4-3); }
+.ibp-start-card { padding: var(--size-4-3); border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m); }
+.ibp-start-card h4 { margin: 0 0 var(--size-2-2); }
+.ibp-start-steps { margin: var(--size-4-2) 0; padding-inline-start: 1.4em; color: var(--text-muted); font-size: var(--font-ui-small); }
+.ibp-start-buttons, .ibp-start-more { display: flex; flex-wrap: wrap; gap: var(--size-4-2); }
+.ibp-start-more { margin-top: var(--size-4-3); }
+.ibp-notice-button { margin-inline: var(--size-4-2); }

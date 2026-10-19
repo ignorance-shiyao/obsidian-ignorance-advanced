@@ -3,7 +3,8 @@ import { releaseTableLayers } from "../plugin/table-sizes.js";
 import { ENHANCEMENTS, noteOffClass } from "./enhancement-gate-core.js";
 import { WORD_FONT_OPTIONS, normalizeWordFont } from "./word-font.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { MarkdownView, PluginSettingTab, Setting } from "obsidian";
+import { MarkdownView, Notice, PluginSettingTab, Setting } from "obsidian";
+import { setLanguagePreference, tr } from "../i18n.js";
 import type { App } from "obsidian";
 import * as Appearance from "./appearance.js";
 import { LINE_HEIGHT_PRESETS } from "./line-height.js";
@@ -152,6 +153,19 @@ class IgnoranceSettingTab extends PluginSettingTab {
         { name: "剪藏文件夹", desc: "网页剪藏的笔记和图片保存到这里，文件夹名同时作为笔记标签。默认 Clippings。", aliases: ["clippings"], add: (setting: Setting) => setting.addText((text) => text.setPlaceholder("Clippings")
           .setValue(state.webClip?.folder || "").onChange((value) => { state.webClip.folder = value.trim(); plugin.saveStoredState(); })) },
         { name: "按网站分类", desc: "剪藏时在剪藏文件夹下按网站名建子文件夹，例如 Clippings/example.com/。", aliases: ["sort by site"], add: toggle(() => Boolean(state.webClip?.byDomain), value => { state.webClip.byDomain = value; plugin.saveStoredState(); }) }
+      ] },
+      { heading: tr("模板与语言"), items: [
+        { name: tr("模板文件夹"), desc: tr("放你自己的笔记模板（Markdown）的文件夹，用「从模板新建笔记」命令套用。模板里可用 {{title}}、{{author}}、{{date}}、{{time}}；在属性里写 ib-layout: 版式名 可在新建时套用版式。"), aliases: ["templates", "template folder"], add: (setting: Setting) => setting.addText(text => text.setPlaceholder("Templates")
+          .setValue(state.userTemplates?.folder ?? "").onChange(value => { state.userTemplates.folder = value.trim(); plugin.saveStoredState(); })) },
+        { name: tr("模板里的作者名"), desc: tr("填进模板的 {{author}}。"), add: (setting: Setting) => setting.addText(text => text
+          .setValue(state.userTemplates?.author ?? "").onChange(value => { state.userTemplates.author = value.trim(); plugin.saveStoredState(); })) },
+        { name: tr("界面语言"), desc: tr("插件界面的语言。「自动」跟随 Obsidian 的界面语言；改动后重新加载 Obsidian 才会完全生效。"), aliases: ["language", "locale"], add: (setting: Setting) => setting.addDropdown(dropdown => dropdown
+          .addOption("auto", tr("自动")).addOption("zh", "中文").addOption("en", "English")
+          .setValue(state.language ?? "auto").onChange(value => {
+            state.language = value === "zh" || value === "en" ? value : "auto";
+            setLanguagePreference(state.language); plugin.saveStoredState();
+            new Notice(tr("重新加载 Obsidian 后完全生效"));
+          })) }
       ] },
       { heading: "标签页", items: [
         { name: "在新标签页打开文件", desc: "从文件列表或内部链接打开文件时新建标签页。", add: toggle(() => Boolean(state.tabs.openInNewTab), value => {

@@ -19,6 +19,16 @@ Keyboard: in the 导航 sidebar, ↓ from the search box enters the list, ↑/�
 
 Closing the batch web-clip dialog stops the links not yet started instead of clipping them in the background.
 
+E-books keep ECharts charts as static SVG figures, and wait for a note to finish rendering (quiet DOM, 10s ceiling) instead of a fixed 700ms. The dropdown reports notes that timed out. The book language follows the note's `lang`, else the Obsidian locale.
+
+Saved page layouts carry `updatedAt` and deletion tombstones, so layouts changed on two devices are merged by id instead of one side overwriting the other.
+
+User templates: Markdown files in a chosen folder become new-note templates with controlled fields (title, date, author) and an optional linked layout. API: `app.plugins.plugins[...].api` lets QuickAdd or Templater apply a layout, pre-check and export a file, returning the path, warnings or failure.
+
+A support table (content block × export format) and a starter page with a feature gallery are available from the command palette; the first run offers them in a notice. A performance baseline (cold start, first chart, 100 charts, large table) is recorded in `docs/性能基线.md`.
+
+Interface language: 中文 / English / follow Obsidian, in the 模板与语言 settings group. Chinese text is the key, so untranslated strings fall back to Chinese.
+
 ## 1.0.21
 Making an e-book now has a note picker (从库中选择笔记或文件夹…): only Markdown notes are listed, a folder can be chosen to list everything in it including subfolders, and 全选当前列表 ticks them all.
 

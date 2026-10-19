@@ -48,6 +48,7 @@ class IgnoranceBlueMermaidPlugin extends Plugin {
     exportHtml: typeof HtmlExport.exportHtml;
     pptx: typeof Slides.exportNotePptx;
   };
+  declare api: import("./modules/api.js").IgnoranceApi;
   declare bundledMermaid: MermaidEngine;
   declare blockSources: WeakMap<Element, BlockSource>;
   declare echartsSources: WeakMap<Element, string>;

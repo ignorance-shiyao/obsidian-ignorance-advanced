@@ -1,3 +1,5 @@
+import { tr } from "../i18n.js";
+import { openStartPage } from "./start-page.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Notice, normalizePath } from "obsidian";
 /* A one-page reference of everything the plugin and theme add to Markdown. It is written into the vault only
@@ -107,5 +109,8 @@ export function showFirstRunHint(plugin: IgnorancePlugin) {
   if (plugin.state.introShown) return;
   plugin.state.introShown = true;
   plugin.saveStoredState();
-  new Notice("插件已启用。在命令面板运行「打开语法速查」可以查看全部写法。", 10000);
+  const notice = new Notice("", 12000);
+  notice.messageEl.createSpan({ text: tr("插件已启用。") });
+  notice.messageEl.createEl("button", { text: tr("打开起始页"), cls: "ibp-notice-button" }).addEventListener("click", () => { notice.hide(); openStartPage(plugin); });
+  notice.messageEl.createSpan({ text: ` ${tr("也可以在命令面板运行「打开语法速查」。")}` });
 }
