@@ -142,27 +142,23 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
   let popover: HTMLElement | null = null;
   const closePopover = () => { popover?.remove(); popover = null; };
 
-  // Width choices head the page menu: the note's own override first, then this device's default.
+  // Width: three named sizes for every note on this device; a note can keep its own (stored in its cssclasses).
   const addWidthItems = (menu: Menu, anchor: Element) => {
-    const preset = WIDTH_PRESETS.find(([id]) => id === page().width);
-    const defaultLabel = page().width === "custom" ? `${page().customWidth}%` : preset?.[1] || "标准";
-    // Keep the note's portable override separate from this device's default.
     const file = plugin.app.workspace.getActiveFile();
-    if (file?.extension === "md") {
-      const classes = noteClasses(plugin, file);
-      const current = classes.includes("ib-wide") ? "ib-wide" : classes.includes("ib-narrow") ? "ib-narrow" : "";
-      for (const [cls, label] of [["", `跟随默认（${defaultLabel}）`], ["ib-narrow", "窄（最宽 660px）"], ["ib-wide", "宽（最宽 1120px）"]]) {
-        menu.addItem(item => item.setTitle(label).setChecked(current === cls).onClick(() => { if (current !== cls) void setNoteWidthClass(plugin, file, cls); }));
-      }
-      menu.addSeparator();
+    const classes = file?.extension === "md" ? noteClasses(plugin, file) : [];
+    const own = classes.includes("ib-wide") ? "ib-wide" : classes.includes("ib-narrow") ? "ib-narrow" : "";
+    for (const [id, label] of WIDTH_PRESETS) {
+      menu.addItem(item => item.setTitle(label).setChecked(!own && page().width === id).onClick(() => { page().width = id; save(); }));
     }
+    menu.addItem(item => item.setTitle(page().width === "custom" ? `自定义 ${page().customWidth}%…` : "自定义…").setChecked(!own && page().width === "custom").onClick(() => openWidthInput(anchor)));
+    if (!file || file.extension !== "md") return;
+    menu.addSeparator();
     menu.addItem(item => {
-      item.setTitle(`此设备默认宽度 · ${defaultLabel}`).setIcon("settings");
-      const defaults = item.setSubmenu();
-      for (const [id, label, percent, cap] of WIDTH_PRESETS) {
-        defaults.addItem(option => option.setTitle(`${label}（视图的 ${percent}%，最宽 ${cap}px）`).setChecked(page().width === id).onClick(() => { page().width = id; save(); }));
+      item.setTitle(own ? `本篇单独：${own === "ib-wide" ? "宽" : "窄"}` : "本篇单独设置");
+      const single = item.setSubmenu();
+      for (const [cls, label] of [["", "不单独设置"], ["ib-narrow", "窄"], ["ib-wide", "宽"]]) {
+        single.addItem(option => option.setTitle(label).setChecked(own === cls).onClick(() => { if (own !== cls) void setNoteWidthClass(plugin, file, cls); }));
       }
-      defaults.addItem(option => option.setTitle("自定义…").setChecked(page().width === "custom").onClick(() => openWidthInput(anchor)));
     });
   };
 
@@ -205,8 +201,6 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
     closePopover();
     const p = page();
     const menu = new Menu();
-    addWidthItems(menu, anchor);
-    menu.addSeparator();
     const submenu = (parent: Menu, label: string, icon: string, fill: (menu: Menu) => void) => parent.addItem(item => {
       item.setTitle(label).setIcon(icon);
       fill(item.setSubmenu());
@@ -222,28 +216,27 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       popover.createEl("button", { text: "完成", cls: "mod-cta" }).addEventListener("click", closePopover);
       placePopover(anchor);
     };
-    submenu(menu, "字体", "type", fonts => {
-      submenu(fonts, "标题字体", "heading", (heading: Menu) => {
-        for (const [value, label] of HEADING_FONT_OPTIONS) choice(heading, label, plugin.state.appearance.fontHeading === value, () => {
-          plugin.state.appearance.fontHeading = value;
-          applyAppearancePreferences(plugin);
-          plugin.app.workspace.trigger("css-change");
-          plugin.saveStoredState();
-        });
+    submenu(menu, "宽度", "move-horizontal", widths => addWidthItems(widths, anchor));
+    submenu(menu, "标题字体", "type", fonts => {
+      for (const [value, label] of HEADING_FONT_OPTIONS) choice(fonts, label, plugin.state.appearance.fontHeading === value, () => {
+        plugin.state.appearance.fontHeading = value;
+        applyAppearancePreferences(plugin);
+        plugin.app.workspace.trigger("css-change");
+        plugin.saveStoredState();
       });
-      fonts.addItem(item => item.setTitle("正文、界面与代码字体…").setIcon("settings").onClick(() => {
+      fonts.addSeparator();
+      fonts.addItem(item => item.setTitle("正文与代码字体…").onClick(() => {
         plugin.app.setting.open();
         plugin.app.setting.openTabById("appearance");
       }));
     });
-    submenu(menu, "版式预设", "layout-template", (presets: Menu) => {
-      for (const preset of PAGE_PRESETS) choice(presets, preset.label, false, () => { applyPagePreset(p, preset.id); save(); });
+    submenu(menu, "版式", "layout-template", (presets: Menu) => {
+      for (const preset of PAGE_PRESETS) choice(presets, preset.label.split("：")[0], false, () => { applyPagePreset(p, preset.id); save(); });
     });
-    submenu(menu, "阅读布局", "book-open", (layout: Menu) => {
-      const layoutChoices: [boolean, string][] = [[false, "连续阅读（与实时预览一致）"], [true, "分页阅读（纸张布局）"]];
-      for (const [value, label] of layoutChoices) choice(layout, label, p.paged === value, () => { p.paged = value; save(); });
-    });
-    submenu(menu, "纸张", "file", papers => {
+    menu.addItem(item => item.setTitle("分页阅读").setIcon("book-open").setChecked(Boolean(p.paged)).onClick(() => { p.paged = !p.paged; save(); }));
+    // Paper, margins and page furniture only matter for paged reading and export.
+    submenu(menu, "纸张与打印", "printer", print => {
+    submenu(print, "纸张", "file", papers => {
       for (const [id, paper] of Object.entries(PAPERS)) choice(papers, paper.label, p.paper === id, () => {
         p.paper = id;
         if ("margins" in paper) { p.marginPreset = "gov"; p.margins = paperMarginsForPreset("gov", id); }
@@ -255,12 +248,9 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
         ["高", p.customPaper.h, (value: number) => { p.paper = "CUSTOM"; p.customPaper.h = value || 297; save(); }]
       ]); });
       papers.addSeparator();
-      submenu(papers, "方向", "rotate-cw", (direction: Menu) => {
-        const directionChoices: [boolean, string][] = [[false, "纵向"], [true, "横向"]];
-        for (const [value, label] of directionChoices) choice(direction, label, p.landscape === value, () => { p.landscape = value; save(); });
-      });
+      choice(papers, "横向", Boolean(p.landscape), () => { p.landscape = !p.landscape; save(); });
     });
-    submenu(menu, "页边距", "scan", (margins: Menu) => {
+    submenu(print, "页边距", "scan", (margins: Menu) => {
       for (const [id, preset] of Object.entries(MARGIN_PRESETS)) choice(margins, preset.label, p.marginPreset === id, () => {
         p.marginPreset = id;
         p.margins = paperMarginsForPreset(id, p.paper) || { t: preset.t, r: preset.r, b: preset.b, l: preset.l };
@@ -270,24 +260,22 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
         MARGIN_KEYS.map(([key, label]): [string, number, (value: number) => void] =>
           [label, p.margins[key], value => { p.marginPreset = "custom"; p.margins[key] = value; save(); }])));
     });
-    submenu(menu, "跨页方式", "split", (breaks: Menu) => {
-      for (const [id, label] of [["whitespace", "留白：整块移到下一页"], ["cut", "截断：在页底切开续排"]]) choice(breaks, label, p.breakMode === id, () => { p.breakMode = id; save(); });
+    submenu(print, "页码", "list-ordered", (numbers: Menu) => {
+      for (const [id, label] of [["none", "不显示"], ["center", "底部居中"], ["right", "底部右侧"]]) choice(numbers, label, p.pageNumber === id, () => { p.pageNumber = id; save(); });
+      numbers.addSeparator();
+      for (const [id, label] of [["plain", "1"], ["total", "1 / 5"], ["gov", "- 1 -"], ["zh", "第 1 页"]]) choice(numbers, label, p.pageNumberFormat === id, () => { p.pageNumberFormat = id; save(); });
     });
-    submenu(menu, "页码", "list-ordered", (numbers: Menu) => {
-      submenu(numbers, "位置", "align-center", (position: Menu) => {
-        for (const [id, label] of [["none", "不显示"], ["center", "底部居中"], ["right", "底部右侧"]]) choice(position, label, p.pageNumber === id, () => { p.pageNumber = id; save(); });
-      });
-      submenu(numbers, "格式", "hash", (format: Menu) => {
-        for (const [id, label] of [["plain", "1"], ["total", "1 / 5"], ["gov", "- 1 -"], ["zh", "第 1 页"]]) choice(format, label, p.pageNumberFormat === id, () => { p.pageNumberFormat = id; save(); });
-      });
-    });
-    submenu(menu, "页眉", "panel-top", (headers: Menu) => {
+    submenu(print, "页眉", "panel-top", (headers: Menu) => {
       for (const [id, label] of [["none", "不显示"], ["chapter", "章节名"]]) choice(headers, label, (p.runningHeader || "none") === id, () => { p.runningHeader = id; save(); });
     });
-    submenu(menu, "页脚", "panel-bottom", (footers: Menu) => {
+    submenu(print, "页脚", "panel-bottom", (footers: Menu) => {
       for (const [template, label] of FOOTER_CHOICES) choice(footers, label, (p.footerText || "") === template, () => { p.footerText = template; save(); });
       const custom = !FOOTER_CHOICES.some(([template]) => template === (p.footerText || ""));
       choice(footers, custom ? `自定义：${p.footerText}` : "自定义…", custom, () => promptFooter(plugin, p.footerText || "", value => { p.footerText = value.trim(); save(); }));
+    });
+    submenu(print, "内容跨页", "split", (breaks: Menu) => {
+      for (const [id, label] of [["whitespace", "整块移到下一页"], ["cut", "在页底切开"]]) choice(breaks, label, p.breakMode === id, () => { p.breakMode = id; save(); });
+    });
     });
     const box = anchor.getBoundingClientRect();
     menu.showAtPosition({ x: box.left, y: box.bottom + 6 });
@@ -337,8 +325,9 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       const sizer = visibleSizer(host);
       const px = sizer ? Math.round(parseFloat(getComputedStyle(sizer).width)) : 0;
       const own = view.file ? noteClasses(plugin, view.file) : [];
-      const noteLabel = own.includes("ib-wide") ? "本笔记加宽" : own.includes("ib-narrow") ? "本笔记收窄" : "";
-      widthText.setText(`宽度 · ${noteLabel || `默认${p.width === "custom" ? ` ${p.customWidth}%` : `（${preset ? preset[1] : "标准"}）`}`}${px ? ` · ${px}px` : ""}${Number(p.zoom) && Number(p.zoom) !== 1 ? ` · ${Math.round(Number(p.zoom) * 100)}%` : ""}`);
+      const noteLabel = own.includes("ib-wide") ? "宽（本篇）" : own.includes("ib-narrow") ? "窄（本篇）" : "";
+      const widthName = noteLabel || (p.width === "custom" ? `${p.customWidth}%` : preset ? preset[1] : "标准");
+      widthText.setText(`${widthName}${px ? ` · ${px}px` : ""}${Number(p.zoom) && Number(p.zoom) !== 1 ? ` · ${Math.round(Number(p.zoom) * 100)}%` : ""}`);
 
       typewriter.toggleClass("is-active", Boolean(plugin.state.writingModes?.typewriterScroll));
       typewriter.setAttr("aria-pressed", String(Boolean(plugin.state.writingModes?.typewriterScroll)));
@@ -346,7 +335,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       focus.setAttr("aria-pressed", String(Boolean(plugin.state.writingModes?.focusMode)));
       const size = paperSize(p);
       const name = p.paper === "CUSTOM" ? `${size.w}×${size.h}` : PAPERS[p.paper as keyof typeof PAPERS]?.label.replace(/（.*）/, "") || "A4";
-      width.setAttr("aria-label", `页面设置（${name}${p.landscape ? " 横向" : ""}；本笔记宽度：${noteLabel || "跟随此设备默认"}）`);
+      width.setAttr("aria-label", `页面设置（${name}${p.landscape ? " 横向" : ""}；宽度 ${widthName}）`);
     };
     bar.addEventListener("ibp-refresh", refresh);
     refresh();
