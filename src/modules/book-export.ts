@@ -1,25 +1,29 @@
-import { Component, MarkdownRenderer, Modal, Notice } from "obsidian";
+import { Component, MarkdownRenderer, Modal, Notice, moment } from "obsidian";
 import type { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { absolutizeLinks, buildEpub, chapterFile, combineMarkdown, imageMime, parseNoteList, type EpubChapter, type EpubImage } from "./epub-core.js";
+import { absolutizeLinks, buildEpub, chapterFile, combineMarkdown, imageMime, normalizeLanguage, parseNoteList, type EpubChapter, type EpubImage } from "./epub-core.js";
+import { waitUntilSettled } from "./render-ready.js";
 import { exportWord, saveExportToVault } from "./export.js";
 /* "Combine notes into an ePub": the notes listed in the dialog become chapters in that order. Links between the
    listed notes point at the right chapter, images are embedded once however often they are used, and anything that
    cannot go into an ePub (remote images, scripts, buttons) is dropped and counted in the final notice. */
 const DROP = ".ib-block-resize, .callout-icon, .collapse-indicator, script, style, button, .copy-button, .ibm-block-header, .ibm-mermaid-toolbar, .metadata-container, .frontmatter, .frontmatter-container, .ib-table-resize-layer, .ibt-layer, .ib-image-actions, .ib-image-resize-layer, .ibp-table-anchor";
-const wait = (ms: number) => new Promise<void>(resolve => window.setTimeout(resolve, ms));
 
-interface BookReport { missingNotes: string[]; charts: number; missingImages: number; remoteImages: number; brokenLinks: number }
+interface BookReport { missingNotes: string[]; charts: number; chartsKept: number; slow: number; missingImages: number; remoteImages: number; brokenLinks: number }
 
 async function renderChapter(plugin: IgnorancePlugin, file: TFile, index: number, chapterOf: Map<string, number>, images: Map<string, string>, store: EpubImage[], report: BookReport): Promise<EpubChapter> {
   const { app } = plugin;
-  const holder = createDiv({ cls: "markdown-preview-view markdown-rendered" });
+  // Rendered off screen inside the plugin's staging frame: diagrams and charts need a laid-out, attached element,
+  // and charts draw as vector graphics there, which is what lets them go into the ePub.
+  const stage = document.body.createDiv({ cls: "ibp-staging" });
+  stage.setCssProps({ width: "760px" });
+  const holder = stage.createDiv({ cls: "markdown-preview-view markdown-rendered" });
   const component = new Component();
   component.load();
   try {
     await MarkdownRenderer.render(app, await app.vault.cachedRead(file), holder, file.path, component);
-    await wait(700); // embeds and charts finish after the first render pass
-    holder.querySelectorAll(DROP).forEach(node => node.remove());
+    if (await waitUntilSettled(holder) === "ceiling") report.slow += 1; // embeds and charts finish after the first pass
+    holder.querySelectorAll(DROP).forEach(node => { if (!(node.matches("style") && node.closest("svg"))) node.remove(); });
     // Headings get stable ids (chapter number + position among the note's headings) so links can jump to them.
     const headingIds = (path: string) => (app.metadataCache.getCache(path)?.headings ?? []).map(heading => heading.heading);
     const own = headingIds(file.path), used = new Set<number>();
@@ -28,8 +32,17 @@ async function renderChapter(plugin: IgnorancePlugin, file: TFile, index: number
       const at = own.findIndex((name, position) => name.trim() === text && !used.has(position));
       if (at >= 0) { used.add(at); heading.setAttribute("id", `c${index + 1}-h${at}`); }
     }
-    // Charts are drawn on a canvas and cannot be stored in an ePub; they are left out and counted.
-    for (const chart of Array.from(holder.querySelectorAll(".ib-echarts-block, canvas"))) { chart.remove(); report.charts += 1; }
+    // A chart drawn as a vector graphic goes in as an inline SVG; one with no drawing (an error, or a canvas) is left out and counted.
+    for (const chart of Array.from(holder.querySelectorAll<HTMLElement>(".ib-echarts-block"))) {
+      const svg = chart.dataset.ibEchartsState === "error" ? null : chart.querySelector("svg");
+      if (!svg) { chart.remove(); report.charts += 1; continue; }
+      for (const name of ["class", "style", "tabindex"]) svg.removeAttribute(name); // the ePub stylesheet sizes svg to the page
+      const [width, height] = [svg.getAttribute("width"), svg.getAttribute("height")].map(Number);
+      if (!svg.hasAttribute("viewBox") && width > 0 && height > 0) svg.setAttribute("viewBox", `0 0 ${width} ${height}`); // lets it scale down on a narrow page
+      chart.replaceWith(createEl("figure", { cls: "ib-epub-chart" }, figure => { figure.append(svg); }));
+      report.chartsKept += 1;
+    }
+    for (const canvas of Array.from(holder.querySelectorAll("canvas"))) { canvas.remove(); report.charts += 1; }
     for (const link of Array.from(holder.querySelectorAll<HTMLAnchorElement>("a.internal-link"))) {
       const [path, anchor = ""] = (link.getAttribute("data-href") || "").split("#");
       const target = path ? app.metadataCache.getFirstLinkpathDest(path, file.path) : file;
@@ -61,17 +74,24 @@ async function renderChapter(plugin: IgnorancePlugin, file: TFile, index: number
     const title = holder.querySelector("h1")?.textContent?.trim() || file.basename;
     const xml = Array.from(holder.childNodes).map(node => new XMLSerializer().serializeToString(node)).join("").replace(/ xmlns="http:\/\/www\.w3\.org\/1999\/xhtml"/g, "");
     return { title, body: xml };
-  } finally { component.unload(); }
+  } finally { component.unload(); stage.remove(); }
+}
+
+/** The note's own `lang` / `language` property, else Obsidian's interface language. */
+function bookLanguage(plugin: IgnorancePlugin, first: TFile): string {
+  const frontmatter = plugin.app.metadataCache.getFileCache(first)?.frontmatter;
+  const own: unknown = frontmatter?.lang ?? frontmatter?.language;
+  return normalizeLanguage(typeof own === "string" ? own : "") ?? normalizeLanguage(moment.locale()) ?? "en";
 }
 
 export async function buildBook(plugin: IgnorancePlugin, files: TFile[], meta: { title: string; author: string }): Promise<{ bytes: Uint8Array; report: BookReport }> {
   const chapterOf = new Map(files.map((file, index) => [file.path, index] as const));
   const images = new Map<string, string>();
   const store: EpubImage[] = [];
-  const report: BookReport = { missingNotes: [], charts: 0, missingImages: 0, remoteImages: 0, brokenLinks: 0 };
+  const report: BookReport = { missingNotes: [], charts: 0, chartsKept: 0, slow: 0, missingImages: 0, remoteImages: 0, brokenLinks: 0 };
   const chapters: EpubChapter[] = [];
   for (const [index, file] of files.entries()) chapters.push(await renderChapter(plugin, file, index, chapterOf, images, store, report));
-  const bytes = await buildEpub({ title: meta.title, author: meta.author, language: "zh-CN", id: `urn:uuid:${crypto.randomUUID()}`, date: new Date().toISOString().replace(/\.\d+Z$/, "Z") }, chapters, store);
+  const bytes = await buildEpub({ title: meta.title, author: meta.author, language: bookLanguage(plugin, files[0]), id: `urn:uuid:${crypto.randomUUID()}`, date: new Date().toISOString().replace(/\.\d+Z$/, "Z") }, chapters, store);
   return { bytes, report };
 }
 
@@ -169,7 +189,7 @@ class BookModal extends Modal {
         } else {
           const { bytes, report } = await buildBook(this.plugin, files, { title: bookTitle, author: author.value.trim() });
           const path = await saveExportToVault(this.plugin, `${bookTitle}.epub`, bytes);
-          const notes = [report.missingImages ? `缺失图片 ${report.missingImages}` : "", report.remoteImages ? `网络图片未收入 ${report.remoteImages}` : "", report.charts ? `图表未收入 ${report.charts}` : "", report.brokenLinks ? `指向书外的链接改为普通文字 ${report.brokenLinks}` : ""].filter(Boolean);
+          const notes = [report.missingImages ? `缺失图片 ${report.missingImages}` : "", report.remoteImages ? `网络图片未收入 ${report.remoteImages}` : "", report.charts ? `图表未收入 ${report.charts}` : "", report.slow ? `渲染超时 ${report.slow} 篇，内容可能不全` : "", report.brokenLinks ? `指向书外的链接改为普通文字 ${report.brokenLinks}` : ""].filter(Boolean);
           new Notice(`已生成 ${path}${notes.length ? `（${notes.join("，")}）` : ""}`, 10000);
         }
         this.close();

@@ -94,3 +94,10 @@ export function absolutizeLinks(text: string, resolve: (target: string) => strin
     return row.split(/(`+[^`]*`+)/).map((part, i) => i % 2 ? part : line(part)).join("");
   }).join("\n");
 }
+
+/** A BCP 47 tag in the usual casing (`zh-cn` → `zh-CN`), or null when the text is not a language tag. */
+export function normalizeLanguage(tag: string): string | null {
+  const parts = tag.trim().replace(/_/g, "-").split("-");
+  if (!/^[a-z]{2,3}$/i.test(parts[0] ?? "") || parts.slice(1).some(part => !/^[a-z0-9]{2,8}$/i.test(part))) return null;
+  return [parts[0].toLowerCase(), ...parts.slice(1).map(part => part.length === 2 ? part.toUpperCase() : part.length === 4 ? part[0].toUpperCase() + part.slice(1).toLowerCase() : part.toLowerCase())].join("-");
+}

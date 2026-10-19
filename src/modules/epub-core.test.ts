@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
-import { absolutizeLinks, buildEpub, combineMarkdown, itemProperties, imageMime, parseNoteList, chapterFile, escapeXml, navDocument, packageDocument } from "./epub-core";
+import { normalizeLanguage, absolutizeLinks, buildEpub, combineMarkdown, itemProperties, imageMime, parseNoteList, chapterFile, escapeXml, navDocument, packageDocument } from "./epub-core";
 
 const meta = { title: "三章 & 样本", author: "作者", language: "zh-CN", id: "urn:uuid:1", date: "2026-10-19T00:00:00Z" };
 const chapters = [{ title: "第一章", body: "<h1>一</h1><p>x</p>" }, { title: "第一章", body: "<p>同名章节</p>" }, { title: "三 <3>", body: "<p>z</p>" }];
@@ -62,5 +62,19 @@ describe("absolutizeLinks", () => {
   it("leaves web links, anchors, unknown targets and code alone", () => {
     const text = "[w](https://x.cn/a.png) [[#本篇]] [[缺失]] `![[assets/架构.png]]`\n```\n![[assets/架构.png]]\n```";
     expect(run(text)).toBe(text);
+  });
+});
+
+describe("normalizeLanguage", () => {
+  it("normalises casing and separators", () => {
+    expect(normalizeLanguage("zh-cn")).toBe("zh-CN");
+    expect(normalizeLanguage("en_us")).toBe("en-US");
+    expect(normalizeLanguage("zh-hant-tw")).toBe("zh-Hant-TW");
+    expect(normalizeLanguage("EN")).toBe("en");
+  });
+  it("rejects what is not a tag", () => {
+    expect(normalizeLanguage("")).toBeNull();
+    expect(normalizeLanguage("chinese")).toBeNull();
+    expect(normalizeLanguage("zh-")).toBeNull();
   });
 });
