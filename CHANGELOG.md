@@ -1,7 +1,7 @@
 # Changelog
 
 ## Unreleased
-Tables span the full width of the text column by default; remembered column widths act as proportions when the table is wider than them.
+Tables span the full width of the text column by default. Tables whose column widths were set by hand have not been re-checked against this change yet.
 
 The azure palette's light paper is warm white (#FAF8F4, was #F5F8FD); dark mode is unchanged. Heading numbers take the heading's colour.
 
