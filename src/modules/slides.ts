@@ -23,6 +23,8 @@ import { structureSlide } from "./structure.js";
 import { addEditableSlide } from "./pptx-editable.js";
 import { stageSlide } from "./offscreen-capture.js";
 import { setMarkup } from "./dom-markup.js";
+import { SPEAKER_VIEW, SpeakerView, openSpeakerView, type SpeakerSource } from "./speaker-view.js";
+import { extractSpeakerNotes } from "./speaker-notes-core.js";
 
 const VIEW_TYPE = "ignorance-presentation";
 const CANVASES: [string, number, number][] = [
@@ -355,6 +357,7 @@ export async function buildDeck(plugin: IgnorancePlugin, file: TFile, component:
           const layout = (Array.from(page.classList).find(name => name.startsWith("slide-layout-")) || "slide-layout-default").slice("slide-layout-".length) as SlideLayout;
           const isContent = ["default", "split", "grid"].includes(layout);
           const badge = chrome && isContent && !page.dataset.autopage ? String.fromCharCode(65 + (badgeIndex++ % 26)) : "";
+          if (q === 0) slideNotes.set(page, extractSpeakerNotes(source));
           const rawClass = page.className;
           const heading = page.querySelector(":scope > .slide-inner > :first-child");
           const repeat = heading && /^H[1-4]$/.test(heading.tagName) ? heading.cloneNode(true) as HTMLElement : null;
@@ -371,6 +374,7 @@ export async function buildDeck(plugin: IgnorancePlugin, file: TFile, component:
             if (target) {
               const headings = [...body.children];
               if (after) after.after(...headings); else target.prepend(...headings);
+              if (!slideNotes.get(following) && slideNotes.get(page)) slideNotes.set(following, slideNotes.get(page) ?? "");
               page.remove();
               continue;
             }
@@ -431,12 +435,12 @@ export async function buildDeck(plugin: IgnorancePlugin, file: TFile, component:
         const stack = slides.createEl("section", { cls: "stack" });
         row.pages.forEach((page, verticalIndex) => {
           stack.appendChild(page);
-          entries.push({ h: horizontalIndex, v: verticalIndex, el: page });
+          entries.push({ h: horizontalIndex, v: verticalIndex, el: page, notes: slideNotes.get(page) ?? "" });
         });
       } else {
         row.pages.forEach((page, pageIndex) => {
           slides.appendChild(page);
-          entries.push({ h: horizontalIndex + pageIndex, v: 0, el: page });
+          entries.push({ h: horizontalIndex + pageIndex, v: 0, el: page, notes: slideNotes.get(page) ?? "" });
         });
         horizontalIndex += Math.max(0, row.pages.length - 1);
       }
@@ -448,7 +452,10 @@ export async function buildDeck(plugin: IgnorancePlugin, file: TFile, component:
   }
 }
 
-interface SlideEntry { el: HTMLElement; h: number; v: number }
+interface SlideEntry { el: HTMLElement; h: number; v: number; notes: string }
+
+// Speaker notes by slide page, kept off the DOM so nothing that copies a slide can carry them along.
+const slideNotes = new WeakMap<HTMLElement, string>();
 
 class PresentationView extends ItemView {
   plugin: IgnorancePlugin;
@@ -476,6 +483,8 @@ class PresentationView extends ItemView {
   stepMode: boolean;
   pointerTool: string | null;
   root: HTMLElement;
+  speaker: SpeakerView | null = null;
+  speakerListeners = new Set<() => void>();
   declare titleEl: HTMLElement;
 
   constructor(leaf: WorkspaceLeaf, plugin: IgnorancePlugin) {
@@ -528,7 +537,26 @@ class PresentationView extends ItemView {
     if (this.filePath) await this.renderSlides();
   }
 
+  /* The presenter's window: notes, next slide and a timer, following this presentation. */
+  async openSpeaker(inline?: boolean) {
+    if (!this.deck) return;
+    this.speaker?.leaf.detach();
+    const source: SpeakerSource = {
+      title: this.noteFile()?.basename ?? "演示",
+      size: this.slideSize(),
+      slides: () => this.slideEntries,
+      indices: () => { const index = this.deck?.getIndices(); return { h: index?.h ?? 0, v: index?.v ?? 0 }; },
+      next: () => this.goNext(),
+      prev: () => this.goPrev(),
+      subscribe: listener => { this.speakerListeners.add(listener); return () => { this.speakerListeners.delete(listener); }; },
+      root: () => this.root ?? null
+    };
+    this.speaker = await openSpeakerView(this.plugin, source, inline);
+  }
+
   async onClose() {
+    this.speaker?.leaf.detach();
+    this.speaker = null;
     this.renderToken += 1;
     this.resizeObserver?.disconnect();
     this.deck?.destroy();
@@ -566,6 +594,7 @@ class PresentationView extends ItemView {
     this.pointerButtons.push(addToolbarButton(this.toolbar, "lucide-crosshair", "激光笔（再点一次关闭）", () => this.setPointerTool("laser"), { tool: "laser" }));
     this.pointerButtons.push(addToolbarButton(this.toolbar, "lucide-flashlight", "聚光灯（再点一次关闭）", () => this.setPointerTool("spot"), { tool: "spot" }));
     this.stepButtons = [addToolbarButton(this.toolbar, "lucide-list-start", "逐段显示：每按一次下一页先显示下一段（再点一次关闭）", () => this.setStepMode(!this.stepMode))];
+    addToolbarButton(this.toolbar, "lucide-monitor-up", "演讲者视图：备注、下一页预览和计时", () => { void this.openSpeaker(); });
     addToolbarButton(this.toolbar, "lucide-eye-off", "安静视图：隐藏工具栏，鼠标移到顶部时显示", () => this.contentEl.classList.toggle("ibp-quiet"));
     addToolbarSeparator(this.toolbar);
     addToolbarButton(this.toolbar, "lucide-maximize", "全屏放映", () => {
@@ -837,7 +866,7 @@ class PresentationView extends ItemView {
     if (token !== this.renderToken) { deck.destroy(); return; }
     deck.layout();
     deck.slide(this.preferredIndices[0], this.preferredIndices[1]);
-    deck.on("slidechanged", (event: Event) => { this.onSlideChanged(event as Event & { indexh?: number }); this.updateCounter(); });
+    deck.on("slidechanged", (event: Event) => { this.onSlideChanged(event as Event & { indexh?: number }); this.updateCounter(); this.speakerListeners.forEach(listener => listener()); });
     this.lastSlideH = deck.getIndices().h ?? 0;
     // Capture phase, so a step is taken before Reveal sees the key.
     reveal.addEventListener("keydown", event => {
@@ -847,6 +876,7 @@ class PresentationView extends ItemView {
     }, true);
     this.applyStepMode();
     this.updateCounter();
+    this.speakerListeners.forEach(listener => listener());
   }
 
   previewPptx(mode: string) {
@@ -880,7 +910,7 @@ class PresentationView extends ItemView {
 }
 
 // Picture version: the whole slide as one image, charts laid over as SVG.
-async function addImageSlide(pptx: PptxGenJS, surface: HTMLElement, slideWidth: number, slideHeight: number, capture: (surface: HTMLElement) => Promise<Uint8Array>) {
+async function addImageSlide(pptx: PptxGenJS, surface: HTMLElement, slideWidth: number, slideHeight: number, capture: (surface: HTMLElement) => Promise<Uint8Array>, notes = "") {
   const surfaceRect = surface.getBoundingClientRect();
   const charts = [...surface.querySelectorAll<SVGSVGElement>(".mermaid svg, .ib-echarts-block svg, [data-ib-echarts-state] svg")].map(svg => {
     const rect = svg.getBoundingClientRect();
@@ -894,6 +924,7 @@ async function addImageSlide(pptx: PptxGenJS, surface: HTMLElement, slideWidth: 
     charts.forEach(chart => { chart.svg.style.visibility = chart.visible; });
   }
   const slide = pptx.addSlide();
+  if (notes) slide.addNotes(notes);
   slide.addImage({ data: `data:image/png;base64,${bytesToBase64(png)}`, x: 0, y: 0, w: slideWidth, h: slideHeight });
   for (const chart of charts) {
     if (chart.w < 2 || chart.h < 2) continue;
@@ -951,8 +982,9 @@ async function exportDeckPptx(deck: { plugin: IgnorancePlugin; reveal: HTMLEleme
         await Promise.all([...staged.surface.querySelectorAll("img")].map(img => img.decode().catch(() => null)));
         await nextFrame();
         const capture = () => capturePortableStage(staged);
-        if (mode === "editable") await addEditableSlide(pptx, staged.surface, { slideWidth, slideHeight, canvasWidth }, capture);
-        else await addImageSlide(pptx, staged.surface, slideWidth, slideHeight, capture);
+        // Speaker notes go to PowerPoint's notes pane, not onto the slide.
+        if (mode === "editable") await addEditableSlide(pptx, staged.surface, { slideWidth, slideHeight, canvasWidth }, capture, entry.notes);
+        else await addImageSlide(pptx, staged.surface, slideWidth, slideHeight, capture, entry.notes);
       } finally {
         staged.remove();
       }
@@ -1012,6 +1044,7 @@ export async function openPresentation(plugin: IgnorancePlugin, file: TFile, lea
 export function installPresentationMode(plugin: IgnorancePlugin) {
   plugin.state.presentation = Object.assign(presentationDefaults(), plugin.state.presentation || {});
   plugin.registerView(VIEW_TYPE, leaf => new PresentationView(leaf, plugin));
+  plugin.registerView(SPEAKER_VIEW, leaf => new SpeakerView(leaf, plugin));
   plugin.addCommand({
     id: "open-presentation-mode",
     name: "在演示视图中打开当前笔记",

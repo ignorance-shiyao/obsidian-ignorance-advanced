@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Speaker notes and presenter view: write notes for a slide as an Obsidian comment, `%%notes: what to say%%` (also `备注：` / `讲稿：`, one or many lines). They never appear on the slides, in the reading view or in HTML, PDF and image exports. The presentation toolbar has a new presenter view button that opens a window with the current slide's notes, a preview of the next slide, a timer with pause and reset, and previous and next buttons; it follows the presentation in both directions and closes with it (on a phone it opens beside the slides instead). PPTX exports put the notes in PowerPoint's notes pane.
+
 Code block options: after the language, a fence can carry `title:"src/app.js"` (shown in the block header in place of the language name), `start=10` (line numbers begin at 10; `{2}` highlights still count from the block's first line), and `wrap` or `nowrap` (the block's starting wrap state). In `diff` blocks, `+` and `-` lines get a green or red background. With the plugin off the code is still complete, because Obsidian only reads the language.
 
 Structure and typesetting check: the note check command now also reports heading levels that skip a step, cross references without a caption id, repeated caption ids, missing spaces between Chinese and English text, and half-width punctuation after Chinese. Typesetting problems can be repaired after a line-by-line before/after preview, as one edit that a single undo reverses. Code blocks, math, front matter, links, URLs and inline syntax are never touched, and repairing twice gives the same result as once.

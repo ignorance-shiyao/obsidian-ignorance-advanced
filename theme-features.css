@@ -3397,3 +3397,18 @@ body.ib-theme-text-size:not(#_ib) { --font-text-size: var(--ib-text-size); }
 .ibp-diff-row { grid-template-columns: 5.5em 1fr 1fr; cursor: default; }
 .ibp-diff-old { color: var(--ib-text-muted); text-decoration: line-through; overflow-wrap: anywhere; }
 .ibp-diff-new { overflow-wrap: anywhere; }
+
+/* Speaker view */
+.ibp-speaker { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 34%); gap: var(--ib-space-4); height: 100%; padding: var(--ib-space-4); }
+.ibp-speaker__main { min-width: 0; overflow: auto; }
+.ibp-speaker__notes { font-size: clamp(18px, 2.2vw, 30px); line-height: 1.6; }
+.ibp-speaker__notes p { margin-block: 0 0.8em; white-space: pre-line; }
+.ibp-speaker__empty { color: var(--ib-text-muted); }
+.ibp-speaker__side { display: flex; flex-direction: column; gap: var(--ib-space-3); min-width: 0; }
+.ibp-speaker__frame { position: relative; aspect-ratio: var(--ibp-ratio, 16 / 9); width: 100%; overflow: hidden; border: var(--ib-border-1) solid var(--ib-border-default); border-radius: var(--ib-radius-md); }
+.ibp-speaker__scale { position: absolute; inset-block-start: 0; inset-inline-start: 0; transform-origin: top left; }
+.ibp-speaker__scale .reveal .slides > section.present { position: relative; display: block; }
+.ibp-speaker__counter { color: var(--ib-text-muted); }
+.ibp-speaker__timer { font-size: 2.4em; font-variant-numeric: tabular-nums; font-weight: 600; }
+.ibp-speaker__controls { display: flex; gap: var(--ib-space-2); }
+@media (max-width: 640px) { .ibp-speaker { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; } }

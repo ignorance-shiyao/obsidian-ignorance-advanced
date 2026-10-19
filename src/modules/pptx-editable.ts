@@ -198,7 +198,7 @@ function svgData(svg: SVGSVGElement) {
 }
 
 /* Adds one editable slide. `capture(el)` returns the PNG of the surface. */
-export async function addEditableSlide(pptx: PptxGenJS, surface: HTMLElement, size: { slideWidth: number; slideHeight: number; canvasWidth: number }, capture: (el: HTMLElement) => Promise<Uint8Array>) {
+export async function addEditableSlide(pptx: PptxGenJS, surface: HTMLElement, size: { slideWidth: number; slideHeight: number; canvasWidth: number }, capture: (el: HTMLElement) => Promise<Uint8Array>, notes = "") {
   const { slideWidth, slideHeight, canvasWidth } = size;
   const { box, points, inches } = makeGeometry(surface, slideWidth, slideHeight, canvasWidth);
   const objects = collectSlideObjects(surface);
@@ -215,6 +215,7 @@ export async function addEditableSlide(pptx: PptxGenJS, surface: HTMLElement, si
     hidden.forEach((el, index) => { el.style.visibility = previous[index]; });
   }
   const slide = pptx.addSlide();
+  if (notes) slide.addNotes(notes);
   slide.addImage({ data: `data:image/png;base64,${bytesToBase64(background)}`, x: 0, y: 0, w: slideWidth, h: slideHeight });
   const slack = (rect: Box) => ({ ...rect, w: Math.min(rect.w * 1.04 + 0.02, slideWidth - rect.x) });
 
