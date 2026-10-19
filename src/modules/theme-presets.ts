@@ -4,7 +4,7 @@ import { derivePalette } from "./accent-palette.js";
    accent in both modes; everything else (surfaces, borders, diagram and chart
    colours) is derived from these so the theme, slides and exports agree. */
 export const THEME_PRESETS = [
-  { id: "azure", label: "天蓝", accent: "#3B6FE8", lightPaper: "#F5F8FD", darkPaper: "#0E1420", lightInk: "#123258", darkInk: "#EAF3FF" },
+  { id: "azure", label: "天蓝", accent: "#3B6FE8", lightPaper: "#FAF8F4", darkPaper: "#0E1420", lightInk: "#123258", darkInk: "#EAF3FF" },
   { id: "pine", label: "松绿", accent: "#2E7D5B", lightPaper: "#F7FAF7", darkPaper: "#0F1A16", lightInk: "#1F2C26", darkInk: "#E6F0EA" },
   { id: "book", label: "书卷", accent: "#8B5E34", lightPaper: "#FBF7EE", darkPaper: "#1C1914", lightInk: "#2F2A22", darkInk: "#EFE7D8" },
   { id: "graphite", label: "石墨", accent: "#4A5568", lightPaper: "#FAFAFA", darkPaper: "#121315", lightInk: "#1F2328", darkInk: "#E8E9EB" },

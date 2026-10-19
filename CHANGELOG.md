@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+The azure palette's light paper is warm white (#FAF8F4, was #F5F8FD); dark mode is unchanged. Heading numbers take the heading's colour.
+
 Heading numbers follow the heading's weight instead of always being bold.
 
 The command 把链接变成来源卡片 replaces a selected link (or the one on the clipboard) with a small `[!source]` callout holding the page title, description and site. The page is fetched only when you run the command, never while reading or exporting; if it cannot be read, a plain Markdown link is inserted.

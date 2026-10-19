@@ -3039,7 +3039,7 @@ body[data-ib-table-alignment] .markdown-rendered table[data-ib-table-align="righ
 
 /* ---- Heading numbers (reading view) ---- */
 .ib-heading-number {
-  margin-inline-end: .55em; color: var(--ib-text-accent, var(--text-accent)); font-variant-numeric: tabular-nums; font-weight: inherit;
+  margin-inline-end: .55em; color: inherit; font-variant-numeric: tabular-nums; font-weight: inherit;
 }
 
 /* ---- Table extras: merged cells, tick boxes ---- */
