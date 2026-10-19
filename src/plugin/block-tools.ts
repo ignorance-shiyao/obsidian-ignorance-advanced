@@ -2,7 +2,8 @@ import { enhancementOn, handledByOther } from "../modules/enhancement-gate.js";
 import { MarkdownRenderChild,MarkdownRenderer,MarkdownView,Notice,TFile,Platform } from "obsidian";
 import type { MarkdownPostProcessorContext } from "obsidian";
 import { chartAlignment,mountChartAlignment } from "../modules/chart-alignment.js";
-import { fencedCodeContent,parseHighlightedCodeLines,wrapCodeLines } from "../modules/code-lines.js";
+import { applyCodeMeta,fencedCodeContent,parseHighlightedCodeLines,wrapCodeLines } from "../modules/code-lines.js";
+import { parseCodeMeta } from "../modules/code-meta.js";
 import { showCopyFeedback } from "../modules/copy-feedback";
 import { createLanguageIcon } from "../modules/language-icons.js";
 import { openLanguagePicker,withFenceLanguage } from "../modules/language-picker.js";
@@ -36,6 +37,7 @@ export function enhanceCodeBlocks(plugin: IgnorancePlugin, root: HTMLElement, co
     const highlighted = hasFenceLine ? parseHighlightedCodeLines(fenceLine) : storedHighlights;
     pre.dataset.ibCodeHighlightLines = highlighted.join(",");
     try {
+      applyCodeMeta(pre, hasFenceLine ? parseCodeMeta(fenceLine) : {});
       wrapCodeLines(code, highlighted, hasFenceLine ? fencedCodeContent(section.text, section.lineStart) : undefined);
     } catch (error) {
       console.warn("Ignorance Advanced: code lines could not be wrapped —", error);
@@ -46,7 +48,7 @@ export function enhanceCodeBlocks(plugin: IgnorancePlugin, root: HTMLElement, co
     const language = languageOf(code);
     plugin.rememberSource(pre, context);
     const { header, actions } = plugin.buildBlockHeader(pre, {
-      label: languageLabel(language),
+      label: pre.dataset.ibCodeTitle || languageLabel(language),
       language,
       withZoom: false,
       withEdit: false,
@@ -60,8 +62,9 @@ export function enhanceCodeBlocks(plugin: IgnorancePlugin, root: HTMLElement, co
     wrap.title = "代码换行";
     wrap.setAttribute("aria-label", "代码换行");
     // Phones start wrapped so long lines remain readable inside the narrow page.
-    pre.classList.toggle("ib-code-soft-wrap", Platform.isPhone);
-    wrap.setAttribute("aria-pressed", String(Platform.isPhone));
+    const startWrapped = pre.dataset.ibCodeWrap ? pre.dataset.ibCodeWrap === "1" : Platform.isPhone;
+    pre.classList.toggle("ib-code-soft-wrap", startWrapped);
+    wrap.setAttribute("aria-pressed", String(startWrapped));
     wrap.addEventListener("click", () => {
       const enabled = pre.classList.toggle("ib-code-soft-wrap");
       wrap.setAttribute("aria-pressed", String(enabled));

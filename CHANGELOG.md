@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Code block options: after the language, a fence can carry `title:"src/app.js"` (shown in the block header in place of the language name), `start=10` (line numbers begin at 10; `{2}` highlights still count from the block's first line), and `wrap` or `nowrap` (the block's starting wrap state). In `diff` blocks, `+` and `-` lines get a green or red background. With the plugin off the code is still complete, because Obsidian only reads the language.
+
 Structure and typesetting check: the note check command now also reports heading levels that skip a step, cross references without a caption id, repeated caption ids, missing spaces between Chinese and English text, and half-width punctuation after Chinese. Typesetting problems can be repaired after a line-by-line before/after preview, as one edit that a single undo reverses. Code blocks, math, front matter, links, URLs and inline syntax are never touched, and repairing twice gives the same result as once.
 
 Formats for selected text: right-click a selection and choose "Ignorance" for highlight colours, badges, spoiler, ruby, caption, cross reference, callout conversion, tabs and columns. Every item is also a command named "Format: …", so you can give it a shortcut, and each is one edit that a single undo reverses. A new command, "New task example", writes one of four example notes (weekly report, ten-slide deck, Word hand-off, web clipping) into its own folder, only when you choose one.

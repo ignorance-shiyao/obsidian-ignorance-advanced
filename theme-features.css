@@ -960,6 +960,8 @@ body.is-phone .markdown-rendered pre.ibc-enhanced > code {
   border-radius: var(--ib-code-highlight-radius);
   box-shadow: none;
 }
+.markdown-rendered pre .ib-code-line[data-diff="add"] { background: color-mix(in srgb, var(--ib-success-icon) 14%, transparent); }
+.markdown-rendered pre .ib-code-line[data-diff="del"] { background: color-mix(in srgb, var(--ib-error-icon) 12%, transparent); }
 body.ib-show-code-line-numbers .markdown-rendered pre .ib-code-line { padding-inline-start: 3.5em; }
 body.ib-show-code-line-numbers .markdown-rendered pre .ib-code-line::before {
   position: absolute;
