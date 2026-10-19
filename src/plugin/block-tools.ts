@@ -1,4 +1,4 @@
-import { MarkdownRenderChild,MarkdownRenderer,MarkdownView,Notice,TFile } from "obsidian";
+import { MarkdownRenderChild,MarkdownRenderer,MarkdownView,Notice,TFile,Platform } from "obsidian";
 import type { MarkdownPostProcessorContext } from "obsidian";
 import { chartAlignment,mountChartAlignment } from "../modules/chart-alignment.js";
 import { fencedCodeContent,parseHighlightedCodeLines,wrapCodeLines } from "../modules/code-lines.js";
@@ -57,7 +57,9 @@ export function enhanceCodeBlocks(plugin: IgnorancePlugin, root: HTMLElement, co
     setIcon(wrap, UI_ICONS.wrap);
     wrap.title = "代码换行";
     wrap.setAttribute("aria-label", "代码换行");
-    wrap.setAttribute("aria-pressed", "false");
+    // Phones start wrapped so long lines remain readable inside the narrow page.
+    pre.classList.toggle("ib-code-soft-wrap", Platform.isPhone);
+    wrap.setAttribute("aria-pressed", String(Platform.isPhone));
     wrap.addEventListener("click", () => {
       const enabled = pre.classList.toggle("ib-code-soft-wrap");
       wrap.setAttribute("aria-pressed", String(enabled));
