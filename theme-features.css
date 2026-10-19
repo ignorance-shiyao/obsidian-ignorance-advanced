@@ -3412,3 +3412,8 @@ body.ib-theme-text-size:not(#_ib) { --font-text-size: var(--ib-text-size); }
 .ibp-speaker__timer { font-size: 2.4em; font-variant-numeric: tabular-nums; font-weight: 600; }
 .ibp-speaker__controls { display: flex; gap: var(--ib-space-2); }
 @media (max-width: 640px) { .ibp-speaker { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; } }
+
+/* Image batch */
+.ibp-image-batch__controls { display: grid; gap: var(--ib-space-2); margin-bottom: var(--ib-space-3); }
+.ibp-image-batch__list { max-height: 40vh; }
+.ib-link-check__detail.is-error { color: var(--ib-error-icon); }

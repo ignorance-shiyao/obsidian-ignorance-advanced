@@ -12,6 +12,7 @@ import { colorSwatchExtension,colorSwatchPostProcessor } from "../modules/color-
 import { containerEditorExtension } from "../modules/container-editor.js";
 import { renderContainerBlocks } from "../modules/containers.js";
 import { clearContextMarkers,markContext } from "../modules/context-markers.js";
+import { openImageBatch } from "../modules/image-batch.js";
 import { openTaskExamples } from "../modules/task-examples.js";
 import { installEditorMenu } from "../modules/editor-menu.js";
 import { showActiveEnhancements } from "../modules/enhancement-gate.js";
@@ -281,6 +282,12 @@ export async function onload(plugin: IgnorancePlugin) {
   plugin.register(() => plugin.themeObserver.disconnect());
 
   plugin.collapseSelectionAfterEdit();
+
+  plugin.addCommand({
+    id: "process-note-images",
+    name: "处理本篇的图片（压缩、缩小）",
+    callback: () => openImageBatch(plugin)
+  });
 
   plugin.addCommand({
     id: "task-examples",
