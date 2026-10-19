@@ -1,4 +1,5 @@
 import type { Editor, MarkdownFileInfo, MarkdownView, TAbstractFile, TFolder, Vault, WorkspaceLeaf } from "obsidian";
+import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Notice, Setting, TFile, FileView, Modal, htmlToMarkdown, loadPdfJs } from "obsidian";
 import type { Menu } from "obsidian";
@@ -77,21 +78,21 @@ function handleImageTransfer(plugin: IgnorancePlugin, event: TransferEvent, edit
     editor.replaceRange(marker, range.from, range.to);
   } catch (error) {
     console.error("Ignorance Advanced: 图片粘贴插入点创建失败 —", error);
-    new Notice("图片未能插入编辑器：" + errorText(error), 8000);
+    new Notice(tr("图片未能插入编辑器：") + errorText(error), 8000);
     return;
   }
 
   void savePastedImages(plugin, file, files, editor, marker).then(result => {
     if (!replacePendingImageMarker(editor, marker, result.markdown)) {
       return trashPastedImageFiles(plugin, result.createdFiles, result.createdFolder).then(() => {
-        new Notice("图片已取消插入，已清理本次生成的附件。", 6000);
+        new Notice(tr("图片已取消插入，已清理本次生成的附件。"), 6000);
       });
     }
     new Notice(`已保存 ${result.createdFiles.length} 张图片到同级 assets/。`);
   }).catch(error => {
     replacePendingImageMarker(editor, marker, originalText);
     console.error("Ignorance Advanced: 图片粘贴转换失败 —", error);
-    new Notice("图片处理失败：" + errorText(error), 8000);
+    new Notice(tr("图片处理失败：") + errorText(error), 8000);
   });
 }
 
@@ -224,7 +225,7 @@ function addFileToolsMenu(plugin: IgnorancePlugin, menu: Menu, file: TAbstractFi
   if (isMarkdownImportSource(file)) {
     menu.addSeparator();
     menu.addItem(item => item
-      .setTitle("导入为 Markdown")
+      .setTitle(tr("导入为 Markdown"))
       .setIcon("lucide-file-down")
       .onClick(() => new MarkdownImportModal(plugin, file).open()));
   }
@@ -295,7 +296,7 @@ class HtmlReadOnlyView extends FileView {
     } catch (error) {
       if (token !== this.renderToken) return;
       iframe.remove();
-      this.contentEl.createDiv({ cls: "ibm-html-reader-error", text: "HTML 预览失败：" + errorText(error) });
+      this.contentEl.createDiv({ cls: "ibm-html-reader-error", text: tr("HTML 预览失败：") + errorText(error) });
     }
   }
 
@@ -320,7 +321,7 @@ class MarkdownImportModal extends Modal {
 
   onOpen() {
     const extension = String(this.file.extension || "").toLowerCase();
-    this.titleEl.setText("导入为 Markdown");
+    this.titleEl.setText(tr("导入为 Markdown"));
     const { contentEl } = this;
     contentEl.empty();
     const description = extension === "docx"
@@ -329,13 +330,13 @@ class MarkdownImportModal extends Modal {
         ? "按 Notion 导出包导入 Markdown 页面、CSV 表格和图片；页面目录与内链会保留，图片转为 WebP。"
         : "本地转换为 Markdown；生成的笔记与源文件放在同一目录。PDF 扫描件暂不做 OCR。";
     contentEl.createEl("p", { text: description });
-    new Setting(contentEl).setName(extension === "zip" ? "Notion 导入文件夹" : "Markdown 文件名").setDesc("可改成语义化名称；不会覆盖已有文件。")
+    new Setting(contentEl).setName(extension === "zip" ? "Notion 导入文件夹" : "Markdown 文件名").setDesc(tr("可改成语义化名称；不会覆盖已有文件。"))
       .addText(text => text.setValue(this.noteName).onChange(value => { this.noteName = value; }));
     new Setting(contentEl).addButton(button => button
-      .setButtonText("取消")
+      .setButtonText(tr("取消"))
       .onClick(() => this.close()))
       .addButton(button => button
-        .setButtonText("开始导入")
+        .setButtonText(tr("开始导入"))
         .setCta()
         .onClick(() => { void this.startImport(); }));
   }
@@ -343,7 +344,7 @@ class MarkdownImportModal extends Modal {
   private async startImport() {
     const noteName = this.noteName.trim().replace(/\.md$/i, "");
     if (!noteName || hasInvalidNameChar(noteName) || noteName === "." || noteName === "..") {
-      new Notice("请填写有效的 Markdown 文件名");
+      new Notice(tr("请填写有效的 Markdown 文件名"));
       return;
     }
     this.close();
@@ -391,7 +392,7 @@ async function openImportedNote(plugin: IgnorancePlugin, note: TFile) {
   try {
     await plugin.app.workspace.getLeaf(false).openFile(note);
   } catch (error) {
-    new Notice("已导入 " + note.path + "，但未能自动打开：" + errorText(error), 8000);
+    new Notice(tr("已导入 ") + note.path + "，但未能自动打开：" + errorText(error), 8000);
   }
 }
 

@@ -1,4 +1,5 @@
 import type { Menu } from "obsidian";
+import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Modal, Notice } from "obsidian";
 import { applyLayout, exportLayouts, importLayouts, layoutChanges, snapshotLayout, uniqueLayoutName, type LayoutRecord, type PageLike } from "./layout-library-core.js";
@@ -21,9 +22,9 @@ class TextModal extends Modal {
       : this.contentEl.createEl("input", { cls: "ib-footer-input", attr: { type: "text" } });
     input.value = this.initial;
     const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
-    footer.createEl("button", { text: "取消" }).addEventListener("click", () => this.close());
+    footer.createEl("button", { text: tr("取消") }).addEventListener("click", () => this.close());
     const done = () => { this.submit(input.value); this.close(); };
-    footer.createEl("button", { cls: "mod-cta", text: "确定" }).addEventListener("click", done);
+    footer.createEl("button", { cls: "mod-cta", text: tr("确定") }).addEventListener("click", done);
     if (!this.multiline) input.addEventListener("keydown", (event: Event) => { if ((event as KeyboardEvent).key === "Enter") done(); });
     window.setTimeout(() => input.focus(), 50);
   }
@@ -38,15 +39,15 @@ class ConfirmApplyModal extends Modal {
     const list = this.contentEl.createEl("ul", { cls: "ibp-layout-changes" });
     for (const change of this.changes) list.createEl("li", { text: `${change.label}：${change.from} → ${change.to}` });
     const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
-    footer.createEl("button", { text: "取消" }).addEventListener("click", () => this.close());
-    footer.createEl("button", { cls: "mod-cta", text: "套用" }).addEventListener("click", () => { this.apply(); this.close(); });
+    footer.createEl("button", { text: tr("取消") }).addEventListener("click", () => this.close());
+    footer.createEl("button", { cls: "mod-cta", text: tr("套用") }).addEventListener("click", () => { this.apply(); this.close(); });
   }
   onClose() { this.contentEl.empty(); }
 }
 
 export function applyUserLayout(plugin: IgnorancePlugin, record: LayoutRecord, onApplied: () => void) {
   const changes = layoutChanges(current(plugin), record.settings);
-  if (!changes.length) { new Notice("当前设置和这个版式一样，没有需要改的。"); return; }
+  if (!changes.length) { new Notice(tr("当前设置和这个版式一样，没有需要改的。")); return; }
   new ConfirmApplyModal(plugin, record, changes, () => {
     applyLayout(plugin.state.page as unknown as PageLike, record.settings);
     if (record.settings.wordFont) plugin.state.wordFont = record.settings.wordFont;
@@ -71,13 +72,13 @@ export const savedLayouts = layouts;
 
 class ManageModal extends Modal {
   constructor(private plugin: IgnorancePlugin, private onApplied: () => void) { super(plugin.app); }
-  onOpen() { this.setTitle("我的版式"); this.render(); }
+  onOpen() { this.setTitle(tr("我的版式")); this.render(); }
   onClose() { this.contentEl.empty(); }
   render() {
     const { contentEl, plugin } = this;
     contentEl.empty();
     const list = layouts(plugin);
-    if (!list.length) contentEl.createDiv({ cls: "ib-form-hint", text: "还没有保存的版式。先调好页面设置，再在「版式」菜单里选「保存当前设置」。" });
+    if (!list.length) contentEl.createDiv({ cls: "ib-form-hint", text: tr("还没有保存的版式。先调好页面设置，再在「版式」菜单里选「保存当前设置」。") });
     for (const record of list) {
       const row = contentEl.createDiv({ cls: "ibp-layout-row" });
       row.createSpan({ cls: "ibp-layout-name", text: record.name });
@@ -99,8 +100,8 @@ class ManageModal extends Modal {
       });
     }
     const footer = contentEl.createDiv({ cls: "modal-button-container" });
-    footer.createEl("button", { text: "导入…" }).addEventListener("click", () => importFromText(plugin, () => this.render()));
-    const exportButton = footer.createEl("button", { text: "导出全部" });
+    footer.createEl("button", { text: tr("导入…") }).addEventListener("click", () => importFromText(plugin, () => this.render()));
+    const exportButton = footer.createEl("button", { text: tr("导出全部") });
     exportButton.disabled = !list.length;
     exportButton.addEventListener("click", () => {
       void saveExportToVault(plugin, "我的版式.json", exportLayouts(list)).then(path => new Notice(`已保存：${path}`));
@@ -131,6 +132,6 @@ export function addLayoutItems(plugin: IgnorancePlugin, menu: Menu, onApplied: (
     for (const record of list) menu.addItem(item => item.setTitle(record.name).setIcon("bookmark").onClick(() => applyUserLayout(plugin, record, onApplied)));
   }
   menu.addSeparator();
-  menu.addItem(item => item.setTitle("保存当前设置…").setIcon("save").onClick(() => saveCurrentAsLayout(plugin, onApplied)));
-  menu.addItem(item => item.setTitle("管理…").setIcon("settings-2").onClick(() => new ManageModal(plugin, onApplied).open()));
+  menu.addItem(item => item.setTitle(tr("保存当前设置…")).setIcon("save").onClick(() => saveCurrentAsLayout(plugin, onApplied)));
+  menu.addItem(item => item.setTitle(tr("管理…")).setIcon("settings-2").onClick(() => new ManageModal(plugin, onApplied).open()));
 }

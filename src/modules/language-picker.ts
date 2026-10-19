@@ -1,4 +1,5 @@
 import { createLanguageIcon } from "./language-icons.js";
+import { tr } from "../i18n.js";
 // A language picker for code fences: type to filter, arrows and Enter to choose.
 export interface LanguageEntry { id: string; label: string; aliases?: string[] }
 
@@ -48,7 +49,7 @@ export function fenceLanguage(fence: string): string {
 export function openLanguagePicker({ anchor, current, onPick }: { anchor: HTMLElement; current: string; onPick: (language: string) => void }) {
   document.querySelectorAll(".ib-lang-picker").forEach(node => node.remove());
   const picker = document.body.createDiv({ cls: "ib-lang-picker" });
-  const input = picker.createEl("input", { cls: "ib-lang-input", attr: { type: "text", placeholder: "输入语言，如 js、py、SQL", spellcheck: "false", "aria-label": "搜索代码语言" } });
+  const input = picker.createEl("input", { cls: "ib-lang-input", attr: { type: "text", placeholder: tr("输入语言，如 js、py、SQL"), spellcheck: "false", "aria-label": tr("搜索代码语言") } });
   const list = picker.createEl("ul", { cls: "ib-lang-list", attr: { role: "listbox" } });
   let items: LanguageEntry[] = [], active = 0, done = false;
   const close = () => { if (done) return; done = true; picker.remove(); document.removeEventListener("pointerdown", outside, true); };

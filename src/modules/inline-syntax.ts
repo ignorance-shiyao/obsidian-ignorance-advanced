@@ -1,4 +1,5 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
+import { tr } from "../i18n.js";
 import { readAsset } from "./assets.js";
 import { parseInlineSyntax, type InlineSyntaxToken } from "./inline-syntax-source.js";
 
@@ -131,7 +132,7 @@ function makeChipElement(token: InlineSyntaxToken) {
     spoiler.className = "ib-inline-spoiler";
     spoiler.tabIndex = 0;
     spoiler.setAttribute("role", "button");
-    spoiler.setAttribute("aria-label", "点击显示隐藏内容");
+    spoiler.setAttribute("aria-label", tr("点击显示隐藏内容"));
     spoiler.textContent = token.value;
     spoiler.addEventListener("click", () => spoiler.classList.toggle("is-revealed"));
     spoiler.addEventListener("keydown", event => {

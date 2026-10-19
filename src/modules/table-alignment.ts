@@ -1,4 +1,5 @@
 import type { RenderingContext } from "../rendering-context.js";
+import { tr } from "../i18n.js";
 import { Menu, Notice, MarkdownView, TFile } from "obsidian";
 import MarkdownIt from "markdown-it";
 import { setIcon, UI_ICONS } from "./ui-icons.js";
@@ -53,7 +54,7 @@ export function tableAlignmentControl(plugin: RenderingContext, table: HTMLEleme
   };
   void locate().then(found => { if (found.alignment) setAlignment(table, found.alignment); }).catch(() => { /* the saved position is only a hint; the menu reports real failures */ });
   return (host: HTMLElement) => {
-    const button = host.createEl("button", {cls:"ibt-align",attr:{type:"button",title:"表格位置","aria-label":"表格位置"}});
+    const button = host.createEl("button", {cls:"ibt-align",attr:{type:"button",title:tr("表格位置"),"aria-label":tr("表格位置")}});
     setIcon(button, UI_ICONS.alignCenter);
     button.addEventListener("pointerdown", e => {e.preventDefault();e.stopPropagation();});
     button.addEventListener("click", event => {

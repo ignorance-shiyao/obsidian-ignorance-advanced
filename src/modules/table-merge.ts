@@ -1,4 +1,5 @@
 import { enhancementOn, handledByOther } from "./enhancement-gate.js";
+import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 /* Table extras in Reading view and exports (plain Markdown tables, nothing changes in the file):
      - a cell holding only `<` joins the cell on its left, one holding only `^` joins the cell above
@@ -118,7 +119,7 @@ function enhanceGroups(table: HTMLTableElement) {
     const hasChildren = (levels[index + 1]?.level ?? 0) > levels[index].level;
     if (!hasChildren) return;
     row.classList.add("ib-row-parent");
-    const toggle = createEl("button", { cls: "ib-row-toggle", attr: { type: "button", "aria-expanded": "true", "aria-label": "展开或折叠子行" } });
+    const toggle = createEl("button", { cls: "ib-row-toggle", attr: { type: "button", "aria-expanded": "true", "aria-label": tr("展开或折叠子行") } });
     toggle.textContent = "▾";
     cell.prepend(toggle);
     toggle.addEventListener("click", () => {

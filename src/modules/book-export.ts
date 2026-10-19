@@ -1,4 +1,5 @@
 import { Component, MarkdownRenderer, Modal, Notice, moment } from "obsidian";
+import { tr } from "../i18n.js";
 import type { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { absolutizeLinks, buildEpub, chapterFile, combineMarkdown, imageMime, normalizeLanguage, parseNoteList, type EpubChapter, type EpubImage } from "./epub-core.js";
@@ -102,20 +103,20 @@ class NotePickerModal extends Modal {
   constructor(private plugin: IgnorancePlugin, private onDone: (files: TFile[]) => void) { super(plugin.app); }
   onOpen() {
     const { vault } = this.plugin.app;
-    this.titleEl.setText("选择要加入的笔记");
+    this.titleEl.setText(tr("选择要加入的笔记"));
     const files = vault.getMarkdownFiles().sort((a, b) => a.path.localeCompare(b.path, "zh"));
     const folders = [...new Set(files.map(file => file.parent?.path ?? "/"))].filter(path => path !== "/").sort((a, b) => a.localeCompare(b, "zh"));
     const bar = this.contentEl.createDiv({ cls: "ib-note-picker__bar" });
     const folder = bar.createEl("select");
-    folder.createEl("option", { value: "", text: "全部文件夹" });
+    folder.createEl("option", { value: "", text: tr("全部文件夹") });
     for (const path of folders) folder.createEl("option", { value: path, text: path });
-    const search = bar.createEl("input", { attr: { type: "search", placeholder: "筛选…" } });
+    const search = bar.createEl("input", { attr: { type: "search", placeholder: tr("筛选…") } });
     const list = this.contentEl.createDiv({ cls: "ib-note-picker__list" });
     const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
     const count = footer.createSpan({ cls: "ib-note-picker__count" });
-    const all = footer.createEl("button", { text: "全选当前列表" });
-    const none = footer.createEl("button", { text: "清空选择" });
-    const add = footer.createEl("button", { cls: "mod-cta", text: "加入" });
+    const all = footer.createEl("button", { text: tr("全选当前列表") });
+    const none = footer.createEl("button", { text: tr("清空选择") });
+    const add = footer.createEl("button", { cls: "mod-cta", text: tr("加入") });
     let shown: TFile[] = [];
     const refreshCount = () => { count.setText(`已选 ${this.picked.size} 篇`); add.toggleAttribute("disabled", !this.picked.size); };
     const draw = () => {
@@ -129,7 +130,7 @@ class NotePickerModal extends Modal {
         box.addEventListener("change", () => { if (box.checked) this.picked.add(file.path); else this.picked.delete(file.path); refreshCount(); });
         row.createSpan({ text: file.path.replace(/\.md$/, "") });
       }
-      if (!shown.length) list.createDiv({ cls: "ib-form-hint", text: "没有符合条件的笔记" });
+      if (!shown.length) list.createDiv({ cls: "ib-form-hint", text: tr("没有符合条件的笔记") });
       refreshCount();
     };
     folder.addEventListener("change", draw);
@@ -146,27 +147,27 @@ class BookModal extends Modal {
   constructor(private plugin: IgnorancePlugin) { super(plugin.app); }
   onOpen() {
     const { app } = this.plugin;
-    this.titleEl.setText("把多篇笔记合成电子书");
-    this.contentEl.createDiv({ cls: "ib-form-hint", text: "每行一篇笔记，按这个顺序成章。可以写 [[名称]] 或直接写名称。" });
+    this.titleEl.setText(tr("把多篇笔记合成电子书"));
+    this.contentEl.createDiv({ cls: "ib-form-hint", text: tr("每行一篇笔记，按这个顺序成章。可以写 [[名称]] 或直接写名称。") });
     const active = app.workspace.getActiveFile();
     const links = active ? (app.metadataCache.getFileCache(active)?.links ?? []).map(link => app.metadataCache.getFirstLinkpathDest(link.link.split("#")[0], active.path)).filter((file): file is TFile => !!file && file.extension === "md") : [];
     const initial = [...new Set([...(active ? [active.path] : []), ...links.map(file => file.path)])].map(path => `[[${path.replace(/\.md$/, "")}]]`).join("\n");
     const area = this.contentEl.createEl("textarea", { cls: "ib-clip-batch__area", attr: { rows: "8", spellcheck: "false" } });
     area.value = initial;
-    const pick = this.contentEl.createEl("button", { text: "从库中选择笔记或文件夹…" });
+    const pick = this.contentEl.createEl("button", { text: tr("从库中选择笔记或文件夹…") });
     pick.addEventListener("click", () => new NotePickerModal(this.plugin, picked => {
       const known = new Set(parseNoteList(area.value).map(name => app.metadataCache.getFirstLinkpathDest(name, "")?.path));
       const lines = picked.filter(file => !known.has(file.path)).map(file => `[[${file.path.replace(/\.md$/, "")}]]`);
       if (lines.length) area.value = `${area.value.trimEnd()}${area.value.trim() ? "\n" : ""}${lines.join("\n")}`;
     }).open());
-    const title = this.contentEl.createEl("input", { attr: { type: "text", placeholder: "书名" } });
+    const title = this.contentEl.createEl("input", { attr: { type: "text", placeholder: tr("书名") } });
     title.value = active?.basename ?? "";
-    const author = this.contentEl.createEl("input", { attr: { type: "text", placeholder: "作者（可留空）" } });
+    const author = this.contentEl.createEl("input", { attr: { type: "text", placeholder: tr("作者（可留空）") } });
     const status = this.contentEl.createDiv({ cls: "ib-form-hint" });
     const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
-    footer.createEl("button", { text: "取消" }).addEventListener("click", () => this.close());
-    const word = footer.createEl("button", { text: "生成文档版" });
-    const go = footer.createEl("button", { cls: "mod-cta", text: "生成电子书" });
+    footer.createEl("button", { text: tr("取消") }).addEventListener("click", () => this.close());
+    const word = footer.createEl("button", { text: tr("生成文档版") });
+    const go = footer.createEl("button", { cls: "mod-cta", text: tr("生成电子书") });
     const run = async (kind: "epub" | "word") => {
       const names = parseNoteList(area.value);
       const files: TFile[] = [], missing: string[] = [];
@@ -174,7 +175,7 @@ class BookModal extends Modal {
         const file = app.metadataCache.getFirstLinkpathDest(name, "");
         if (file && file.extension === "md" && !files.includes(file)) files.push(file); else if (!file) missing.push(name);
       }
-      if (!files.length) { status.setText("没有找到可用的笔记"); return; }
+      if (!files.length) { status.setText(tr("没有找到可用的笔记")); return; }
       if (missing.length) { status.setText(`找不到：${missing.join("、")}。请改正后再试。`); return; }
       go.setAttr("disabled", "true");
       word.setAttr("disabled", "true");

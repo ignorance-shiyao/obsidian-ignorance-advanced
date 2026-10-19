@@ -1,4 +1,5 @@
 import { openBookExport } from "./book-export.js";
+import { tr } from "../i18n.js";
 import { nextFrame } from "./layout-frame.js";
 import { renderMermaidForExport } from "./mermaid-export.js";
 import { wordExportFonts, wordFontFromToken } from "./word-font.js";
@@ -44,18 +45,18 @@ function exportActions(plugin: IgnorancePlugin, file: TFile): Record<ExportActio
   const deps = { prepareHtmlDocument: plugin.exporters.html, prepareRichCopyMarkup, pageVarsAtFullScale, buildDeck };
   const preview = (kind: string, run: () => void) => () => previewThenExport(plugin, file, kind, deps, run);
   return {
-    pdf: { title: "导出 PDF", icon: "lucide-file-down", run: preview("pdf", () => { void runExport("PDF", () => exportPdf(plugin, file)); }) },
-    word: { title: "导出 Word（.docx）", icon: "lucide-file-type", run: preview("word", () => { void runExport("Word", () => exportWord(plugin, file)); }) },
+    pdf: { title: tr("导出 PDF"), icon: "lucide-file-down", run: preview("pdf", () => { void runExport("PDF", () => exportPdf(plugin, file)); }) },
+    word: { title: tr("导出 Word（.docx）"), icon: "lucide-file-type", run: preview("word", () => { void runExport("Word", () => exportWord(plugin, file)); }) },
     // PPTX uses the presentation settings (skin, aspect ratio) and its own progress notice.
-    pptxEditable: { title: "导出 PPTX（可编辑）", icon: "lucide-presentation", run: preview("pptx-editable", () => { void exportNotePptx(plugin, file, "editable"); }) },
-    pptxImage: { title: "导出 PPTX（图片版）", icon: "lucide-image", run: preview("pptx-image", () => { void exportNotePptx(plugin, file, "image"); }) },
-    wechat: { title: "复制为公众号格式", icon: "lucide-copy", run: preview("wechat", () => { void runCopy("公众号", () => copyFormattedNote(plugin, file, "wechat")); }) },
-    zhihu: { title: "复制为知乎格式", icon: "lucide-copy", run: preview("zhihu", () => { void runCopy("知乎", () => copyFormattedNote(plugin, file, "zhihu")); }) },
-    html: { title: "导出为 HTML", icon: "lucide-globe", run: preview("html", () => { void runExport("HTML", () => plugin.exporters.exportHtml(plugin, file)); }) },
-    pages: { title: "导出分页图片", icon: "lucide-images", run: preview("pages", () => { void runExport("分页图片", () => exportImages(plugin, file, "pages")); }) },
-    long: { title: "导出长图", icon: "lucide-image", run: preview("long", () => { void runExport("长图", () => exportImages(plugin, file, "long")); }) },
+    pptxEditable: { title: tr("导出 PPTX（可编辑）"), icon: "lucide-presentation", run: preview("pptx-editable", () => { void exportNotePptx(plugin, file, "editable"); }) },
+    pptxImage: { title: tr("导出 PPTX（图片版）"), icon: "lucide-image", run: preview("pptx-image", () => { void exportNotePptx(plugin, file, "image"); }) },
+    wechat: { title: tr("复制为公众号格式"), icon: "lucide-copy", run: preview("wechat", () => { void runCopy("公众号", () => copyFormattedNote(plugin, file, "wechat")); }) },
+    zhihu: { title: tr("复制为知乎格式"), icon: "lucide-copy", run: preview("zhihu", () => { void runCopy("知乎", () => copyFormattedNote(plugin, file, "zhihu")); }) },
+    html: { title: tr("导出为 HTML"), icon: "lucide-globe", run: preview("html", () => { void runExport("HTML", () => plugin.exporters.exportHtml(plugin, file)); }) },
+    pages: { title: tr("导出分页图片"), icon: "lucide-images", run: preview("pages", () => { void runExport("分页图片", () => exportImages(plugin, file, "pages")); }) },
+    long: { title: tr("导出长图"), icon: "lucide-image", run: preview("long", () => { void runExport("长图", () => exportImages(plugin, file, "long")); }) },
     // Several notes become one book, so there is no single-note preview first.
-    book: { title: "合成电子书（多篇）", icon: "lucide-book-open", run: () => openBookExport(plugin) }
+    book: { title: tr("合成电子书（多篇）"), icon: "lucide-book-open", run: () => openBookExport(plugin) }
   };
 }
 
@@ -442,7 +443,7 @@ async function exportPdf(plugin: IgnorancePlugin, file: TFile) {
     document.title = file.basename;
     try {
       await nextFrame();
-      if (Platform.isDesktop) new Notice("在打印窗口选择「存储为 PDF」即可保存", 6000);
+      if (Platform.isDesktop) new Notice(tr("在打印窗口选择「存储为 PDF」即可保存"), 6000);
       window.print();
     } finally {
       if (document.title === file.basename) document.title = previousTitle;

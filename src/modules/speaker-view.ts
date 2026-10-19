@@ -1,4 +1,5 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
+import { tr } from "../i18n.js";
 import { ItemView, Platform, setIcon, type WorkspaceLeaf } from "obsidian";
 import { formatElapsed } from "./speaker-notes-core.js";
 /* The presenter's window: this slide's notes, a preview of the next slide, a timer, and page buttons. It reads
@@ -101,13 +102,13 @@ export class SpeakerView extends ItemView {
     const notes = slides[index]?.notes ?? "";
     this.notesEl.empty();
     if (notes) for (const paragraph of notes.split(/\n{2,}/)) this.notesEl.createEl("p", { text: paragraph });
-    else this.notesEl.createDiv({ cls: "ibp-speaker__empty", text: "这一页没有备注。写法：%%备注：要讲的话%%" });
+    else this.notesEl.createDiv({ cls: "ibp-speaker__empty", text: tr("这一页没有备注。写法：%%备注：要讲的话%%") });
     this.renderPreview(slides[index + 1]?.el ?? null, source);
   }
 
   private renderPreview(slide: HTMLElement | null, source: SpeakerSource) {
     this.previewEl.empty();
-    if (!slide) { this.previewEl.createDiv({ cls: "ibp-speaker__empty", text: "已是最后一页" }); return; }
+    if (!slide) { this.previewEl.createDiv({ cls: "ibp-speaker__empty", text: tr("已是最后一页") }); return; }
     const { width, height } = source.size;
     const frame = this.previewEl.createDiv({ cls: "ibp-speaker__frame" });
     frame.setCssProps({ "--ibp-ratio": `${width} / ${height}` });

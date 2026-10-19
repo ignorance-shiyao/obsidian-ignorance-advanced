@@ -1,4 +1,5 @@
 import type { App, TAbstractFile, Vault } from "obsidian";
+import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Modal, Notice, TFile, TFolder, htmlToMarkdown, normalizePath, requestUrl } from "obsidian";
 import { setIcon } from "./ui-icons.js";
@@ -189,7 +190,7 @@ export function siteFolder(url: string) {
 
 export async function clipUrl(plugin: IgnorancePlugin, url: string, target: TFile | null = null): Promise<TFile> {
   const vault = plugin.app.vault;
-  const notice = new Notice("正在剪藏…", 0);
+  const notice = new Notice(tr("正在剪藏…"), 0);
   try {
     const article = await fetchArticle(url);
     const title = article.title || url;
@@ -239,19 +240,19 @@ class ClipModal extends Modal {
   constructor(plugin: IgnorancePlugin) { super(plugin.app); this.plugin = plugin; this.busy = false; }
   onOpen() {
     this.modalEl.addClass("ib-clip-modal");
-    this.titleEl.setText("剪藏网页");
-    const label = this.contentEl.createEl("label", { cls: "ib-form-label", text: "文章链接" });
+    this.titleEl.setText(tr("剪藏网页"));
+    const label = this.contentEl.createEl("label", { cls: "ib-form-label", text: tr("文章链接") });
     const field = this.contentEl.createDiv({ cls: "ib-clip-modal__field" });
     setIcon(field.createSpan({ cls: "ib-clip-modal__icon" }), "lucide-link");
     const input = this.input = field.createEl("input", {
       cls: "ib-clip-modal__input",
-      attr: { id: "ib-clip-url", type: "url", placeholder: "长按此处粘贴链接", autocapitalize: "off", autocorrect: "off", spellcheck: "false", enterkeyhint: "go" }
+      attr: { id: "ib-clip-url", type: "url", placeholder: tr("长按此处粘贴链接"), autocapitalize: "off", autocorrect: "off", spellcheck: "false", enterkeyhint: "go" }
     });
     label.setAttribute("for", "ib-clip-url");
     this.contentEl.createDiv({ cls: "ib-form-hint", text: `支持公众号、X 与大多数文章网页。粘贴后自动开始，正文与图片保存到 ${clipFolder(this.plugin)}/。` });
     const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
-    footer.createEl("button", { text: "取消" }).addEventListener("click", () => this.close());
-    this.confirm = footer.createEl("button", { cls: "mod-cta", text: "剪藏" });
+    footer.createEl("button", { text: tr("取消") }).addEventListener("click", () => this.close());
+    this.confirm = footer.createEl("button", { cls: "mod-cta", text: tr("剪藏") });
     this.confirm.addEventListener("click", () => { void this.submit(); });
     input.addEventListener("keydown", event => { if (event.key === "Enter") void this.submit(); });
     input.addEventListener("paste", () => window.setTimeout(() => { if (URL_PATTERN.test(input.value)) void this.submit(); }, 0));
@@ -264,7 +265,7 @@ class ClipModal extends Modal {
   async submit() {
     if (this.busy) return;
     const url = this.input.value.match(URL_PATTERN)?.[0];
-    if (!url) { new Notice("请粘贴网页链接", 3000); this.input.focus(); return; }
+    if (!url) { new Notice(tr("请粘贴网页链接"), 3000); this.input.focus(); return; }
     this.busy = true;
     this.close();
     const note = await clipUrl(this.plugin, url).catch((): TFile | null => null);
@@ -286,14 +287,14 @@ class BatchClipModal extends Modal {
   start: HTMLButtonElement;
   constructor(plugin: IgnorancePlugin) { super(plugin.app); this.plugin = plugin; this.busy = false; }
   onOpen() {
-    this.titleEl.setText("批量剪藏网页");
+    this.titleEl.setText(tr("批量剪藏网页"));
     this.contentEl.createDiv({ cls: "ib-form-hint", text: `每行一个链接，已经剪藏过的会跳过。保存到 ${clipFolder(this.plugin)}/。` });
-    this.area = this.contentEl.createEl("textarea", { cls: "ib-clip-batch__area", attr: { rows: "8", placeholder: "粘贴链接，每行一个", spellcheck: "false" } });
+    this.area = this.contentEl.createEl("textarea", { cls: "ib-clip-batch__area", attr: { rows: "8", placeholder: tr("粘贴链接，每行一个"), spellcheck: "false" } });
     this.status = this.contentEl.createDiv({ cls: "ib-form-hint" });
     this.results = this.contentEl.createDiv({ cls: "ib-clip-batch__results" });
     const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
-    footer.createEl("button", { text: "关闭" }).addEventListener("click", () => this.close());
-    this.start = footer.createEl("button", { cls: "mod-cta", text: "开始" });
+    footer.createEl("button", { text: tr("关闭") }).addEventListener("click", () => this.close());
+    this.start = footer.createEl("button", { cls: "mod-cta", text: tr("开始") });
     this.start.addEventListener("click", () => void this.run());
     window.setTimeout(() => this.area.focus(), 50);
   }
@@ -301,7 +302,7 @@ class BatchClipModal extends Modal {
     if (this.busy) return;
     if (this.finished) { this.close(); return; }
     const urls = [...new Set([...this.area.value.matchAll(new RegExp(URL_PATTERN.source, "g"))].map(match => match[0]))];
-    if (!urls.length) { new Notice("请粘贴至少一个网页链接", 3000); return; }
+    if (!urls.length) { new Notice(tr("请粘贴至少一个网页链接"), 3000); return; }
     this.busy = true;
     this.start.setAttr("disabled", "true");
     this.results.empty();
@@ -323,18 +324,18 @@ class BatchClipModal extends Modal {
       const mark = row.createSpan({ cls: "ib-clip-batch__mark" });
       row.createSpan({ cls: "ib-clip-batch__url", text: url });
       // Retrying a link never makes a second file: a link whose note already exists is skipped by its source.
-      if (known.has(clipKey(url))) { skipped += 1; mark.setText("已存在，跳过"); continue; }
+      if (known.has(clipKey(url))) { skipped += 1; mark.setText(tr("已存在，跳过")); continue; }
       const note = await clipUrl(this.plugin, url).catch((): TFile | null => null);
-      if (note) { done += 1; mark.setText("成功"); known.add(clipKey(url)); }
-      else { failedUrls.push(url); mark.setText("失败"); row.addClass("is-failed"); }
+      if (note) { done += 1; mark.setText(tr("成功")); known.add(clipKey(url)); }
+      else { failedUrls.push(url); mark.setText(tr("失败")); row.addClass("is-failed"); }
     }
     this.status.setText(`完成：成功 ${done}，跳过 ${skipped}，失败 ${failedUrls.length}`);
     this.busy = false;
     this.start.removeAttribute("disabled");
     if (failedUrls.length) {
       this.area.value = failedUrls.join("\n");
-      this.start.setText("重试失败项");
-    } else this.start.setText("完成");
+      this.start.setText(tr("重试失败项"));
+    } else this.start.setText(tr("完成"));
     this.finished = !failedUrls.length;
   }
   onClose() { this.cancelled = true; this.contentEl.empty(); }
@@ -346,12 +347,12 @@ class ConfirmClipModal extends Modal {
   action: () => void;
   constructor(plugin: IgnorancePlugin, message: string, url: string, action: () => void) { super(plugin.app); this.message = message; this.url = url; this.action = action; }
   onOpen() {
-    this.titleEl.setText("剪藏");
+    this.titleEl.setText(tr("剪藏"));
     this.contentEl.createEl("p", { text: this.message });
     this.contentEl.createEl("p", { cls: "ib-clip-confirm-url", text: this.url });
     const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
-    footer.createEl("button", { text: "取消" }).addEventListener("click", () => this.close());
-    footer.createEl("button", { cls: "mod-cta", text: "剪藏" }).addEventListener("click", () => { this.close(); this.action(); });
+    footer.createEl("button", { text: tr("取消") }).addEventListener("click", () => this.close());
+    footer.createEl("button", { cls: "mod-cta", text: tr("剪藏") }).addEventListener("click", () => { this.close(); this.action(); });
   }
   onClose() { this.contentEl.empty(); }
 }
@@ -388,7 +389,7 @@ export function installWebClip(plugin: IgnorancePlugin) {
           if (url) { await clipUrl(plugin, url, file); return; }
           const copied = await clipboardUrl();
           if (copied) await clipUrl(plugin, copied, file);
-          else new Notice("这篇笔记没有来源链接，剪贴板里也没有链接", 5000);
+          else new Notice(tr("这篇笔记没有来源链接，剪贴板里也没有链接"), 5000);
         } catch { /* clipUrl already told the user why it failed */ }
       })();
       return true;
@@ -400,7 +401,7 @@ export function installWebClip(plugin: IgnorancePlugin) {
   // 剪藏网页 in the note's "⋯" menu (no permanent header button).
   plugin.registerEvent(app.workspace.on("file-menu", (menu, _file, source) => {
     if (source !== "more-options") return;
-    menu.addItem(item => item.setTitle("剪藏网页").setIcon("lucide-scissors").setSection("ibp-clip").onClick(openClip));
+    menu.addItem(item => item.setTitle(tr("剪藏网页")).setIcon("lucide-scissors").setSection("ibp-clip").onClick(openClip));
   }));
 
   // A lone link pasted into an empty note becomes the clipped article.

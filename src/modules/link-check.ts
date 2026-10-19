@@ -1,4 +1,5 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
+import { tr } from "../i18n.js";
 import { Modal, Notice, MarkdownView } from "obsidian";
 import { applyEdits, checkStructure, type StructureIssue } from "./structure-check-core.js";
 /* "检查当前笔记的链接": lists links and embeds that point nowhere, links to headings that do not exist, and
@@ -41,7 +42,7 @@ export function openLinkCheck(plugin: IgnorancePlugin) {
   const { app } = plugin;
   const view = app.workspace.getActiveViewOfType(MarkdownView);
   const file = view?.file;
-  if (!file) { new Notice("请先打开一篇笔记"); return; }
+  if (!file) { new Notice(tr("请先打开一篇笔记")); return; }
   const cache = app.metadataCache.getFileCache(file) || {};
   const refs: LinkRef[] = [
     ...(cache.links || []).map(item => ({ link: item.link, line: item.position.start.line, kind: "link" as const })),
@@ -61,7 +62,7 @@ export function openLinkCheck(plugin: IgnorancePlugin) {
     ...linkProblems.map(problem => ({ line: problem.line, text: problem.text, detail: problem.detail || "" })),
     ...structure.map(issue => ({ line: issue.line, text: issue.message, detail: issue.fix ? "可自动修复" : "" }))
   ].sort((a, b) => a.line - b.line);
-  if (!rows.length) { new Notice("没有发现失效的链接、结构或排版问题"); return; }
+  if (!rows.length) { new Notice(tr("没有发现失效的链接、结构或排版问题")); return; }
   const fixable = structure.filter((issue): issue is StructureIssue & { fix: NonNullable<StructureIssue["fix"]> } => Boolean(issue.fix));
 
   class LinkCheckModal extends Modal {
@@ -99,8 +100,8 @@ export function openLinkCheck(plugin: IgnorancePlugin) {
         row.createSpan({ cls: "ibp-diff-new", text: after[index] });
       });
       const footer = contentEl.createDiv({ cls: "modal-button-container" });
-      footer.createEl("button", { text: "返回" }).addEventListener("click", () => this.showList());
-      footer.createEl("button", { cls: "mod-cta", text: "写入" }).addEventListener("click", () => {
+      footer.createEl("button", { text: tr("返回") }).addEventListener("click", () => this.showList());
+      footer.createEl("button", { cls: "mod-cta", text: tr("写入") }).addEventListener("click", () => {
         // One transaction, so a single undo restores the note.
         editor.transaction({ changes: fixable.map(({ fix }) => ({ from: editor.offsetToPos(fix.from), to: editor.offsetToPos(fix.to), text: fix.insert })) });
         new Notice(`已修复 ${fixable.length} 处排版问题`);

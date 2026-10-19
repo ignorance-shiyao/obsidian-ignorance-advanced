@@ -1,4 +1,5 @@
 import type { RenderingContext } from "../rendering-context.js";
+import { tr } from "../i18n.js";
 import { Component, MarkdownRenderChild, MarkdownRenderer } from "obsidian";
 import type { MarkdownPostProcessorContext } from "obsidian";
 import { applyStagedChartAlignment } from "./chart-alignment.js";
@@ -142,7 +143,7 @@ function finishCompare(container: HTMLElement, interactive: boolean) {
   input.max = "100";
   input.value = "50";
   input.className = "ibc-compare__range";
-  input.setAttribute("aria-label", "拖动对比两张图片");
+  input.setAttribute("aria-label", tr("拖动对比两张图片"));
   const sync = () => container.style.setProperty("--ibc-split", `${input.value}%`);
   input.addEventListener("input", sync);
   sync();

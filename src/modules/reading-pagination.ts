@@ -1,4 +1,5 @@
 import type { MarkdownPreviewView, TFile, View } from "obsidian";
+import { tr } from "../i18n.js";
 import type { RenderingContext, PageState } from "../rendering-context.js";
 import { Component, Notice, MarkdownView } from "obsidian";
 import { waitForStableLayout } from "./layout-stability.js";
@@ -159,7 +160,7 @@ function installBookInteractions(plugin: RenderingContext, view: MarkdownView, b
         });
       } catch (error) {
         setTaskCloneState(copies, originalChecked);
-        new Notice("任务状态未保存，请重试");
+        new Notice(tr("任务状态未保存，请重试"));
         console.error("Ignorance Advanced: paged task failed —", error);
         refreshBooks(plugin, true);
       } finally {

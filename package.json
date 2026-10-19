@@ -6,7 +6,8 @@
     "install:vault": "node esbuild.config.mjs --install",
     "test": "vitest run && node --test scripts/check-changelog-cases.mjs",
     "check": "node scripts/check-release.mjs",
-    "lint:css": "node scripts/lint-css.mjs"
+    "lint:css": "node scripts/lint-css.mjs",
+    "lint:i18n": "node scripts/i18n-keys.mjs"
   },
   "devDependencies": {
     "@types/markdown-it": "14.1.2",

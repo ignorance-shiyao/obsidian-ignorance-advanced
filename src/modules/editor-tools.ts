@@ -1,4 +1,5 @@
 import { controlScale, controlBox } from "./control-geometry.js";
+import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Notice, Menu, MarkdownView } from "obsidian";
 import { Decoration, ViewPlugin, WidgetType, EditorView, type DecorationSet, type ViewUpdate } from "@codemirror/view";
@@ -258,7 +259,7 @@ class TableResizeLayer {
     button.type = "button";
     button.className = "ibt-size";
     button.title = "表格尺寸";
-    button.setAttribute("aria-label", "表格尺寸");
+    button.setAttribute("aria-label", tr("表格尺寸"));
     setIcon(button, UI_ICONS.width);
     button.addEventListener("pointerdown", event => { event.preventDefault(); event.stopPropagation(); });
     button.addEventListener("click", event => {
@@ -276,8 +277,8 @@ class TableResizeLayer {
       // Modifier keys and double-click hints only make sense with a mouse.
       if (!document.body.classList.contains("is-mobile")) {
       menu.addSeparator();
-      menu.addItem(item => item.setTitle("拖动边线：默认吸附内容 · 按住 ⌥ 自由调整 · 按住 ⇧ 每次调整 10 像素").setIcon("lucide-info").setDisabled(true));
-      menu.addItem(item => item.setTitle("双击边线：适应内容").setIcon("lucide-info").setDisabled(true));
+      menu.addItem(item => item.setTitle(tr("拖动边线：默认吸附内容 · 按住 ⌥ 自由调整 · 按住 ⇧ 每次调整 10 像素")).setIcon("lucide-info").setDisabled(true));
+      menu.addItem(item => item.setTitle(tr("双击边线：适应内容")).setIcon("lucide-info").setDisabled(true));
       }
       const box = button.getBoundingClientRect();
       menu.showAtPosition({ x: box.left, y: box.bottom + 4 });
@@ -520,12 +521,12 @@ class TableResizeLayer {
     let frame = 0;
     // Columns catch on two stops: the width that shows the widest cell on one line, and an equal share.
     const marks = axis === "col" ? [
-      { value: Math.max(min, this.measureFit(index)), label: "适应内容" },
-      { value: Math.max(min, Math.round(this.geo.width / this.geo.cols.length)), label: "等分宽度" }
+      { value: Math.max(min, this.measureFit(index)), label: tr("适应内容") },
+      { value: Math.max(min, Math.round(this.geo.width / this.geo.cols.length)), label: tr("等分宽度") }
     ] : [
       // Rows stop at their natural height, and at the tallest row's height (a uniform table).
-      { value: Math.max(min, this.measureRowFit(index)), label: "适应内容" },
-      { value: Math.max(min, ...this.geo.rows.map((_, i: number) => this.measureRowFit(i))), label: "与最高行一致" }
+      { value: Math.max(min, this.measureRowFit(index)), label: tr("适应内容") },
+      { value: Math.max(min, ...this.geo.rows.map((_, i: number) => this.measureRowFit(i))), label: tr("与最高行一致") }
     ];
     let stuck: { value: number; label: string } | null = null;
     const render = () => {
@@ -652,7 +653,7 @@ class CodeCopyWidget extends WidgetType {
     actions.appendChild(button);
     const align = createEl("button");
     align.type = "button"; align.className = "ibc-live-copy ibc-live-align";
-    align.title = "代码块位置"; align.setAttribute("aria-label", "代码块位置");
+    align.title = "代码块位置"; align.setAttribute("aria-label", tr("代码块位置"));
     setIcon(align, UI_ICONS.alignCenter);
     align.addEventListener("mousedown", e => { e.preventDefault(); e.stopPropagation(); });
     align.addEventListener("click", event => {
@@ -748,7 +749,7 @@ function installCodeLanguagePicker(plugin: IgnorancePlugin) {
   plugin.registerDomEvent(document, "mousedown", event => { if (flairOf(event)) event.preventDefault(); }, true);
   plugin.registerDomEvent(document, "mouseover", event => {
     const flair = flairOf(event);
-    if (flair && flair.getAttribute("aria-label") !== "更改语言") flair.setAttribute("aria-label", "更改语言");
+    if (flair && flair.getAttribute("aria-label") !== "更改语言") flair.setAttribute("aria-label", tr("更改语言"));
   }, true);
   plugin.registerDomEvent(document, "click", event => {
     const flair = flairOf(event);

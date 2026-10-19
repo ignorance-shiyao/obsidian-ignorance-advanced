@@ -1,4 +1,5 @@
 import { TFile } from "obsidian";
+import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { editorInfoField, MarkdownView } from "obsidian";
 import { Decoration, ViewPlugin, WidgetType, type DecorationSet, type EditorView, type ViewUpdate } from "@codemirror/view";
@@ -14,9 +15,9 @@ function tocHeadings(plugin: IgnorancePlugin, sourcePath: string) {
 function buildTocList(plugin: IgnorancePlugin, sourcePath: string, onPick: (heading: TocItem) => void) {
   const headings = tocHeadings(plugin, sourcePath);
   const nav = createDiv({ cls: "ibm-toc" });
-  nav.createDiv({ cls: "ibm-toc-title", text: "目录" });
+  nav.createDiv({ cls: "ibm-toc-title", text: tr("目录") });
   if (!headings.length) {
-    nav.createDiv({ cls: "ibm-toc-empty", text: "（暂无标题）" });
+    nav.createDiv({ cls: "ibm-toc-empty", text: tr("（暂无标题）") });
     return nav;
   }
   const top = Math.min(...headings.map(h => h.level));

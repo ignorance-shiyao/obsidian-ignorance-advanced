@@ -1,4 +1,5 @@
 import type { MarkdownView, WorkspaceLeaf } from "obsidian";
+import { tr } from "../i18n.js";
 import type { RevealApi } from "reveal.js";
 import type PptxGenJS from "pptxgenjs";
 import type { IgnorancePlugin } from "../plugin-types.js";
@@ -197,7 +198,7 @@ function openPopoverUnder(button: HTMLButtonElement, cls: string, fill: (panel: 
 // Theme picker: one card per palette showing its paper, ink and accent in
 // light and dark; picking a half applies that palette in that mode.
 function addThemePicker(parent: HTMLElement, plugin: IgnorancePlugin, onFollow: () => void, onPalette: (id: string, mode: "light" | "dark") => void) {
-  const button = parent.createEl("button", { cls: "ibp-presentation-picker", attr: { type: "button", "aria-label": "主题（所有视图）", "aria-haspopup": "dialog", "data-tooltip-position": "top" } });
+  const button = parent.createEl("button", { cls: "ibp-presentation-picker", attr: { type: "button", "aria-label": tr("主题（所有视图）"), "aria-haspopup": "dialog", "data-tooltip-position": "top" } });
   const text = button.createSpan({ cls: "ibp-presentation-picker-label" });
   setIcon(button.createSpan({ cls: "ibp-presentation-picker-chevron" }), "lucide-chevron-down");
   const dark = () => button.ownerDocument.body.classList.contains("theme-dark");
@@ -206,7 +207,7 @@ function addThemePicker(parent: HTMLElement, plugin: IgnorancePlugin, onFollow: 
     text.setText(preset ? `${preset.label} · ${dark() ? "深色" : "浅色"}` : "跟随主题");
   };
   button.addEventListener("click", () => openPopoverUnder(button, "ibp-theme-popover", (panel, close) => {
-    const follow = panel.createEl("button", { cls: "ibp-theme-follow", attr: { type: "button" }, text: "跟随主题" });
+    const follow = panel.createEl("button", { cls: "ibp-theme-follow", attr: { type: "button" }, text: tr("跟随主题") });
     follow.addEventListener("click", () => { onFollow(); close(); refresh(); });
     const grid = panel.createDiv({ cls: "ibp-theme-grid" });
     for (const preset of THEME_PRESETS) {
@@ -235,7 +236,7 @@ function addThemePicker(parent: HTMLElement, plugin: IgnorancePlugin, onFollow: 
 
 // Animation picker: every row replays its motion on a small page while hovered.
 function addAnimationPicker(parent: HTMLElement, options: [string, string, string][], current: () => string, onPick: (value: string) => void) {
-  const button = parent.createEl("button", { cls: "ibp-presentation-picker", attr: { type: "button", "aria-label": "进入动效", "aria-haspopup": "dialog", "data-tooltip-position": "top" } });
+  const button = parent.createEl("button", { cls: "ibp-presentation-picker", attr: { type: "button", "aria-label": tr("进入动效"), "aria-haspopup": "dialog", "data-tooltip-position": "top" } });
   const text = button.createSpan({ cls: "ibp-presentation-picker-label" });
   setIcon(button.createSpan({ cls: "ibp-presentation-picker-chevron" }), "lucide-chevron-down");
   const refresh = () => text.setText(options.find(([value]) => value === current())?.[1] || options[0][1]);
@@ -603,8 +604,8 @@ class PresentationView extends ItemView {
     });
     this.exportButton = addToolbarButton(this.toolbar, "lucide-file-down", "导出 PPTX", () => {
       const menu = new Menu();
-      menu.addItem(item => item.setTitle("微软演示文稿（.pptx，可编辑）").setIcon("lucide-presentation").onClick(() => this.previewPptx("editable")));
-      menu.addItem(item => item.setTitle("微软演示文稿（.pptx，图片版，高保真、不可编辑）").setIcon("lucide-image").onClick(() => this.previewPptx("image")));
+      menu.addItem(item => item.setTitle(tr("微软演示文稿（.pptx，可编辑）")).setIcon("lucide-presentation").onClick(() => this.previewPptx("editable")));
+      menu.addItem(item => item.setTitle(tr("微软演示文稿（.pptx，图片版，高保真、不可编辑）")).setIcon("lucide-image").onClick(() => this.previewPptx("image")));
       const box = this.exportButton.getBoundingClientRect();
       menu.showAtPosition({ x: box.left, y: box.bottom + 4 });
     });
@@ -1025,7 +1026,7 @@ export async function exportNotePptx(plugin: IgnorancePlugin, file: TFile, mode 
   if (!(file instanceof TFile) || file.extension !== "md") return null;
   const filePath = choosePptxPath(file, targetPath);
   if (!filePath) return null;
-  const preparing = new Notice("正在排版幻灯片…", 0);
+  const preparing = new Notice(tr("正在排版幻灯片…"), 0);
   const component = new Component();
   component.load();
   try {
@@ -1046,7 +1047,7 @@ export async function exportNotePptx(plugin: IgnorancePlugin, file: TFile, mode 
    and 返回笔记 switches it back in the mode it was left in. */
 export async function openPresentation(plugin: IgnorancePlugin, file: TFile, leaf = plugin.app.workspace.getLeaf(false)) {
   if (!file || file.extension !== "md") {
-    new Notice("请先打开一篇 Markdown 笔记。", 5000);
+    new Notice(tr("请先打开一篇 Markdown 笔记。"), 5000);
     return;
   }
   const returnMode = (leaf.view as MarkdownView)?.getMode?.() === "preview" ? "preview" : "source";

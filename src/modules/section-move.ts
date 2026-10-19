@@ -1,4 +1,5 @@
 import { Notice } from "obsidian";
+import { tr } from "../i18n.js";
 import type { Editor } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { headingsToMindmap } from "./mindmap-core.js";
@@ -23,7 +24,7 @@ function run(editor: Editor, direction: "up" | "down") {
 function insertMindmap(plugin: IgnorancePlugin, editor: Editor) {
   const file = plugin.app.workspace.getActiveFile();
   const map = headingsToMindmap(editor.getValue(), file?.basename ?? "");
-  if (!map) { new Notice("这篇笔记没有标题，无法生成思维导图", 3000); return; }
+  if (!map) { new Notice(tr("这篇笔记没有标题，无法生成思维导图"), 3000); return; }
   // Placed at the cursor as a Mermaid block, so the existing diagram tools (zoom, export) apply to it.
   editor.replaceSelection(`\`\`\`mermaid\n${map}\n\`\`\`\n`);
 }

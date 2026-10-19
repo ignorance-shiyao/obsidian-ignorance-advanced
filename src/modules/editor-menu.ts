@@ -1,4 +1,5 @@
 import type { Editor, Menu } from "obsidian";
+import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Notice } from "obsidian";
 import { parseCaptions } from "./captions.js";
@@ -45,15 +46,15 @@ export function installEditorMenu(plugin: IgnorancePlugin) {
           entry.setTitle(group);
           const inner = entry.setSubmenu();
           for (const format of SELECTION_FORMATS.filter(candidate => candidate.group === group)) {
-            inner.addItem(option => option.setTitle(format.name).onClick(() => { if (!applyToEditor(editor, format)) new Notice("请先选中要处理的文字"); }));
+            inner.addItem(option => option.setTitle(format.name).onClick(() => { if (!applyToEditor(editor, format)) new Notice(tr("请先选中要处理的文字")); }));
           }
         });
       }
       submenu.addItem(entry => {
-        entry.setTitle("交叉引用");
+        entry.setTitle(tr("交叉引用"));
         const ids = parseCaptions(editor.getValue()).map(caption => caption.id).filter((id): id is string => Boolean(id));
         const inner = entry.setSubmenu();
-        if (!ids.length) inner.addItem(option => option.setTitle("本篇没有带 {#标识} 的题注").setDisabled(true));
+        if (!ids.length) inner.addItem(option => option.setTitle(tr("本篇没有带 {#标识} 的题注")).setDisabled(true));
         for (const reference of referenceItems([...new Set(ids)])) inner.addItem(option => option.setTitle(reference.text).onClick(() => insertReference(editor, reference.text)));
       });
     });

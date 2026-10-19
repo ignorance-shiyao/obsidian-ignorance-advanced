@@ -27,7 +27,7 @@ User templates: Markdown files in a chosen folder become new-note templates with
 
 A support table (content block × export format) and a starter page with a feature gallery are available from the command palette; the first run offers them in a notice. A performance baseline (cold start, first chart, 100 charts, large table) is recorded in `docs/性能基线.md`.
 
-Interface language: 中文 / English / follow Obsidian, in the 模板与语言 settings group. Chinese text is the key, so untranslated strings fall back to Chinese.
+Interface language: 中文 / English / follow Obsidian, in the 模板与语言 settings group. Chinese text is the key, so untranslated strings fall back to Chinese. Notices, dialogs, menus, settings and the start page have English; command names and the inserted sample snippets stay Chinese for now. `npm run lint:i18n` (also in CI and `npm run check`) fails when a translated string has no English entry.
 
 ## 1.0.21
 Making an e-book now has a note picker (从库中选择笔记或文件夹…): only Markdown notes are listed, a folder can be chosen to list everything in it including subfolders, and 全选当前列表 ticks them all.

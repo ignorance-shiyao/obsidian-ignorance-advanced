@@ -1,4 +1,5 @@
 import type { View, WorkspaceLeaf } from "obsidian";
+import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { ItemView, MarkdownView } from "obsidian";
 /* The same jump list as the navigation command, kept open in a sidebar: it follows the note you are reading,
@@ -26,9 +27,9 @@ export function createNavigationView(_plugin: IgnorancePlugin) {
       this.contentEl.empty();
       this.contentEl.addClass("ib-nav-view");
       const bar = this.contentEl.createDiv({ cls: "ib-nav-view__bar" });
-      const input = bar.createEl("input", { cls: "ib-nav-view__search", attr: { type: "search", placeholder: "搜索标题、图表、表格、代码…", spellcheck: "false" } });
+      const input = bar.createEl("input", { cls: "ib-nav-view__search", attr: { type: "search", placeholder: tr("搜索标题、图表、表格、代码…"), spellcheck: "false" } });
       input.addEventListener("input", () => { this.query = input.value.trim().toLowerCase(); this.paint(); });
-      this.listEl = this.contentEl.createDiv({ cls: "ib-nav-view__list", attr: { role: "list", "aria-label": "笔记结构" } });
+      this.listEl = this.contentEl.createDiv({ cls: "ib-nav-view__list", attr: { role: "list", "aria-label": tr("笔记结构") } });
       // Keyboard: ↓ from the search box enters the list, Enter there opens the first match; in the list ↑/↓/Home/End
       // move and Enter or Space jumps. ↑ on the first row goes back to the search box.
       const rows = () => [...this.listEl.querySelectorAll<HTMLElement>(".ib-nav-view__row")];

@@ -1,4 +1,5 @@
 import { enhancementOn } from "./enhancement-gate.js";
+import { tr } from "../i18n.js";
 import type { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 /* Click-to-play GIFs: write `click` in the alt text (![click|400](a.gif)). The image shows its first frame with a play
@@ -42,7 +43,7 @@ async function arm(plugin: IgnorancePlugin, holder: HTMLElement, file: TFile) {
   image.src = poster;
   holder.classList.add("ib-gif-click");
   holder.setAttribute("role", "button");
-  holder.setAttribute("aria-label", "点击播放或停止");
+  holder.setAttribute("aria-label", tr("点击播放或停止"));
   holder.addEventListener("click", event => {
     event.preventDefault();
     event.stopPropagation();

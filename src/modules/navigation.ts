@@ -1,4 +1,5 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
+import { tr } from "../i18n.js";
 import { SuggestModal, Notice, MarkdownView } from "obsidian";
 /* 导航: one searchable list of everything worth jumping to in the current note — headings, figures, tables,
    code blocks and diagrams — so a long note can be crossed without scrolling. Read-only. */
@@ -55,14 +56,14 @@ export function buildNavItems(source: string, headings: Array<{ text: string; le
 export function openNavigation(plugin: IgnorancePlugin) {
   const { app } = plugin;
   const view = app.workspace.getActiveViewOfType(MarkdownView);
-  if (!view?.file) { new Notice("请先打开一篇笔记"); return; }
+  if (!view?.file) { new Notice(tr("请先打开一篇笔记")); return; }
   const file = view.file;
   const cache = app.metadataCache.getFileCache(file) || {};
   const headings = (cache.headings || []).map(item => ({ text: item.heading, level: item.level, line: item.position.start.line }));
   const text = view.getMode?.() === "source" && view.editor ? view.editor.getValue() : null;
   void (text !== null ? Promise.resolve(text) : app.vault.cachedRead(file)).then(source => {
     const items = buildNavItems(source, headings);
-    if (!items.length) { new Notice("这篇笔记里没有可跳转的内容"); return; }
+    if (!items.length) { new Notice(tr("这篇笔记里没有可跳转的内容")); return; }
     const ICON = NAV_ICONS;
     class NavigationModal extends SuggestModal<NavItem> {
       getSuggestions(query: string) {
@@ -78,7 +79,7 @@ export function openNavigation(plugin: IgnorancePlugin) {
       onChooseSuggestion(item: NavItem) { view.setEphemeralState({ line: item.line }); }
     }
     const modal = new NavigationModal(app);
-    modal.setPlaceholder("搜索标题、图表、表格、代码…");
+    modal.setPlaceholder(tr("搜索标题、图表、表格、代码…"));
     modal.open();
   });
 }

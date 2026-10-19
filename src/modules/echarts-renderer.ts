@@ -1,4 +1,5 @@
 import { controlScale } from "./control-geometry.js";
+import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { MarkdownRenderChild } from "obsidian";
 import type { MarkdownPostProcessorContext } from "obsidian";
@@ -91,7 +92,7 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HT
   element.addClass("ib-echarts-block");
   element.dataset.ibEchartsState = "loading";
   element.setAttribute("role", "img");
-  element.setAttribute("aria-label", "数据图表");
+  element.setAttribute("aria-label", tr("数据图表"));
 
   let option: Record<string, unknown>;
   try { option = parseEChartsOption(source); }

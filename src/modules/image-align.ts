@@ -1,4 +1,5 @@
 import { enhancementOn, handledByOther } from "./enhancement-gate.js";
+import { tr } from "../i18n.js";
 import { controlScale, controlBox } from "./control-geometry.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { MarkdownView, Menu, Modal, Notice, TFile, requestUrl, setTooltip } from "obsidian";
@@ -150,10 +151,10 @@ async function copyImage(plugin: IgnorancePlugin, embed: HTMLElement) {
     // from the bytes themselves and re-encode it.
     const png = new Blob([await toPng(buffer)], { type: "image/png" });
     await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
-    new Notice("已复制图片");
+    new Notice(tr("已复制图片"));
   } catch (error) {
     console.error("Ignorance Advanced: copy image failed —", error);
-    new Notice("复制图片失败");
+    new Notice(tr("复制图片失败"));
   }
 }
 
@@ -181,12 +182,12 @@ function startCrop(plugin: IgnorancePlugin, embed: HTMLElement) {
   const view = viewFor(plugin, embed);
   const linkPath = embed.getAttribute("src");
   const file = linkPath ? plugin.app.metadataCache.getFirstLinkpathDest(decodeURIComponent(linkPath), view?.file?.path || "") : null;
-  if (!(file instanceof TFile) || !IMAGE_EXTS.has(file.extension.toLowerCase())) { new Notice("只能裁切库内的图片"); return; }
-  if (!canCrop(file)) { new Notice("暂不支持裁切这种格式，可裁切 PNG、JPG 和 .webp 图片"); return; }
+  if (!(file instanceof TFile) || !IMAGE_EXTS.has(file.extension.toLowerCase())) { new Notice(tr("只能裁切库内的图片")); return; }
+  if (!canCrop(file)) { new Notice(tr("暂不支持裁切这种格式，可裁切 PNG、JPG 和 .webp 图片")); return; }
   void cropImage(plugin, file, ({ mode, file: result }) => {
     if (mode !== "new") return;
     const found = embed.isConnected ? linkFor(view, embed) : null;
-    if (!found || !view?.file) { new Notice("已新增图片，但无法定位原链接，请手动引用"); return; }
+    if (!found || !view?.file) { new Notice(tr("已新增图片，但无法定位原链接，请手动引用")); return; }
     const target = plugin.app.metadataCache.fileToLinktext(result, view.file.path, false);
     void keepViewport(view, () => found.apply(withImageTarget(found.link, target)));
   });
@@ -229,17 +230,17 @@ function decorate(plugin: IgnorancePlugin, embed: HTMLElement) {
   // Filters and click-to-play are written into the link; this menu is the way to set them without the source.
   addButton(bar, "lucide-sparkles", "图片样式：滤镜、点击播放", (event: MouseEvent) => {
     const found = linkFor(viewFor(plugin, embed), embed);
-    if (!found) { new Notice("无法定位图片链接"); return; }
+    if (!found) { new Notice(tr("无法定位图片链接")); return; }
     const now = imageFilter(found.link);
     const menu = new Menu();
-    menu.addItem(item => item.setTitle("无滤镜").setChecked(!now).onClick(change(link => withImageFilter(link, null), "设置滤镜")));
+    menu.addItem(item => item.setTitle(tr("无滤镜")).setChecked(!now).onClick(change(link => withImageFilter(link, null), "设置滤镜")));
     for (const filter of IMAGE_FILTERS) {
       menu.addItem(item => item.setTitle(FILTER_LABELS[filter]).setChecked(now === filter).onClick(change(link => withImageFilter(link, filter), "设置滤镜")));
     }
     if (/\.gif(?:$|[?#])/i.test(embed.getAttribute("src") || "")) {
       menu.addSeparator();
       const playing = hasImageKeyword(found.link, "click");
-      menu.addItem(item => item.setTitle("GIF 点击后才播放").setChecked(playing).onClick(change(link => withImageKeyword(link, "click", !playing), "设置播放方式")));
+      menu.addItem(item => item.setTitle(tr("GIF 点击后才播放")).setChecked(playing).onClick(change(link => withImageKeyword(link, "click", !playing), "设置播放方式")));
     }
     menu.showAtMouseEvent(event);
   });
@@ -334,11 +335,11 @@ const keepAlignmentOnResize = EditorState.transactionFilter.of(tr => {
 // Removing the image link asks first; the image file itself is kept.
 function confirmRemoval(plugin: IgnorancePlugin, remove: () => void) {
   const modal = new Modal(plugin.app);
-  modal.titleEl.setText("删除图片");
-  modal.contentEl.createEl("p", { text: "从笔记中移除这张图片？图片文件本身会保留。" });
+  modal.titleEl.setText(tr("删除图片"));
+  modal.contentEl.createEl("p", { text: tr("从笔记中移除这张图片？图片文件本身会保留。") });
   const buttons = modal.contentEl.createDiv({ cls: "modal-button-container" });
-  buttons.createEl("button", { text: "删除", cls: "mod-warning" }).addEventListener("click", () => { modal.close(); remove(); });
-  buttons.createEl("button", { text: "取消" }).addEventListener("click", () => modal.close());
+  buttons.createEl("button", { text: tr("删除"), cls: "mod-warning" }).addEventListener("click", () => { modal.close(); remove(); });
+  buttons.createEl("button", { text: tr("取消") }).addEventListener("click", () => modal.close());
   modal.open();
 }
 

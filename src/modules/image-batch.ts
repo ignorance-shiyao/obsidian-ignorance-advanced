@@ -1,4 +1,5 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
+import { tr } from "../i18n.js";
 import { MarkdownView, Modal, Notice, TFile } from "obsidian";
 import { copyName, extensionFor, findImageRefs, formatBytes, outputType, rewriteRefs, targetSize, type OutputFormat } from "./image-batch-core.js";
 /* "Process this note's images": shrink the images the note uses. Results are made in memory first, so the sizes
@@ -85,7 +86,7 @@ class ImageBatchModal extends Modal {
   }
 
   onOpen() {
-    this.setTitle("处理本篇的图片");
+    this.setTitle(tr("处理本篇的图片"));
     const controls = this.contentEl.createDiv({ cls: "ibp-image-batch__controls" });
     const field = (label: string) => { const wrap = controls.createDiv({ cls: "ibp-field" }); wrap.createSpan({ text: label }); return wrap; };
     const edge = field("最长边（像素，0 表示不缩小）").createEl("input", { attr: { type: "number", min: "0", step: "100" } });
@@ -95,8 +96,8 @@ class ImageBatchModal extends Modal {
     quality.value = String(Math.round(this.options.quality * 100));
     quality.addEventListener("change", () => { this.options.quality = Number(quality.value) / 100; this.reset(); });
     const format = field("格式").createEl("select");
-    format.createEl("option", { value: "keep", text: "保持格式（透明图保持 PNG）" });
-    format.createEl("option", { value: "webp", text: "全部转为 .webp 格式" });
+    format.createEl("option", { value: "keep", text: tr("保持格式（透明图保持 PNG）") });
+    format.createEl("option", { value: "webp", text: tr("全部转为 .webp 格式") });
     format.addEventListener("change", () => { this.options.format = format.value === "webp" ? "webp" : "keep"; this.reset(); });
     const list = this.contentEl.createDiv({ cls: "ib-link-check ibp-image-batch__list" });
     for (const row of this.rows) {
@@ -104,13 +105,13 @@ class ImageBatchModal extends Modal {
       item.createSpan({ cls: "ib-link-check__text", text: row.target });
       row.cell = item.createSpan({ cls: "ib-link-check__detail", text: row.detail });
     }
-    if (!this.rows.length) list.createDiv({ cls: "ib-form-hint", text: "本篇没有可处理的本地图片（PNG、JPEG、WebP、BMP；GIF 与 SVG 不处理）。" });
+    if (!this.rows.length) list.createDiv({ cls: "ib-form-hint", text: tr("本篇没有可处理的本地图片（PNG、JPEG、WebP、BMP；GIF 与 SVG 不处理）。") });
     this.summary = this.contentEl.createDiv({ cls: "ib-form-hint" });
     const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
-    this.runButton = footer.createEl("button", { text: "预览处理结果" });
+    this.runButton = footer.createEl("button", { text: tr("预览处理结果") });
     this.runButton.disabled = !this.rows.length;
     this.runButton.addEventListener("click", () => { if (this.running) this.cancelled = true; else void this.run(); });
-    this.applyButton = footer.createEl("button", { cls: "mod-cta", text: "保存副本并更新本篇引用" });
+    this.applyButton = footer.createEl("button", { cls: "mod-cta", text: tr("保存副本并更新本篇引用") });
     this.applyButton.disabled = true;
     this.applyButton.addEventListener("click", () => { void this.apply(); });
   }
@@ -127,7 +128,7 @@ class ImageBatchModal extends Modal {
 
   private async run() {
     this.running = true; this.cancelled = false;
-    this.runButton.setText("取消");
+    this.runButton.setText(tr("取消"));
     this.applyButton.disabled = true;
     for (const row of this.rows) {
       if (this.cancelled) break;
@@ -140,7 +141,7 @@ class ImageBatchModal extends Modal {
     }
     for (const row of this.rows) if (this.cancelled && row.state === "working") { row.state = "waiting"; row.detail = "已取消"; this.show(row); }
     this.running = false;
-    this.runButton.setText("预览处理结果");
+    this.runButton.setText(tr("预览处理结果"));
     const done = this.rows.filter(row => row.state === "done");
     const saved = done.reduce((sum, row) => sum + row.before - (row.bytes?.byteLength ?? row.before), 0);
     this.summary.setText(done.length ? `${done.length} 张可以变小，合计节省 ${formatBytes(saved)}。保存后原图不动。` : this.cancelled ? "已取消。" : "没有需要处理的图片。");
@@ -185,7 +186,7 @@ class ImageBatchModal extends Modal {
 export function openImageBatch(plugin: IgnorancePlugin) {
   const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
   const note = view?.file;
-  if (!view || !note) { new Notice("请先打开一篇笔记"); return; }
+  if (!view || !note) { new Notice(tr("请先打开一篇笔记")); return; }
   const targets = [...new Set(findImageRefs(view.editor.getValue()).map(ref => ref.target))];
   new ImageBatchModal(plugin, view, note, targets).open();
 }

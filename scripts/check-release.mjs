@@ -69,6 +69,9 @@ try {
 // CSS lint: the directory flags partly supported browser features and :has() (scripts/lint-css.mjs).
 try { execFileSync("node", ["scripts/lint-css.mjs"], { stdio: "pipe" }); check(true, "css lint: 0 warnings"); }
 catch (error) { check(false, "css lint: 0 warnings", String(error.stdout).trim().split("\n").slice(0, 3).join(" | ")); }
+// Every tr() key has an English entry (scripts/i18n-keys.mjs).
+try { execFileSync("node", ["scripts/i18n-keys.mjs"], { stdio: "pipe" }); check(true, "i18n: every tr() key has English"); }
+catch (error) { check(false, "i18n: every tr() key has English", String(error.stdout).trim().split("\n")[0]); }
 // Lint: the directory runs eslint-plugin-obsidianmd; every problem shows up as a review warning.
 if (!process.argv.includes("--no-lint")) {
   try { execFileSync("npx", ["eslint", ".", "--format", "json", "-o", "/tmp/ib-eslint.json"], { stdio: "ignore" }); } catch { /* eslint exits non-zero when it finds problems */ }

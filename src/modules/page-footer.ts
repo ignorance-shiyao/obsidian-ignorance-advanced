@@ -1,4 +1,5 @@
 import type { RenderingContext } from "../rendering-context.js";
+import { tr } from "../i18n.js";
 import { Modal } from "obsidian";
 /* Page footer text for the paged reading view and its exports: a template with {title}, {page}, {pages} and
    {date}, shown at the bottom left of every page. */
@@ -35,13 +36,13 @@ export function addPageFooters(sheets: HTMLElement[], template: string, title: s
 export function promptFooter(plugin: RenderingContext, current: string, onSubmit: (value: string) => void) {
   class FooterModal extends Modal {
     onOpen() {
-      this.setTitle("页脚文字");
-      this.contentEl.createDiv({ cls: "ib-form-hint", text: "可用 {title} 笔记标题、{page} 页码、{pages} 总页数、{date} 日期。" });
+      this.setTitle(tr("页脚文字"));
+      this.contentEl.createDiv({ cls: "ib-form-hint", text: tr("可用 {title} 笔记标题、{page} 页码、{pages} 总页数、{date} 日期。") });
       const input = this.contentEl.createEl("input", { cls: "ib-footer-input", attr: { type: "text", spellcheck: "false" } });
       input.value = current;
       const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
-      footer.createEl("button", { text: "取消" }).addEventListener("click", () => this.close());
-      footer.createEl("button", { cls: "mod-cta", text: "确定" }).addEventListener("click", () => { onSubmit(input.value); this.close(); });
+      footer.createEl("button", { text: tr("取消") }).addEventListener("click", () => this.close());
+      footer.createEl("button", { cls: "mod-cta", text: tr("确定") }).addEventListener("click", () => { onSubmit(input.value); this.close(); });
       input.addEventListener("keydown", event => { if (event.key === "Enter") { onSubmit(input.value); this.close(); } });
       window.setTimeout(() => input.focus(), 50);
     }

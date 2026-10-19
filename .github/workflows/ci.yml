@@ -21,5 +21,7 @@ jobs:
           node -e "const m=require('./manifest.json'),p=require('./package.json');if(m.version!==p.version){console.error('manifest and package versions differ');process.exit(1)}"
       - name: CSS lint (browser features Obsidian flags, :has)
         run: npm run lint:css
+      - name: i18n coverage
+        run: npm run lint:i18n
       - name: Release checks (ESLint, strict types, styles, size)
         run: npm run check

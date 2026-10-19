@@ -1,4 +1,5 @@
 import type { Editor, TAbstractFile } from "obsidian";
+import { tr } from "../i18n.js";
 import { MarkdownView,Notice,Platform,TFile,View } from "obsidian";
 import { createAfterPaintQueue } from "../modules/after-paint-queue.js";
 import { applyAppearancePreferences,clearAppearancePreferences,installAppearanceControls } from "../modules/appearance.js";
@@ -185,8 +186,8 @@ export async function onload(plugin: IgnorancePlugin) {
     plugin.registerEvent(plugin.app.workspace.on("file-menu", (menu, file, source) => {
       if (source !== "more-options" || !(file instanceof TFile) || file.extension !== "md") return;
       // Phones have no outline pane beside the note; the jump list (headings, diagrams, tables, code) stands in.
-      if (Platform.isPhone) menu.addItem(item => item.setTitle("跳到标题、图表或表格").setIcon("lucide-list-tree").setSection("ibp-export").onClick(() => openNavigation(plugin)));
-      menu.addItem(item => item.setTitle("演示").setIcon("lucide-presentation").setSection("ibp-export").onClick(() => { void openPresentation(plugin, file); }));
+      if (Platform.isPhone) menu.addItem(item => item.setTitle(tr("跳到标题、图表或表格")).setIcon("lucide-list-tree").setSection("ibp-export").onClick(() => openNavigation(plugin)));
+      menu.addItem(item => item.setTitle(tr("演示")).setIcon("lucide-presentation").setSection("ibp-export").onClick(() => { void openPresentation(plugin, file); }));
       ExportTools.addPortableExportItems(plugin, menu, file);
     }));
   }
@@ -396,7 +397,7 @@ export async function onload(plugin: IgnorancePlugin) {
       callback: () => {
         const file = plugin.app.workspace.getActiveFile();
         if (!isMarkdownImportSource(file)) {
-          new Notice("请先打开或选中支持导入的本地文件（如文字文档（.docx）、电子表格（.xlsx）、演示文稿（.pptx）、PDF、CSV、JSON、HTML）");
+          new Notice(tr("请先打开或选中支持导入的本地文件（如文字文档（.docx）、电子表格（.xlsx）、演示文稿（.pptx）、PDF、CSV、JSON、HTML）"));
           return;
         }
         new MarkdownImportModal(plugin, file).open();

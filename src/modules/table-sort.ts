@@ -1,4 +1,5 @@
 import { enhancementOn, handledByOther } from "./enhancement-gate.js";
+import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Notice, TFile, setIcon } from "obsidian";
 import { saveExportToVault } from "./export.js";
@@ -51,7 +52,7 @@ async function writeBack(plugin: IgnorancePlugin, table: HTMLTableElement) {
   const path = table.dataset.ibPath, range = table.dataset.ibLines?.split("-").map(Number);
   const file = path ? plugin.app.vault.getAbstractFileByPath(path) : null;
   const state = states.get(table);
-  if (!(file instanceof TFile) || !range || range.length !== 2 || !state?.direction) { new Notice("没法确定这张表在笔记里的位置，未写回。"); return; }
+  if (!(file instanceof TFile) || !range || range.length !== 2 || !state?.direction) { new Notice(tr("没法确定这张表在笔记里的位置，未写回。")); return; }
   const order = [...table.tBodies[0].rows].map(row => Number(row.dataset.ibRow));
   let before: string[] = [], written: string[] = [];
   await plugin.app.vault.process(file, text => {
@@ -62,17 +63,17 @@ async function writeBack(plugin: IgnorancePlugin, table: HTMLTableElement) {
     written = next;
     return [...lines.slice(0, range[0]), ...next, ...lines.slice(range[1] + 1)].join("\n");
   });
-  if (!written.length) { new Notice("这张表的源码不是普通的竖线表格，未写回。"); return; }
+  if (!written.length) { new Notice(tr("这张表的源码不是普通的竖线表格，未写回。")); return; }
   const notice = new Notice("", 10000);
-  notice.messageEl.createSpan({ text: "已按当前顺序写回笔记。" });
-  notice.messageEl.createEl("button", { text: "撤销", cls: "ibp-table-undo" }).addEventListener("click", () => {
+  notice.messageEl.createSpan({ text: tr("已按当前顺序写回笔记。") });
+  notice.messageEl.createEl("button", { text: tr("撤销"), cls: "ibp-table-undo" }).addEventListener("click", () => {
     notice.hide();
     let undone = false;
     void plugin.app.vault.process(file, text => {
       const next = revertTableLines(text, written, before, range[0]);
       undone = next !== null;
       return next ?? text;
-    }).then(() => { if (!undone) new Notice("这张表写回后又被改过，未撤销，以免覆盖新内容。"); });
+    }).then(() => { if (!undone) new Notice(tr("这张表写回后又被改过，未撤销，以免覆盖新内容。")); });
   });
 }
 
@@ -91,7 +92,7 @@ function buildTools(plugin: IgnorancePlugin, table: HTMLTableElement, host: HTML
     element.toggleAttribute("hidden", hidden);
     return element;
   };
-  const search = bar.createEl("input", { cls: "ibp-table-search", attr: { type: "search", placeholder: "筛选行", "aria-label": "筛选表格行" } });
+  const search = bar.createEl("input", { cls: "ibp-table-search", attr: { type: "search", placeholder: tr("筛选行"), "aria-label": tr("筛选表格行") } });
   search.hidden = true;
   button("search", "search", "筛选行").addEventListener("click", () => { search.hidden = !search.hidden; if (!search.hidden) search.focus(); });
   search.addEventListener("input", () => {
@@ -99,7 +100,7 @@ function buildTools(plugin: IgnorancePlugin, table: HTMLTableElement, host: HTML
     for (const row of table.tBodies[0].rows) row.classList.toggle("ib-row-filtered", Boolean(query) && !cellText(row).toLowerCase().includes(query));
   });
   button("copy", "copy", "复制为 TSV").addEventListener("click", () => {
-    void navigator.clipboard.writeText(rowsToTsv(tableText(table))).then(() => new Notice("已复制表格，可直接粘贴到电子表格"));
+    void navigator.clipboard.writeText(rowsToTsv(tableText(table))).then(() => new Notice(tr("已复制表格，可直接粘贴到电子表格")));
   });
   button("csv", "file-down", "保存为 CSV").addEventListener("click", () => {
     void saveExportToVault(plugin, `${table.closest(".markdown-preview-view")?.querySelector(".inline-title")?.textContent || "表格"}.csv`, rowsToCsv(tableText(table)))

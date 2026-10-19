@@ -1,4 +1,5 @@
 import type { IgnorancePlugin, AppearanceState, TabState } from "../plugin-types.js";
+import { tr } from "../i18n.js";
 import { Menu, Platform, Setting } from "obsidian";
 import type { App } from "obsidian";
 import { setIcon } from "./ui-icons.js";
@@ -173,11 +174,11 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
 
   const fillThemeMenu = (menu: Menu) => {
     menu.addItem(item => {
-      item.setTitle("明暗模式").setIcon(modeIcon());
+      item.setTitle(tr("明暗模式")).setIcon(modeIcon());
       fillModeMenu(item.setSubmenu());
     });
     menu.addItem(item => {
-      item.setTitle("主题配色").setIcon("lucide-palette");
+      item.setTitle(tr("主题配色")).setIcon("lucide-palette");
       const colors = item.setSubmenu();
       for (const preset of ACCENT_PRESETS) colors.addItem(choice => choice.setTitle(preset.label).setIcon("lucide-palette")
         .setChecked(currentAccent(plugin) === preset.value).onClick(() => applyAccent(plugin, preset.value)));
@@ -195,7 +196,7 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
     if (popover) return closePopover();
     const current = currentAccent(plugin);
     popover = document.body.createDiv({ cls: "ibm-accent-popover" });
-    popover.createDiv({ cls: "ibm-accent-popover-title", text: "完整主题预设" });
+    popover.createDiv({ cls: "ibm-accent-popover-title", text: tr("完整主题预设") });
     const grid = popover.createDiv({ cls: "ibm-accent-grid" });
     for (const preset of ACCENT_PRESETS) {
       const swatch = grid.createEl("button", { cls: "ibm-accent-swatch", attr: { "aria-label": preset.label, "data-tooltip-position": "top" } });
@@ -206,7 +207,7 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
         closePopover();
       });
     }
-    const custom = grid.createEl("button", { cls: "ibm-accent-swatch is-custom", attr: { "aria-label": "自定义颜色", "data-tooltip-position": "top" } });
+    const custom = grid.createEl("button", { cls: "ibm-accent-swatch is-custom", attr: { "aria-label": tr("自定义颜色"), "data-tooltip-position": "top" } });
     if (plugin.state.customAccent) custom.style.setProperty("--swatch", plugin.state.customAccent);
     custom.toggleClass("is-active", current === CUSTOM_ACCENT);
     const picker = popover.createEl("input", { cls: "ibm-accent-picker", attr: { type: "color" } });
@@ -242,9 +243,9 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
     if (Platform.isMobile) return;
     for (const actions of document.querySelectorAll(".workspace-drawer-vault-actions")) {
       if (actions.querySelector(".ibm-appearance-button")) continue;
-      const modeButton = createSpan({ cls: "clickable-icon ibm-appearance-button", attr: { "aria-label": "明暗模式" } });
+      const modeButton = createSpan({ cls: "clickable-icon ibm-appearance-button", attr: { "aria-label": tr("明暗模式") } });
       modeButton.addEventListener("click", openModeMenu);
-      const accentButton = createSpan({ cls: "clickable-icon ibm-appearance-button ibm-accent-button", attr: { "aria-label": "完整主题预设" } });
+      const accentButton = createSpan({ cls: "clickable-icon ibm-appearance-button ibm-accent-button", attr: { "aria-label": tr("完整主题预设") } });
       setIcon(accentButton, "lucide-palette");
       accentButton.addEventListener("click", () => openAccentPopover(accentButton));
       actions.prepend(modeButton, accentButton);
@@ -265,7 +266,7 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
     plugin.registerEvent(app.workspace.on("file-menu", (menu, file, source) => {
       if (source !== "more-options") return;
       menu.addItem(item => {
-        item.setTitle("主题明暗与配色").setIcon("lucide-palette").setSection("pane");
+        item.setTitle(tr("主题明暗与配色")).setIcon("lucide-palette").setSection("pane");
         fillThemeMenu(item.setSubmenu());
       });
     }));

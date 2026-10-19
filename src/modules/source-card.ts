@@ -1,4 +1,5 @@
 import { Notice, requestUrl } from "obsidian";
+import { tr } from "../i18n.js";
 import type { Editor } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { readSourceInfo, sourceCardMarkdown } from "./source-card-core.js";
@@ -19,14 +20,14 @@ export function installSourceCard(plugin: IgnorancePlugin) {
     editorCallback: editor => {
       void (async () => {
         const url = await address(editor);
-        if (!url) { new Notice("请先选中一个网页链接，或把链接复制到剪贴板", 4000); return; }
+        if (!url) { new Notice(tr("请先选中一个网页链接，或把链接复制到剪贴板"), 4000); return; }
         let markdown = "";
         try {
           const response = await requestUrl({ url, headers: { Accept: "text/html" }, throw: true });
           markdown = sourceCardMarkdown(readSourceInfo(response.text.slice(0, 400000), url));
         } catch {
           markdown = sourceCardMarkdown({ title: "", description: "", site: "", url });
-          new Notice("没能读取这个网页，已插入普通链接", 5000);
+          new Notice(tr("没能读取这个网页，已插入普通链接"), 5000);
         }
         // Block text sits on its own lines; a plain link stays where the cursor is.
         editor.replaceSelection(markdown.startsWith(">") ? `\n${markdown}\n` : markdown);

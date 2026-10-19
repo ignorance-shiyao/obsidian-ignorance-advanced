@@ -1,4 +1,5 @@
 import type { MarkdownView } from "obsidian";
+import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Modal } from "obsidian";
 import { ENHANCEMENTS, REASON_TEXT, THIRD_PARTY, classNames, enhancementOffReason, noteOffClass, type EnhancementKind } from "./enhancement-gate-core.js";
@@ -23,11 +24,11 @@ export function handledByOther(kind: EnhancementKind, block: Element | null | un
 class ActiveEnhancementsModal extends Modal {
   constructor(private plugin: IgnorancePlugin, private view: MarkdownView | null) { super(plugin.app); }
   onOpen() {
-    this.setTitle("当前笔记生效的增强");
+    this.setTitle(tr("当前笔记生效的增强"));
     const file = this.view?.file;
     const frontmatter = file ? this.plugin.app.metadataCache.getFileCache(file)?.frontmatter : null;
     const noteClasses = classNames(frontmatter);
-    if (!file) this.contentEl.createDiv({ cls: "ib-form-hint", text: "先打开一篇笔记。" });
+    if (!file) this.contentEl.createDiv({ cls: "ib-form-hint", text: tr("先打开一篇笔记。") });
     for (const { kind, label } of ENHANCEMENTS) {
       const other = Boolean(this.view && THIRD_PARTY[kind] && this.view.containerEl.querySelector(THIRD_PARTY[kind]));
       const reason = enhancementOffReason({ settingOn: settingOn(this.plugin, kind), noteClasses, kind, handledByOther: false });
@@ -35,7 +36,7 @@ class ActiveEnhancementsModal extends Modal {
       row.createSpan({ cls: "ibp-enhancement-name", text: label });
       row.createSpan({ cls: "ibp-enhancement-state", text: reason ? `关 · ${REASON_TEXT[reason]}` : other ? "开 · 部分块已有其他插件处理，不叠加" : "开" });
     }
-    this.contentEl.createDiv({ cls: "ib-form-hint", text: "只想对这一篇关闭，在笔记属性 cssclasses 里加 ib-no-tables、ib-no-images、ib-no-code 或 ib-no-charts。" });
+    this.contentEl.createDiv({ cls: "ib-form-hint", text: tr("只想对这一篇关闭，在笔记属性 cssclasses 里加 ib-no-tables、ib-no-images、ib-no-code 或 ib-no-charts。") });
   }
   onClose() { this.contentEl.empty(); }
 }

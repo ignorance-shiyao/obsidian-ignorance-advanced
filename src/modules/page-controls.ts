@@ -1,4 +1,5 @@
 import type { IgnorancePlugin, PageState } from "../plugin-types.js";
+import { tr } from "../i18n.js";
 import { MarkdownView, Menu, Platform } from "obsidian";
 import type { TFile } from "obsidian";
 import { setDocSheet, removeDocSheet } from "./doc-sheets.js";
@@ -173,13 +174,13 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
     closePopover();
     popover = document.body.createDiv({ cls: "ibp-popover" });
     const row = popover.createDiv({ cls: "ibp-row" });
-    row.createSpan({ text: "此设备默认宽度" });
+    row.createSpan({ text: tr("此设备默认宽度") });
     const input = row.createEl("input", { attr: { type: "number", min: "30", max: "100", step: "5" } });
     input.value = String(page().customWidth);
-    row.createSpan({ cls: "ibp-unit", text: "% 视图宽度" });
+    row.createSpan({ cls: "ibp-unit", text: tr("% 视图宽度") });
     const commit = () => { const v = Math.min(100, Math.max(30, Number(input.value) || 80)); page().width = "custom"; page().customWidth = v; save(); closePopover(); };
     input.addEventListener("keydown", e => { if (e.key === "Enter") commit(); if (e.key === "Escape") closePopover(); });
-    popover.createEl("button", { cls: "mod-cta", text: "应用" }).addEventListener("click", commit);
+    popover.createEl("button", { cls: "mod-cta", text: tr("应用") }).addEventListener("click", commit);
     placePopover(anchor);
     input.focus();
   };
@@ -220,7 +221,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       popover.createDiv({ cls: "ibp-title", text: title });
       const grid = popover.createDiv({ cls: "ibp-grid" });
       for (const [label, value, change] of fields) numberField(grid, label, value, change);
-      popover.createEl("button", { text: "完成", cls: "mod-cta" }).addEventListener("click", closePopover);
+      popover.createEl("button", { text: tr("完成"), cls: "mod-cta" }).addEventListener("click", closePopover);
       placePopover(anchor);
     };
     submenu(menu, "宽度", "move-horizontal", widths => addWidthItems(widths, anchor));
@@ -232,7 +233,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
         plugin.saveStoredState();
       });
       fonts.addSeparator();
-      fonts.addItem(item => item.setTitle("正文与代码字体…").onClick(() => {
+      fonts.addItem(item => item.setTitle(tr("正文与代码字体…")).onClick(() => {
         plugin.app.setting.open();
         plugin.app.setting.openTabById("appearance");
       }));
@@ -241,7 +242,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       for (const preset of PAGE_PRESETS) choice(presets, preset.label.split("：")[0], false, () => { applyPagePreset(p, preset.id); save(); });
       addLayoutItems(plugin, presets, save);
     });
-    menu.addItem(item => item.setTitle("分页阅读").setIcon("book-open").setChecked(Boolean(p.paged)).onClick(() => { p.paged = !p.paged; save(); }));
+    menu.addItem(item => item.setTitle(tr("分页阅读")).setIcon("book-open").setChecked(Boolean(p.paged)).onClick(() => { p.paged = !p.paged; save(); }));
     // Paper, margins and page furniture only matter for paged reading and export.
     submenu(menu, "纸张与打印", "printer", print => {
     submenu(print, "纸张", "file", papers => {
@@ -300,7 +301,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       return el;
     };
     // One entry for the page: the label shows the laid-out width, the menu holds width, paper and the rest.
-    const width = bar.createDiv({ cls: "clickable-icon ibp-button ibp-text-button", attr: { "aria-label": "页面设置" } });
+    const width = bar.createDiv({ cls: "clickable-icon ibp-button ibp-text-button", attr: { "aria-label": tr("页面设置") } });
     setIcon(width.createSpan({ cls: "ibp-text-button-icon" }), "lucide-file-cog");
     const widthText = width.createSpan({ cls: "ibp-text-button-label" });
     width.addEventListener("click", () => openPageSettings(width));
@@ -312,7 +313,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
     bar.createDiv({ cls: "ibp-sep ibp-edit-only" });
     // Both icons are present; the theme shows the one for the other mode from
     // the leaf's data-mode, so ⌘E and other mode switches keep it correct.
-    const modeButton = bar.createDiv({ cls: "clickable-icon ibp-button ibp-mode-toggle", attr: { "aria-label": "切换阅读 / 编辑" } });
+    const modeButton = bar.createDiv({ cls: "clickable-icon ibp-button ibp-mode-toggle", attr: { "aria-label": tr("切换阅读 / 编辑") } });
     setIcon(modeButton.createSpan({ cls: "ibp-mode-to-reading" }), "lucide-book-open");
     setIcon(modeButton.createSpan({ cls: "ibp-mode-to-editing" }), "lucide-pencil");
     modeButton.addEventListener("click", () => {
@@ -361,7 +362,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
   const installWidthHandle = (view: MarkdownView) => {
     const content = view.containerEl.querySelector<HTMLElement>(":scope > .view-content");
     if (!content || Platform.isMobile || content.querySelector(":scope > .ibp-width-handle")) return;
-    const handle = content.createDiv({ cls: "ibp-width-handle", attr: { "aria-label": "拖动调整此设备默认宽度" } });
+    const handle = content.createDiv({ cls: "ibp-width-handle", attr: { "aria-label": tr("拖动调整此设备默认宽度") } });
     const usable = () => !view.containerEl.hasClass("ibp-book-host") && !view.containerEl.hasClass("ibp-source-fixed-width")
       && !(view.file && noteClasses(plugin, view.file).some(cls => cls === "ib-wide" || cls === "ib-narrow"));
     let frame = 0, dragging = false;
