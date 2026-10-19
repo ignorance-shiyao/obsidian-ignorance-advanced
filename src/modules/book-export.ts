@@ -1,8 +1,8 @@
 import { Component, MarkdownRenderer, Modal, Notice } from "obsidian";
 import type { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { buildEpub, chapterFile, imageMime, parseNoteList, type EpubChapter, type EpubImage } from "./epub-core.js";
-import { saveExportToVault } from "./export.js";
+import { buildEpub, chapterFile, combineMarkdown, imageMime, parseNoteList, type EpubChapter, type EpubImage } from "./epub-core.js";
+import { exportWord, saveExportToVault } from "./export.js";
 /* "Combine notes into an ePub": the notes listed in the dialog become chapters in that order. Links between the
    listed notes point at the right chapter, images are embedded once however often they are used, and anything that
    cannot go into an ePub (remote images, scripts, buttons) is dropped and counted in the final notice. */
@@ -92,8 +92,9 @@ class BookModal extends Modal {
     const status = this.contentEl.createDiv({ cls: "ib-form-hint" });
     const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
     footer.createEl("button", { text: "取消" }).addEventListener("click", () => this.close());
+    const word = footer.createEl("button", { text: "生成文档版" });
     const go = footer.createEl("button", { cls: "mod-cta", text: "生成电子书" });
-    go.addEventListener("click", () => void (async () => {
+    const run = async (kind: "epub" | "word") => {
       const names = parseNoteList(area.value);
       const files: TFile[] = [], missing: string[] = [];
       for (const name of names) {
@@ -103,18 +104,29 @@ class BookModal extends Modal {
       if (!files.length) { status.setText("没有找到可用的笔记"); return; }
       if (missing.length) { status.setText(`找不到：${missing.join("、")}。请改正后再试。`); return; }
       go.setAttr("disabled", "true");
+      word.setAttr("disabled", "true");
       status.setText(`正在处理 ${files.length} 篇…`);
+      const bookTitle = title.value.trim() || files[0].basename;
       try {
-        const { bytes, report } = await buildBook(this.plugin, files, { title: title.value.trim() || files[0].basename, author: author.value.trim() });
-        const path = await saveExportToVault(this.plugin, `${title.value.trim() || files[0].basename}.epub`, bytes);
-        const notes = [report.missingImages ? `缺失图片 ${report.missingImages}` : "", report.remoteImages ? `网络图片未收入 ${report.remoteImages}` : "", report.charts ? `图表未收入 ${report.charts}` : "", report.brokenLinks ? `指向书外的链接改为普通文字 ${report.brokenLinks}` : ""].filter(Boolean);
-        new Notice(`已生成 ${path}${notes.length ? `（${notes.join("，")}）` : ""}`, 10000);
+        if (kind === "word") {
+          const text = combineMarkdown(await Promise.all(files.map(file => app.vault.cachedRead(file))));
+          const path = await exportWord(this.plugin, files[0], { text, title: bookTitle });
+          new Notice(`已生成 ${path}`, 8000);
+        } else {
+          const { bytes, report } = await buildBook(this.plugin, files, { title: bookTitle, author: author.value.trim() });
+          const path = await saveExportToVault(this.plugin, `${bookTitle}.epub`, bytes);
+          const notes = [report.missingImages ? `缺失图片 ${report.missingImages}` : "", report.remoteImages ? `网络图片未收入 ${report.remoteImages}` : "", report.charts ? `图表未收入 ${report.charts}` : "", report.brokenLinks ? `指向书外的链接改为普通文字 ${report.brokenLinks}` : ""].filter(Boolean);
+          new Notice(`已生成 ${path}${notes.length ? `（${notes.join("，")}）` : ""}`, 10000);
+        }
         this.close();
       } catch (error) {
         status.setText(`生成失败：${error instanceof Error ? error.message : "未知错误"}`);
         go.removeAttribute("disabled");
+        word.removeAttribute("disabled");
       }
-    })());
+    };
+    go.addEventListener("click", () => void run("epub"));
+    word.addEventListener("click", () => void run("word"));
   }
   onClose() { this.contentEl.empty(); }
 }

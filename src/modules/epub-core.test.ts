@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
-import { buildEpub, imageMime, parseNoteList, chapterFile, escapeXml, navDocument, packageDocument } from "./epub-core";
+import { buildEpub, combineMarkdown, imageMime, parseNoteList, chapterFile, escapeXml, navDocument, packageDocument } from "./epub-core";
 
 const meta = { title: "三章 & 样本", author: "作者", language: "zh-CN", id: "urn:uuid:1", date: "2026-10-19T00:00:00Z" };
 const chapters = [{ title: "第一章", body: "<h1>一</h1><p>x</p>" }, { title: "第一章", body: "<p>同名章节</p>" }, { title: "三 <3>", body: "<p>z</p>" }];
@@ -40,5 +40,8 @@ describe("epub packaging", () => {
   it("knows the image types an ePub can carry", () => {
     expect(imageMime("PNG")).toBe("image/png");
     expect(imageMime("bmp")).toBeNull();
+  });
+  it("joins notes for Word without their front matter", () => {
+    expect(combineMarkdown(["---\ntags: x\n---\n# 一\n文", "# 二\n\n", "", "---\na: 1\n---\n# 三"])).toBe("# 一\n文\n\n# 二\n\n# 三");
   });
 });

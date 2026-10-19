@@ -57,3 +57,8 @@ export function imageMime(extension: string): string | null {
   const map: Record<string, string> = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", svg: "image/svg+xml", webp: "image/webp" };
   return map[extension.toLowerCase()] ?? null;
 }
+
+// The notes as one Markdown text for Word: front matter removed, one note after the other in the chosen order.
+export function combineMarkdown(texts: string[]): string {
+  return texts.map(text => text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "").trim()).filter(Boolean).join("\n\n");
+}

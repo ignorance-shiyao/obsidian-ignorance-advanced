@@ -566,8 +566,8 @@ async function vaultImageForWord(plugin: IgnorancePlugin, file: TFile, source: s
   return wordImageFromBytes(new Uint8Array(await plugin.app.vault.readBinary(linked)), mime);
 }
 
-async function exportWord(plugin: IgnorancePlugin, file: TFile) {
-  const text = await plugin.app.vault.cachedRead(file);
+async function exportWord(plugin: IgnorancePlugin, file: TFile, combined?: { text: string; title: string }) {
+  const text = combined?.text ?? await plugin.app.vault.cachedRead(file);
   const diagrams: string[] = [];
   let missingImages = 0;
   // Same fences, in the same order, as prepareMarkdownTextForPandoc replaces.
@@ -582,7 +582,7 @@ async function exportWord(plugin: IgnorancePlugin, file: TFile) {
   const bodyStyle = getComputedStyle(document.body);
   const { createStructuredDocxBuffer } = await loadChunk("chunk-docx.cjs");
   const bytes = await createStructuredDocxBuffer(markdown, {
-    title: file.basename,
+    title: combined?.title ?? file.basename,
     style: {
       ...wordExportFonts(plugin.state.wordFont, {
         text: bodyStyle.getPropertyValue("--font-text") || bodyStyle.getPropertyValue("--ib-font-sans"),
@@ -600,7 +600,7 @@ async function exportWord(plugin: IgnorancePlugin, file: TFile) {
   if (missingImages || failedDiagrams) {
     new Notice([missingImages && `${missingImages} 张图片没能放进文档`, failedDiagrams && `${failedDiagrams} 个 Mermaid 图表渲染失败`].filter(Boolean).join("，") + "，Word 里留下的是替代文字或源码。", 10000);
   }
-  return saveExportToVault(plugin, `${file.basename}.docx`, bytes);
+  return saveExportToVault(plugin, `${combined?.title ?? file.basename}.docx`, bytes);
 }
 
 
