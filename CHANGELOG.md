@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Table aids in reading view: click a column heading to sort (ascending, descending, original order; numbers with signs, thousands separators and percents, dates and Chinese text are understood, empty cells stay last), filter rows, copy the table as TSV for a spreadsheet, or save it as CSV. Sorting only changes what is shown; "write back" rewrites the Markdown table in the note and offers an undo. Tables with merged cells or row groups are left alone.
+
 Export check: the export preview now lists what the chosen format cannot carry over, read from the note itself and each with a line number that jumps to it. It finds images that cannot be found, broken cross references, dynamic blocks (dataview, base, tasks), remote images that are only fetched while exporting, Mermaid diagrams and the Word font. Word export also tells you how many images or diagrams did not make it into the file.
 
 Paste enhancement: pasting a URL over selected text makes a Markdown link, and spreadsheet cells copied from Excel or Numbers paste as a Markdown table (not inside code blocks). Each has its own switch in settings and nothing is fetched from the network.

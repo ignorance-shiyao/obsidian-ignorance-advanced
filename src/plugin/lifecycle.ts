@@ -55,6 +55,7 @@ import { syncPreviewTableAlignment } from "../modules/table-alignment.js";
 import { installTableCrosshair } from "../modules/table-crosshair.js";
 import { TABLE_COMMANDS,applyTableEdit,canEditTable,tableEditorExtension } from "../modules/table-editor.js";
 import { installTableExtras } from "../modules/table-merge.js";
+import { installTableSort } from "../modules/table-sort.js";
 import { renderTocBlocks,tocExtension } from "../modules/toc.js";
 import { installWebClip } from "../modules/web-clip.js";
 import { wrapSelectionExtension } from "../modules/wrap-selection.js";
@@ -113,6 +114,7 @@ export async function onload(plugin: IgnorancePlugin) {
   installReadingCover(plugin);
   installGifClick(plugin);
   installTableCrosshair(plugin);
+  installTableSort(plugin);
   installNativeChapterSource(plugin);
   installCodeFold(plugin);
   // Warming every diagram in the open note loads the 1 MB ECharts and 5 MB Mermaid engines in the

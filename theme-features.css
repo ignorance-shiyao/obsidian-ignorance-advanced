@@ -3367,3 +3367,20 @@ body.ib-theme-text-size:not(#_ib) { --font-text-size: var(--ib-text-size); }
 .markdown-reading-view .image-embed.ib-has-resize-layer { position:relative; }
 .cm-embed-block.ib-has-echarts > .edit-block-button { display:none; }
 .ibp-word-mermaid-stage { position: absolute; visibility: hidden; width: 800px; pointer-events: none; }
+
+/* Reading-view table aids (sort by heading, filter, copy, CSV, write back) */
+.markdown-preview-view table.ib-table-sortable thead th, .markdown-preview-view .el-table > table thead th { cursor: pointer; }
+.markdown-preview-view .el-table > table thead th[data-ib-sort]::after { content: " ↑"; color: var(--ib-text-accent); }
+.markdown-preview-view .el-table > table thead th[data-ib-sort="desc"]::after { content: " ↓"; }
+.markdown-preview-view .ib-row-filtered { display: none; }
+.ibp-table-anchor { position: relative; height: 0; margin-inline: auto; max-width: 100%; }
+.ibp-table-tools {
+  position: absolute; inset-block-end: 2px; inset-inline-end: 0; z-index: 4;
+  display: flex; gap: 2px; align-items: center; opacity: 0; transition: opacity 0.15s;
+}
+.ibp-table-anchor:hover > .ibp-table-tools, .ibp-table-anchor:focus-within > .ibp-table-tools, .ibp-table-anchor:has(+ .el-table:hover) > .ibp-table-tools, .is-mobile .ibp-table-tools { opacity: 1; }
+.ibp-table-tool { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; background: transparent; box-shadow: none; color: var(--ib-text-muted); }
+.ibp-table-tool:hover { color: var(--ib-text-accent); background: var(--ib-surface-hover, transparent); }
+.ibp-table-tool .svg-icon { width: 14px; height: 14px; }
+.ibp-table-search { width: 8em; height: 24px; font-size: var(--ib-tiny-size); }
+.ibp-table-undo { margin-inline-start: var(--ib-space-2); }
