@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+The command 把链接变成来源卡片 replaces a selected link (or the one on the clipboard) with a small `[!source]` callout holding the page title, description and site. The page is fetched only when you run the command, never while reading or exporting; if it cannot be read, a plain Markdown link is inserted.
+
 The command 把标题结构插入为思维导图 turns the current note's headings into a Mermaid mindmap block at the cursor, so zoom and export of the existing diagram tools apply. Headings in code blocks and front matter are skipped.
 
 Combine notes into an e-book: the command 把多篇笔记合成电子书 takes a list of notes (prefilled from the current note's links), makes each one a chapter in that order and writes an ePub 3 file to the export folder. Links between the listed notes point at the right chapter, a repeated image is stored once, and remote images, missing images and links leaving the book are counted in the final notice. Links to a heading (`[[note#heading]]`, `[[#heading]]`) jump to that heading. Charts cannot be stored in an ePub, so they are left out and counted. The same dialog has 生成文档版, which writes the notes in that order as one Word document (front matter removed).

@@ -47,6 +47,7 @@ import { guardedCleanup } from "../modules/plugin-cleanup.js";
 import { installPreviewOverscan } from "../modules/preview-overscan.js";
 import { quoteIndentExtension } from "../modules/quote-indent.js";
 import { installBookExport } from "../modules/book-export.js";
+import { installSourceCard } from "../modules/source-card.js";
 import { installSectionMove } from "../modules/section-move.js";
 import { installReadingBanner } from "../modules/reading-banner.js";
 import { installReadingCover } from "../modules/reading-cover.js";
@@ -127,6 +128,7 @@ export async function onload(plugin: IgnorancePlugin) {
   installEditorMenu(plugin);
   installSectionMove(plugin);
   installBookExport(plugin);
+  installSourceCard(plugin);
   installNativeChapterSource(plugin);
   installCodeFold(plugin);
   // Warming every diagram in the open note loads the 1 MB ECharts and 5 MB Mermaid engines in the
