@@ -391,4 +391,4 @@ export async function preloadEChartsPreview(plugin: IgnorancePlugin, source: str
   } finally { chart?.dispose(); }
 }
 
-export { loadECharts, readThemeTokens, chartRendererFor, waitForSize, renderEChartsBlock };
+export { setChartError, loadECharts, readThemeTokens, chartRendererFor, waitForSize, renderEChartsBlock };

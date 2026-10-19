@@ -16,7 +16,7 @@ import { openImageBatch } from "../modules/image-batch.js";
 import { openTaskExamples } from "../modules/task-examples.js";
 import { installEditorMenu } from "../modules/editor-menu.js";
 import { showActiveEnhancements } from "../modules/enhancement-gate.js";
-import { renderEChartsBlock } from "../modules/echarts-renderer.js";
+import { renderLinkedEChartsBlock } from "../modules/echarts-linked.js";
 import { echartsSourceHighlighter } from "../modules/echarts-source.js";
 import { TableSizeStyles,codeCopyButtons,installCodeLanguagePicker,installQuietTaskToggle,mermaidHighlighter,tableKey,toggleWritingMode,writingModesExtension } from "../modules/editor-tools.js";
 import * as ExportTools from "../modules/export.js";
@@ -130,7 +130,7 @@ export async function onload(plugin: IgnorancePlugin) {
   if (!Platform.isMobile) installChartPreload(plugin);
   installPreviewOverscan(plugin);
   plugin.registerEditorExtension(echartsSourceHighlighter);
-  plugin.registerMarkdownCodeBlockProcessor("echarts", (source, element, context) => renderEChartsBlock(plugin, source, element, context));
+  plugin.registerMarkdownCodeBlockProcessor("echarts", (source, element, context) => renderLinkedEChartsBlock(plugin, source, element, context));
   for (const language of ["markdown", "md"]) {
     plugin.registerMarkdownCodeBlockProcessor(language, (source, element, context) =>
       plugin.renderMarkdownPreviewBlock(source, element, context));

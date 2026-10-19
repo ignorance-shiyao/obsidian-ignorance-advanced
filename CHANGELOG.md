@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Charts from a note's table: start an `echarts` block with `source: {#tab-id}` and the table whose caption ends in that id becomes the chart data (header row first, `1,200` and `5%` read as numbers). The chart redraws when the note changes; a missing id or a non-table caption shows a clear error. An authored `dataset` is kept.
+
 Banner image: add `ib-banner` to `cssclasses` and a `banner` property (vault image or https address) and Reading view shows it above the text; a missing or broken image leaves no empty box.
 
 Image processing for the current note: the command "Process this note's images" lists the PNG, JPEG, WebP and BMP images the note uses and shrinks them to a longest edge and quality you choose (optionally to WebP). The result sizes are shown before anything is written; confirming saves copies next to the originals and points this note's links at them in one edit that a single undo reverses. Originals and other notes are never changed, transparent images stay PNG, GIF and SVG are skipped, a failed image can be retried, the queue can be cancelled, and a write error rolls back the copies it made.

@@ -1,6 +1,7 @@
 import { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import MarkdownIt from "markdown-it";
+import { splitChartSource } from "./echarts-table-core.js";
 import { preloadEChartsPreview } from "./echarts-renderer.js";
 const markdown = new MarkdownIt();
 export function installChartPreload(plugin: IgnorancePlugin) {
@@ -19,7 +20,7 @@ export function installChartPreload(plugin: IgnorancePlugin) {
       // Await first-screen layout and exports before spending idle time on charts.
       while (document.body.dataset.ibThemeCapture || document.querySelector('.ibp-book[data-ibp-progress="initial"],.ibp-book[data-ibp-progress="partial"]')) { await new Promise(r => window.setTimeout(r, 200)); if (token !== generation) return; }
       try {
-        if (/^echarts\b/i.test(fence.info)) await preloadEChartsPreview(plugin, fence.content.trim());
+        if (/^echarts\b/i.test(fence.info)) { if (!splitChartSource(fence.content).id) await preloadEChartsPreview(plugin, fence.content.trim()); }
         else { const engine = await plugin.ensureMermaid(); await engine.render(`ibpreload${++serial}`, fence.content.trim()); }
       } catch { /* Invalid authored diagrams remain visible as normal renderer errors. */ }
     }
