@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+Export check in the preview follows the new design: a one-line banner (icon, count, summary) that expands to a detail list, a confirmation before it is closed, and a 查看导出检查 link to bring it back. Items that need fixing open by default and use the warning colour.
+
+WeChat and Zhihu copies no longer keep a hand-wrapped line break after a comma or enumeration mark, which left a stub line in a narrow column.
+
 The HTML preview no longer flashes dark while chart colours are read: the preview window stays light over a flat backdrop. The action is now named 导出为 HTML.
 
 Export check notices in the preview are now a clear card (amber when something needs fixing, blue for notes) instead of small grey text.

@@ -144,21 +144,43 @@ export class ExportPreviewModal extends Modal {
     const problems = issues.filter(issue => issue.level === "warn").length;
     if (!issues.length) { host.createDiv({ cls: "ibp-export-check__ok", text: "导出检查：没有发现问题" }); return; }
     const box = host.createDiv({ cls: `ibp-export-check__box ${problems ? "is-warn" : "is-info"}` });
-    const head = box.createDiv({ cls: "ibp-export-check__head" });
-    setIcon(head.createSpan({ cls: "ibp-export-check__icon" }), problems ? "lucide-triangle-alert" : "lucide-info");
-    head.createSpan({ cls: "ibp-export-check__title", text: problems ? `导出检查：${problems} 处需要处理${issues.length > problems ? `，另有 ${issues.length - problems} 条说明` : ""}` : `导出检查：${issues.length} 条说明` });
+    const top = box.createDiv({ cls: "ibp-export-check__top" });
+    setIcon(top.createDiv({ cls: "ibp-export-check__symbol" }), problems ? "lucide-triangle-alert" : "lucide-info");
+    const content = top.createDiv({ cls: "ibp-export-check__content" });
+    content.createSpan({ cls: "ibp-export-check__heading", text: "导出检查" });
+    content.createSpan({ cls: "ibp-export-check__count", text: problems ? `${problems} 处需要处理${issues.length > problems ? `，${issues.length - problems} 项说明` : ""}` : `${issues.length} 项说明` });
+    content.createSpan({ cls: "ibp-export-check__summary", text: issues.map(issue => issue.message).join(" · ") });
+    const tools = top.createDiv({ cls: "ibp-export-check__tools" });
+    const toggle = tools.createEl("button", { cls: "ibp-export-check__toggle", attr: { type: "button", "aria-expanded": "false" } });
+    const toggleText = toggle.createSpan({ text: "展开详情" });
+    setIcon(toggle.createSpan({ cls: "ibp-export-check__chevron" }), "lucide-chevron-down");
+    const close = tools.createEl("button", { cls: "ibp-export-check__close clickable-icon", attr: { type: "button", "aria-label": "关闭导出检查提示" } });
+    setIcon(close, "lucide-x");
     const list = box.createDiv({ cls: "ibp-export-check__list" });
+    const setExpanded = (value: boolean) => {
+      box.toggleClass("is-expanded", value);
+      toggle.setAttribute("aria-expanded", String(value));
+      toggleText.setText(value ? "收起详情" : "展开详情");
+    };
+    toggle.addEventListener("click", () => setExpanded(!box.hasClass("is-expanded")));
+    // Things that need fixing are shown open; plain notes stay on one line.
+    setExpanded(problems > 0);
     for (const issue of issues) {
       const row = list.createDiv({ cls: `ibp-export-check__row is-${issue.level}` });
+      const text = row.createSpan({ cls: "ibp-export-check__text" });
       if (issue.line) {
-        const jump = row.createEl("button", { cls: "ibp-export-check__line", text: `第 ${issue.line} 行` });
+        const jump = text.createEl("button", { cls: "ibp-export-check__line", text: `第 ${issue.line} 行`, attr: { type: "button" } });
         jump.addEventListener("click", () => {
           this.close();
           void app.workspace.getLeaf(false).openFile(this.file, { eState: { line: issue.line - 1 } });
         });
       }
-      row.createSpan({ text: issue.message });
+      text.appendText(issue.message);
     }
+    const restore = host.createEl("button", { cls: "ibp-export-check__restore", text: "查看导出检查", attr: { type: "button" } });
+    restore.hide();
+    close.addEventListener("click", () => new DismissNoticeModal(this.plugin, issues.length, () => { box.hide(); restore.show(); restore.focus(); }).open());
+    restore.addEventListener("click", () => { box.show(); restore.hide(); setExpanded(problems > 0); toggle.focus(); });
   }
 
   finishGenerating() {
@@ -316,4 +338,19 @@ export class ExportPreviewModal extends Modal {
 export function previewThenExport(plugin: IgnorancePlugin, file: TFile, kind: string, deps: Partial<ExportPreviewDeps>, run: () => void) {
   if (!file) return;
   new ExportPreviewModal(plugin, file, kind, deps, run).open();
+}
+
+// Closing the notice hides it for this preview only; the check itself is unchanged.
+class DismissNoticeModal extends Modal {
+  constructor(plugin: IgnorancePlugin, private count: number, private onConfirm: () => void) { super(plugin.app); }
+  onOpen() {
+    this.titleEl.setText("关闭导出检查提示？");
+    this.contentEl.createEl("p", { cls: "ibp-export-check__confirm", text: `关闭后，本次预览将不再显示这 ${this.count} 项说明。导出过程和潜在的缺图风险不会因此改变。` });
+    const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
+    const keep = footer.createEl("button", { text: "保留提示" });
+    keep.addEventListener("click", () => this.close());
+    footer.createEl("button", { cls: "mod-cta", text: "确认关闭" }).addEventListener("click", () => { this.close(); this.onConfirm(); });
+    keep.focus();
+  }
+  onClose() { this.contentEl.empty(); }
 }

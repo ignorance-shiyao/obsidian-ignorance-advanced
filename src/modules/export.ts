@@ -381,6 +381,11 @@ async function prepareRichCopyMarkup(plugin: IgnorancePlugin, file: TFile, targe
     root.style.setProperty("color", style.getPropertyValue("--ib-text-primary").trim() || style.color);
     root.style.setProperty("background-color", style.getPropertyValue("--ib-bg-primary").trim() || "transparent");
     root.setAttribute("data-copy-target", target);
+    // A line that ends on a comma or enumeration mark was wrapped by hand, not meant as a break; in a narrow column it leaves a stub line.
+    for (const br of Array.from(content.querySelectorAll("br"))) {
+      const before = br.previousSibling;
+      if (before?.nodeType === Node.TEXT_NODE && /[、，,；;：:]\s*$/.test(before.textContent ?? "")) br.remove();
+    }
     root.appendChild(content);
     const html = `<meta charset="utf-8">${root.outerHTML}`;
     const text = staging.innerText.trim();
