@@ -10,3 +10,6 @@ export function activeLanguage(): Language { return resolveLanguage(preference, 
 
 /** The text for the active interface language; see i18n-core.ts. */
 export function tr(zh: string, vars?: Vars): string { return translateWith(EN, activeLanguage(), zh, vars); }
+
+/** Marks a Chinese string kept in module-level data and translated where it is shown: `tr(label)`. Returns the text unchanged. */
+export function zh(text: string): string { return text; }

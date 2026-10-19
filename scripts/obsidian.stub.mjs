@@ -23,3 +23,4 @@ export const parseYaml = undefined;
 export const requestUrl = () => undefined;
 export const setIcon = () => undefined;
 export const setTooltip = () => undefined;
+export const moment = { locale: () => "zh-cn" };

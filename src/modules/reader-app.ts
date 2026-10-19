@@ -14,6 +14,7 @@ export { iconMarkup as icon } from "./ui-icons.js";
 import { iconMarkup as icon } from "./ui-icons.js";
 import { languageIconSvg } from "./language-icons.js";
 import { setMarkup } from "./dom-markup.js";
+import { tr, zh } from "../i18n.js";
 
 function escapeHtml(value: string) {
   return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" } as Record<string, string>)[char]);
@@ -57,7 +58,7 @@ export function indexContent(content: HTMLElement): ContentLists {
   const chartHosts = [...content.querySelectorAll<HTMLElement>("[data-reader-chart]")];
   chartHosts.forEach((el, index) => {
     el.id ||= `reader-chart-${index + 1}`;
-    lists.charts.push({ id: el.id, label: captionFor(el, withSection(`图表 ${index + 1}`, el)) });
+    lists.charts.push({ id: el.id, label: captionFor(el, withSection(tr("图表 {v}", { v: index + 1 }), el)) });
   });
   const images = [...content.querySelectorAll<HTMLImageElement>("img")].filter(img => !img.closest("[data-reader-chart]"));
   const doc = content.ownerDocument;
@@ -74,22 +75,22 @@ export function indexContent(content: HTMLElement): ContentLists {
     const alone = block && block.querySelectorAll("img").length === 1;
     if (meaningful && alone && !img.closest("a, table")) {
       const caption = el("span", "ib-caption ib-figure-caption");
-      caption.append(el("b", "", `图 ${index + 1}`), doc.createTextNode(` ${alt}`));
+      caption.append(el("b", "", tr("图 {v}", { v: index + 1 })), doc.createTextNode(` ${alt}`));
       img.after(caption);
     }
-    lists.images.push({ id: img.id, label: captionFor(img, withSection(`图 ${index + 1}`, img)) });
+    lists.images.push({ id: img.id, label: captionFor(img, withSection(tr("图 {v}", { v: index + 1 }), img)) });
   });
 
   // Tables: a frame with the number and tools (冻结首列 / 换行 / 全屏).
   [...content.querySelectorAll<HTMLTableElement>("table")].forEach((table, index) => {
     table.id ||= `reader-table-${index + 1}`;
     const head = [...table.querySelectorAll("tr:first-child > *")].map(cell => cell.textContent.trim()).filter(Boolean).slice(0, 3).join(" · ");
-    lists.tables.push({ id: table.id, label: captionFor(table, head ? `表 ${index + 1}：${clip(head, 36)}` : withSection(`表 ${index + 1}`, table)) });
+    lists.tables.push({ id: table.id, label: captionFor(table, head ? tr("表 {v}：{v2}", { v: index + 1, v2: clip(head, 36) }) : withSection(tr("表 {v}", { v: index + 1 }), table)) });
     const frame = el("div", "ib-table-frame is-frozen");
     if (table.dataset.ibTableAlign) frame.dataset.ibTableAlign = table.dataset.ibTableAlign;
     const bar = el("div", "ib-block-bar");
-    bar.append(el("span", "ib-caption", `表 ${index + 1}`), el("span", "ib-bar-space"),
-      toolButton("freeze", "冻结首列", "freeze"), toolButton("wrap", "切换换行", "wrap"), toolButton("full", "全屏查看", "zen"));
+    bar.append(el("span", "ib-caption", tr("表 {v}", { v: index + 1 })), el("span", "ib-bar-space"),
+      toolButton("freeze", tr("冻结首列"), "freeze"), toolButton("wrap", tr("切换换行"), "wrap"), toolButton("full", tr("全屏查看"), "zen"));
     bar.querySelector('[data-tool="freeze"]').setAttribute("aria-pressed", "true");
     const scroller = el("div", "ib-table-scroll");
     table.replaceWith(frame);
@@ -102,7 +103,7 @@ export function indexContent(content: HTMLElement): ContentLists {
     pre.id ||= `reader-code-${index + 1}`;
     const language = pre.getAttribute("data-lang") || "";
     const first = pre.textContent.split("\n").map((line: string) => line.trim()).find(Boolean) || "";
-    lists.code.push({ id: pre.id, label: `${language ? `${language} · ` : ""}${clip(first, 40) || `代码 ${index + 1}`}` });
+    lists.code.push({ id: pre.id, label: `${language ? `${language} · ` : ""}${clip(first, 40) || tr("代码 {v}", { v: index + 1 })}` });
     // Keep separators for exact copying; normal whitespace on the wrapper
     // prevents them from creating extra visual lines between block spans.
     pre.querySelectorAll("code").forEach(code => {
@@ -118,24 +119,24 @@ export function indexContent(content: HTMLElement): ContentLists {
     const langIcon = el("span", "ib-lang-icon");
     langIcon.setAttribute("aria-hidden", "true");
     setMarkup(langIcon, languageIconSvg(language) || icon("code"));
-    bar.append(langIcon, el("span", "ib-caption", language || "代码"), el("span", "ib-bar-space"));
-    if (lines > 20) bar.append(toolButton("fold", "展开 / 折叠", "fold"));
-    bar.append(toolButton("copy", "复制代码", "copy"));
+    bar.append(langIcon, el("span", "ib-caption", language || tr("代码")), el("span", "ib-bar-space"));
+    if (lines > 20) bar.append(toolButton("fold", tr("展开 / 折叠"), "fold"));
+    bar.append(toolButton("copy", tr("复制代码"), "copy"));
     if (lines > 20) frame.classList.add("is-folded");
     pre.replaceWith(frame);
     frame.append(bar, pre);
-    if (lines > 20) { const more = el("button", "ib-code-more", `展开全部 ${lines} 行`); more.type = "button"; more.dataset.tool = "fold"; frame.append(more); }
+    if (lines > 20) { const more = el("button", "ib-code-more", tr("展开全部 {lines} 行", { lines })); more.type = "button"; more.dataset.tool = "fold"; frame.append(more); }
   });
   return lists;
 }
 
 type NavTab = "toc" | "images" | "tables" | "code" | "charts";
 const TABS: [NavTab, string, string][] = [
-  ["toc", "目录", "list"],
-  ["images", "图片", "image"],
-  ["tables", "表格", "table"],
-  ["code", "代码", "code"],
-  ["charts", "图表", "chart"]
+  ["toc", zh("目录"), "list"],
+  ["images", zh("图片"), "image"],
+  ["tables", zh("表格"), "table"],
+  ["code", zh("代码"), "code"],
+  ["charts", zh("图表"), "chart"]
 ];
 
 // The aside: tab strip, filter box, one panel per tab (目录 keeps .ib-reader-toc nav).
@@ -143,62 +144,62 @@ export function navigationMarkup(tocHtml: string, lists: ContentLists) {
   const counts: Record<NavTab, number> = { toc: tocHtml ? 1 : 0, images: lists.images.length, tables: lists.tables.length, code: lists.code.length, charts: lists.charts.length };
   const tabs = TABS.filter(([key]) => key === "toc" || counts[key]);
   const strip = tabs.map(([key, label, name], index) =>
-    `<button type="button" class="ib-nav-tab" role="tab" data-tab="${key}" aria-selected="${index === 0}" data-tip="${label}">${icon(name)}<span>${label}</span>${key === "toc" ? "" : `<em>${counts[key]}</em>`}</button>`).join("");
+    `<button type="button" class="ib-nav-tab" role="tab" data-tab="${key}" aria-selected="${index === 0}" data-tip="${tr(label)}">${icon(name)}<span>${tr(label)}</span>${key === "toc" ? "" : `<em>${counts[key]}</em>`}</button>`).join("");
   const item = (entry: IndexEntry) => `<a href="#${entry.id}">${escapeHtml(entry.label)}</a>`;
   const panels = tabs.map(([key], index) => {
-    const body = key === "toc" ? (tocHtml || `<div class="ib-reader-empty">本文没有标题</div>`) : lists[key].map(item).join("");
+    const body = key === "toc" ? (tocHtml || `<div class="ib-reader-empty">${tr("本文没有标题")}</div>`) : lists[key].map(item).join("");
     return `<nav class="ib-nav-panel" data-panel="${key}"${index === 0 ? "" : " hidden"}>${key === "toc" ? '<span class="ib-toc-indicator" aria-hidden="true" hidden></span>' : ""}${body}</nav>`;
   }).join("");
-  return `<aside id="ib-reader-navigation" class="ib-reader-toc" aria-label="导航中心">
+  return `<aside id="ib-reader-navigation" class="ib-reader-toc" aria-label="${tr("导航中心")}">
     <div class="ib-nav-head"><div class="ib-nav-tabs" role="tablist">${strip}</div>
-    <label class="ib-nav-search">${icon("search")}<input type="search" placeholder="筛选…  /" aria-label="筛选导航"></label></div>
+    <label class="ib-nav-search">${icon("search")}<input type="search" placeholder="${tr("筛选…  /")}" aria-label="${tr("筛选导航")}"></label></div>
     ${panels}
-    <div class="ib-nav-none" hidden>没有匹配的条目</div>
+    <div class="ib-nav-none" hidden>${tr("没有匹配的条目")}</div>
   </aside>`;
 }
 
 export function headerMarkup(title: string) {
   return `<header class="ib-reader-header">
-    <button class="ib-reader-button ib-icon-button" type="button" data-action="back" aria-label="返回" data-tip="返回">${icon("prev")}</button>
-    <button class="ib-reader-button ib-icon-button" type="button" data-action="toc" aria-label="导航中心（O）" data-tip="导航中心" data-key="O">${icon("list")}</button>
+    <button class="ib-reader-button ib-icon-button" type="button" data-action="back" aria-label="${tr("返回")}" data-tip="${tr("返回")}">${icon("prev")}</button>
+    <button class="ib-reader-button ib-icon-button" type="button" data-action="toc" aria-label="${tr("导航中心（O）")}" data-tip="${tr("导航中心")}" data-key="O">${icon("list")}</button>
     <div class="ib-reader-heading"><div class="ib-reader-title">${escapeHtml(title)}</div><div class="ib-reader-chapter" aria-live="polite"></div></div>
-    <select class="ib-reader-width" aria-label="正文宽度" data-tip="正文宽度"><option value="narrow">窄</option><option value="standard" selected>标准</option><option value="wide">宽</option><option value="full">全宽</option></select>
-    <button class="ib-reader-button ib-icon-button" type="button" data-action="font" aria-label="字体风格（F）" data-tip="字体风格" data-key="F">${icon("type")}</button>
-    <button class="ib-reader-button ib-icon-button" type="button" data-action="zen" aria-label="宁静视图（Z）" data-tip="宁静视图" data-key="Z">${icon("zen")}</button>
-    <button class="ib-reader-button ib-icon-button" type="button" data-action="theme" aria-label="切换明暗（D）" data-tip="切换明暗" data-key="D"><span class="ib-when-light">${icon("moon")}</span><span class="ib-when-dark">${icon("sun")}</span></button>
+    <select class="ib-reader-width" aria-label="${tr("正文宽度")}" data-tip="${tr("正文宽度")}"><option value="narrow">${tr("窄")}</option><option value="standard" selected>${tr("标准")}</option><option value="wide">${tr("宽")}</option><option value="full">${tr("全宽")}</option></select>
+    <button class="ib-reader-button ib-icon-button" type="button" data-action="font" aria-label="${tr("字体风格（F）")}" data-tip="${tr("字体风格")}" data-key="F">${icon("type")}</button>
+    <button class="ib-reader-button ib-icon-button" type="button" data-action="zen" aria-label="${tr("宁静视图（Z）")}" data-tip="${tr("宁静视图")}" data-key="Z">${icon("zen")}</button>
+    <button class="ib-reader-button ib-icon-button" type="button" data-action="theme" aria-label="${tr("切换明暗（D）")}" data-tip="${tr("切换明暗")}" data-key="D"><span class="ib-when-light">${icon("moon")}</span><span class="ib-when-dark">${icon("sun")}</span></button>
     <div class="ib-reader-progress" aria-hidden="true"><span></span></div>
   </header>`;
 }
 
 // Wide screens: the current chapter's sections, progress and section stepping.
 export function railMarkup() {
-  return `<aside class="ib-rail" aria-label="本章目录">
-    <div class="ib-rail-title">本章目录</div>
+  return `<aside class="ib-rail" aria-label="${tr("本章目录")}">
+    <div class="ib-rail-title">${tr("本章目录")}</div>
     <nav class="ib-rail-list"></nav>
-    <div class="ib-rail-progress"><div class="ib-rail-progress-row"><span>阅读进度</span><b>0%</b></div><div class="ib-rail-bar"><span></span></div><div class="ib-rail-left"></div></div>
-    <div class="ib-rail-steps"><button type="button" data-action="prev-section">${icon("prev")}<span>上一节</span></button><button type="button" data-action="next-section"><span>下一节</span>${icon("next")}</button></div>
+    <div class="ib-rail-progress"><div class="ib-rail-progress-row"><span>${tr("阅读进度")}</span><b>0%</b></div><div class="ib-rail-bar"><span></span></div><div class="ib-rail-left"></div></div>
+    <div class="ib-rail-steps"><button type="button" data-action="prev-section">${icon("prev")}<span>${tr("上一节")}</span></button><button type="button" data-action="next-section"><span>${tr("下一节")}</span>${icon("next")}</button></div>
   </aside>`;
 }
 
 export function overlayMarkup() {
-  return `<div class="ib-dock" aria-label="章节导航">
-    <button type="button" data-action="prev-chapter" data-tip="上一章" data-key="[" aria-label="上一章">${icon("prev")}</button>
-    <button type="button" data-action="top" data-tip="回到顶部" aria-label="回到顶部">${icon("up")}</button>
-    <button type="button" data-action="next-chapter" data-tip="下一章" data-key="]" aria-label="下一章">${icon("next")}</button>
+  return `<div class="ib-dock" aria-label="${tr("章节导航")}">
+    <button type="button" data-action="prev-chapter" data-tip="${tr("上一章")}" data-key="[" aria-label="${tr("上一章")}">${icon("prev")}</button>
+    <button type="button" data-action="top" data-tip="${tr("回到顶部")}" aria-label="${tr("回到顶部")}">${icon("up")}</button>
+    <button type="button" data-action="next-chapter" data-tip="${tr("下一章")}" data-key="]" aria-label="${tr("下一章")}">${icon("next")}</button>
   </div>
-  <button type="button" class="ib-zen-exit" data-action="zen" aria-label="退出宁静视图">${icon("close")}<span>退出宁静视图</span></button>
+  <button type="button" class="ib-zen-exit" data-action="zen" aria-label="${tr("退出宁静视图")}">${icon("close")}<span>${tr("退出宁静视图")}</span></button>
   <div class="ib-font-menu" role="menu" hidden>
-    <button type="button" role="menuitemradio" data-font="theme">主题默认</button>
-    <button type="button" role="menuitemradio" data-font="sans">无衬线 · 清晰</button>
-    <button type="button" role="menuitemradio" data-font="serif">衬线 · 书卷</button>
-    <button type="button" role="menuitemradio" data-font="kai">楷体 · 温和</button>
-    <button type="button" role="menuitemradio" data-font="mono">等宽 · 技术</button>
+    <button type="button" role="menuitemradio" data-font="theme">${tr("主题默认")}</button>
+    <button type="button" role="menuitemradio" data-font="sans">${tr("无衬线 · 清晰")}</button>
+    <button type="button" role="menuitemradio" data-font="serif">${tr("衬线 · 书卷")}</button>
+    <button type="button" role="menuitemradio" data-font="kai">${tr("楷体 · 温和")}</button>
+    <button type="button" role="menuitemradio" data-font="mono">${tr("等宽 · 技术")}</button>
   </div>
-  <div class="ib-viewer" role="dialog" aria-modal="true" aria-label="图片查看器" hidden>
-    <div class="ib-viewer-bar"><span class="ib-viewer-count"></span><span class="ib-viewer-caption"></span><button type="button" data-viewer="close" aria-label="关闭（Esc）">${icon("close")}</button></div>
-    <button type="button" class="ib-viewer-nav" data-viewer="prev" aria-label="上一张">${icon("prev")}</button>
+  <div class="ib-viewer" role="dialog" aria-modal="true" aria-label="${tr("图片查看器")}" hidden>
+    <div class="ib-viewer-bar"><span class="ib-viewer-count"></span><span class="ib-viewer-caption"></span><button type="button" data-viewer="close" aria-label="${tr("关闭（Esc）")}">${icon("close")}</button></div>
+    <button type="button" class="ib-viewer-nav" data-viewer="prev" aria-label="${tr("上一张")}">${icon("prev")}</button>
     <div class="ib-viewer-stage"></div>
-    <button type="button" class="ib-viewer-nav" data-viewer="next" aria-label="下一张">${icon("next")}</button>
+    <button type="button" class="ib-viewer-nav" data-viewer="next" aria-label="${tr("下一张")}">${icon("next")}</button>
   </div>`;
 }
 
@@ -604,7 +605,7 @@ export function readerAppScript() {
       else if(tool==='copy'){const pre=frame.querySelector('pre'),text=(pre.querySelector('code')||pre).textContent;let ok=false;try{await navigator.clipboard.writeText(text);ok=true;}catch(_){const area=document.createElement('textarea');area.value=text;area.style.cssText='position:fixed;opacity:0;top:0;left:0';document.body.appendChild(area);area.focus();area.select();try{ok=document.execCommand('copy');}catch(__){}area.remove();}
         const previous=copyFeedback.get(button);if(previous)clearTimeout(previous.timer);
         const markup=previous?.markup??button.innerHTML,label=previous?previous.label:button.getAttribute('aria-label'),tip=previous?.tip??button.dataset.tip;
-        button.classList.toggle('is-copied',ok);button.innerHTML=ok?${JSON.stringify(icon("check"))}:markup;button.dataset.tip=ok?'已复制':'复制失败';button.setAttribute('aria-label',button.dataset.tip);
+        button.classList.toggle('is-copied',ok);button.innerHTML=ok?${JSON.stringify(icon("check"))}:markup;button.dataset.tip=ok?'${tr("已复制")}':'${tr("复制失败")}';button.setAttribute('aria-label',button.dataset.tip);
         const timer=setTimeout(()=>{button.innerHTML=markup;button.dataset.tip=tip;if(label===null)button.removeAttribute('aria-label');else button.setAttribute('aria-label',label);button.classList.remove('is-copied');copyFeedback.delete(button);},1500);
         copyFeedback.set(button,{timer,markup,label,tip});}
     });
@@ -638,12 +639,12 @@ export function readerAppScript() {
         const start=chapter<0?0:chapter+1;const base=chapter<0?topLevel:topLevel+1;
         for(let i=start;i<headings.length;i++){const h=headings[i];const l=levelOf(h);if(chapter>=0&&l<=topLevel)break;if(l>base+1)continue;
           const a=document.createElement('a');a.href='#'+h.id;a.textContent=h.textContent.trim();a.dataset.index=String(i);if(l>base)a.dataset.level='deeper';railList.appendChild(a);}
-        $('.ib-rail-title').textContent=chapter>=0?headings[chapter].textContent.trim():'本章目录';}
+        $('.ib-rail-title').textContent=chapter>=0?headings[chapter].textContent.trim():'${tr("本章目录")}';}
       railList.querySelectorAll('a').forEach(a=>a.setAttribute('aria-current',String(Number(a.dataset.index)===current)));
       const max=document.documentElement.scrollHeight-innerHeight;const pct=max>0?Math.round(Math.min(1,scrollY/max)*100):100;
       rail.querySelector('.ib-rail-progress b').textContent=pct+'%';rail.querySelector('.ib-rail-bar span').style.transform='scaleX('+pct/100+')';
       const left=Math.max(0,Math.round(totalMinutes*(1-pct/100)));
-      rail.querySelector('.ib-rail-left').textContent=left>0?'剩余约 '+left+' 分钟':'即将读完';
+      rail.querySelector('.ib-rail-left').textContent=left>0?'${tr("剩余约 {left} 分钟").replace("{left}", "'+left+'")}':'${tr("即将读完")}';
       rail.querySelector('[data-action="prev-section"]').disabled=current<=0;rail.querySelector('[data-action="next-section"]').disabled=current>=headings.length-1;
     };
     if(rail){rail.querySelector('[data-action="prev-section"]').addEventListener('click',()=>go(current-1));rail.querySelector('[data-action="next-section"]').addEventListener('click',()=>go(current+1));

@@ -14,4 +14,12 @@ describe("task examples", () => {
       for (const match of example.body.matchAll(/\(\(ref:([\w-]+)\)\)/g)) expect(ids.has(match[1])).toBe(true);
     }
   });
+  it("has an English version with the same structure", () => {
+    for (const example of TASK_EXAMPLES) {
+      expect(example.en.title).toBeTruthy();
+      const ids = new Set(parseCaptions(example.en.body).map(caption => caption.id));
+      for (const match of example.en.body.matchAll(/\(\(ref:([\w-]+)\)\)/g)) expect(ids.has(match[1])).toBe(true);
+      expect(example.en.body.match(/^---$/gm)?.length).toBe(example.body.match(/^---$/gm)?.length);
+    }
+  });
 });
