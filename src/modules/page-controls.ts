@@ -142,8 +142,8 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
   let popover: HTMLElement | null = null;
   const closePopover = () => { popover?.remove(); popover = null; };
 
-  const openWidthMenu = (event: MouseEvent) => {
-    const menu = new Menu();
+  // Width choices head the page menu: the note's own override first, then this device's default.
+  const addWidthItems = (menu: Menu, anchor: Element) => {
     const preset = WIDTH_PRESETS.find(([id]) => id === page().width);
     const defaultLabel = page().width === "custom" ? `${page().customWidth}%` : preset?.[1] || "标准";
     // Keep the note's portable override separate from this device's default.
@@ -162,12 +162,11 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       for (const [id, label, percent, cap] of WIDTH_PRESETS) {
         defaults.addItem(option => option.setTitle(`${label}（视图的 ${percent}%，最宽 ${cap}px）`).setChecked(page().width === id).onClick(() => { page().width = id; save(); }));
       }
-      defaults.addItem(option => option.setTitle("自定义…").setChecked(page().width === "custom").onClick(() => openWidthInput(event)));
+      defaults.addItem(option => option.setTitle("自定义…").setChecked(page().width === "custom").onClick(() => openWidthInput(anchor)));
     });
-    menu.showAtMouseEvent(event);
   };
 
-  const openWidthInput = (event: MouseEvent) => {
+  const openWidthInput = (anchor: Element) => {
     closePopover();
     popover = document.body.createDiv({ cls: "ibp-popover" });
     const row = popover.createDiv({ cls: "ibp-row" });
@@ -178,7 +177,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
     const commit = () => { const v = Math.min(100, Math.max(30, Number(input.value) || 80)); page().width = "custom"; page().customWidth = v; save(); closePopover(); };
     input.addEventListener("keydown", e => { if (e.key === "Enter") commit(); if (e.key === "Escape") closePopover(); });
     popover.createEl("button", { cls: "mod-cta", text: "应用" }).addEventListener("click", commit);
-    placePopover(event.target instanceof Element ? event.target : document.body);
+    placePopover(anchor);
     input.focus();
   };
 
@@ -206,6 +205,8 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
     closePopover();
     const p = page();
     const menu = new Menu();
+    addWidthItems(menu, anchor);
+    menu.addSeparator();
     const submenu = (parent: Menu, label: string, icon: string, fill: (menu: Menu) => void) => parent.addItem(item => {
       item.setTitle(label).setIcon(icon);
       fill(item.setSubmenu());
@@ -302,10 +303,11 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       el.addEventListener("click", onClick);
       return el;
     };
-    const width = bar.createDiv({ cls: "clickable-icon ibp-button ibp-text-button", attr: { "aria-label": "正文宽度" } });
-    width.addEventListener("click", openWidthMenu);
-    bar.createDiv({ cls: "ibp-sep" });
-    const settings = button("lucide-file-cog", "页面设置", () => openPageSettings(settings));
+    // One entry for the page: the label shows the laid-out width, the menu holds width, paper and the rest.
+    const width = bar.createDiv({ cls: "clickable-icon ibp-button ibp-text-button", attr: { "aria-label": "页面设置" } });
+    setIcon(width.createSpan({ cls: "ibp-text-button-icon" }), "lucide-file-cog");
+    const widthText = width.createSpan({ cls: "ibp-text-button-label" });
+    width.addEventListener("click", () => openPageSettings(width));
     bar.createDiv({ cls: "ibp-sep" });
     const typewriter = button("lucide-align-center", "打字机滚动", () => toggleWritingMode(plugin, "typewriterScroll"));
     const focus = button("lucide-eye-off", "专注模式", () => toggleWritingMode(plugin, "focusMode"));
@@ -336,15 +338,15 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       const px = sizer ? Math.round(parseFloat(getComputedStyle(sizer).width)) : 0;
       const own = view.file ? noteClasses(plugin, view.file) : [];
       const noteLabel = own.includes("ib-wide") ? "本笔记加宽" : own.includes("ib-narrow") ? "本笔记收窄" : "";
-      width.setText(`宽度 · ${noteLabel || `默认${p.width === "custom" ? ` ${p.customWidth}%` : `（${preset ? preset[1] : "标准"}）`}`}${px ? ` · ${px}px` : ""}${Number(p.zoom) && Number(p.zoom) !== 1 ? ` · ${Math.round(Number(p.zoom) * 100)}%` : ""}`);
-      width.setAttr("aria-label", `当前笔记宽度：${noteLabel || "跟随此设备默认"}。点击选择，默认宽度在子菜单中设置`);
+      widthText.setText(`宽度 · ${noteLabel || `默认${p.width === "custom" ? ` ${p.customWidth}%` : `（${preset ? preset[1] : "标准"}）`}`}${px ? ` · ${px}px` : ""}${Number(p.zoom) && Number(p.zoom) !== 1 ? ` · ${Math.round(Number(p.zoom) * 100)}%` : ""}`);
+
       typewriter.toggleClass("is-active", Boolean(plugin.state.writingModes?.typewriterScroll));
       typewriter.setAttr("aria-pressed", String(Boolean(plugin.state.writingModes?.typewriterScroll)));
       focus.toggleClass("is-active", Boolean(plugin.state.writingModes?.focusMode));
       focus.setAttr("aria-pressed", String(Boolean(plugin.state.writingModes?.focusMode)));
       const size = paperSize(p);
       const name = p.paper === "CUSTOM" ? `${size.w}×${size.h}` : PAPERS[p.paper as keyof typeof PAPERS]?.label.replace(/（.*）/, "") || "A4";
-      settings.setAttr("aria-label", `页面设置（${name}${p.landscape ? " 横向" : ""}）`);
+      width.setAttr("aria-label", `页面设置（${name}${p.landscape ? " 横向" : ""}；本笔记宽度：${noteLabel || "跟随此设备默认"}）`);
     };
     bar.addEventListener("ibp-refresh", refresh);
     refresh();

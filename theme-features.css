@@ -442,17 +442,12 @@ body.is-phone .markdown-rendered pre.ibc-enhanced > code {
 .ibp-toolbar .ibp-button { color: var(--ib-sidebar-icon); border-radius: var(--ib-radius-md); }
 .ibp-toolbar .ibp-button:hover { color: var(--ib-accent-brand); background: color-mix(in srgb, var(--ib-accent-brand) 10%, transparent); }
 .ibp-toolbar .ibp-button.is-active { color: var(--ib-accent-brand); background: color-mix(in srgb, var(--ib-accent-brand) 16%, transparent); }
-.ibp-toolbar .ibp-text-button { width: auto; padding: 0 var(--ib-space-2); font-size: var(--font-ui-small); font-variant-numeric: tabular-nums; }
+.ibp-toolbar .ibp-text-button { width: auto; gap: var(--ib-space-1); padding: 0 var(--ib-space-2); font-size: var(--font-ui-small); font-variant-numeric: tabular-nums; }
+.ibp-toolbar .ibp-text-button-icon { display: inline-flex; }
 .ibp-toolbar .ibp-button.is-disabled { opacity: 0.45; pointer-events: none; }
 .ibp-toolbar .ibp-sep { width: 1px; height: 16px; margin: 0 var(--ib-space-2); background: var(--ib-divider); }
-.workspace-leaf-content[data-type="markdown"].ibp-source-fixed-width .ibp-toolbar .ibp-text-button {
-  opacity: 0.45;
-  pointer-events: none;
-}
-.workspace-leaf-content[data-type="markdown"].ibp-book-host .ibp-toolbar .ibp-text-button {
-  opacity: 0.45;
-  pointer-events: none;
-}
+/* Width does not apply to paged reading or a fixed source width: dim the number, keep the page menu. */
+.workspace-leaf-content[data-type="markdown"]:is(.ibp-source-fixed-width, .ibp-book-host) .ibp-toolbar .ibp-text-button-label { opacity: 0.45; }
 .workspace-leaf-content[data-type="markdown"][data-mode="preview"] .ibp-toolbar .ibp-edit-only {
   display: none;
 }
