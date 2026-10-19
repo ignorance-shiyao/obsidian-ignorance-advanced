@@ -68,3 +68,29 @@ export function imageMime(extension: string): string | null {
 export function combineMarkdown(texts: string[]): string {
   return texts.map(text => text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "").trim()).filter(Boolean).join("\n\n");
 }
+
+/* Rewrites one note's local links and embeds to full vault paths before notes are merged, so each note's
+   `assets/x.png` still means its own folder's file. `resolve` gets the link target (no #heading) and returns the
+   vault path, or null to leave the link as written. Web links, in-note anchors and code are left alone. */
+export function absolutizeLinks(text: string, resolve: (target: string) => string | null): string {
+  const fix = (raw: string, wrap: (path: string, rest: string) => string) => {
+    const cut = raw.search(/[#^]/), target = cut < 0 ? raw : raw.slice(0, cut), rest = cut < 0 ? "" : raw.slice(cut);
+    if (!target.trim() || /^[a-z][\w+.-]*:/i.test(target)) return null;
+    let decoded = target;
+    try { decoded = decodeURIComponent(target); } catch { /* keep as written */ }
+    const path = resolve(decoded.trim());
+    return path ? wrap(path, rest) : null;
+  };
+  const line = (part: string) => part
+    .replace(/(!?)\[\[([^\]|\n]+)((?:\|[^\]\n]*)?)\]\]/g, (all, bang: string, raw: string, alias: string) =>
+      fix(raw, (path, rest) => `${bang}[[${path}${rest}${alias}]]`) ?? all)
+    .replace(/(!?\[[^\]\n]*\])\((<[^>\n]+>|[^)\s]+)((?:\s+"[^"\n]*")?)\)/g, (all, label: string, raw: string, title: string) =>
+      fix(raw.replace(/^<|>$/g, ""), (path, rest) => `${label}(${path.replace(/[ ()%]/g, encodeURIComponent)}${rest}${title})`) ?? all);
+  let fence = "";
+  return text.split("\n").map(row => {
+    const mark = /^\s*(`{3,}|~{3,})/.exec(row)?.[1];
+    if (fence) { if (mark && mark[0] === fence[0] && mark.length >= fence.length) fence = ""; return row; }
+    if (mark) { fence = mark; return row; }
+    return row.split(/(`+[^`]*`+)/).map((part, i) => i % 2 ? part : line(part)).join("");
+  }).join("\n");
+}

@@ -1,7 +1,7 @@
 import { Component, MarkdownRenderer, Modal, Notice } from "obsidian";
 import type { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { buildEpub, chapterFile, combineMarkdown, imageMime, parseNoteList, type EpubChapter, type EpubImage } from "./epub-core.js";
+import { absolutizeLinks, buildEpub, chapterFile, combineMarkdown, imageMime, parseNoteList, type EpubChapter, type EpubImage } from "./epub-core.js";
 import { exportWord, saveExportToVault } from "./export.js";
 /* "Combine notes into an ePub": the notes listed in the dialog become chapters in that order. Links between the
    listed notes point at the right chapter, images are embedded once however often they are used, and anything that
@@ -162,7 +162,8 @@ class BookModal extends Modal {
       const bookTitle = title.value.trim() || files[0].basename;
       try {
         if (kind === "word") {
-          const text = combineMarkdown(await Promise.all(files.map(file => app.vault.cachedRead(file))));
+          const text = combineMarkdown(await Promise.all(files.map(async file => absolutizeLinks(await app.vault.cachedRead(file),
+            target => app.metadataCache.getFirstLinkpathDest(target, file.path)?.path ?? null))));
           const path = await exportWord(this.plugin, files[0], { text, title: bookTitle });
           new Notice(`已生成 ${path}`, 8000);
         } else {

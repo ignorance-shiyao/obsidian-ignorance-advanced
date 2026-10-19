@@ -282,6 +282,7 @@ class BatchClipModal extends Modal {
   status: HTMLElement;
   results: HTMLElement;
   finished = false;
+  cancelled = false;
   start: HTMLButtonElement;
   constructor(plugin: IgnorancePlugin) { super(plugin.app); this.plugin = plugin; this.busy = false; }
   onOpen() {
@@ -312,6 +313,11 @@ class BatchClipModal extends Modal {
     const failedUrls: string[] = [];
     let done = 0, skipped = 0;
     for (const [index, url] of urls.entries()) {
+      // Closing the dialog stops the links not yet started; the one in flight finishes and is reported.
+      if (this.cancelled) {
+        if (done) new Notice(`批量剪藏已停止：已保存 ${done} 篇，其余 ${urls.length - index} 个链接未处理。`, 8000);
+        return;
+      }
       this.status.setText(`第 ${index + 1} / ${urls.length} 篇`);
       const row = this.results.createDiv({ cls: "ib-clip-batch__row" });
       const mark = row.createSpan({ cls: "ib-clip-batch__mark" });
@@ -331,7 +337,7 @@ class BatchClipModal extends Modal {
     } else this.start.setText("完成");
     this.finished = !failedUrls.length;
   }
-  onClose() { this.contentEl.empty(); }
+  onClose() { this.cancelled = true; this.contentEl.empty(); }
 }
 
 class ConfirmClipModal extends Modal {

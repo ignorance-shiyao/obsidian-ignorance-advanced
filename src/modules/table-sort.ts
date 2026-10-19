@@ -2,10 +2,10 @@ import { enhancementOn, handledByOther } from "./enhancement-gate.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Notice, TFile, setIcon } from "obsidian";
 import { saveExportToVault } from "./export.js";
-import { reorderTableLines, rowsToCsv, rowsToTsv, sortedOrder, type SortDirection } from "./table-sort-core.js";
+import { reorderTableLines, revertTableLines, rowsToCsv, rowsToTsv, sortedOrder, type SortDirection } from "./table-sort-core.js";
 /* Reading-view table aids: click a heading to sort (ascending, descending, original), a search box, copy as TSV,
    save as CSV. Sorting only reorders what is shown; "write back" rewrites the Markdown table in the file, and the
-   notice it shows can put the old text back. Nothing is added to the page until the pointer first reaches a table,
+   notice it shows can put that table's old rows back, leaving the rest of the note alone. Nothing is added to the page until the pointer first reaches a table,
    so exports stay clean. Tables with merged cells or row groups are left alone. */
 interface SortState { rows: HTMLTableRowElement[]; column: number; direction: SortDirection | null }
 
@@ -52,21 +52,26 @@ async function writeBack(plugin: IgnorancePlugin, table: HTMLTableElement) {
   const state = states.get(table);
   if (!(file instanceof TFile) || !range || range.length !== 2 || !state?.direction) { new Notice("没法确定这张表在笔记里的位置，未写回。"); return; }
   const order = [...table.tBodies[0].rows].map(row => Number(row.dataset.ibRow));
-  const original = await plugin.app.vault.read(file);
-  let done = false;
+  let before: string[] = [], written: string[] = [];
   await plugin.app.vault.process(file, text => {
     const lines = text.split("\n");
     const next = reorderTableLines(lines.slice(range[0], range[1] + 1).map(line => line.replace(/\r$/, "")), order);
     if (!next) return text;
-    done = true;
+    before = lines.slice(range[0], range[1] + 1).map(line => line.replace(/\r$/, ""));
+    written = next;
     return [...lines.slice(0, range[0]), ...next, ...lines.slice(range[1] + 1)].join("\n");
   });
-  if (!done) { new Notice("这张表的源码不是普通的竖线表格，未写回。"); return; }
+  if (!written.length) { new Notice("这张表的源码不是普通的竖线表格，未写回。"); return; }
   const notice = new Notice("", 10000);
   notice.messageEl.createSpan({ text: "已按当前顺序写回笔记。" });
   notice.messageEl.createEl("button", { text: "撤销", cls: "ibp-table-undo" }).addEventListener("click", () => {
-    void plugin.app.vault.modify(file, original);
     notice.hide();
+    let undone = false;
+    void plugin.app.vault.process(file, text => {
+      const next = revertTableLines(text, written, before, range[0]);
+      undone = next !== null;
+      return next ?? text;
+    }).then(() => { if (!undone) new Notice("这张表写回后又被改过，未撤销，以免覆盖新内容。"); });
   });
 }
 

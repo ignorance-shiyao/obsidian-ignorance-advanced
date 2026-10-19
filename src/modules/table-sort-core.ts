@@ -54,3 +54,17 @@ export function reorderTableLines(lines: string[], order: number[]): string[] | 
   const body = lines.slice(2);
   return [lines[0], lines[1], ...order.map(index => body[index])];
 }
+
+/** Puts one table's lines back. Only the block that was written is replaced, so edits elsewhere in the note survive;
+    returns null when that block is gone or no longer matches exactly (edited after the write, or ambiguous). */
+export function revertTableLines(text: string, written: string[], before: string[], hint: number): string | null {
+  const lines = text.split("\n");
+  const at = (start: number) => written.every((line, i) => lines[start + i]?.replace(/\r$/, "") === line);
+  let start = at(hint) ? hint : -1;
+  if (start < 0) {
+    const hits = lines.map((_, i) => i).filter(i => at(i));
+    if (hits.length !== 1) return null;
+    start = hits[0];
+  }
+  return [...lines.slice(0, start), ...before, ...lines.slice(start + written.length)].join("\n");
+}

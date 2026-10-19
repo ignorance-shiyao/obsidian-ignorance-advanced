@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { reorderTableLines, rowsToCsv, rowsToTsv, sortedOrder } from "./table-sort-core";
+import { reorderTableLines, revertTableLines, rowsToCsv, rowsToTsv, sortedOrder } from "./table-sort-core";
 
 describe("table sorting", () => {
   it("sorts numbers with signs, thousands separators and percents", () => {
@@ -34,5 +34,14 @@ describe("table copy and write-back", () => {
     expect(reorderTableLines(lines, [0])).toBeNull();
     expect(reorderTableLines([...lines.slice(0, 3), "oops"], [0, 1])).toBeNull();
     expect(reorderTableLines(lines, [0, 0])).toBeNull();
+  });
+  it("undo restores only the written table and refuses when it changed", () => {
+    const before = ["| a |", "| - |", "| 1 |", "| 2 |"], written = ["| a |", "| - |", "| 2 |", "| 1 |"];
+    const text = ["intro", ...written, "tail"].join("\n");
+    expect(revertTableLines(text, written, before, 1)).toBe(["intro", ...before, "tail"].join("\n"));
+    const edited = ["new line", "intro", ...written, "tail edited"].join("\n");
+    expect(revertTableLines(edited, written, before, 1)).toBe(["new line", "intro", ...before, "tail edited"].join("\n"));
+    expect(revertTableLines(["intro", ...written.slice(0, 3), "| 9 |"].join("\n"), written, before, 1)).toBeNull();
+    expect(revertTableLines([...written, ...written].join("\n"), written, before, 9)).toBeNull();
   });
 });

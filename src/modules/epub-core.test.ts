@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
-import { buildEpub, combineMarkdown, itemProperties, imageMime, parseNoteList, chapterFile, escapeXml, navDocument, packageDocument } from "./epub-core";
+import { absolutizeLinks, buildEpub, combineMarkdown, itemProperties, imageMime, parseNoteList, chapterFile, escapeXml, navDocument, packageDocument } from "./epub-core";
 
 const meta = { title: "三章 & 样本", author: "作者", language: "zh-CN", id: "urn:uuid:1", date: "2026-10-19T00:00:00Z" };
 const chapters = [{ title: "第一章", body: "<h1>一</h1><p>x</p>" }, { title: "第一章", body: "<p>同名章节</p>" }, { title: "三 <3>", body: "<p>z</p>" }];
@@ -49,5 +49,18 @@ describe("epub packaging", () => {
     expect(itemProperties('<p><svg width="1"></svg></p>')).toBe(' properties="svg"');
     expect(itemProperties("<math><mi>x</mi></math><svg/>")).toBe(' properties="svg mathml"');
     expect(packageDocument(meta, [{ title: "a", body: "<svg></svg>" }], [])).toContain('href="ch-01.xhtml" media-type="application/xhtml+xml" properties="svg"');
+  });
+});
+
+describe("absolutizeLinks", () => {
+  const vault: Record<string, string> = { "assets/架构.png": "B/assets/架构.png", "其他": "C/其他.md", "a b.png": "B/a b.png" };
+  const run = (text: string) => absolutizeLinks(text, target => vault[target] ?? null);
+  it("rewrites wiki and Markdown links to the note's own files", () => {
+    expect(run("![[assets/架构.png|300]] 见 [[其他#小节|这里]]")).toBe("![[B/assets/架构.png|300]] 见 [[C/其他.md#小节|这里]]");
+    expect(run("![图](assets/%E6%9E%B6%E6%9E%84.png) [x](<a b.png> \"t\")")).toBe("![图](B/assets/架构.png) [x](B/a%20b.png \"t\")");
+  });
+  it("leaves web links, anchors, unknown targets and code alone", () => {
+    const text = "[w](https://x.cn/a.png) [[#本篇]] [[缺失]] `![[assets/架构.png]]`\n```\n![[assets/架构.png]]\n```";
+    expect(run(text)).toBe(text);
   });
 });

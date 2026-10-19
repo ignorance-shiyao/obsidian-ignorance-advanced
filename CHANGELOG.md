@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+Undo after writing a sorted table back now restores only that table's rows; edits made elsewhere in the note in the meantime are kept. If the table itself was changed after the write, undo is refused with a notice instead of overwriting it.
+
+Merging several notes into one Word file resolves each note's images and links from its own folder, so two notes that both use `assets/图.png` each get their own picture.
+
+Closing the batch web-clip dialog stops the links not yet started instead of clipping them in the background.
+
 ## 1.0.21
 Making an e-book now has a note picker (从库中选择笔记或文件夹…): only Markdown notes are listed, a folder can be chosen to list everything in it including subfolders, and 全选当前列表 ticks them all.
 
