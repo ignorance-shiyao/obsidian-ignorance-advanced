@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Paste enhancement: pasting a URL over selected text makes a Markdown link, and spreadsheet cells copied from Excel or Numbers paste as a Markdown table (not inside code blocks). Each has its own switch in settings and nothing is fetched from the network.
+
 One page entry in the toolbar, labelled with the current width (for example "Standard · 785px"). Its menu is down to five items: width (narrow, standard, wide, custom, plus an optional width for this note only), heading font, layout preset, paged reading on/off, and paper & print (paper and orientation, margins, page numbers, header, footer, page breaks). In paged reading the width figure is dimmed but the menu stays available.
 
 Word export now includes remote images (fetched once while exporting), HTML `<img>` tags and SVG pictures on phones, and keeps image paths with a Markdown title. Image and embed syntax inside code blocks and inline code is left as written.

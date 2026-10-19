@@ -106,6 +106,8 @@ class IgnoranceSettingTab extends PluginSettingTab {
       ] },
       { heading: "编辑", items: [
         { name: "智能标点", desc: "输入 -- 转为 —、... 转为 …；代码块与行内代码不转换。", add: toggle(() => Boolean(state.smartPunctuation), value => { state.smartPunctuation = value; plugin.saveStoredState(); }) },
+        { name: "选中文字后粘贴网址变成链接", desc: "选中一段文字再粘贴网址，得到 [文字](网址)。", add: toggle(() => state.pasteLink !== false, value => { state.pasteLink = value; plugin.saveStoredState(); }) },
+        { name: "粘贴表格数据变成 Markdown 表格", desc: "从 Excel、Numbers 等复制的单元格，粘贴时自动转为 Markdown 表格（代码块里不转换）。", add: toggle(() => state.pasteTable !== false, value => { state.pasteTable = value; plugin.saveStoredState(); }) },
         { name: "粘贴图片存入 assets/", desc: PASTE_IMAGE_DESC, add: toggle(() => state.fileTools.convertPastedImages !== false, value => { state.fileTools.convertPastedImages = value; plugin.saveStoredState(); }) }
       ] },
       { heading: "外观", items: [

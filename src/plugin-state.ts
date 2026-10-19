@@ -44,6 +44,8 @@ export interface PluginState {
   tabs: TabState;
   page: PageState;
   smartPunctuation: boolean;
+  pasteLink?: boolean;
+  pasteTable?: boolean;
   codeLineNumbers: boolean;
   headingNumbers: boolean;
   headingNumberStyle: "decimal" | "chinese";

@@ -37,6 +37,7 @@ import { installNativeChapterSource } from "../modules/native-chapter-source.js"
 import { NAVIGATION_VIEW,createNavigationView,openNavigationView } from "../modules/navigation-view.js";
 import { openNavigation } from "../modules/navigation.js";
 import * as PageControls from "../modules/page-controls.js";
+import { handleEnhancedPaste } from "../modules/paste-enhance.js";
 import { installPageControls,setPageRefreshHandler } from "../modules/page-controls.js";
 import { guardedCleanup } from "../modules/plugin-cleanup.js";
 import { installPreviewOverscan } from "../modules/preview-overscan.js";
@@ -162,6 +163,7 @@ export async function onload(plugin: IgnorancePlugin) {
     }));
   }
   plugin.registerEvent(plugin.app.workspace.on("editor-paste", (event, editor, info) => handleImageTransfer(plugin, event, editor, info, "paste")));
+  plugin.registerEvent(plugin.app.workspace.on("editor-paste", (event, editor) => handleEnhancedPaste(plugin, event, editor)));
   plugin.registerEvent(plugin.app.workspace.on("editor-drop", (event, editor, info) => handleImageTransfer(plugin, event, editor, info, "drop")));
   plugin.addSettingTab(new IgnoranceSettingTab(plugin.app, plugin));
   plugin.register(() => clearAppearancePreferences());
