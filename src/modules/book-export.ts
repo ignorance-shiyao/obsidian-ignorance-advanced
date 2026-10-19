@@ -75,6 +75,53 @@ export async function buildBook(plugin: IgnorancePlugin, files: TFile[], meta: {
   return { bytes, report };
 }
 
+/* Picks several notes at once: only Markdown files are listed, a folder can be chosen to list everything in it
+   (subfolders included), and "全选" ticks everything currently listed. */
+class NotePickerModal extends Modal {
+  private picked = new Set<string>();
+  constructor(private plugin: IgnorancePlugin, private onDone: (files: TFile[]) => void) { super(plugin.app); }
+  onOpen() {
+    const { vault } = this.plugin.app;
+    this.titleEl.setText("选择要加入的笔记");
+    const files = vault.getMarkdownFiles().sort((a, b) => a.path.localeCompare(b.path, "zh"));
+    const folders = [...new Set(files.map(file => file.parent?.path ?? "/"))].filter(path => path !== "/").sort((a, b) => a.localeCompare(b, "zh"));
+    const bar = this.contentEl.createDiv({ cls: "ib-note-picker__bar" });
+    const folder = bar.createEl("select");
+    folder.createEl("option", { value: "", text: "全部文件夹" });
+    for (const path of folders) folder.createEl("option", { value: path, text: path });
+    const search = bar.createEl("input", { attr: { type: "search", placeholder: "筛选…" } });
+    const list = this.contentEl.createDiv({ cls: "ib-note-picker__list" });
+    const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
+    const count = footer.createSpan({ cls: "ib-note-picker__count" });
+    const all = footer.createEl("button", { text: "全选当前列表" });
+    const none = footer.createEl("button", { text: "清空选择" });
+    const add = footer.createEl("button", { cls: "mod-cta", text: "加入" });
+    let shown: TFile[] = [];
+    const refreshCount = () => { count.setText(`已选 ${this.picked.size} 篇`); add.toggleAttribute("disabled", !this.picked.size); };
+    const draw = () => {
+      const text = search.value.trim().toLowerCase(), base = folder.value;
+      shown = files.filter(file => (!base || file.path.startsWith(`${base}/`)) && file.path.toLowerCase().includes(text));
+      list.empty();
+      for (const file of shown) {
+        const row = list.createEl("label", { cls: "ib-note-picker__row" });
+        const box = row.createEl("input", { attr: { type: "checkbox" } });
+        box.checked = this.picked.has(file.path);
+        box.addEventListener("change", () => { if (box.checked) this.picked.add(file.path); else this.picked.delete(file.path); refreshCount(); });
+        row.createSpan({ text: file.path.replace(/\.md$/, "") });
+      }
+      if (!shown.length) list.createDiv({ cls: "ib-form-hint", text: "没有符合条件的笔记" });
+      refreshCount();
+    };
+    folder.addEventListener("change", draw);
+    search.addEventListener("input", draw);
+    all.addEventListener("click", () => { shown.forEach(file => this.picked.add(file.path)); draw(); });
+    none.addEventListener("click", () => { this.picked.clear(); draw(); });
+    add.addEventListener("click", () => { this.close(); this.onDone(files.filter(file => this.picked.has(file.path))); });
+    draw();
+  }
+  onClose() { this.contentEl.empty(); }
+}
+
 class BookModal extends Modal {
   constructor(private plugin: IgnorancePlugin) { super(plugin.app); }
   onOpen() {
@@ -86,6 +133,12 @@ class BookModal extends Modal {
     const initial = [...new Set([...(active ? [active.path] : []), ...links.map(file => file.path)])].map(path => `[[${path.replace(/\.md$/, "")}]]`).join("\n");
     const area = this.contentEl.createEl("textarea", { cls: "ib-clip-batch__area", attr: { rows: "8", spellcheck: "false" } });
     area.value = initial;
+    const pick = this.contentEl.createEl("button", { text: "从库中选择笔记或文件夹…" });
+    pick.addEventListener("click", () => new NotePickerModal(this.plugin, picked => {
+      const known = new Set(parseNoteList(area.value).map(name => app.metadataCache.getFirstLinkpathDest(name, "")?.path));
+      const lines = picked.filter(file => !known.has(file.path)).map(file => `[[${file.path.replace(/\.md$/, "")}]]`);
+      if (lines.length) area.value = `${area.value.trimEnd()}${area.value.trim() ? "\n" : ""}${lines.join("\n")}`;
+    }).open());
     const title = this.contentEl.createEl("input", { attr: { type: "text", placeholder: "书名" } });
     title.value = active?.basename ?? "";
     const author = this.contentEl.createEl("input", { attr: { type: "text", placeholder: "作者（可留空）" } });

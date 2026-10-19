@@ -181,7 +181,10 @@ const CLIPBOARD_STYLE_PROPERTIES = [
 
 function inlineComputedStyles(source: Element, target: HTMLElement, properties = CLIPBOARD_STYLE_PROPERTIES) {
   const computed = getComputedStyle(source);
+  // A measured height would leave blank space once the text wraps differently in the target editor.
+  const replaced = /^(img|svg|canvas|video|iframe|input)$/i.test(source.tagName);
   for (const name of properties) {
+    if (!replaced && name === "height") continue;
     const value = computed.getPropertyValue(name);
     if (value) target.style.setProperty(name, value);
   }

@@ -3453,3 +3453,10 @@ body.ib-theme-text-size:not(#_ib) { --font-text-size: var(--ib-text-size); }
 .ib-clip-batch__mark { flex: none; min-width: 6.5em; color: var(--text-muted); }
 .ib-clip-batch__url { overflow-wrap: anywhere; color: var(--text-muted); }
 .ib-clip-batch__row.is-failed .ib-clip-batch__mark { color: var(--text-error); font-weight: 600; }
+
+.ib-note-picker__bar { display: flex; gap: var(--ib-space-2, 8px); margin-bottom: var(--ib-space-2, 8px); }
+.ib-note-picker__bar select { flex: 0 1 45%; min-width: 0; }
+.ib-note-picker__bar input { flex: 1; min-width: 0; }
+.ib-note-picker__list { max-height: 45vh; overflow: auto; border: 1px solid var(--ib-border-default); border-radius: 8px; padding: 4px 8px; }
+.ib-note-picker__row { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; font-size: var(--font-ui-small); }
+.ib-note-picker__count { margin-inline-end: auto; align-self: center; color: var(--ib-text-muted); font-size: var(--font-ui-smaller); }
