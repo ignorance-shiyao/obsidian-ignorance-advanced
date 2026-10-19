@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Batch clipping lists every link with its result (clipped, already there, failed) and offers a retry for the failures. A link counts as already clipped even if it differs only by tracking parameters, a #fragment or a trailing slash, so a retry never makes a second file.
+
 Charts from a note's table: start an `echarts` block with `source: {#tab-id}` and the table whose caption ends in that id becomes the chart data (header row first, `1,200` and `5%` read as numbers). The chart redraws when the note changes; a missing id or a non-table caption shows a clear error. An authored `dataset` is kept.
 
 Banner image: add `ib-banner` to `cssclasses` and a `banner` property (vault image or https address) and Reading view shows it above the text; a missing or broken image leaves no empty box.

@@ -10,6 +10,18 @@ export function isClipUrl(text: string) {
   return /^https?:\/\/\S+$/.test(value) && URL_PATTERN.test(value);
 }
 
+// Same page, different spelling: tracking parameters, a #fragment and a trailing slash do not make a new article.
+export function clipKey(url: string) {
+  try {
+    const parsed = new URL(url.trim());
+    for (const name of [...parsed.searchParams.keys()]) if (/^(utm_|spm$|from$|fbclid$|gclid$|share)/i.test(name)) parsed.searchParams.delete(name);
+    parsed.hash = "";
+    parsed.hostname = parsed.hostname.toLowerCase();
+    if (parsed.pathname.length > 1) parsed.pathname = parsed.pathname.replace(/\/+$/, "");
+    return parsed.toString().replace(/\/$/, "");
+  } catch { return url.trim(); }
+}
+
 function yamlString(value: string) {
   return JSON.stringify(String(value ?? ""));
 }

@@ -13,7 +13,7 @@ import { setIcon } from "./ui-icons.js";
        Obsidian's own fetch with a verification page) is clipped again in place
      - 重新剪藏当前笔记 for any note with a source link */
 import { encodePastedImage, safeAssetStem, nextPastedImageSequence } from "./file-tools.js";
-import { URL_PATTERN, day, frontmatter, isClipUrl, pad, tidyMarkdown } from "./web-clip-format.js";
+import { URL_PATTERN, clipKey, day, frontmatter, isClipUrl, pad, tidyMarkdown } from "./web-clip-format.js";
 
 
 export const CLIP_FOLDER = "Clippings";
@@ -280,6 +280,8 @@ class BatchClipModal extends Modal {
   busy: boolean;
   area: HTMLTextAreaElement;
   status: HTMLElement;
+  results: HTMLElement;
+  finished = false;
   start: HTMLButtonElement;
   constructor(plugin: IgnorancePlugin) { super(plugin.app); this.plugin = plugin; this.busy = false; }
   onOpen() {
@@ -287,32 +289,47 @@ class BatchClipModal extends Modal {
     this.contentEl.createDiv({ cls: "ib-form-hint", text: `每行一个链接，已经剪藏过的会跳过。保存到 ${clipFolder(this.plugin)}/。` });
     this.area = this.contentEl.createEl("textarea", { cls: "ib-clip-batch__area", attr: { rows: "8", placeholder: "粘贴链接，每行一个", spellcheck: "false" } });
     this.status = this.contentEl.createDiv({ cls: "ib-form-hint" });
+    this.results = this.contentEl.createDiv({ cls: "ib-clip-batch__results" });
     const footer = this.contentEl.createDiv({ cls: "modal-button-container" });
-    footer.createEl("button", { text: "取消" }).addEventListener("click", () => this.close());
+    footer.createEl("button", { text: "关闭" }).addEventListener("click", () => this.close());
     this.start = footer.createEl("button", { cls: "mod-cta", text: "开始" });
     this.start.addEventListener("click", () => void this.run());
     window.setTimeout(() => this.area.focus(), 50);
   }
   async run() {
     if (this.busy) return;
+    if (this.finished) { this.close(); return; }
     const urls = [...new Set([...this.area.value.matchAll(new RegExp(URL_PATTERN.source, "g"))].map(match => match[0]))];
     if (!urls.length) { new Notice("请粘贴至少一个网页链接", 3000); return; }
     this.busy = true;
     this.start.setAttr("disabled", "true");
+    this.results.empty();
     const { app } = this.plugin;
     const known = new Set(clippedNotes(this.plugin).map(file => {
       const source: unknown = app.metadataCache.getFileCache(file)?.frontmatter?.source;
-      return typeof source === "string" ? source : "";
+      return typeof source === "string" ? clipKey(source) : "";
     }).filter(Boolean));
-    let done = 0, skipped = 0, failed = 0;
+    const failedUrls: string[] = [];
+    let done = 0, skipped = 0;
     for (const [index, url] of urls.entries()) {
       this.status.setText(`第 ${index + 1} / ${urls.length} 篇`);
-      if (known.has(url)) { skipped += 1; continue; }
+      const row = this.results.createDiv({ cls: "ib-clip-batch__row" });
+      const mark = row.createSpan({ cls: "ib-clip-batch__mark" });
+      row.createSpan({ cls: "ib-clip-batch__url", text: url });
+      // Retrying a link never makes a second file: a link whose note already exists is skipped by its source.
+      if (known.has(clipKey(url))) { skipped += 1; mark.setText("已存在，跳过"); continue; }
       const note = await clipUrl(this.plugin, url).catch((): TFile | null => null);
-      if (note) done += 1; else failed += 1;
+      if (note) { done += 1; mark.setText("成功"); known.add(clipKey(url)); }
+      else { failedUrls.push(url); mark.setText("失败"); row.addClass("is-failed"); }
     }
-    new Notice(`批量剪藏完成：成功 ${done}，跳过 ${skipped}，失败 ${failed}`, 8000);
-    this.close();
+    this.status.setText(`完成：成功 ${done}，跳过 ${skipped}，失败 ${failedUrls.length}`);
+    this.busy = false;
+    this.start.removeAttribute("disabled");
+    if (failedUrls.length) {
+      this.area.value = failedUrls.join("\n");
+      this.start.setText("重试失败项");
+    } else this.start.setText("完成");
+    this.finished = !failedUrls.length;
   }
   onClose() { this.contentEl.empty(); }
 }
@@ -429,7 +446,7 @@ export function installWebClip(plugin: IgnorancePlugin) {
     const url = await clipboardUrl();
     if (!url || url === lastOffered) return;
     lastOffered = url;
-    const already = clippedNotes(plugin).some(file => app.metadataCache.getFileCache(file)?.frontmatter?.source === url);
+    const already = clippedNotes(plugin).some(file => app.metadataCache.getFileCache(file)?.frontmatter?.source === url || clipKey(String(app.metadataCache.getFileCache(file)?.frontmatter?.source ?? "")) === clipKey(url));
     if (already) return;
     new ConfirmClipModal(plugin, `剪贴板里有一个链接，剪藏到 ${clipFolder(plugin)}/？`, url,
       () => void clipUrl(plugin, url).then(note => app.workspace.getLeaf(false).openFile(note)).catch(() => {})).open();

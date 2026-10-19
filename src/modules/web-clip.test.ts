@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { tidyMarkdown, frontmatter, isClipUrl } from "./web-clip-format";
+import { clipKey, tidyMarkdown, frontmatter, isClipUrl } from "./web-clip-format";
 
 describe("web clip", () => {
   it("strips heading bold and nbsp padding", () => {
@@ -16,5 +16,11 @@ describe("web clip", () => {
   it("recognises a lone link only", () => {
     expect(isClipUrl(" https://mp.weixin.qq.com/s/abc ")).toBe(true);
     expect(isClipUrl("看这个 https://x.com/a")).toBe(false);
+  });
+  it("treats tracking parameters, fragments and a trailing slash as the same page", () => {
+    expect(clipKey("https://A.com/post/?utm_source=x&id=7#top")).toBe("https://a.com/post?id=7");
+    expect(clipKey("https://a.com/post?id=7")).toBe("https://a.com/post?id=7");
+    expect(clipKey("https://mp.weixin.qq.com/s?__biz=A&mid=1&sn=z")).toBe("https://mp.weixin.qq.com/s?__biz=A&mid=1&sn=z");
+    expect(clipKey("not a url")).toBe("not a url");
   });
 });
