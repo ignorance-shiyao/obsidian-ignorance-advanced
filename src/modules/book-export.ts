@@ -9,7 +9,7 @@ import { saveExportToVault } from "./export.js";
 const DROP = "script, style, button, .copy-button, .ibm-block-header, .ibm-mermaid-toolbar, .metadata-container, .frontmatter, .frontmatter-container, .ib-table-resize-layer, .ibt-layer, .ib-image-actions, .ib-image-resize-layer, .ibp-table-anchor";
 const wait = (ms: number) => new Promise<void>(resolve => window.setTimeout(resolve, ms));
 
-interface BookReport { missingNotes: string[]; missingImages: number; remoteImages: number; brokenLinks: number }
+interface BookReport { missingNotes: string[]; charts: number; missingImages: number; remoteImages: number; brokenLinks: number }
 
 async function renderChapter(plugin: IgnorancePlugin, file: TFile, index: number, chapterOf: Map<string, number>, images: Map<string, string>, store: EpubImage[], report: BookReport): Promise<EpubChapter> {
   const { app } = plugin;
@@ -20,11 +20,26 @@ async function renderChapter(plugin: IgnorancePlugin, file: TFile, index: number
     await MarkdownRenderer.render(app, await app.vault.cachedRead(file), holder, file.path, component);
     await wait(700); // embeds and charts finish after the first render pass
     holder.querySelectorAll(DROP).forEach(node => node.remove());
+    // Headings get stable ids (chapter number + position among the note's headings) so links can jump to them.
+    const headingIds = (path: string) => (app.metadataCache.getCache(path)?.headings ?? []).map(heading => heading.heading);
+    const own = headingIds(file.path), used = new Set<number>();
+    for (const heading of Array.from(holder.querySelectorAll("h1, h2, h3, h4, h5, h6"))) {
+      const text = (heading.getAttribute("data-heading") || heading.textContent || "").trim();
+      const at = own.findIndex((name, position) => name.trim() === text && !used.has(position));
+      if (at >= 0) { used.add(at); heading.setAttribute("id", `c${index + 1}-h${at}`); }
+    }
+    // Charts are drawn on a canvas and cannot be stored in an ePub; they are left out and counted.
+    for (const chart of Array.from(holder.querySelectorAll(".ib-echarts-block, canvas"))) { chart.remove(); report.charts += 1; }
     for (const link of Array.from(holder.querySelectorAll<HTMLAnchorElement>("a.internal-link"))) {
-      const target = app.metadataCache.getFirstLinkpathDest((link.getAttribute("data-href") || "").split("#")[0], file.path);
+      const [path, anchor = ""] = (link.getAttribute("data-href") || "").split("#");
+      const target = path ? app.metadataCache.getFirstLinkpathDest(path, file.path) : file;
       const chapter = target ? chapterOf.get(target.path) : undefined;
-      if (chapter === undefined) { link.replaceWith(createSpan({ text: link.textContent || "" })); report.brokenLinks += 1; }
-      else { link.setAttribute("href", chapterFile(chapter)); for (const name of ["data-href", "class", "target", "rel", "data-tooltip-position"]) link.removeAttribute(name); }
+      if (chapter === undefined || !target) { link.replaceWith(createSpan({ text: link.textContent || "" })); report.brokenLinks += 1; }
+      else {
+        const position = anchor ? headingIds(target.path).findIndex(name => name.trim() === decodeURIComponent(anchor).trim()) : -1;
+        link.setAttribute("href", `${chapterFile(chapter)}${position >= 0 ? `#c${chapter + 1}-h${position}` : ""}`);
+        for (const name of ["data-href", "class", "target", "rel", "data-tooltip-position"]) link.removeAttribute(name);
+      }
     }
     for (const image of Array.from(holder.querySelectorAll("img"))) {
       const wrapper = image.closest<HTMLElement>(".internal-embed");
@@ -53,7 +68,7 @@ export async function buildBook(plugin: IgnorancePlugin, files: TFile[], meta: {
   const chapterOf = new Map(files.map((file, index) => [file.path, index] as const));
   const images = new Map<string, string>();
   const store: EpubImage[] = [];
-  const report: BookReport = { missingNotes: [], missingImages: 0, remoteImages: 0, brokenLinks: 0 };
+  const report: BookReport = { missingNotes: [], charts: 0, missingImages: 0, remoteImages: 0, brokenLinks: 0 };
   const chapters: EpubChapter[] = [];
   for (const [index, file] of files.entries()) chapters.push(await renderChapter(plugin, file, index, chapterOf, images, store, report));
   const bytes = await buildEpub({ title: meta.title, author: meta.author, language: "zh-CN", id: `urn:uuid:${crypto.randomUUID()}`, date: new Date().toISOString().replace(/\.\d+Z$/, "Z") }, chapters, store);
@@ -92,7 +107,7 @@ class BookModal extends Modal {
       try {
         const { bytes, report } = await buildBook(this.plugin, files, { title: title.value.trim() || files[0].basename, author: author.value.trim() });
         const path = await saveExportToVault(this.plugin, `${title.value.trim() || files[0].basename}.epub`, bytes);
-        const notes = [report.missingImages ? `缺失图片 ${report.missingImages}` : "", report.remoteImages ? `网络图片未收入 ${report.remoteImages}` : "", report.brokenLinks ? `指向书外的链接改为普通文字 ${report.brokenLinks}` : ""].filter(Boolean);
+        const notes = [report.missingImages ? `缺失图片 ${report.missingImages}` : "", report.remoteImages ? `网络图片未收入 ${report.remoteImages}` : "", report.charts ? `图表未收入 ${report.charts}` : "", report.brokenLinks ? `指向书外的链接改为普通文字 ${report.brokenLinks}` : ""].filter(Boolean);
         new Notice(`已生成 ${path}${notes.length ? `（${notes.join("，")}）` : ""}`, 10000);
         this.close();
       } catch (error) {
