@@ -3382,6 +3382,8 @@ body.ib-theme-text-size:not(#_ib) { --font-text-size: var(--ib-text-size); }
 }
 .ibp-table-anchor:hover > .ibp-table-tools, .ibp-table-anchor:focus-within > .ibp-table-tools, .ibp-table-anchor:has(+ .el-table:hover) > .ibp-table-tools, .is-mobile .ibp-table-tools { opacity: 1; }
 .ibp-table-tool { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; background: transparent; box-shadow: none; color: var(--ib-text-muted); }
+.is-phone .ibp-table-tool { width: 36px; height: 36px; }
+.is-phone .ibp-table-search { height: 36px; }
 .ibp-table-tool:hover { color: var(--ib-text-accent); background: var(--ib-surface-hover, transparent); }
 .ibp-table-tool .svg-icon { width: 14px; height: 14px; }
 .ibp-table-search { width: 8em; height: 24px; font-size: var(--ib-tiny-size); }

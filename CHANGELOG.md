@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+On phones the table tools (filter, copy, save, write back) are 36 px buttons, easier to hit with a finger.
+
 Tables span the full width of the text column by default. Tables whose column widths were set by hand have not been re-checked against this change yet.
 
 The azure palette's light paper is warm white (#FAF8F4, was #F5F8FD); dark mode is unchanged. Heading numbers take the heading's colour.
