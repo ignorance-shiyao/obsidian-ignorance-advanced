@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Structure and typesetting check: the note check command now also reports heading levels that skip a step, cross references without a caption id, repeated caption ids, missing spaces between Chinese and English text, and half-width punctuation after Chinese. Typesetting problems can be repaired after a line-by-line before/after preview, as one edit that a single undo reverses. Code blocks, math, front matter, links, URLs and inline syntax are never touched, and repairing twice gives the same result as once.
+
 Formats for selected text: right-click a selection and choose "Ignorance" for highlight colours, badges, spoiler, ruby, caption, cross reference, callout conversion, tabs and columns. Every item is also a command named "Format: …", so you can give it a shortcut, and each is one edit that a single undo reverses. A new command, "New task example", writes one of four example notes (weekly report, ten-slide deck, Word hand-off, web clipping) into its own folder, only when you choose one.
 
 Enhancement switches: tables, images, code blocks and charts can each be turned off in settings ("Enhancement scope"), or for a single note by adding `ib-no-tables`, `ib-no-images`, `ib-no-code` or `ib-no-charts` to its cssclasses. Turning one off removes what it added to open notes. Blocks that Code Styler, Dataview, Bases or Excalidraw have already handled are no longer wrapped a second time. The command "Active enhancements for this note" lists what is on and why anything is off.

@@ -392,7 +392,7 @@ export async function onload(plugin: IgnorancePlugin) {
 
   plugin.addCommand({
     id: "check-note-links",
-    name: "检查当前笔记的链接和标题",
+    name: "检查当前笔记的链接、结构与排版",
     callback: () => openLinkCheck(plugin)
   });
 

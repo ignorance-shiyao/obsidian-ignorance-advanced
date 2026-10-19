@@ -1,5 +1,6 @@
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Modal, Notice, MarkdownView } from "obsidian";
+import { applyEdits, checkStructure, type StructureIssue } from "./structure-check-core.js";
 /* "检查当前笔记的链接": lists links and embeds that point nowhere, links to headings that do not exist, and
    headings that share a title (which makes `[[#标题]]` ambiguous). Read-only; nothing in the note changes. */
 export interface LinkRef { link: string; line: number; kind: "link" | "embed" }
@@ -52,23 +53,59 @@ export function openLinkCheck(plugin: IgnorancePlugin) {
     if (!target) return null;
     return (app.metadataCache.getFileCache(target)?.headings || []).map(item => item.heading);
   };
-  const problems = analyzeNote(refs, headings, resolve);
-  if (!problems.length) { new Notice("没有发现失效的链接或重名标题"); return; }
+  const linkProblems = analyzeNote(refs, headings, resolve);
+  const editor = view.editor;
+  const source = editor.getValue();
+  const structure = checkStructure(source);
+  const rows: { line: number; text: string; detail: string }[] = [
+    ...linkProblems.map(problem => ({ line: problem.line, text: problem.text, detail: problem.detail || "" })),
+    ...structure.map(issue => ({ line: issue.line, text: issue.message, detail: issue.fix ? "可自动修复" : "" }))
+  ].sort((a, b) => a.line - b.line);
+  if (!rows.length) { new Notice("没有发现失效的链接、结构或排版问题"); return; }
+  const fixable = structure.filter((issue): issue is StructureIssue & { fix: NonNullable<StructureIssue["fix"]> } => Boolean(issue.fix));
 
   class LinkCheckModal extends Modal {
-    onOpen() {
-      this.setTitle(`发现 ${problems.length} 个问题`);
-      const list = this.contentEl.createDiv({ cls: "ib-link-check" });
-      for (const problem of problems) {
+    onOpen() { this.setTitle(`发现 ${rows.length} 个问题`); this.showList(); }
+    showList() {
+      const { contentEl } = this;
+      contentEl.empty();
+      const list = contentEl.createDiv({ cls: "ib-link-check" });
+      for (const problem of rows) {
         const row = list.createDiv({ cls: "ib-link-check__row" });
         row.createSpan({ cls: "ib-link-check__line", text: `第 ${problem.line + 1} 行` });
         row.createSpan({ cls: "ib-link-check__text", text: problem.text });
-        row.createSpan({ cls: "ib-link-check__detail", text: problem.detail || "" });
+        row.createSpan({ cls: "ib-link-check__detail", text: problem.detail });
         row.addEventListener("click", () => {
           this.close();
           view.setEphemeralState({ line: problem.line });
         });
       }
+      if (fixable.length) {
+        const footer = contentEl.createDiv({ cls: "modal-button-container" });
+        footer.createEl("button", { cls: "mod-cta", text: `预览修复（${fixable.length} 处排版）` }).addEventListener("click", () => this.showDiff());
+      }
+    }
+    // The repair is shown first, line by line; nothing is written until it is confirmed.
+    showDiff() {
+      const { contentEl } = this;
+      contentEl.empty();
+      const before = source.split("\n"), after = applyEdits(source, fixable.map(issue => issue.fix)).split("\n");
+      const list = contentEl.createDiv({ cls: "ib-link-check" });
+      before.forEach((line, index) => {
+        if (line === after[index]) return;
+        const row = list.createDiv({ cls: "ib-link-check__row ibp-diff-row" });
+        row.createSpan({ cls: "ib-link-check__line", text: `第 ${index + 1} 行` });
+        row.createSpan({ cls: "ibp-diff-old", text: line });
+        row.createSpan({ cls: "ibp-diff-new", text: after[index] });
+      });
+      const footer = contentEl.createDiv({ cls: "modal-button-container" });
+      footer.createEl("button", { text: "返回" }).addEventListener("click", () => this.showList());
+      footer.createEl("button", { cls: "mod-cta", text: "写入" }).addEventListener("click", () => {
+        // One transaction, so a single undo restores the note.
+        editor.transaction({ changes: fixable.map(({ fix }) => ({ from: editor.offsetToPos(fix.from), to: editor.offsetToPos(fix.to), text: fix.insert })) });
+        new Notice(`已修复 ${fixable.length} 处排版问题`);
+        this.close();
+      });
     }
     onClose() { this.contentEl.empty(); }
   }
