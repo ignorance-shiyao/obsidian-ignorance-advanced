@@ -3490,7 +3490,7 @@ body.ib-theme-text-size:not(#_ib) { --font-text-size: var(--ib-text-size); }
 
 /* fragment（\3c !-- step --> 分步块）默认全显：编辑预览、缩略图、导出都不因分步而隐藏内容。
    放映时由 SlidePreview 的 .is-presenting 规则恢复「未 .visible 则隐藏」的分步行为。
-   用 !important 压过 reveal.css 的 .fragment{opacity:0}。 */
+   靠选择器优先级压过 reveal.css 的 .fragment{opacity:0}。 */
 /* S1: 内容页顶部主色细线，赋予「成套设计」观感（封面/章节页不加，它们另有处理） */
 
 /* 自动续页：顶对齐（无论原版式），内容从顶部顺排；重复的 H1 作为「章节眉头」略收敛 */
