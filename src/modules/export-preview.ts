@@ -1,6 +1,6 @@
 import type { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { Component, Modal, Platform } from "obsidian";
+import { Component, Modal, Platform, setIcon } from "obsidian";
 /* Every export opens a preview window first: the result laid out the way the
    exporter will write it (same pagination, skin and canvas), with Cancel and
    Export. Nothing is written until Export is pressed. */
@@ -14,7 +14,7 @@ import { WORD_FONT_OPTIONS, normalizeWordFont } from "./word-font.js";
 const TITLES: Record<string, string> = {
   pdf: "导出 PDF",
   word: "导出 Word",
-  html: "导出 HTML 阅读器",
+  html: "导出为 HTML",
   pages: "导出分页图片",
   long: "导出长图",
   "pptx-editable": "导出 PPTX（可编辑）",
@@ -143,11 +143,13 @@ export class ExportPreviewModal extends Modal {
     });
     const problems = issues.filter(issue => issue.level === "warn").length;
     if (!issues.length) { host.createDiv({ cls: "ibp-export-check__ok", text: "导出检查：没有发现问题" }); return; }
-    const box = host.createEl("details", { cls: "ibp-export-check__box" });
-    if (problems) box.open = true;
-    box.createEl("summary", { text: problems ? `导出检查：${problems} 处需要处理，另有 ${issues.length - problems} 条说明` : `导出检查：${issues.length} 条说明` });
+    const box = host.createDiv({ cls: `ibp-export-check__box ${problems ? "is-warn" : "is-info"}` });
+    const head = box.createDiv({ cls: "ibp-export-check__head" });
+    setIcon(head.createSpan({ cls: "ibp-export-check__icon" }), problems ? "lucide-triangle-alert" : "lucide-info");
+    head.createSpan({ cls: "ibp-export-check__title", text: problems ? `导出检查：${problems} 处需要处理${issues.length > problems ? `，另有 ${issues.length - problems} 条说明` : ""}` : `导出检查：${issues.length} 条说明` });
+    const list = box.createDiv({ cls: "ibp-export-check__list" });
     for (const issue of issues) {
-      const row = box.createDiv({ cls: `ibp-export-check__row is-${issue.level}` });
+      const row = list.createDiv({ cls: `ibp-export-check__row is-${issue.level}` });
       if (issue.line) {
         const jump = row.createEl("button", { cls: "ibp-export-check__line", text: `第 ${issue.line} 行` });
         jump.addEventListener("click", () => {
@@ -206,7 +208,7 @@ export class ExportPreviewModal extends Modal {
     }
     if (kind === "wechat" || kind === "zhihu") {
       const payload = await this.deps.prepareRichCopyMarkup(this.plugin, this.file, kind, { cover: false });
-      return this.renderFrame(`<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:24px;background:#fff">${payload.html}</body></html>`);
+      return this.renderFrame(`<!doctype html><html><head><meta charset="utf-8"><style>[data-copy-target]{padding:24px 20px!important}</style></head><body style="margin:0;padding:24px 16px;background:#eef0f3"><div style="box-sizing:border-box;max-width:${kind === "wechat" ? 677 : 720}px;margin:0 auto;padding:0;background:#fff;border-radius:10px;box-shadow:0 1px 6px rgba(15,23,42,.08);overflow-wrap:anywhere;overflow:hidden">${payload.html}</div></body></html>`);
     }
     if (kind.startsWith("pptx")) return this.renderSlides();
     return this.renderPages(kind === "long");

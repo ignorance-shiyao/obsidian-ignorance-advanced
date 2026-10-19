@@ -131,6 +131,8 @@ class BookModal extends Modal {
   onClose() { this.contentEl.empty(); }
 }
 
+export function openBookExport(plugin: IgnorancePlugin) { new BookModal(plugin).open(); }
+
 export function installBookExport(plugin: IgnorancePlugin) {
-  plugin.addCommand({ id: "export-book-epub", name: "把多篇笔记合成电子书", icon: "lucide-book-open", callback: () => new BookModal(plugin).open() });
+  plugin.addCommand({ id: "export-book-epub", name: "把多篇笔记合成电子书", icon: "lucide-book-open", callback: () => openBookExport(plugin) });
 }

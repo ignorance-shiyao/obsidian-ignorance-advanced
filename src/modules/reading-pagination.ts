@@ -550,8 +550,14 @@ async function composePages(plugin: RenderingContext, file: TFile, text: string,
   try {
     const early = !previous.pages?.length && (onProgress || showProgress);
     // First screen: lay out just the opening while the whole note renders.
-    const opening = early ? firstScreenSource(stripFrontmatter(text), 1800) : null;
-    if (opening) {
+    // Export previews get a second, larger step so the next pages appear before the whole note is rendered.
+    const openingSizes = !early ? [] : onProgress ? [1800, 7000] : [1800];
+    let publishedPages = 0, lastOpening = 0, hadOpening = false;
+    for (const [step, size] of openingSizes.entries()) {
+      const opening = firstScreenSource(stripFrontmatter(text), size);
+      if (!opening || opening.length === lastOpening) continue;
+      lastOpening = opening.length;
+      hadOpening = true;
       const quickComponent = new Component();
       quickComponent.load();
       let quick: HTMLDivElement | undefined;
@@ -572,8 +578,9 @@ async function composePages(plugin: RenderingContext, file: TFile, text: string,
         // Only the first page can be visible before the opening is published.
         // Cloning two off-screen pages delays its first paint, especially with
         // a long generated TOC. The complete pass supplies every following page.
-        const earlyCount = onProgress || showProgress ? 1 : Math.min(3, firstPass.windows.length - 1);
-        if (earlyCount > 0 && !book.dataset.ibpProgress?.startsWith("complete")) {
+        const earlyCount = step > 0 ? firstPass.windows.length - 1 : onProgress || showProgress ? 1 : Math.min(3, firstPass.windows.length - 1);
+        if (earlyCount > publishedPages && !book.dataset.ibpProgress?.startsWith("complete")) {
+          publishedPages = earlyCount;
           book.dataset.align = page.pageNumber;
           book.replaceChildren(...firstPass.windows.slice(0, earlyCount).map((window, index) => makePage(firstPass.blocks, window, index, earlyCount, page, bodyBox.height)));
           book.dataset.ibpSourcePath = file.path;
@@ -613,7 +620,7 @@ async function composePages(plugin: RenderingContext, file: TFile, text: string,
     applyCodeFenceHighlights(staging, stripFrontmatter(text));
     // Give a long first render an early, stable viewport. Later pages are
     // filled after off-screen images and diagrams finish their layout.
-    if (early && !opening) {
+    if (early && !hadOpening) {
       await settleRenderRegion(staging, bodyBox.height * 3, signal);
       await plugin.settleDiagramFits?.(staging, signal);
       const firstPass = paginateStrip(staging, bodyBox.height, page.breakMode);

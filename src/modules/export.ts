@@ -1,3 +1,4 @@
+import { openBookExport } from "./book-export.js";
 import { nextFrame } from "./layout-frame.js";
 import { renderMermaidForExport } from "./mermaid-export.js";
 import { wordExportFonts, wordFontFromToken } from "./word-font.js";
@@ -36,7 +37,7 @@ import { buildImagePdf } from "./image-pdf.js";
    when it is confirmed there. */
 const errorText = (error: unknown): string => (error instanceof Error ? error.message : typeof error === "string" ? error : JSON.stringify(error));
 
-type ExportActionKey = "pdf" | "word" | "pptxEditable" | "pptxImage" | "wechat" | "zhihu" | "html" | "pages" | "long";
+type ExportActionKey = "pdf" | "word" | "pptxEditable" | "pptxImage" | "wechat" | "zhihu" | "html" | "pages" | "long" | "book";
 interface ExportAction { title: string; icon: string; run: () => void }
 
 function exportActions(plugin: IgnorancePlugin, file: TFile): Record<ExportActionKey, ExportAction> {
@@ -50,9 +51,11 @@ function exportActions(plugin: IgnorancePlugin, file: TFile): Record<ExportActio
     pptxImage: { title: "导出 PPTX（图片版）", icon: "lucide-image", run: preview("pptx-image", () => { void exportNotePptx(plugin, file, "image"); }) },
     wechat: { title: "复制为公众号格式", icon: "lucide-copy", run: preview("wechat", () => { void runCopy("公众号", () => copyFormattedNote(plugin, file, "wechat")); }) },
     zhihu: { title: "复制为知乎格式", icon: "lucide-copy", run: preview("zhihu", () => { void runCopy("知乎", () => copyFormattedNote(plugin, file, "zhihu")); }) },
-    html: { title: "导出 HTML 阅读器", icon: "lucide-globe", run: preview("html", () => { void runExport("HTML", () => plugin.exporters.exportHtml(plugin, file)); }) },
+    html: { title: "导出为 HTML", icon: "lucide-globe", run: preview("html", () => { void runExport("HTML", () => plugin.exporters.exportHtml(plugin, file)); }) },
     pages: { title: "导出分页图片", icon: "lucide-images", run: preview("pages", () => { void runExport("分页图片", () => exportImages(plugin, file, "pages")); }) },
-    long: { title: "导出长图", icon: "lucide-image", run: preview("long", () => { void runExport("长图", () => exportImages(plugin, file, "long")); }) }
+    long: { title: "导出长图", icon: "lucide-image", run: preview("long", () => { void runExport("长图", () => exportImages(plugin, file, "long")); }) },
+    // Several notes become one book, so there is no single-note preview first.
+    book: { title: "合成电子书（多篇）", icon: "lucide-book-open", run: () => openBookExport(plugin) }
   };
 }
 
@@ -61,7 +64,7 @@ function openExportMenu(plugin: IgnorancePlugin, view: MarkdownView, event: Mous
   if (!file) return;
   const menu = new Menu();
   const actions = exportActions(plugin, file);
-  const groups: ExportActionKey[][] = [["pdf", "word", "pptxEditable", "pptxImage"], ["wechat", "zhihu"], ["html"], ["pages", "long"]];
+  const groups: ExportActionKey[][] = [["pdf", "word", "pptxEditable", "pptxImage"], ["wechat", "zhihu"], ["html"], ["pages", "long"], ["book"]];
   groups.forEach((group, index) => {
     if (index) menu.addSeparator();
     for (const key of group) menu.addItem(item => item.setTitle(actions[key].title).setIcon(actions[key].icon).onClick(actions[key].run));
@@ -72,7 +75,7 @@ function openExportMenu(plugin: IgnorancePlugin, view: MarkdownView, event: Mous
 // Exports that work without Electron (mobile): saved into the vault's 导出/ folder.
 function addPortableExportItems(plugin: IgnorancePlugin, menu: Menu, file: TFile) {
   const actions = exportActions(plugin, file);
-  const keys: ExportActionKey[] = ["pdf", "word", "html", "pptxEditable", "pptxImage", "pages", "long", "wechat", "zhihu"];
+  const keys: ExportActionKey[] = ["pdf", "word", "html", "pptxEditable", "pptxImage", "pages", "long", "wechat", "zhihu", "book"];
   for (const key of keys) {
     menu.addItem(item => item.setTitle(actions[key].title).setIcon(actions[key].icon).setSection("ibp-export").onClick(actions[key].run));
   }

@@ -49,6 +49,18 @@ interface ThemeSnapshot { values: Record<string, string>; colors: ColorTokens }
 type Checkpoint = () => Promise<void>;
 type StyledElement = Element & ElementCSSInlineStyle;
 
+// While the preview window stays open the page is switched to dark and back to read chart colours.
+// A flat veil under the window and a pinned theme on the window keep that from showing as a flash.
+function holdThemeLook(initialMode: string) {
+  const container = document.querySelector<HTMLElement>(".modal-container");
+  const veil = document.body.createDiv();
+  veil.setCssStyles({ position: "fixed", inset: "0", zIndex: "40", pointerEvents: "none", background: getComputedStyle(document.body).getPropertyValue("--background-secondary") || (initialMode === "dark" ? "#1e1e1e" : "#f3f3f3") });
+  const pinned = initialMode === "dark" ? "theme-dark" : "theme-light";
+  const added = container && !container.hasClass(pinned);
+  if (added) container.addClass(pinned);
+  return () => { veil.remove(); if (added) container.removeClass(pinned); };
+}
+
 async function setBodyThemeMode(plugin: IgnorancePlugin, mode: string, root: HTMLElement, signal?: AbortSignal | null) {
   const body = document.body;
   body.toggleClass("theme-dark", mode === "dark");
@@ -585,7 +597,8 @@ async function prepareHtmlDocument(plugin: IgnorancePlugin, file: TFile, { cover
     }
     await onProgress(await buildHtmlReader(plugin, file, content, sourceHeadings, headingIds, light, light, initialMode, checkpoint, preferenceId));
   } : null;
-  return withExportStage(plugin, file, { keepStrip: true, visible: cover, onProgress: progress, signal }, async (stage: HTMLElement, { pages, staging }: { pages: HTMLElement[]; staging: HTMLElement }) => {
+  const release = cover ? null : holdThemeLook(initialMode);
+  const built = withExportStage(plugin, file, { keepStrip: true, visible: cover, onProgress: progress, signal }, async (stage: HTMLElement, { pages, staging }: { pages: HTMLElement[]; staging: HTMLElement }) => {
     pages.forEach(page => page.remove());
     staging.removeClass("ibp-staging");
     const holder = stage.createDiv({ cls: "ibp-long-sheet" });
@@ -636,6 +649,7 @@ async function prepareHtmlDocument(plugin: IgnorancePlugin, file: TFile, { cover
     }
     return buildHtmlReader(plugin, file, content, sourceHeadings, headingIds, light, dark, initialMode, checkpoint, preferenceId);
   });
+  return built.finally(() => release?.());
 }
 
 async function exportHtml(plugin: IgnorancePlugin, file: TFile) {

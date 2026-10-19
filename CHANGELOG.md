@@ -1,6 +1,16 @@
 # Changelog
 
 ## Unreleased
+The HTML preview no longer flashes dark while chart colours are read: the preview window stays light over a flat backdrop. The action is now named 导出为 HTML.
+
+Export check notices in the preview are now a clear card (amber when something needs fixing, blue for notes) instead of small grey text.
+
+合成电子书（多篇）is in the export menu, next to the other export actions.
+
+Page-based previews (PDF, Word, page images) now show the next pages in a second step before the whole note is laid out, so less waits behind the first page.
+
+The WeChat and Zhihu previews sit in a centred reading column on a soft backdrop, with padding, instead of a stretched full-width block.
+
 Presentation mode no longer blinks when the full deck replaces the first slide: the new deck is laid out underneath and swapped in once ready.
 
 Export previews load more smoothly: the HTML reader preview shows the first screen with a "loading more" bar and cross-fades to the finished page instead of swapping abruptly, and slide previews add slides in batches without waiting for the whole deck.

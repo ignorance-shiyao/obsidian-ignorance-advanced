@@ -89,7 +89,7 @@ cssclasses:
 ## 演示与导出
 
 - 用单独一行 \`---\` 分隔幻灯片，再点页面工具栏里的「演示」。
-- 页面工具栏的导出按钮可生成 PDF、Word、PPT、图片和离线 HTML 阅读器。
+- 页面工具栏的导出按钮可生成 PDF、Word、PPT、图片和离线 HTML。
 `;
 
 export async function openSyntaxGuide(plugin: IgnorancePlugin) {
