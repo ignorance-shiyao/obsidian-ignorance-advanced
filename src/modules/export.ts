@@ -1,4 +1,4 @@
-import { askSavePath, externalExportDir, folderOf, vaultBasePath, writeAt, writeOutside } from "./desktop-files.js";
+import { ExportCancelled, askSavePath, externalExportDir, folderOf, vaultBasePath, writeAt, writeOutside } from "./desktop-files.js";
 import { openBookExport } from "./book-export.js";
 import { tr } from "../i18n.js";
 import { nextFrame } from "./layout-frame.js";
@@ -91,6 +91,7 @@ async function runExport(label: string, task: () => Promise<string | null | unde
     if (result) new Notice(tr("已导出{label}：{result}", { label, result }), 6000);
   } catch (error) {
     notice.hide();
+    if (error instanceof ExportCancelled) { new Notice(tr("已取消保存")); return; }
     console.error("Ignorance Advanced: export failed —", error);
     new Notice(tr("导出{label}失败：{v}", { label, v: errorText(error) }), 8000);
   }
@@ -489,7 +490,7 @@ async function saveExportToVault(plugin: IgnorancePlugin, name: string, data: st
   if (plugin.state.exportAsk && Platform.isDesktopApp && !Platform.isMobile) {
     const start = plugin.state.exportLastDir || externalExportDir(plugin) || `${vaultBasePath(plugin)}/${EXPORT_FOLDER}`;
     const target = await askSavePath(start, name);
-    if (!target) throw new Error(tr("已取消保存"));
+    if (!target) throw new ExportCancelled(tr("已取消保存"));
     plugin.state.exportLastDir = folderOf(target);
     plugin.saveStoredState();
     return writeAt(target, data);

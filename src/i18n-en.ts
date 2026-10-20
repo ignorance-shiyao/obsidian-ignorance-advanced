@@ -132,6 +132,7 @@ export const EN: Readonly<Record<string, string>> = {
   "导出全部": "Export all",
   "保存当前设置…": "Save current settings…",
   "已取消保存": "Save cancelled",
+  "保存失败：{v}": "Save failed: {v}",
   "每次导出时选择保存位置": "Choose where to save each export",
   "开启后，每次导出都会弹出系统的「存储为」窗口，默认停在上次选的文件夹；取消则不导出。仅桌面端，开启后「导出目录」只作为首次的起点。": "When on, every export opens the system \"Save as\" window, starting in the folder you used last; cancelling skips the export. Desktop only; once on, \"Export folder\" is only the first starting point.",
   "无法写入「{dir}」，已改存到库里的导出文件夹。": "Could not write to \"{dir}\"; saved in the vault's export folder instead.",

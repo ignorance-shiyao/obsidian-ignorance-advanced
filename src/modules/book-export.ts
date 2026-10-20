@@ -1,3 +1,4 @@
+import { ExportCancelled } from "./desktop-files.js";
 import { Component, MarkdownRenderer, Modal, Notice, moment } from "obsidian";
 import { tr } from "../i18n.js";
 import type { TFile } from "obsidian";
@@ -195,7 +196,7 @@ class BookModal extends Modal {
         }
         this.close();
       } catch (error) {
-        status.setText(tr("生成失败：{v}", { v: error instanceof Error ? error.message : tr("未知错误") }));
+        status.setText(error instanceof ExportCancelled ? tr("已取消保存") : tr("生成失败：{v}", { v: error instanceof Error ? error.message : tr("未知错误") }));
         go.removeAttribute("disabled");
         word.removeAttribute("disabled");
       }

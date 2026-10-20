@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Cancelling the "Save as" window of "Choose where to save each export" now says "Save cancelled" everywhere (Word, PDF, HTML, PPTX, e-book, layouts, template pack, table CSV) instead of reporting a failed export, and a save that fails for another reason is reported instead of ignored.
+
 Holding Alt while dragging a note's tab out to another app now hands over the file too (before, only the file list did).
 
 Process, matrix and roadmap items get their intended padding again (in Reading view and Live Preview alike, Obsidian's list item padding was cutting it to about 1px, so the boxes looked squeezed).

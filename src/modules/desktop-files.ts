@@ -1,4 +1,5 @@
-import { Platform } from "obsidian";
+import { Notice, Platform } from "obsidian";
+import { tr } from "../i18n.js";
 import type { FileSystemAdapter } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 /* Desktop-only file access outside the vault: writing an export to a folder of the user's choice, and picking
@@ -65,3 +66,11 @@ export function writeAt(target: string, data: string | Uint8Array): string {
 }
 
 export const folderOf = (file: string): string => load<NodePath>("path")?.dirname(file) ?? "";
+
+/** Thrown when the "Save as" window is cancelled: callers say "cancelled", not "failed". */
+export class ExportCancelled extends Error {}
+
+/** For saves that nothing else catches: cancelling says so, a real error is shown. */
+export function reportSaveFailure(error: unknown) {
+  new Notice(error instanceof ExportCancelled ? tr("已取消保存") : tr("保存失败：{v}", { v: error instanceof Error ? error.message : tr("未知错误") }));
+}

@@ -1,3 +1,4 @@
+import { reportSaveFailure } from "./desktop-files.js";
 import { enhancementOn, handledByOther } from "./enhancement-gate.js";
 import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
@@ -104,7 +105,7 @@ function buildTools(plugin: IgnorancePlugin, table: HTMLTableElement, host: HTML
   });
   button("csv", "file-down", tr("保存为 CSV")).addEventListener("click", () => {
     void saveExportToVault(plugin, `${table.closest(".markdown-preview-view")?.querySelector(".inline-title")?.textContent || "表格"}.csv`, rowsToCsv(tableText(table)))
-      .then(path => new Notice(tr("已保存：{path}", { path })));
+      .then(path => new Notice(tr("已保存：{path}", { path }))).catch(reportSaveFailure);
   });
   button("writeback", "arrow-down-up", tr("按此顺序写回笔记"), true).addEventListener("click", () => { void writeBack(plugin, table); });
 }

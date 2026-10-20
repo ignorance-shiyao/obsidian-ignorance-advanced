@@ -1,3 +1,4 @@
+import { ExportCancelled } from "./desktop-files.js";
 import type { MarkdownView, WorkspaceLeaf } from "obsidian";
 import { tr, zh } from "../i18n.js";
 import type { RevealApi } from "reveal.js";
@@ -1013,6 +1014,7 @@ async function exportDeckPptx(deck: { plugin: IgnorancePlugin; reveal: HTMLEleme
     return savedPath;
   } catch (error) {
     progress.hide();
+    if (error instanceof ExportCancelled) { new Notice(tr("已取消保存")); return null; }
     new Notice(tr("PPTX 导出失败：{v}", { v: errorText(error) }), 7000);
     return null;
   } finally {
@@ -1034,7 +1036,7 @@ export async function exportNotePptx(plugin: IgnorancePlugin, file: TFile, mode 
     preparing.hide();
     return deck ? await exportDeckPptx({ ...deck, plugin }, filePath, mode) : null;
   } catch (error) {
-    new Notice(tr("PPTX 导出失败：{v}", { v: errorText(error) }), 7000);
+    new Notice(error instanceof ExportCancelled ? tr("已取消保存") : tr("PPTX 导出失败：{v}", { v: errorText(error) }), 7000);
     return null;
   } finally {
     preparing.hide();

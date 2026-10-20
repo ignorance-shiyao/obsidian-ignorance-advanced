@@ -1,3 +1,4 @@
+import { reportSaveFailure } from "./desktop-files.js";
 import type { Menu } from "obsidian";
 import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
@@ -112,7 +113,7 @@ class ManageModal extends Modal {
     const exportButton = footer.createEl("button", { text: tr("导出全部") });
     exportButton.disabled = !list.length;
     exportButton.addEventListener("click", () => {
-      void saveExportToVault(plugin, "我的版式.json", exportLayouts(list)).then(path => new Notice(tr("已保存：{path}", { path })));
+      void saveExportToVault(plugin, "我的版式.json", exportLayouts(list)).then(path => new Notice(tr("已保存：{path}", { path }))).catch(reportSaveFailure);
     });
   }
 }

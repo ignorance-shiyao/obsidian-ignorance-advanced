@@ -1,3 +1,4 @@
+import { reportSaveFailure } from "./desktop-files.js";
 import { FuzzySuggestModal, Notice, TFile, normalizePath } from "obsidian";
 import { lookupLayout } from "./layout-library.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
@@ -81,8 +82,10 @@ async function exportPack(plugin: IgnorancePlugin) {
   if (!files.length) { new Notice(tr("先在设置里指定模板文件夹，并放入模板"), 5000); return; }
   const folder = folderOf(plugin);
   const templates = await Promise.all(files.map(async file => ({ name: file.path.slice(folder.length + 1).replace(/\.md$/, ""), content: await plugin.app.vault.cachedRead(file) })));
-  const path = await saveExportToVault(plugin, `${tr("模板包")}.json`, buildPack(templates, plugin.state.layouts ?? []));
-  new Notice(tr("已保存：{path}", { path }));
+  try {
+    const path = await saveExportToVault(plugin, `${tr("模板包")}.json`, buildPack(templates, plugin.state.layouts ?? []));
+    new Notice(tr("已保存：{path}", { path }));
+  } catch (error) { reportSaveFailure(error); }
 }
 
 async function importPack(plugin: IgnorancePlugin) {
