@@ -145,7 +145,7 @@ export function installTableSort(plugin: IgnorancePlugin) {
   });
   plugin.registerDomEvent(document, "keydown", (event: KeyboardEvent) => {
     if (event.key !== "Enter" && event.key !== " ") return;
-    const target = event.target instanceof Element && event.target.matches("th") ? event.target as HTMLTableCellElement : null;
+    const target = event.target instanceof HTMLTableCellElement && event.target.matches("th") ? event.target : null;
     if (sortBy(target)) event.preventDefault();
   });
 }
