@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Process, matrix and roadmap items get their intended padding again (in Reading view and Live Preview alike, Obsidian's list item padding was cutting it to about 1px, so the boxes looked squeezed).
+
 The page-width handle in the editor, the column widths of tables in paged reading, and the minimum column share of tables on paper now take the page zoom out of the sizes they measure on screen, so they stay correct when the zoom is not 100%.
 
 A code block with no language no longer shows two copy buttons in Live Preview (Obsidian's own one next to ours).

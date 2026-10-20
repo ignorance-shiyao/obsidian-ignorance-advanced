@@ -907,12 +907,13 @@ body.is-phone .markdown-rendered pre.ibc-enhanced > code {
 .ibc-gallery__item figcaption { color: var(--ib-text-muted); font-size: var(--ib-tiny-size); text-align: center; }
 .ibc-container--process > ul,
 .ibc-container--process > ol { display: flex; flex-wrap: wrap; gap: var(--ib-space-3); margin: 0; padding: 0; list-style: none; }
-.ibc-container--process li { position: relative; flex: 1 1 9rem; min-width: 0; margin: 0; padding: var(--ib-space-3) var(--ib-space-4); border: var(--ib-border-1) solid var(--ib-border-default); border-radius: var(--ib-radius-md); background: var(--ib-bg-secondary); }
+/* Doubled class: Obsidian's list item padding (.markdown-rendered / .markdown-source-view ul > li) would otherwise win. */
+.ibc-container--process.ibc-container--process li { position: relative; flex: 1 1 9rem; min-width: 0; margin: 0; padding: var(--ib-space-3) var(--ib-space-4); border: var(--ib-border-1) solid var(--ib-border-default); border-radius: var(--ib-radius-md); background: var(--ib-bg-secondary); }
 .ibc-container--process li::before { display: grid; width: 22px; height: 22px; margin-bottom: var(--ib-space-2); place-items: center; border-radius: 50%; background: var(--ib-accent-solid); color: var(--ib-text-on-accent); content: counter(list-item); font-size: var(--ib-tiny-size); font-weight: 700; }
 .ibc-container--matrix { position: relative; padding: var(--ib-space-4) 0; }
 .ibc-container--matrix > ul,
 .ibc-container--matrix > ol { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ib-space-3); margin: 0; padding: 0; list-style: none; }
-.ibc-container--matrix li { min-height: 64px; margin: 0; padding: var(--ib-space-3); border: var(--ib-border-1) solid var(--ib-border-default); border-radius: var(--ib-radius-md); background: var(--ib-bg-secondary); }
+.ibc-container--matrix.ibc-container--matrix li { min-height: 64px; margin: 0; padding: var(--ib-space-3); border: var(--ib-border-1) solid var(--ib-border-default); border-radius: var(--ib-radius-md); background: var(--ib-bg-secondary); }
 .ibc-container--matrix li:nth-child(1) { border-color: var(--ib-error-border); background: var(--ib-error-bg); }
 .ibc-container--matrix li:nth-child(2),
 .ibc-container--matrix li:nth-child(3) { border-color: var(--ib-warning-border); background: var(--ib-warning-bg); }
@@ -926,7 +927,7 @@ body.is-phone .markdown-rendered pre.ibc-enhanced > code {
 .ibc-matrix__axis--x { grid-column: -2; margin-top: var(--ib-space-2); text-align: center; }
 .ibc-container--roadmap > ul,
 .ibc-container--roadmap > ol { display: flex; flex-wrap: wrap; gap: var(--ib-space-3); margin: 0; padding: var(--ib-space-3) 0 0; list-style: none; }
-.ibc-container--roadmap li { position: relative; flex: 1 1 9rem; min-width: 0; margin: 0; padding: var(--ib-space-3); border: var(--ib-border-1) solid var(--ib-border-default); border-radius: var(--ib-radius-md); background: var(--ib-bg-secondary); }
+.ibc-container--roadmap.ibc-container--roadmap li { position: relative; flex: 1 1 9rem; min-width: 0; margin: 0; padding: var(--ib-space-3); border: var(--ib-border-1) solid var(--ib-border-default); border-radius: var(--ib-radius-md); background: var(--ib-bg-secondary); }
 .ibc-container--roadmap li > strong:first-child { color: var(--ib-text-accent); }
 .ibc-container-source-covered:not(#_ib) { display: none; }
 .markdown-preview-sizer > .ibc-container-source-covered {
