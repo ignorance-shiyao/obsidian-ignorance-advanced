@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Dragging a file out to another app no longer leaves Obsidian's "move to" drag label stuck on screen afterwards.
+
 The drag image used when a file is dragged out to another app now follows the file type (colour and extension badge, e.g. DOCX, PDF, PPTX) and shows the file name under it.
 
 "Choose where to save each export" (settings, desktop): every export opens the system "Save as" window, starting in the folder you used last; cancelling skips that export.

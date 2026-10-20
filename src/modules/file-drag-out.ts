@@ -59,7 +59,10 @@ export function installFileDragOut(plugin: IgnorancePlugin) {
     const name = path.split("/").pop() ?? path;
     const icon = dragIcon(name.includes(".") ? name.split(".").pop() ?? "" : "", name);
     if (!icon) return;
+    // Obsidian's own handler must not see this drag: it would start its in-app drag (the "move to" ghost) and, with the
+    // native drag taking over, never get the dragend that clears it.
     event.preventDefault();
+    event.stopImmediatePropagation();
     remote.getCurrentWebContents().startDrag({ file: full, icon });
   }, true);
 }
