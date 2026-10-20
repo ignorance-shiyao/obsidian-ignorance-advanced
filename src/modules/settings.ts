@@ -1,3 +1,4 @@
+import { chooseFolder, vaultBasePath } from "./desktop-files.js";
 import { applyCustomCallouts } from "./custom-callouts.js";
 import { releaseTableLayers } from "../plugin/table-sizes.js";
 import { ENHANCEMENTS, noteOffClass } from "./enhancement-gate-core.js";
@@ -155,6 +156,14 @@ class IgnoranceSettingTab extends PluginSettingTab {
         { name: tr("按网站分类"), desc: tr("剪藏时在剪藏文件夹下按网站名建子文件夹，例如 Clippings/example.com/。"), aliases: ["sort by site"], add: toggle(() => Boolean(state.webClip?.byDomain), value => { state.webClip.byDomain = value; plugin.saveStoredState(); }) }
       ] },
       { heading: tr("模板与语言"), items: [
+        { name: tr("导出目录"), desc: tr("导出的 Word、PDF、HTML 等保存到这里。留空是库里的「导出」文件夹；填一个绝对路径（或点「选择…」）可存到库外，仅桌面端。"), aliases: ["export folder", "export directory"], add: (setting: Setting) => {
+          let field: { setValue(value: string): unknown } | null = null;
+          setting.addText(text => { field = text; text.setPlaceholder(tr("导出")).setValue(state.exportDir ?? "").onChange(value => { state.exportDir = value.trim(); plugin.saveStoredState(); }); });
+          setting.addButton(button => button.setButtonText(tr("选择…")).onClick(() => void chooseFolder(state.exportDir ?? vaultBasePath(plugin)).then(dir => { if (dir) { state.exportDir = dir; field?.setValue(dir); plugin.saveStoredState(); } })));
+        } },
+        { name: tr("拖出文件"), desc: tr("把文件列表里的文件拖到其他软件时，交出文件本身而不是 obsidian:// 地址。「按住 Alt」时只在按住 Alt 或文件在导出文件夹里时生效；库内拖动整理文件不受影响。"), aliases: ["drag out", "drag files"], add: (setting: Setting) => setting.addDropdown(dropdown => dropdown
+          .addOption("alt", tr("按住 Alt")).addOption("always", tr("总是")).addOption("off", tr("关闭"))
+          .setValue(state.dragOut ?? "alt").onChange(value => { state.dragOut = value === "always" || value === "off" ? value : "alt"; plugin.saveStoredState(); })) },
         { name: tr("模板文件夹"), desc: tr("放你自己的笔记模板（Markdown）的文件夹，用「从模板新建笔记」命令套用。模板里可用 {{title}}、{{author}}、{{date}}、{{time}}；在属性里写 ib-layout: 版式名 可在新建时套用版式。"), aliases: ["templates", "template folder"], add: (setting: Setting) => setting.addText(text => text.setPlaceholder("Templates")
           .setValue(state.userTemplates?.folder ?? "").onChange(value => { state.userTemplates.folder = value.trim(); plugin.saveStoredState(); })) },
         { name: tr("模板里的作者名"), desc: tr("填进模板的 {{author}}。"), add: (setting: Setting) => setting.addText(text => text

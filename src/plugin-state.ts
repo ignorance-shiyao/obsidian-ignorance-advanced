@@ -48,6 +48,10 @@ export interface PluginState {
   enhance?: Partial<Record<import("./modules/enhancement-gate-core.js").EnhancementKind, boolean>>;
   layouts?: import("./modules/layout-library-core.js").LayoutRecord[];
   userTemplates?: { folder: string; author: string };
+  /** Where exports are saved: empty is the vault's 导出 folder, an absolute path is a folder outside the vault. */
+  exportDir?: string;
+  /** Handing the real file to other apps when a file is dragged out of the file list. */
+  dragOut?: "alt" | "always" | "off";
   language?: import("./i18n-core.js").Preference;
   layoutTombstones?: import("./modules/layout-library-core.js").LayoutTombstone[];
   pasteLink?: boolean;

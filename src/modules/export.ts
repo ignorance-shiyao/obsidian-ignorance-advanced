@@ -1,3 +1,4 @@
+import { externalExportDir, writeOutside } from "./desktop-files.js";
 import { openBookExport } from "./book-export.js";
 import { tr } from "../i18n.js";
 import { nextFrame } from "./layout-frame.js";
@@ -485,6 +486,11 @@ async function exportImages(plugin: IgnorancePlugin, file: TFile, kind: string) 
 const EXPORT_FOLDER = "导出";
 
 async function saveExportToVault(plugin: IgnorancePlugin, name: string, data: string | Uint8Array) {
+  const outside = externalExportDir(plugin);
+  if (outside) {
+    try { return writeOutside(outside, name, data); }
+    catch { new Notice(tr("无法写入「{dir}」，已改存到库里的导出文件夹。", { dir: outside })); }
+  }
   const vault = plugin.app.vault;
   if (!vault.getAbstractFileByPath(EXPORT_FOLDER)) await vault.createFolder(EXPORT_FOLDER).catch(() => {});
   const dot = name.lastIndexOf(".");

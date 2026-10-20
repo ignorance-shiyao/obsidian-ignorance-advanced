@@ -1,3 +1,4 @@
+import { normalizeDragOut } from "../modules/file-drag-out.js";
 import { normalizeWordFont } from "../modules/word-font.js";
 import { setLanguagePreference } from "../i18n.js";
 import { Notice } from "obsidian";
@@ -39,6 +40,8 @@ export async function loadStoredState(plugin: IgnorancePlugin) {
   plugin.state.layoutTombstones = cleanTombstones(plugin.state.layoutTombstones);
   plugin.state.enhance = Object.fromEntries(Object.entries(plugin.state.enhance ?? {}).filter(([, value]) => value === false));
   plugin.state.userTemplates = { folder: typeof plugin.state.userTemplates?.folder === "string" ? plugin.state.userTemplates.folder : "", author: typeof plugin.state.userTemplates?.author === "string" ? plugin.state.userTemplates.author : "" };
+  plugin.state.exportDir = typeof plugin.state.exportDir === "string" ? plugin.state.exportDir.trim() : "";
+  plugin.state.dragOut = normalizeDragOut(plugin.state.dragOut);
   plugin.state.language = plugin.state.language === "zh" || plugin.state.language === "en" ? plugin.state.language : "auto";
   setLanguagePreference(plugin.state.language);
   plugin.state.customCallouts = typeof plugin.state.customCallouts === "string" ? plugin.state.customCallouts : "";

@@ -45,6 +45,7 @@ import * as PageControls from "../modules/page-controls.js";
 import { handleEnhancedPaste } from "../modules/paste-enhance.js";
 import { installPageControls,setPageRefreshHandler } from "../modules/page-controls.js";
 import { installNoteLayout } from "../modules/note-layout.js";
+import { installFileDragOut } from "../modules/file-drag-out.js";
 import { guardedCleanup } from "../modules/plugin-cleanup.js";
 import { installPreviewOverscan } from "../modules/preview-overscan.js";
 import { quoteIndentExtension } from "../modules/quote-indent.js";
@@ -285,6 +286,7 @@ export async function onload(plugin: IgnorancePlugin) {
   // Exports still need paper and margin settings there.
   else plugin.app.workspace.onLayoutReady(() => PageControls.initPageState(plugin));
   plugin.app.workspace.onLayoutReady(() => installNoteLayout(plugin));
+  installFileDragOut(plugin);
   plugin.exporters = { pdf: exportPdf, word: exportWord, images: exportImages, richCopy: prepareRichCopyMarkup, copyFormatted: copyFormattedNote, html: prepareHtmlDocument, exportHtml, pptx: exportNotePptx };
 
   // Default new-tab behavior is applied at the Workspace API boundary.

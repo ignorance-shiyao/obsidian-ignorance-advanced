@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+Exports can be saved outside the vault: Settings → Templates and language → "Export folder" takes an absolute path or a folder picked with "Choose…" (empty keeps the vault's 导出 folder; desktop only; if the folder cannot be written the file goes to the vault folder and a notice says so).
+
+Dragging a file from the file list into another app (a chat window, a mail draft, Finder) hands over the file itself instead of an obsidian:// address: hold Alt while dragging, or drag a file from the export folder. "Drag files out" in settings can make it always or never; moving files inside the vault is unchanged.
+
 Mermaid diagrams are no longer cut off at the sides when the page zoom is not 100%: the card width was worked out from on-screen sizes that already included the zoom, so it came out too narrow for the drawing.
 
 In the editor the caret and the selection stay on the text when the page zoom is not 100%: the zoom was applied below CodeMirror, which then corrected for it a second time, so the caret sat further from its line the lower in the note it was (a selected heading showed its caret a line lower).
