@@ -2,12 +2,18 @@ import type { Menu } from "obsidian";
 import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { Modal, Notice } from "obsidian";
-import { applyLayout, exportLayouts, importLayouts, layoutChanges, snapshotLayout, uniqueLayoutName, type LayoutRecord, type PageLike } from "./layout-library-core.js";
+import { applyLayout, exportLayouts, findLayout, importLayouts, layoutChanges, layoutMatches, snapshotLayout, uniqueLayoutName, type LayoutRecord, type PageLike } from "./layout-library-core.js";
+import { BUILTIN_PREFIX, builtinAliases, builtinLayouts } from "./page-presets.js";
+import { pinnedLayoutName, pinLayoutToNote } from "./note-layout.js";
 import { saveExportToVault } from "./export.js";
 /* "My layouts": save the current page settings under a name, apply one later (after listing what it changes),
    copy, rename, delete, and move them between vaults as a JSON file. */
 
 const layouts = (plugin: IgnorancePlugin): LayoutRecord[] => (plugin.state.layouts ??= []);
+/** Built-in presets first, then the user's own: one list for the menu, the API and `ib-layout`. */
+export const allLayouts = (plugin: IgnorancePlugin): LayoutRecord[] => [...builtinLayouts(), ...layouts(plugin)];
+export const lookupLayout = (plugin: IgnorancePlugin, key: string) => findLayout(allLayouts(plugin), key, builtinAliases);
+const isBuiltin = (record: LayoutRecord) => record.id.startsWith(BUILTIN_PREFIX);
 const current = (plugin: IgnorancePlugin) => snapshotLayout(plugin.state.page as unknown as PageLike, plugin.state.wordFont);
 
 function persist(plugin: IgnorancePlugin) { plugin.saveStoredState(); }
@@ -48,13 +54,15 @@ class ConfirmApplyModal extends Modal {
 export function applyUserLayout(plugin: IgnorancePlugin, record: LayoutRecord, onApplied: () => void) {
   const changes = layoutChanges(current(plugin), record.settings);
   if (!changes.length) { new Notice(tr("当前设置和这个版式一样，没有需要改的。")); return; }
-  new ConfirmApplyModal(plugin, record, changes, () => {
+  const apply = () => {
     applyLayout(plugin.state.page as unknown as PageLike, record.settings);
     if (record.settings.wordFont) plugin.state.wordFont = record.settings.wordFont;
     persist(plugin);
     onApplied();
     new Notice(tr("已套用版式「{name}」", { name: record.name }));
-  }).open();
+  };
+  if (isBuiltin(record)) apply();
+  else new ConfirmApplyModal(plugin, record, changes, apply).open();
 }
 
 export function saveCurrentAsLayout(plugin: IgnorancePlugin, onChanged: () => void) {
@@ -124,14 +132,26 @@ function importFromText(plugin: IgnorancePlugin, onDone: () => void) {
   }).open();
 }
 
-/** The user's layouts, plus save and manage entries, added to the page menu's layout submenu. */
+/** One list: built-in presets, then the user's layouts, each ticked when the page already matches it; save, manage and pin below. */
 export function addLayoutItems(plugin: IgnorancePlugin, menu: Menu, onApplied: () => void) {
-  const list = layouts(plugin);
-  if (list.length) {
+  const now = current(plugin);
+  const pinned = pinnedLayoutName();
+  if (pinned) {
+    menu.addItem(item => item.setTitle(tr("本篇固定为「{name}」，菜单改动仅在本篇打开时有效", { name: pinned })).setIcon("pin").setDisabled(true));
     menu.addSeparator();
-    for (const record of list) menu.addItem(item => item.setTitle(record.name).setIcon("bookmark").onClick(() => applyUserLayout(plugin, record, onApplied)));
+  }
+  const user = layouts(plugin);
+  for (const [index, record] of allLayouts(plugin).entries()) {
+    if (index === builtinLayouts().length && user.length) menu.addSeparator();
+    menu.addItem(item => item.setTitle(record.name).setIcon(isBuiltin(record) ? "layout-template" : "bookmark").setChecked(layoutMatches(now, record.settings)).onClick(() => applyUserLayout(plugin, record, onApplied)));
   }
   menu.addSeparator();
   menu.addItem(item => item.setTitle(tr("保存当前设置…")).setIcon("save").onClick(() => saveCurrentAsLayout(plugin, onApplied)));
   menu.addItem(item => item.setTitle(tr("管理…")).setIcon("settings-2").onClick(() => new ManageModal(plugin, onApplied).open()));
+  const file = plugin.app.workspace.getActiveFile();
+  if (file?.extension === "md") {
+    const match = allLayouts(plugin).find(record => layoutMatches(now, record.settings));
+    if (match) menu.addItem(item => item.setTitle(tr("把本篇固定为「{name}」", { name: match.name })).setIcon("pin").onClick(() => void pinLayoutToNote(plugin, file, match.name)));
+    if (pinned) menu.addItem(item => item.setTitle(tr("取消本篇固定")).setIcon("pin-off").onClick(() => void pinLayoutToNote(plugin, file, null)));
+  }
 }

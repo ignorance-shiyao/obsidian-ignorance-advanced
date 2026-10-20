@@ -1,4 +1,5 @@
 import { TFile } from "obsidian";
+import { allLayouts, lookupLayout } from "./layout-library.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { tr } from "../i18n.js";
 import { buildBook } from "./book-export.js";
@@ -68,7 +69,7 @@ export function createApi(plugin: IgnorancePlugin): IgnoranceApi {
   /** Runs `job` with a saved layout applied, then restores the page settings and Word font exactly as they were. */
   const withLayout = async <T>(name: string | undefined, job: () => Promise<T>): Promise<T> => {
     if (!name) return job();
-    const record = (plugin.state.layouts ?? []).find(item => item.name === name || item.id === name);
+    const record = lookupLayout(plugin, name);
     if (!record) throw new Error(tr("没有名为「{name}」的版式", { name }));
     const page = plugin.state.page as unknown as PageLike;
     const before = snapshotLayout(page, plugin.state.wordFont);
@@ -81,7 +82,7 @@ export function createApi(plugin: IgnorancePlugin): IgnoranceApi {
   return {
     version: 1,
     formats: API_FORMATS,
-    listLayouts: () => (plugin.state.layouts ?? []).map(({ id, name }) => ({ id, name })),
+    listLayouts: () => allLayouts(plugin).map(({ id, name }) => ({ id, name })),
     listTemplates: () => { const folder = plugin.state.userTemplates?.folder?.trim() ?? ""; return templateFiles(plugin).map(file => file.path.slice(folder.length + 1).replace(/\.md$/, "")); },
 
     async checkNote(path, format = "word") {

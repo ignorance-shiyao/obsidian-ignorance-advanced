@@ -1,4 +1,5 @@
 import { FuzzySuggestModal, Notice, TFile, normalizePath } from "obsidian";
+import { lookupLayout } from "./layout-library.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { tr } from "../i18n.js";
 import { askText } from "./prompt-modal.js";
@@ -35,7 +36,7 @@ export async function createNoteFromTemplate(plugin: IgnorancePlugin, template: 
   const file = await app.vault.create(path, body);
   let layoutApplied: string | null = null, layoutMissing: string | null = null;
   if (layoutName) {
-    const record = (plugin.state.layouts ?? []).find(item => item.name === layoutName || item.id === layoutName);
+    const record = lookupLayout(plugin, layoutName);
     if (record) {
       applyLayout(plugin.state.page as unknown as PageLike, record.settings);
       if (record.settings.wordFont) plugin.state.wordFont = record.settings.wordFont;

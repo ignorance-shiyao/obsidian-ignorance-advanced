@@ -131,6 +131,9 @@ export const EN: Readonly<Record<string, string>> = {
   "导入…": "Import…",
   "导出全部": "Export all",
   "保存当前设置…": "Save current settings…",
+  "本篇固定为「{name}」，菜单改动仅在本篇打开时有效": "This note is pinned to \"{name}\"; changes in this menu only last while it is open",
+  "把本篇固定为「{name}」": "Pin this note to \"{name}\"",
+  "取消本篇固定": "Unpin this note",
   "管理…": "Manage…",
   "已套用版式「{name}」": "Layout \"{name}\" applied",
   // Checks and navigation

@@ -7,7 +7,7 @@ import { setIcon } from "./ui-icons.js";
 import { toggleWritingMode } from "./editor-tools.js";
 import { openPresentation } from "./slides.js";
 import { PAPERS, MARGIN_PRESETS, paperSize, paperMarginsForPreset } from "./paper.js";
-import { PAGE_PRESETS, applyPagePreset, pageMatchesPreset } from "./page-presets.js";
+import { applyLayout, type LayoutRecord, type PageLike } from "./layout-library-core.js";
 import { addLayoutItems } from "./layout-library.js";
 import { FOOTER_CHOICES, promptFooter } from "./page-footer.js";
 import { HEADING_FONT_OPTIONS } from "./fonts.js";
@@ -69,7 +69,25 @@ function visibleSizer(host: HTMLElement): HTMLElement | null {
 /** Apply the page settings and remember them on this device; also used by the layout commands. */
 export function savePageSettings(plugin: IgnorancePlugin) {
   applyPageSettings(plugin);
-  plugin.app.saveLocalStorage?.("ibp-page", plugin.state.page);
+  persistPage(plugin);
+}
+
+/* A note's `ib-layout` is laid over the device's page settings only while that note is open: `base` keeps the
+   settings to go back to, and is what gets remembered on this device (zoom stays shared). */
+let base: PageState | null = null;
+function persistPage(plugin: IgnorancePlugin) {
+  plugin.app.saveLocalStorage?.("ibp-page", base ? { ...base, zoom: plugin.state.page.zoom } : plugin.state.page);
+}
+export function setPageOverride(plugin: IgnorancePlugin, record: LayoutRecord | null) {
+  const page = plugin.state.page as unknown as PageLike;
+  if (!record && !base) return;
+  if (base) Object.assign(page, structuredClone(base));
+  else base = structuredClone(plugin.state.page);
+  const zoom = plugin.state.page.zoom;
+  if (record) applyLayout(page, record.settings);
+  else base = null;
+  plugin.state.page.zoom = zoom;
+  applyPageSettings(plugin);
 }
 
 function applyPageSettings(plugin: IgnorancePlugin) {
@@ -144,7 +162,7 @@ export function initPageState(plugin: IgnorancePlugin) {
 
 function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: IgnorancePlugin, view: MarkdownView, event: MouseEvent) => void) {
   initPageState(plugin);
-  const save = () => { applyPageSettings(plugin); plugin.app.saveLocalStorage?.("ibp-page", plugin.state.page); };
+  const save = () => { applyPageSettings(plugin); persistPage(plugin); };
   save();
   const page = () => plugin.state.page;
   let popover: HTMLElement | null = null;
@@ -239,7 +257,6 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       }));
     });
     submenu(menu, tr("版式"), "layout-template", (presets: Menu) => {
-      for (const preset of PAGE_PRESETS) choice(presets, tr(preset.label).split(/[：:]/)[0], pageMatchesPreset(p, preset.id), () => { applyPagePreset(p, preset.id); save(); });
       addLayoutItems(plugin, presets, save);
     });
     menu.addItem(item => item.setTitle(tr("分页阅读")).setIcon("book-open").setChecked(Boolean(p.paged)).onClick(() => { p.paged = !p.paged; save(); }));

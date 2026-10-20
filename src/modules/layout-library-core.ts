@@ -92,6 +92,18 @@ export function layoutChanges(current: LayoutSettings, next: Partial<LayoutSetti
     .map(key => ({ label: LAYOUT_LABELS[key], from: show(current[key]), to: show(next[key]) }));
 }
 
+/** Whether the page settings already equal a layout (nothing in it would change). */
+export function layoutMatches(current: LayoutSettings, next: Partial<LayoutSettings>): boolean {
+  return layoutChanges(current, next).length === 0;
+}
+
+/** A layout by id or name (case does not matter); `aliases` gives other names a layout answers to. */
+export function findLayout(list: LayoutRecord[], key: string, aliases: (record: LayoutRecord) => string[] = () => []): LayoutRecord | undefined {
+  const wanted = key.trim().toLowerCase();
+  if (!wanted) return undefined;
+  return list.find(item => item.id.toLowerCase() === wanted) ?? list.find(item => [item.name, ...aliases(item)].some(name => name.toLowerCase() === wanted));
+}
+
 /** Writes a layout onto the page settings; margins follow the paper unless they were set by hand. */
 export function applyLayout(page: PageLike, settings: Partial<LayoutSettings>) {
   const { wordFont: _wordFont, ...pageFields } = settings;

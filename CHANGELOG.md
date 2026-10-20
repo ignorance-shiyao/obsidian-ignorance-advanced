@@ -5,6 +5,8 @@ Paged reading is centred in the pane again: when the zoom made the pages narrowe
 
 Timeline blocks in Live Preview no longer show blank lines between the items (the newline between list items was being drawn as an empty line, which spread the dots far apart). The axis now runs only from one dot to the next and no longer sticks out above the first or below the last; dots have a soft halo instead of a ring and sit inside the text column. KPI cards are roomier (padding was being reset to zero in Live Preview), with a solid background, a soft shadow and the change figure (`_+12%_`) in the accent colour instead of italics.
 
+The built-in layouts (论文 / 汇报 / 公文 / 博客) and your saved layouts are now one list in the page menu's Layouts submenu, each with a check mark when the page matches it; the API's `listLayouts`, `exportNote` and template `ib-layout` also accept the built-in ones. A note can set `ib-layout: <name>` in its properties: that layout applies while the note is open and your own page settings return when you leave it. The menu can pin the current layout to the note or unpin it.
+
 The layout presets in the page settings menu (论文 / 汇报 / 公文 / 博客) now show a check mark on the one the page settings currently match; before, none was ever checked.
 
 Review warnings cleared: no more `column-gap` or `:has()` in the stylesheet (the table tools bar now shows from a class set on pointer enter/leave), and `npm run lint:css` plus CI fail on any browser feature Obsidian 1.7.4 only partly supports.

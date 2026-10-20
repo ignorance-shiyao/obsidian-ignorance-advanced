@@ -1,37 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { PAGE_PRESETS, applyPagePreset, pageMatchesPreset } from "./page-presets";
+import { BUILTIN_PREFIX, PAGE_PRESETS, builtinAliases, builtinLayouts } from "./page-presets";
+import { applyLayout, findLayout, layoutMatches, snapshotLayout, type PageLike } from "./layout-library-core";
 
-describe("版式预设", () => {
-  it("预设写入页面设置，页边距跟随纸张", () => {
-    const page: Record<string, unknown> = { paper: "A4", margins: { t: 1, r: 1, b: 1, l: 1 } };
-    expect(applyPagePreset(page, "paper")).toBe(true);
-    expect(page).toMatchObject({ paged: true, landscape: false, pageNumberFormat: "total", runningHeader: "chapter", marginPreset: "moderate" });
-    expect((page.margins as { t: number }).t).toBeGreaterThan(20);
+const blank = (): PageLike => ({ width: "standard", customWidth: 80, paged: false, paper: "A4", customPaper: { w: 210, h: 297 }, landscape: false, marginPreset: "normal", margins: { t: 1, r: 1, b: 1, l: 1 }, pageNumber: "center", pageNumberFormat: "plain", runningHeader: "none", footerText: "", breakMode: "whitespace" });
+
+describe("内置版式", () => {
+  it("编号唯一且带 builtin: 前缀，名字取冒号前", () => {
+    const list = builtinLayouts();
+    expect(new Set(list.map(item => item.id)).size).toBe(PAGE_PRESETS.length);
+    expect(list.every(item => item.id.startsWith(BUILTIN_PREFIX))).toBe(true);
+    expect(list.map(item => item.name)).toEqual(["论文", "汇报", "公文", "博客"]);
   });
-  it("博客预设回到连续阅读且不显示页码", () => {
-    const page: Record<string, unknown> = { paged: true, pageNumber: "center", paper: "A4" };
-    applyPagePreset(page, "blog");
-    expect(page).toMatchObject({ paged: false, pageNumber: "none" });
-  });
-  it("未知预设不改动页面", () => {
-    const page = { paged: true };
-    expect(applyPagePreset(page, "none")).toBe(false);
-    expect(page).toEqual({ paged: true });
-  });
-  it("预设编号唯一", () => {
-    expect(new Set(PAGE_PRESETS.map(item => item.id)).size).toBe(PAGE_PRESETS.length);
-  });
-  it("刚套用的预设显示为选中，改一项后不再选中，且只有一个预设选中", () => {
-    for (const preset of PAGE_PRESETS) {
-      const page: Record<string, unknown> = { paper: "A4", margins: { t: 1, r: 1, b: 1, l: 1 } };
-      applyPagePreset(page, preset.id);
-      expect(PAGE_PRESETS.filter(item => pageMatchesPreset(page, item.id)).map(item => item.id)).toEqual([preset.id]);
+  it("套用后页边距跟随纸张，且只有这一个版式显示为选中", () => {
+    for (const record of builtinLayouts()) {
+      const page = blank();
+      applyLayout(page, record.settings);
+      const now = snapshotLayout(page, "auto");
+      expect(builtinLayouts().filter(item => layoutMatches(now, item.settings)).map(item => item.id)).toEqual([record.id]);
       page.marginPreset = "custom";
-      expect(pageMatchesPreset(page, preset.id)).toBe(false);
+      expect(layoutMatches(snapshotLayout(page, "auto"), record.settings)).toBe(false);
     }
   });
-  it("没有字段的页面不匹配任何分页预设，未知预设不匹配", () => {
-    expect(pageMatchesPreset({}, "paper")).toBe(false);
-    expect(pageMatchesPreset({ paged: false }, "nope")).toBe(false);
+  it("按名字、编号、中文别名查找，不区分大小写", () => {
+    const list = builtinLayouts();
+    expect(findLayout(list, "汇报", builtinAliases)?.id).toBe("builtin:report");
+    expect(findLayout(list, "BUILTIN:PAPER")?.name).toBe("论文");
+    expect(findLayout(list, "blog", builtinAliases)?.id).toBe("builtin:blog");
+    expect(findLayout(list, "  ")).toBeUndefined();
+    expect(findLayout(list, "不存在", builtinAliases)).toBeUndefined();
   });
 });

@@ -1,7 +1,7 @@
-import { zh } from "../i18n.js";
+import { tr, zh } from "../i18n.js";
 /* One-click page presets for the page toolbar (reading width, paper, margins, page numbers). Each preset only
    fills in the page settings; everything can still be changed afterwards. */
-import { paperMarginsForPreset } from "./paper.js";
+import type { LayoutRecord } from "./layout-library-core.js";
 
 export interface PagePreset { id: string; label: string; settings: Record<string, unknown> }
 
@@ -16,25 +16,15 @@ export const PAGE_PRESETS: PagePreset[] = [
     settings: { width: "standard", paged: false, marginPreset: "normal", pageNumber: "none", runningHeader: "none" } }
 ];
 
-const textOf = (value: unknown) => (typeof value === "string" ? value : "");
-
-/** Fill the page settings from a preset (the margins follow the paper size). Returns false for an unknown id. */
-export function applyPagePreset(page: object, id: string): boolean {
-  const preset = PAGE_PRESETS.find(item => item.id === id);
-  if (!preset) return false;
-  Object.assign(page, preset.settings);
-  const settings = page as Record<string, unknown>;
-  const margins = paperMarginsForPreset(textOf(settings.marginPreset), textOf(settings.paper));
-  if (margins) settings.margins = margins;
-  return true;
+/** The built-in presets as layouts, so they sit in one list with the user's own. Their ids start with "builtin:";
+    the name is the part of the label before the colon, in the interface language. */
+export const BUILTIN_PREFIX = "builtin:";
+export function builtinLayouts(): LayoutRecord[] {
+  return PAGE_PRESETS.map(preset => ({ id: BUILTIN_PREFIX + preset.id, name: tr(preset.label).split(/[：:]/)[0], settings: preset.settings }));
 }
 
-const isOff = (value: unknown) => value === undefined || value === null || value === false || value === "none" || value === "";
-
-/** Whether the page settings already match a preset: every value the preset sets is the page's value (off, "none" and missing count as the same). */
-export function pageMatchesPreset(page: object, id: string): boolean {
-  const preset = PAGE_PRESETS.find(item => item.id === id);
-  if (!preset) return false;
-  const settings = page as Record<string, unknown>;
-  return Object.entries(preset.settings).every(([key, value]) => settings[key] === value || (isOff(settings[key]) && isOff(value)));
+/** The Chinese names too, so a note written with `ib-layout: 汇报` keeps working when the interface is English. */
+export function builtinAliases(record: LayoutRecord): string[] {
+  const preset = PAGE_PRESETS.find(item => BUILTIN_PREFIX + item.id === record.id);
+  return preset ? [preset.label.split(/[：:]/)[0], preset.id] : [];
 }
