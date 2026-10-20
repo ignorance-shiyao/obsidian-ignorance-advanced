@@ -7,7 +7,7 @@ import { setIcon } from "./ui-icons.js";
 import { toggleWritingMode } from "./editor-tools.js";
 import { openPresentation } from "./slides.js";
 import { PAPERS, MARGIN_PRESETS, paperSize, paperMarginsForPreset } from "./paper.js";
-import { PAGE_PRESETS, applyPagePreset } from "./page-presets.js";
+import { PAGE_PRESETS, applyPagePreset, pageMatchesPreset } from "./page-presets.js";
 import { addLayoutItems } from "./layout-library.js";
 import { FOOTER_CHOICES, promptFooter } from "./page-footer.js";
 import { HEADING_FONT_OPTIONS } from "./fonts.js";
@@ -239,7 +239,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       }));
     });
     submenu(menu, tr("版式"), "layout-template", (presets: Menu) => {
-      for (const preset of PAGE_PRESETS) choice(presets, tr(preset.label).split(/[：:]/)[0], false, () => { applyPagePreset(p, preset.id); save(); });
+      for (const preset of PAGE_PRESETS) choice(presets, tr(preset.label).split(/[：:]/)[0], pageMatchesPreset(p, preset.id), () => { applyPagePreset(p, preset.id); save(); });
       addLayoutItems(plugin, presets, save);
     });
     menu.addItem(item => item.setTitle(tr("分页阅读")).setIcon("book-open").setChecked(Boolean(p.paged)).onClick(() => { p.paged = !p.paged; save(); }));

@@ -28,3 +28,13 @@ export function applyPagePreset(page: object, id: string): boolean {
   if (margins) settings.margins = margins;
   return true;
 }
+
+const isOff = (value: unknown) => value === undefined || value === null || value === false || value === "none" || value === "";
+
+/** Whether the page settings already match a preset: every value the preset sets is the page's value (off, "none" and missing count as the same). */
+export function pageMatchesPreset(page: object, id: string): boolean {
+  const preset = PAGE_PRESETS.find(item => item.id === id);
+  if (!preset) return false;
+  const settings = page as Record<string, unknown>;
+  return Object.entries(preset.settings).every(([key, value]) => settings[key] === value || (isOff(settings[key]) && isOff(value)));
+}

@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+The layout presets in the page settings menu (论文 / 汇报 / 公文 / 博客) now show a check mark on the one the page settings currently match; before, none was ever checked.
+
 Review warnings cleared: no more `column-gap` or `:has()` in the stylesheet (the table tools bar now shows from a class set on pointer enter/leave), and `npm run lint:css` plus CI fail on any browser feature Obsidian 1.7.4 only partly supports.
 
 The three page widths are wider: 窄 62% (up to 800px, was 55% / 720px), 标准 84% (up to 1100px, was 70% / 900px) and 宽 95% (up to 1400px, was 88% / 1200px).
