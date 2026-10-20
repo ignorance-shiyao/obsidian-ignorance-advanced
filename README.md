@@ -126,7 +126,7 @@ Requires Obsidian 1.8.7 or later. Works on desktop and mobile; Word/PDF import a
 - No telemetry, no analytics, no ads.
 - Nothing is downloaded or updated by the plugin itself. Mermaid, PDF.js and the HTML converter are Obsidian's own; the other libraries (ECharts, the export engines…) are bundled in `main.js` (about 3.6 MB) and start only when a feature needs them.
 - Network requests happen only when you ask for them: fetching a web page you clip, an image URL you export or copy, or a cover image URL you set in a note.
-- **Only the vault:** the plugin reads and writes through Obsidian's vault API and never touches the file system, other programs or Electron directly. Exports are saved into the vault's `导出/` folder; on desktop, PDF goes through the system print dialog (choose "Save as PDF"). Everything works the same on desktop and mobile.
+- **The vault by default:** notes and exports are read and written through Obsidian's vault API, and exports are saved into the vault's `导出/` folder. Only on desktop, and only when you use them, three features reach outside the vault with Node and Electron: saving an export to a folder outside the vault (the "Export folder" setting), the system "Save as" and folder-picker windows ("Choose where to save each export"), and dragging a file out of the file list into another app (it hands over that one file). They are off by default or need you to set them up, and nothing is scanned or uploaded. On desktop, PDF goes through the system print dialog (choose "Save as PDF"). Everything else works the same on desktop and mobile.
 
 ## Build from source
 
