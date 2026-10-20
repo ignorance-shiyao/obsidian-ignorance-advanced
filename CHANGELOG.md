@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Timeline blocks in Live Preview no longer show blank lines between the items (the newline between list items was being drawn as an empty line, which spread the dots far apart). The axis now runs only from one dot to the next and no longer sticks out above the first or below the last; dots have a soft halo instead of a ring and sit inside the text column. KPI cards get a light tint and shadow, with the change figure (`_+12%_`) in the accent colour instead of italics.
+
 The layout presets in the page settings menu (论文 / 汇报 / 公文 / 博客) now show a check mark on the one the page settings currently match; before, none was ever checked.
 
 Review warnings cleared: no more `column-gap` or `:has()` in the stylesheet (the table tools bar now shows from a class set on pointer enter/leave), and `npm run lint:css` plus CI fail on any browser feature Obsidian 1.7.4 only partly supports.
