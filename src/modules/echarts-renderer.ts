@@ -85,7 +85,7 @@ function setChartError(element: HTMLElement, error: unknown) {
   element.dataset.ibEchartsState = "error";
   element.replaceChildren();
   const message = element.createEl("pre", { cls: "ib-echarts-error" });
-  message.textContent = `ECharts 渲染失败：${error instanceof Error ? error.message : typeof error === "string" ? error : "未知错误"}`;
+  message.textContent = tr("ECharts 渲染失败：{error}", { error: error instanceof Error ? error.message : typeof error === "string" ? error : tr("未知错误") });
 }
 
 function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HTMLElement, context: MarkdownPostProcessorContext) {

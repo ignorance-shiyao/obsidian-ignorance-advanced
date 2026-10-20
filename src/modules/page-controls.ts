@@ -344,7 +344,7 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       focus.setAttr("aria-pressed", String(Boolean(plugin.state.writingModes?.focusMode)));
       const size = paperSize(p);
       const name = p.paper === "CUSTOM" ? `${size.w}×${size.h}` : PAPERS[p.paper as keyof typeof PAPERS]?.label.replace(/（.*）/, "") || "A4";
-      width.setAttr("aria-label", `页面设置（${name}${p.landscape ? tr(" 横向") : ""}；宽度 ${widthName}）`);
+      width.setAttr("aria-label", p.landscape ? tr("页面设置（{name} 横向；宽度 {width}）", { name, width: widthName }) : tr("页面设置（{name}；宽度 {width}）", { name, width: widthName }));
     };
     bar.addEventListener("ibp-refresh", refresh);
     refresh();

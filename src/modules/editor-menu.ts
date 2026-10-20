@@ -28,7 +28,7 @@ export function installEditorMenu(plugin: IgnorancePlugin) {
   for (const format of SELECTION_FORMATS) {
     plugin.addCommand({
       id: `format-${format.id}`,
-      name: `格式：${format.name}`,
+      name: tr("格式：{name}", { name: tr(format.name) }),
       editorCheckCallback: (checking, editor) => {
         if (!editor.somethingSelected() && !format.block) return false;
         return checking || applyToEditor(editor, format);
@@ -43,10 +43,10 @@ export function installEditorMenu(plugin: IgnorancePlugin) {
       const groups = [...new Set(SELECTION_FORMATS.map(format => format.group))];
       for (const group of groups) {
         submenu.addItem(entry => {
-          entry.setTitle(group);
+          entry.setTitle(tr(group));
           const inner = entry.setSubmenu();
           for (const format of SELECTION_FORMATS.filter(candidate => candidate.group === group)) {
-            inner.addItem(option => option.setTitle(format.name).onClick(() => { if (!applyToEditor(editor, format)) new Notice(tr("请先选中要处理的文字")); }));
+            inner.addItem(option => option.setTitle(tr(format.name)).onClick(() => { if (!applyToEditor(editor, format)) new Notice(tr("请先选中要处理的文字")); }));
           }
         });
       }
