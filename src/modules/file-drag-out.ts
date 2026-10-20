@@ -68,19 +68,36 @@ export function installFileDragOut(plugin: IgnorancePlugin) {
   }, true);
 }
 
-/* The native drag never sends the page a dragend, so anything Obsidian's own drag handling set up would stay on
-   screen. Its drag manager clears it all in onDragEnd; the ghost and the grabbing class are removed as well in
-   case a version of Obsidian names things differently. */
+/* The native drag never sends the page a dragend, and while it is running the pointer passing back over the window
+   still delivers dragenter/dragover, which Obsidian's drag manager answers with a drop highlight and a click-blocking
+   overlay that nothing then clears. So while our native drag is in flight those events are swallowed, and when the
+   pointer or window comes back (a plain mousemove, mouseup or focus) Obsidian's drag state is cleared. */
+const DRAG_EVENTS = ["dragenter", "dragover", "dragleave", "drop"];
+const RETURN_EVENTS = ["mousemove", "mouseup", "pointermove", "focus", "keydown"];
+
 function clearAppDrag(plugin: IgnorancePlugin) {
+  const manager = (plugin.app as unknown as { dragManager?: { onDragEnd?: () => void; updateHover?: (el: null, cls: string) => void; removeOverlay?: () => void } }).dragManager;
   const clear = () => {
-    (plugin.app as unknown as { dragManager?: { onDragEnd?: () => void } }).dragManager?.onDragEnd?.();
-    for (const ghost of Array.from(document.querySelectorAll(".drag-ghost"))) ghost.remove();
+    manager?.onDragEnd?.();
+    manager?.updateHover?.(null, "");
+    manager?.removeOverlay?.();
+    for (const el of Array.from(document.querySelectorAll(".is-being-dragged-over, .drag-ghost"))) {
+      el.classList.remove("is-being-dragged-over");
+      if (el.classList.contains("drag-ghost")) el.remove();
+    }
     document.body.classList.remove("is-grabbing");
   };
+  const swallow = (event: Event) => event.stopImmediatePropagation();
+  const finish = () => {
+    for (const type of DRAG_EVENTS) window.removeEventListener(type, swallow, true);
+    for (const type of RETURN_EVENTS) window.removeEventListener(type, finish, true);
+    clear();
+    window.setTimeout(clear, 50);
+  };
+  for (const type of DRAG_EVENTS) window.addEventListener(type, swallow, true);
   clear();
-  window.setTimeout(clear, 0);
-  window.setTimeout(clear, 300);
-  // The first sign of the pointer or the window coming back means the drag is over: clear once more then.
-  const done = () => { clear(); for (const type of ["mousemove", "mouseup", "focus", "dragover"]) window.removeEventListener(type, done, true); };
-  for (const type of ["mousemove", "mouseup", "focus", "dragover"]) window.addEventListener(type, done, true);
+  // Leave a moment before the return events count: the pointer that started the drag is still moving.
+  window.setTimeout(() => { for (const type of RETURN_EVENTS) window.addEventListener(type, finish, true); }, 400);
+  // Never leave the page deaf to drops if nothing ever comes back.
+  window.setTimeout(finish, 120000);
 }

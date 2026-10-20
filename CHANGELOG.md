@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Dragging a file out to another app no longer leaves the file list highlighted and unclickable: while the native drag is running Obsidian's own drop handling is paused, and its drag state (drop highlight, overlay) is cleared when the pointer or window comes back.
+
 Dragging a file out to another app clears Obsidian's own drag state (the "move to" label) right away and again when the pointer or window returns, in case the label stayed behind.
 
 Dragging a file out to another app no longer leaves Obsidian's "move to" drag label stuck on screen afterwards.
