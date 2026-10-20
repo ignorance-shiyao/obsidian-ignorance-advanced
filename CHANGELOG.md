@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Image filters and alignment chosen from the image toolbar now take effect straight away in Live Preview (and go away again when you pick "no filter"): Live Preview reuses the same image element when its alt text is edited, which the markers that drive the filter styles did not notice until the note was reopened.
+
 Cancelling the "Save as" window of "Choose where to save each export" now says "Save cancelled" everywhere (Word, PDF, HTML, PPTX, e-book, layouts, template pack, table CSV) instead of reporting a failed export, and a save that fails for another reason is reported instead of ignored.
 
 Holding Alt while dragging a note's tab out to another app now hands over the file too (before, only the file list did).

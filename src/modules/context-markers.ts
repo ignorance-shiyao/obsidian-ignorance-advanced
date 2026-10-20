@@ -74,6 +74,14 @@ export function markContext(root: ParentNode & Partial<Element>) {
   }
 }
 
+/** An image whose alt text changed in place (Live Preview reuses the <img> when its `![gray|…](…)` is edited):
+    drop the filter and alignment markers its embed carried and mark it again from the new alt. */
+export function refreshImageMarkers(image: Element) {
+  const embed = image.closest(".image-embed");
+  if (embed) { embed.removeAttribute("data-ib-filter"); embed.removeAttribute("data-ib-align"); }
+  markContext(image);
+}
+
 /** Remove every marker again (plugin unload). */
 export function clearContextMarkers() {
   for (const rule of MARKER_RULES) {

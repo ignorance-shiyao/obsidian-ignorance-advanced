@@ -12,7 +12,7 @@ import { installCodeFold } from "../modules/code-fold.js";
 import { colorSwatchExtension,colorSwatchPostProcessor } from "../modules/color-swatch.js";
 import { containerEditorExtension } from "../modules/container-editor.js";
 import { renderContainerBlocks } from "../modules/containers.js";
-import { clearContextMarkers,markContext } from "../modules/context-markers.js";
+import { clearContextMarkers,markContext,refreshImageMarkers } from "../modules/context-markers.js";
 import { openImageBatch } from "../modules/image-batch.js";
 import { openTaskExamples } from "../modules/task-examples.js";
 import { installEditorMenu } from "../modules/editor-menu.js";
@@ -224,6 +224,10 @@ export async function onload(plugin: IgnorancePlugin) {
     const diagrams = new Set<Element>();
     const removedDiagrams = new Set<Element>();
     for (const mutation of mutations) {
+      if (mutation.type === "attributes") {
+        if (mutation.target.instanceOf(Element) && mutation.target.tagName === "IMG") refreshImageMarkers(mutation.target);
+        continue;
+      }
       for (const node of mutation.removedNodes) {
         if (!(node.instanceOf(Element)) || node.matches(".ibp-book") || node.closest(".ibp-book")) continue;
         if (node.matches(".mermaid.ibm-mermaid-enhanced")) removedDiagrams.add(node);
@@ -250,7 +254,7 @@ export async function onload(plugin: IgnorancePlugin) {
     for (const diagram of removedDiagrams) { if (diagram.instanceOf(HTMLElement) && !diagram.isConnected) plugin.disposeDiagram(diagram); }
     if (diagrams.size) plugin.enhanceDiagrams([...diagrams].filter((diagram): diagram is HTMLElement => diagram.instanceOf(HTMLElement)));
   });
-  plugin.observer.observe(document.body, { childList: true, subtree: true });
+  plugin.observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["alt"] });
   plugin.register(() => plugin.observer.disconnect());
   markContext(document.body);
   plugin.register(() => clearContextMarkers());
