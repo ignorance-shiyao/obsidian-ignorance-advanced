@@ -10,17 +10,36 @@ import { electron } from "./desktop-files.js";
 export type DragOutMode = "alt" | "always" | "off";
 export const normalizeDragOut = (value: unknown): DragOutMode => value === "always" || value === "off" ? value : "alt";
 
-let icon: unknown = null;
-// A small document badge with the extension, drawn once; the drag image the other app's cursor carries.
-function dragIcon(extension: string) {
+const TYPE_COLORS: Record<string, string> = {
+  docx: "#2b6cb0", doc: "#2b6cb0", pdf: "#d9381e", pptx: "#d9622b", ppt: "#d9622b", xlsx: "#217346", xls: "#217346", csv: "#217346",
+  html: "#7048e8", epub: "#0b7285", png: "#0c8599", jpg: "#0c8599", jpeg: "#0c8599", gif: "#0c8599", svg: "#0c8599", webp: "#0c8599",
+  json: "#a8761b", md: "#5c6370", txt: "#5c6370", zip: "#8a6d3b"
+};
+
+// A document badge in the colour of its type, with the extension on it and the file name under it: the image the
+// other app's cursor carries. Drawn per drag, because the name differs.
+function dragIcon(extension: string, fileName: string) {
+  const width = 150, height = 108;
   const canvas = createEl("canvas");
-  canvas.width = 64; canvas.height = 80;
+  canvas.width = width; canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
-  ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#8a94a6"; ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.roundRect(4, 4, 56, 72, 8); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = "#3b5bdb"; ctx.font = "bold 16px sans-serif"; ctx.textAlign = "center";
-  ctx.fillText(extension.slice(0, 5).toUpperCase(), 32, 46);
+  const color = TYPE_COLORS[extension.toLowerCase()] ?? "#6b7280";
+  ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#c3c9d4"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(width / 2 - 26, 4, 52, 66, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.roundRect(width / 2 - 26, 38, 52, 22, 5); ctx.fill();
+  ctx.fillStyle = "#ffffff"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText(extension.slice(0, 5).toUpperCase(), width / 2, 54);
+  ctx.fillStyle = "#1f2937"; ctx.font = "13px sans-serif";
+  // Too long: shorten the middle so the extension stays visible.
+  const dot = fileName.lastIndexOf(".");
+  const tail = dot > 0 ? fileName.slice(dot) : "";
+  let stem = dot > 0 ? fileName.slice(0, dot) : fileName, label = fileName;
+  while (stem.length > 1 && ctx.measureText(label).width > width - 8) { stem = stem.slice(0, -1); label = `${stem}…${tail}`; }
+  ctx.fillStyle = "rgba(255,255,255,0.92)"; ctx.fillRect(width / 2 - ctx.measureText(label).width / 2 - 4, 80, ctx.measureText(label).width + 8, 20);
+  ctx.fillStyle = "#1f2937";
+  ctx.fillText(label, width / 2, 95);
   return electron()?.nativeImage.createFromDataURL(canvas.toDataURL("image/png")) ?? null;
 }
 
@@ -37,8 +56,8 @@ export function installFileDragOut(plugin: IgnorancePlugin) {
     const full = adapter.getFullPath?.(path);
     const remote = electron()?.remote;
     if (!full || !remote) return;
-    const extension = path.split(".").pop() ?? "";
-    icon ??= dragIcon(extension);
+    const name = path.split("/").pop() ?? path;
+    const icon = dragIcon(name.includes(".") ? name.split(".").pop() ?? "" : "", name);
     if (!icon) return;
     event.preventDefault();
     remote.getCurrentWebContents().startDrag({ file: full, icon });

@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+The drag image used when a file is dragged out to another app now follows the file type (colour and extension badge, e.g. DOCX, PDF, PPTX) and shows the file name under it.
+
 "Choose where to save each export" (settings, desktop): every export opens the system "Save as" window, starting in the folder you used last; cancelling skips that export.
 
 Exports can be saved outside the vault: Settings → Templates and language → "Export folder" takes an absolute path or a folder picked with "Choose…" (empty keeps the vault's 导出 folder; desktop only; if the folder cannot be written the file goes to the vault folder and a notice says so).
