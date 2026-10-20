@@ -161,6 +161,7 @@ class IgnoranceSettingTab extends PluginSettingTab {
           setting.addText(text => { field = text; text.setPlaceholder(tr("导出")).setValue(state.exportDir ?? "").onChange(value => { state.exportDir = value.trim(); plugin.saveStoredState(); }); });
           setting.addButton(button => button.setButtonText(tr("选择…")).onClick(() => void chooseFolder(state.exportDir ?? vaultBasePath(plugin)).then(dir => { if (dir) { state.exportDir = dir; field?.setValue(dir); plugin.saveStoredState(); } })));
         } },
+        { name: tr("每次导出时选择保存位置"), desc: tr("开启后，每次导出都会弹出系统的「存储为」窗口，默认停在上次选的文件夹；取消则不导出。仅桌面端，开启后「导出目录」只作为首次的起点。"), aliases: ["ask where to save", "save as"], add: toggle(() => Boolean(state.exportAsk), value => { state.exportAsk = value; plugin.saveStoredState(); }) },
         { name: tr("拖出文件"), desc: tr("把文件列表里的文件拖到其他软件时，交出文件本身而不是 obsidian:// 地址。「按住 Alt」时只在按住 Alt 或文件在导出文件夹里时生效；库内拖动整理文件不受影响。"), aliases: ["drag out", "drag files"], add: (setting: Setting) => setting.addDropdown(dropdown => dropdown
           .addOption("alt", tr("按住 Alt")).addOption("always", tr("总是")).addOption("off", tr("关闭"))
           .setValue(state.dragOut ?? "alt").onChange(value => { state.dragOut = value === "always" || value === "off" ? value : "alt"; plugin.saveStoredState(); })) },

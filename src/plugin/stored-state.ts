@@ -41,6 +41,8 @@ export async function loadStoredState(plugin: IgnorancePlugin) {
   plugin.state.enhance = Object.fromEntries(Object.entries(plugin.state.enhance ?? {}).filter(([, value]) => value === false));
   plugin.state.userTemplates = { folder: typeof plugin.state.userTemplates?.folder === "string" ? plugin.state.userTemplates.folder : "", author: typeof plugin.state.userTemplates?.author === "string" ? plugin.state.userTemplates.author : "" };
   plugin.state.exportDir = typeof plugin.state.exportDir === "string" ? plugin.state.exportDir.trim() : "";
+  plugin.state.exportAsk = plugin.state.exportAsk === true;
+  plugin.state.exportLastDir = typeof plugin.state.exportLastDir === "string" ? plugin.state.exportLastDir : "";
   plugin.state.dragOut = normalizeDragOut(plugin.state.dragOut);
   plugin.state.language = plugin.state.language === "zh" || plugin.state.language === "en" ? plugin.state.language : "auto";
   setLanguagePreference(plugin.state.language);

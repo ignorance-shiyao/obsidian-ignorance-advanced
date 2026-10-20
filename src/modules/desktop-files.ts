@@ -5,9 +5,9 @@ import type { IgnorancePlugin } from "../plugin-types.js";
    that folder. Obsidian's vault API cannot reach outside the vault, so this uses Node and Electron directly. */
 
 interface NodeFs { mkdirSync(path: string, options: { recursive: boolean }): void; existsSync(path: string): boolean; writeFileSync(path: string, data: string | Uint8Array): void }
-interface NodePath { join(...parts: string[]): string; isAbsolute(path: string): boolean }
+interface NodePath { join(...parts: string[]): string; isAbsolute(path: string): boolean; dirname(path: string): string }
 interface ElectronRemote {
-  dialog: { showOpenDialog(options: { properties: string[]; defaultPath?: string; title?: string }): Promise<{ canceled: boolean; filePaths: string[] }> };
+  dialog: { showSaveDialog(options: { defaultPath?: string; title?: string }): Promise<{ canceled: boolean; filePath?: string }>; showOpenDialog(options: { properties: string[]; defaultPath?: string; title?: string }): Promise<{ canceled: boolean; filePaths: string[] }> };
   getCurrentWebContents(): { startDrag(item: { file: string; icon: unknown }): void };
 }
 interface Electron { remote?: ElectronRemote; nativeImage: { createFromDataURL(url: string): unknown } }
@@ -46,3 +46,22 @@ export async function chooseFolder(start: string): Promise<string | null> {
 }
 
 export const vaultBasePath = (plugin: IgnorancePlugin): string => (plugin.app.vault.adapter as FileSystemAdapter).getBasePath?.() ?? "";
+
+/** The system "save as" window, opened in the folder of the last export (or `start`); null when cancelled. */
+export async function askSavePath(start: string, name: string): Promise<string | null> {
+  const remote = electron()?.remote, path = load<NodePath>("path");
+  if (!remote || !path) return null;
+  const result = await remote.dialog.showSaveDialog({ defaultPath: path.join(start, name) });
+  return result.canceled || !result.filePath ? null : result.filePath;
+}
+
+/** Writes to exactly this path (the system window already asked about overwriting); returns it. */
+export function writeAt(target: string, data: string | Uint8Array): string {
+  const fs = load<NodeFs>("fs"), path = load<NodePath>("path");
+  if (!fs || !path) throw new Error("fs unavailable");
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, data);
+  return target;
+}
+
+export const folderOf = (file: string): string => load<NodePath>("path")?.dirname(file) ?? "";

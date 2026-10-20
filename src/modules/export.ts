@@ -1,4 +1,4 @@
-import { externalExportDir, writeOutside } from "./desktop-files.js";
+import { askSavePath, externalExportDir, folderOf, vaultBasePath, writeAt, writeOutside } from "./desktop-files.js";
 import { openBookExport } from "./book-export.js";
 import { tr } from "../i18n.js";
 import { nextFrame } from "./layout-frame.js";
@@ -486,6 +486,14 @@ async function exportImages(plugin: IgnorancePlugin, file: TFile, kind: string) 
 const EXPORT_FOLDER = "导出";
 
 async function saveExportToVault(plugin: IgnorancePlugin, name: string, data: string | Uint8Array) {
+  if (plugin.state.exportAsk && Platform.isDesktopApp && !Platform.isMobile) {
+    const start = plugin.state.exportLastDir || externalExportDir(plugin) || `${vaultBasePath(plugin)}/${EXPORT_FOLDER}`;
+    const target = await askSavePath(start, name);
+    if (!target) throw new Error(tr("已取消保存"));
+    plugin.state.exportLastDir = folderOf(target);
+    plugin.saveStoredState();
+    return writeAt(target, data);
+  }
   const outside = externalExportDir(plugin);
   if (outside) {
     try { return writeOutside(outside, name, data); }

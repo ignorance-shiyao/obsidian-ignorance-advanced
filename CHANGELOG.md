@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+"Choose where to save each export" (settings, desktop): every export opens the system "Save as" window, starting in the folder you used last; cancelling skips that export.
+
 Exports can be saved outside the vault: Settings → Templates and language → "Export folder" takes an absolute path or a folder picked with "Choose…" (empty keeps the vault's 导出 folder; desktop only; if the folder cannot be written the file goes to the vault folder and a notice says so).
 
 Dragging a file from the file list into another app (a chat window, a mail draft, Finder) hands over the file itself instead of an obsidian:// address: hold Alt while dragging, or drag a file from the export folder. "Drag files out" in settings can make it always or never; moving files inside the vault is unchanged.
