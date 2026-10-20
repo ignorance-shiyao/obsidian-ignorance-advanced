@@ -514,6 +514,7 @@ body.is-phone .markdown-rendered pre.ibc-enhanced > code {
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-inline: auto;
   gap: var(--ibp-page-gap, 24px);
   padding: 32px 0 64px;
 }
