@@ -1,3 +1,4 @@
+import { controlScale } from "./control-geometry.js";
 import { withClassBoxMeasurement } from "./class-box-measurement.js";
 import { withMermaidConfigIsolation } from "./mermaid-config-isolation.js";
 import { Decoration } from "@codemirror/view";
@@ -1581,7 +1582,8 @@ function measureRenderedContent(svg: SVGSVGElement) {
    (An earlier version scanned painted elements instead; it disagreed with the
    viewBox measurement and pushed a Gantt chart ~1000px sideways.) */
 function measureDrawnSize(svg: SVGSVGElement) {
-  const scale = Number(/scale\(([\d.]+)\)/.exec(svg.style.transform)?.[1]) || 1;
+  // Screen rectangles include the page zoom as well as our own transform; divide both out to get the drawing's own size.
+  const scale = (Number(/scale\(([\d.]+)\)/.exec(svg.style.transform)?.[1]) || 1) * controlScale(svg);
   const box = svg.getBoundingClientRect();
   if (!box.width || !box.height) return null;
   // Ground truth: where ink actually landed on screen. Inferring it from the

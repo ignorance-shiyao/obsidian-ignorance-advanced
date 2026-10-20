@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Mermaid diagrams are no longer cut off at the sides when the page zoom is not 100%: the card width was worked out from on-screen sizes that already included the zoom, so it came out too narrow for the drawing.
+
 In the editor the caret and the selection stay on the text when the page zoom is not 100%: the zoom was applied below CodeMirror, which then corrected for it a second time, so the caret sat further from its line the lower in the note it was (a selected heading showed its caret a line lower).
 
 Paged reading is centred in the pane again: when the zoom made the pages narrower than the pane (for example a landscape page at 59%), the whole page stack sat against the left edge.
