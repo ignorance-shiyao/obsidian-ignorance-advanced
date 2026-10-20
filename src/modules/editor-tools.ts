@@ -722,6 +722,8 @@ function buildCopyDecorations(view: EditorView) {
       count = 0;
       // Mermaid renders as a diagram with its own header.
       if (!/^mermaid$/i.test(m[2])) {
+        // No language: Obsidian's own flair is then a second copy button; the header already has ours.
+        if (!m[2].trim()) ranges.push(Decoration.line({ class: "ibc-live-plain" }).range(doc.line(n).from));
         ranges.push(Decoration.widget({ widget: new CodeLanguageIconWidget(m[2]), side: 1 }).range(doc.line(n).to));
         ranges.push(Decoration.widget({ widget: new CodeCopyWidget(), side: 1 }).range(doc.line(n).to));
       }

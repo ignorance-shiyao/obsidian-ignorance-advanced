@@ -3589,3 +3589,6 @@ body {
 .theme-dark {
   --ib-mm-accent-stroke: color-mix(in srgb, var(--ib-accent-brand) 70%, #FFFFFF);
 }
+
+/* A code block with no language: Obsidian's own flair would add a second copy button next to ours. */
+.markdown-source-view.mod-cm6 .HyperMD-codeblock-begin.ibc-live-plain .code-block-flair:not(#_ib):not(#_ib2) { display: none; }

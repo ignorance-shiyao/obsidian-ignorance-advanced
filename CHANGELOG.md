@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+A code block with no language no longer shows two copy buttons in Live Preview (Obsidian's own one next to ours).
+
 ## 1.0.22
 Dragging a file out to another app no longer leaves the file list highlighted and unclickable: while the native drag is running Obsidian's own drop handling is paused, and its drag state (drop highlight, overlay) is cleared when the pointer or window comes back.
 
