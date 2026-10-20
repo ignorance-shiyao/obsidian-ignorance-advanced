@@ -893,9 +893,10 @@ body.is-phone .markdown-rendered pre.ibc-enhanced > code {
 .ibc-container--steps > ul > li::before,
 .ibc-container--steps > ol > li::before { position: absolute; top: 0; left: 0; display: grid; width: 26px; height: 26px; place-items: center; border-radius: 50%; background: var(--ib-accent-solid); color: var(--ib-text-on-accent); content: counter(ibc-step); font-size: var(--ib-tiny-size); font-weight: 700; }
 .ibc-container--kpi > ul,
-.ibc-container--kpi > ol { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--ib-space-3); margin: 0; padding: 0; list-style: none; }
-.ibc-container--kpi li { margin: 0; padding: var(--ib-space-3) var(--ib-space-4); border: var(--ib-border-1) solid var(--ib-border-default); border-radius: var(--ib-radius-lg); background: linear-gradient(135deg, var(--ib-bg-tertiary) 55%, var(--ib-accent-subtle)); box-shadow: var(--ib-shadow-1); color: var(--ib-text-secondary); }
-.ibc-container--kpi li > strong:first-child { display: block; margin-bottom: var(--ib-space-1); color: var(--ib-text-accent); font-size: 2em; line-height: 1.1; }
+.ibc-container--kpi > ol { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--ib-space-4); margin: 0; padding: 0; list-style: none; }
+/* Live Preview: Obsidian pads list items with .markdown-source-view ul > li (one class, two elements); the doubled class here keeps the card padding. */
+.ibc-container--kpi.ibc-container--kpi li { margin: 0; padding: var(--ib-space-4) var(--ib-space-5); border: var(--ib-border-1) solid var(--ib-border-default); border-radius: var(--ib-radius-lg); background: var(--ib-bg-tertiary); box-shadow: var(--ib-shadow-1); color: var(--ib-text-secondary); line-height: 1.5; }
+.ibc-container--kpi li > strong:first-child { display: block; margin-bottom: var(--ib-space-2); color: var(--ib-text-accent); font-size: 2em; line-height: 1.1; }
 .ibc-container--kpi li > em { color: var(--ib-text-accent); font-style: normal; font-weight: 600; }
 .ibc-container--gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: var(--ib-space-3); }
 .ibc-container--gallery > p:not(.ib-has-img) { display: none; }

@@ -1,7 +1,7 @@
 # Changelog
 
 ## Unreleased
-Timeline blocks in Live Preview no longer show blank lines between the items (the newline between list items was being drawn as an empty line, which spread the dots far apart). The axis now runs only from one dot to the next and no longer sticks out above the first or below the last; dots have a soft halo instead of a ring and sit inside the text column. KPI cards get a light tint and shadow, with the change figure (`_+12%_`) in the accent colour instead of italics.
+Timeline blocks in Live Preview no longer show blank lines between the items (the newline between list items was being drawn as an empty line, which spread the dots far apart). The axis now runs only from one dot to the next and no longer sticks out above the first or below the last; dots have a soft halo instead of a ring and sit inside the text column. KPI cards are roomier (padding was being reset to zero in Live Preview), with a solid background, a soft shadow and the change figure (`_+12%_`) in the accent colour instead of italics.
 
 The layout presets in the page settings menu (论文 / 汇报 / 公文 / 博客) now show a check mark on the one the page settings currently match; before, none was ever checked.
 
