@@ -1,6 +1,7 @@
 import type { IgnorancePlugin, PageState } from "../plugin-types.js";
 import { tr, zh } from "../i18n.js";
 import { MarkdownView, Menu, Platform } from "obsidian";
+import { controlScale } from "./control-geometry.js";
 import type { TFile } from "obsidian";
 import { setDocSheet, removeDocSheet } from "./doc-sheets.js";
 import { setIcon } from "./ui-icons.js";
@@ -408,7 +409,8 @@ function installPageControls(plugin: IgnorancePlugin, showExportMenu: (plugin: I
       const centre = box.left + box.width / 2;
       // The share is of the sizer's container (the scroller minus its padding and scrollbar), not of the whole view.
       const parent = sizer.parentElement, pad = getComputedStyle(parent);
-      const room = parent.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
+      // clientWidth is in the parent's own units; the pointer is in screen pixels, and in the editor the page zoom sits above the scroller.
+      const room = (parent.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight)) * controlScale(parent);
       const zoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(page().zoom) || 1));
       const move = (e: PointerEvent) => {
         const share = Math.round(Math.min(100, Math.max(30, (Math.abs(e.clientX - centre) * 2) / (room * zoom) * 100)));

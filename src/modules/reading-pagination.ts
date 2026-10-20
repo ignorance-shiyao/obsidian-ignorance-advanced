@@ -1,3 +1,4 @@
+import { controlScale } from "./control-geometry.js";
 import type { MarkdownPreviewView, TFile, View } from "obsidian";
 import { tr } from "../i18n.js";
 import type { RenderingContext, PageState } from "../rendering-context.js";
@@ -407,8 +408,9 @@ function retainTableRows(block: PageBlock, cloneTable: HTMLElement, start: numbe
     }
     while (columns.children.length < sourceCells.length) columns.appendChild(createEl("col"));
     [...columns.children].slice(sourceCells.length).forEach(column => column.remove());
-    sourceCells.forEach((cell, index) => { (columns.children[index] as HTMLElement).style.width = `${cell.getBoundingClientRect().width}px`; });
-    cloneTable.style.width = `${block.table.getBoundingClientRect().width}px`;
+    // Screen widths include the page zoom; the clone's inline widths are in its own units.
+    sourceCells.forEach((cell, index) => { (columns.children[index] as HTMLElement).style.width = `${cell.getBoundingClientRect().width / controlScale(cell)}px`; });
+    cloneTable.style.width = `${block.table.getBoundingClientRect().width / controlScale(block.table)}px`;
     cloneTable.setCssStyles({ tableLayout: "fixed" });
   }
 }

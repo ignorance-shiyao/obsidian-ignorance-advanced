@@ -1,3 +1,4 @@
+import { controlScale } from './control-geometry.js';
 /** Allocate a bounded share of paper width; long fields must not force overflow. */
 export function paperColumnShares(rows: string[][], minimumShares: number[] = []): number[] {
   const count = rows[0]?.length || 0;
@@ -33,7 +34,8 @@ export function preparePaperTableColumns(root: HTMLElement) {
     const rows = Array.from(table.rows);
     if (rows.some(row => Array.from(row.cells).some(cell => cell.colSpan !== 1 || cell.rowSpan !== 1))) return [];
     const content = rows.map(row => Array.from(row.cells, cell => (cell.textContent || '').trim()));
-    const width = table.getBoundingClientRect().width;
+    // Text is measured in the table's own units, so the screen width has the page zoom taken out.
+    const width = table.getBoundingClientRect().width / controlScale(table);
     const minimums = content[0]?.map((_, index) => {
       if (!width || !context || content.some(row => !row[index] || row[index].length > 12 || /\s/.test(row[index]))) return 0;
       return Math.max(...rows.map(row => {

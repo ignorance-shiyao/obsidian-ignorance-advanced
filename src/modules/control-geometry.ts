@@ -1,10 +1,14 @@
 /** Viewport rectangles include CSS zoom; inline dimensions and scroll offsets do not. */
 export function controlScale(element: Element): number {
   let scale = 1;
-  for (let node: Element | null = element; node; node = node.parentElement) {
-    const zoom = getComputedStyle(node).getPropertyValue("zoom");
-    const value = parseFloat(zoom) / (zoom.endsWith("%") ? 100 : 1);
-    if (Number.isFinite(value) && value > 0) scale *= value;
+  try {
+    for (let node: Element | null = element; node; node = node.parentElement) {
+      const zoom = getComputedStyle(node).getPropertyValue("zoom");
+      const value = parseFloat(zoom) / (zoom.endsWith("%") ? 100 : 1);
+      if (Number.isFinite(value) && value > 0) scale *= value;
+    }
+  } catch {
+    // Not a live element (a detached or stand-in node): no zoom to take out.
   }
   return scale;
 }
