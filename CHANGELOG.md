@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+Dragging a file out to another app clears Obsidian's own drag state (the "move to" label) right away and again when the pointer or window returns, in case the label stayed behind.
+
 Dragging a file out to another app no longer leaves Obsidian's "move to" drag label stuck on screen afterwards.
 
 The drag image used when a file is dragged out to another app now follows the file type (colour and extension badge, e.g. DOCX, PDF, PPTX) and shows the file name under it.

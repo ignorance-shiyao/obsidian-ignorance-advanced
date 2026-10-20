@@ -64,5 +64,23 @@ export function installFileDragOut(plugin: IgnorancePlugin) {
     event.preventDefault();
     event.stopImmediatePropagation();
     remote.getCurrentWebContents().startDrag({ file: full, icon });
+    clearAppDrag(plugin);
   }, true);
+}
+
+/* The native drag never sends the page a dragend, so anything Obsidian's own drag handling set up would stay on
+   screen. Its drag manager clears it all in onDragEnd; the ghost and the grabbing class are removed as well in
+   case a version of Obsidian names things differently. */
+function clearAppDrag(plugin: IgnorancePlugin) {
+  const clear = () => {
+    (plugin.app as unknown as { dragManager?: { onDragEnd?: () => void } }).dragManager?.onDragEnd?.();
+    for (const ghost of Array.from(document.querySelectorAll(".drag-ghost"))) ghost.remove();
+    document.body.classList.remove("is-grabbing");
+  };
+  clear();
+  window.setTimeout(clear, 0);
+  window.setTimeout(clear, 300);
+  // The first sign of the pointer or the window coming back means the drag is over: clear once more then.
+  const done = () => { clear(); for (const type of ["mousemove", "mouseup", "focus", "dragover"]) window.removeEventListener(type, done, true); };
+  for (const type of ["mousemove", "mouseup", "focus", "dragover"]) window.addEventListener(type, done, true);
 }
