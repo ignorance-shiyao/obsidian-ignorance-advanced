@@ -47,11 +47,18 @@ export function installFileDragOut(plugin: IgnorancePlugin) {
   if (!Platform.isDesktopApp || Platform.isMobile) return;
   plugin.registerDomEvent(document, "dragstart", (event: DragEvent) => {
     const mode = normalizeDragOut(plugin.state.dragOut);
-    const row = (event.target as HTMLElement | null)?.closest?.<HTMLElement>(".nav-file-title[data-path]");
-    const path = row?.dataset.path;
+    const target = event.target as HTMLElement | null;
+    const row = target?.closest?.<HTMLElement>(".nav-file-title[data-path]");
+    // A tab header: the file of the leaf whose header this is.
+    const header = row ? null : target?.closest?.<HTMLElement>(".workspace-tab-header");
+    let path = row?.dataset.path;
+    if (!path && header) plugin.app.workspace.iterateAllLeaves(leaf => {
+      if ((leaf as unknown as { tabHeaderEl?: HTMLElement }).tabHeaderEl === header) path = (leaf.view as { file?: { path?: string } }).file?.path;
+    });
     if (mode === "off" || !path) return;
     const inExports = path.startsWith("导出/") || path.startsWith(`${(plugin.state.exportDir ?? "").trim()}/`);
-    if (mode === "alt" && !event.altKey && !inExports) return;
+    // Tabs are dragged to rearrange them, so only Alt turns a tab drag into a file drag.
+    if (mode === "alt" && !event.altKey && !(inExports && !header)) return;
     const adapter = plugin.app.vault.adapter as FileSystemAdapter;
     const full = adapter.getFullPath?.(path);
     const remote = electron()?.remote;
