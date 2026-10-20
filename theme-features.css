@@ -3212,10 +3212,11 @@ tr[data-ib-level="3"] > :first-child { padding-inline-start: 4em; }
 }
 
 /* Phones: the page uses the whole window width, the same as Obsidian's own layout. */
-body.is-phone .workspace-leaf-content[data-type="markdown"] :is(.markdown-reading-view .markdown-preview-sizer, .markdown-source-view.mod-cm6 .cm-sizer):not(#_ib):not(#_ib2):not(#_ib3) {
+body.is-phone .workspace-leaf-content[data-type="markdown"] :is(.markdown-reading-view .markdown-preview-sizer, .markdown-source-view.mod-cm6 .cm-sizer):not(#_ib):not(#_ib2):not(#_ib3):not(#_ib4) {
   zoom: 1;
   width: 100%;
 }
+body.is-phone .workspace-leaf-content[data-type="markdown"] .markdown-source-view.mod-cm6 .cm-editor:not(#_ib):not(#_ib2):not(#_ib3):not(#_ib4) { zoom: 1; }
 
 /* Page width handle: a thin bar on the page edge, shown when the pointer is near it. */
 .workspace-leaf-content[data-type="markdown"] > .view-content { position: relative; }
