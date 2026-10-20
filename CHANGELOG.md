@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+In the editor the caret and the selection stay on the text when the page zoom is not 100%: the zoom was applied below CodeMirror, which then corrected for it a second time, so the caret sat further from its line the lower in the note it was (a selected heading showed its caret a line lower).
+
 Paged reading is centred in the pane again: when the zoom made the pages narrower than the pane (for example a landscape page at 59%), the whole page stack sat against the left edge.
 
 Timeline blocks in Live Preview no longer show blank lines between the items (the newline between list items was being drawn as an empty line, which spread the dots far apart). The axis now runs only from one dot to the next and no longer sticks out above the first or below the last; dots have a soft halo instead of a ring and sit inside the text column. KPI cards are roomier (padding was being reset to zero in Live Preview), with a solid background, a soft shadow and the change figure (`_+12%_`) in the accent colour instead of italics.

@@ -3194,6 +3194,11 @@ tr[data-ib-level="3"] > :first-child { padding-inline-start: 4em; }
   max-width: none;
   flex: none;
 }
+/* Editing: the zoom sits on the editor itself, not on its sizer. CodeMirror measures its own scale to place the caret
+   and the selection; zoomed only below the editor it corrects for a scale that CSS zoom has already applied, and the
+   caret drifts away from the text the further down the note it is. */
+.workspace-leaf-content[data-type="markdown"] .markdown-source-view.mod-cm6 .cm-editor:not(#_ib):not(#_ib2):not(#_ib3) { zoom: var(--ibp-zoom, 1); }
+.workspace-leaf-content[data-type="markdown"] .markdown-source-view.mod-cm6 .cm-sizer:not(#_ib):not(#_ib2):not(#_ib3):not(#_ib4) { zoom: 1; }
 /* With Obsidian's "Readable line length" off the page fills the pane; the width presets do not apply. */
 .workspace-leaf-content[data-type="markdown"] :is(.markdown-reading-view .markdown-preview-view:not(.is-readable-line-width) .markdown-preview-sizer, .markdown-source-view.mod-cm6:not(.is-readable-line-width) .cm-sizer):not(#_ib):not(#_ib2):not(#_ib3) {
   width: calc(100% * var(--ibp-zoom, 1));
