@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.0.23
+
 Enabling the plugin in an already-open vault no longer fails while applying custom callouts: saved settings now load before workspace callbacks and editor extensions are installed.
 Image filters and alignment chosen from the image toolbar now take effect straight away in Live Preview (and go away again when you pick "no filter"): Live Preview reuses the same image element when its alt text is edited, which the markers that drive the filter styles did not notice until the note was reopened.
 
