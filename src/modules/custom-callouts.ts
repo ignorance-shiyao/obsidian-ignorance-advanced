@@ -11,7 +11,7 @@ export function applyCustomCallouts(plugin: IgnorancePlugin): string[] {
 }
 
 export function installCustomCallouts(plugin: IgnorancePlugin) {
-  // The stored settings are read after the plugin's own start-up, so apply once the workspace is ready.
+  // Settings are loaded before installation; apply when the workspace is ready.
   plugin.app.workspace.onLayoutReady(() => { applyCustomCallouts(plugin); });
   plugin.register(() => removeDocSheet(KEY));
 }

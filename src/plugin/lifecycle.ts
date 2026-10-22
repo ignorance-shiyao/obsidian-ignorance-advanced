@@ -95,6 +95,9 @@ function insertSnippet(editor: Editor, snippet: (typeof SNIPPET_TEMPLATES)[numbe
 /* Plugin lifecycle: everything onload wires up (state, renderers, editor extensions, commands, views, observers) and what onunload undoes. */
 
 export async function onload(plugin: IgnorancePlugin) {
+  // onLayoutReady runs immediately when enabling a plugin in an open vault.
+  // Load settings before installing any callbacks or editor extensions.
+  await plugin.loadStoredState();
   plugin.measuredBounds = new WeakMap();
   plugin.fileTools = Object.freeze({
     isMarkdownImportSource,
@@ -170,7 +173,6 @@ export async function onload(plugin: IgnorancePlugin) {
   plugin.heightMemory = new BlockHeightMemory(plugin.app, "ignorance-advanced-block-heights");
   plugin.register(() => plugin.heightMemory.dispose());
 
-  await plugin.loadStoredState();
   installPresentationMode(plugin);
   plugin.registerView(HTML_READONLY_VIEW, leaf => new HtmlReadOnlyView(leaf));
   plugin.registerExtensions(["html", "htm"], HTML_READONLY_VIEW);
