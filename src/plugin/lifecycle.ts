@@ -74,6 +74,7 @@ import { syncPreviewTableAlignment } from "../modules/table-alignment.js";
 import { installTableCrosshair } from "../modules/table-crosshair.js";
 import { TABLE_COMMANDS,applyTableEdit,canEditTable,tableEditorExtension } from "../modules/table-editor.js";
 import { installTableExtras } from "../modules/table-merge.js";
+import { installVlookImages } from "../modules/vlook-image.js";
 import { installTableSort } from "../modules/table-sort.js";
 import { renderTocBlocks,tocExtension } from "../modules/toc.js";
 import { installWebClip } from "../modules/web-clip.js";
@@ -134,6 +135,7 @@ export async function onload(plugin: IgnorancePlugin) {
   installHeadingNumbers(plugin);
   installLenientBlocks(plugin);
   installTableExtras(plugin);
+  installVlookImages(plugin);
   installCaptions(plugin);
   installReadingCover(plugin);
   installReadingBanner(plugin);

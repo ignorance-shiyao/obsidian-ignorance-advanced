@@ -8,6 +8,7 @@ The title icon of the generated table of contents shows a list icon again instea
 VLOOK syntax, part 1 (Reading view and exports; the note text stays as written):
 - Colour codes: `text_~Rd~_` colours the text before it, `_~Rd~_` at the start colours the whole paragraph, list item or cell, `_~RdSe~_` makes a gradient, a highlight or underline takes the colour too, and a quote whose first line is only `_~Og~_` takes the colour on its rail and background. T1/T2 follow the accent palette.
 - Tables: `_~Bu!~_` colours a cell's background; `==` and `:` join a cell to its left or above neighbour (as `<` and `^` do); a header that is wholly bold, italic or highlighted formats its column, and a struck-through header leaves the column out; a header containing `[ ]` turns the column into checkboxes (`Y`, `N`, `?`, `[x]`, `[-]`); right-aligned signed numbers are coloured and `¥ 12800` shows its currency apart; a wholly empty row or column becomes a gap that sets totals apart.
+- Images, written in the address: `#line` / `#block` put a grid behind a transparent image, `#padding` adds room around it, `#invert` `#blur` `#aged` `#gray` filter it (with `!`, the filter lifts on hover), `#card` / `#cardd` turn it into a postcard (`#border` adds an edge; Obsidian drops the `"title"` of local images, so the card shows the alt text only), `?fill=text` or `?fill=Rd` shows its silhouette in the text colour or a colour code, and `?darksrc=invert`, `?darksrc=~` or `?darksrc=other.png` adapt it to dark mode. Addresses with `?` no longer show "not found".
 
 ## 1.0.23
 
