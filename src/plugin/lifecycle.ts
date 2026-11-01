@@ -75,6 +75,7 @@ import { installTableCrosshair } from "../modules/table-crosshair.js";
 import { TABLE_COMMANDS,applyTableEdit,canEditTable,tableEditorExtension } from "../modules/table-editor.js";
 import { installTableExtras } from "../modules/table-merge.js";
 import { installVlookImages } from "../modules/vlook-image.js";
+import { installVlookBlocks } from "../modules/vlook-blocks.js";
 import { installTableSort } from "../modules/table-sort.js";
 import { renderTocBlocks,tocExtension } from "../modules/toc.js";
 import { installWebClip } from "../modules/web-clip.js";
@@ -136,6 +137,7 @@ export async function onload(plugin: IgnorancePlugin) {
   installLenientBlocks(plugin);
   installTableExtras(plugin);
   installVlookImages(plugin);
+  installVlookBlocks(plugin);
   installCaptions(plugin);
   installReadingCover(plugin);
   installReadingBanner(plugin);

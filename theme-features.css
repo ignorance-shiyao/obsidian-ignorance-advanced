@@ -3722,3 +3722,25 @@ u.ib-cc-underline { text-decoration: none; border-bottom: 1.5px solid var(--ib-c
 blockquote.ib-cc-quote { border-inline-start-color: var(--ib-cc); background: var(--ib-cc-bg); }
 blockquote.ib-cc-quote > :first-child :is(strong, b):first-child { color: var(--ib-cc); }
 @media print { .ib-cc-gradient { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+
+/* ---- VLOOK list columns and progress bars ---- */
+.ib-list-columns-rule:not(#_ib) { display: none; }
+.markdown-rendered :is(ul, ol).ib-list-columns {
+  display: grid;
+  grid-template-columns: repeat(var(--ib-list-columns, 2), minmax(0, 1fr));
+  gap: var(--ib-space-3, 12px);
+  padding-inline-start: 0;
+  list-style: none;
+}
+.markdown-rendered :is(ul, ol).ib-list-columns > li {
+  margin: 0;
+  padding: var(--ib-space-3, 12px) var(--ib-space-4, 16px);
+  border: 1px solid var(--ib-card-border, var(--background-modifier-border));
+  border-radius: var(--ib-card-radius, 12px);
+  background: var(--ib-sec-bg, var(--background-secondary));
+}
+.markdown-rendered :is(ul, ol).ib-list-columns > li::marker { content: none; }
+.markdown-rendered :is(ul, ol).ib-list-columns > li > :is(p, strong):first-child { font-weight: 700; }
+@media (max-width: 600px) { .markdown-rendered :is(ul, ol).ib-list-columns { grid-template-columns: minmax(0, 1fr); } }
+.ib-progress .ib-inline-bar__fill { background: var(--ib-progress-color, var(--ib-accent-solid)); }
+.ib-progress .ib-inline-bar__value { color: var(--ib-progress-color, var(--ib-text-accent)); }
