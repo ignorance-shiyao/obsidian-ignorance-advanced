@@ -114,6 +114,16 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
   canvas.setAttribute("data-ignore-swipe", "true");
   canvas.appendChild(svg);
   container.appendChild(canvas);
+  // Obsidian 1.13 draws with `max-width: 100%; height: auto`, which shrinks the box below its viewBox while the
+  // fit still measures the viewBox; pin it to the viewBox in px from the start (refitJobs pins it again later).
+  const initialBox = svg.viewBox?.baseVal;
+  if (initialBox?.width && initialBox?.height) {
+    svg.style.setProperty("width", `${Math.ceil(initialBox.width)}px`, "important");
+    svg.style.setProperty("height", `${Math.ceil(initialBox.height)}px`, "important");
+    // Its inline max-width outranks the .ibm-unclamp rule.
+    svg.setCssStyles({ maxWidth: "none" });
+    svg.classList.add("ibm-unclamp");
+  }
   // Reserve the height this diagram settled at last time, so it does not grow after it scrolls in.
   const viewBox = svg.getAttribute("viewBox");
   if (viewBox) {
@@ -361,6 +371,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
     svg.removeEventListener("ibm-geometry-change", onGeometryChange);
     resizeObserver.disconnect();
     state.visibility?.disconnect();
+    state.unclamp?.disconnect();
     clearPaint(svg);
     if (canvas.parentElement === container) container.insertBefore(svg, canvas);
     canvas.remove();
@@ -394,6 +405,12 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
   // Geometry fixes that run once the diagram is measurable (see
   // whenMeasurable) change the viewBox after this fit; refit when they do.
   svg.addEventListener("ibm-geometry-change", onGeometryChange);
+  // Obsidian 1.13 writes `max-width: 100%` back onto a diagram when it lays it out again; keep it lifted.
+  const unclamp = new MutationObserver(() => {
+    if (svg.classList.contains("ibm-unclamp") && svg.style.maxWidth !== "none") svg.setCssStyles({ maxWidth: "none" });
+  });
+  unclamp.observe(svg, { attributes: true, attributeFilter: ["style"] });
+  state.unclamp = unclamp;
 
   // Obsidian renders Mermaid inside a hidden, absolutely positioned div and
   // moves the result in afterwards, so the first measurement can land while
@@ -478,6 +495,7 @@ export function refitJobs(plugin: IgnorancePlugin, jobs: RefitJob[]) {
     if (box?.width && box?.height) {
       svg.style.setProperty("width", `${Math.ceil(box.width)}px`, "important");
       svg.style.setProperty("height", `${Math.ceil(box.height)}px`, "important");
+      svg.setCssStyles({ maxWidth: "none" });
       svg.classList.add("ibm-unclamp");
     }
     // Measure the real drawing at 100%, then fit from that.
@@ -597,6 +615,7 @@ export function tightenViewBox(plugin: IgnorancePlugin, svg: SVGSVGElement) {
     // this, Mermaid's original width/height can leave a large empty canvas.
     svg.style.setProperty("width", `${Math.ceil(fittedWidth)}px`, "important");
     svg.style.setProperty("height", `${Math.ceil(fittedHeight)}px`, "important");
+    svg.setCssStyles({ maxWidth: "none" });
     // Obsidian's and the theme's `.mermaid svg { max-width: 100% !important;
     // max-height: calc(100vh - …) !important }` clamp the box to the canvas;
     // the drawing then shrinks inside it on top of our own zoom. Only an

@@ -538,6 +538,8 @@ body.is-mobile .ib-image-actions .ib-image-action { width:34px; height:34px; }
 .mermaid svg[data-ibm-engine]:not(#_ib):not(#_ib2) { max-width: var(--ibm-max-width, 100%); }
 /* Static overrides that used to be set as inline styles from script; three ids outrank every class rule. */
 svg.ibm-unclamp:not(#_ib):not(#_ib2):not(#_ib3) { max-width: none; max-height: none; }
+/* Obsidian 1.13 adds its own zoom buttons (inline display) to diagrams; the card header already has zoom. */
+.ibm-mermaid-enhanced > .pele-zoom:not(#_ib):not(#_ib2) { visibility: hidden; pointer-events: none; }
 .ibm-unclamp-width:not(#_ib):not(#_ib2):not(#_ib3) { max-width: none; }
 .ibp-no-min-width:not(#_ib):not(#_ib2):not(#_ib3) { min-width: 0; }
 .ibp-callout-open:not(#_ib):not(#_ib2):not(#_ib3) { display: block; height: auto; opacity: 1; }

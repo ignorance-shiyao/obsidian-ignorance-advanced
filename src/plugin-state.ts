@@ -130,4 +130,5 @@ export interface DiagramState {
   minimumFontPx?: number;
   fitHeightLimit?: number;
   visibility?: IntersectionObserver;
+  unclamp?: MutationObserver;
 }

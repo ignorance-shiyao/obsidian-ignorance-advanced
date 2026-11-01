@@ -444,6 +444,11 @@ function makePage(blocks: PageBlock[], window: { start: number; stop: number }, 
   for (const block of blocks) {
     if (block.bottom <= window.start + 0.5 || block.top >= window.stop - 0.5) continue;
     const clone = block.el.cloneNode(true) as HTMLElement;
+    // Obsidian re-renders a diagram marked `node-insert-event` when it is inserted, resetting its classes and
+    // dropping the placement; the clone already carries the drawing.
+    for (const node of [clone, ...clone.querySelectorAll<HTMLElement>(".node-insert-event")]) node.classList.remove("node-insert-event");
+    // Obsidian 1.13 also puts an inline `position: relative` on diagrams, which would beat the page placement.
+    clone.style.removeProperty("position");
     // Paper language labels are information, not disconnected rename buttons.
     clone.querySelectorAll<HTMLElement>('.ibm-block-label.is-editable').forEach((label) => {
       const text = createSpan();

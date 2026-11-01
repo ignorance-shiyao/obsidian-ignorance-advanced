@@ -4,6 +4,7 @@
 
 The plugin now works on its own: with any other theme, or Obsidian's default one, its diagrams, badges, cards, tables tools, reader and exports keep the Ignorance look, because the plugin now carries the design tokens it used to borrow from the theme. With the Ignorance theme active nothing changes.
 The title icon of the generated table of contents shows a list icon again instead of a filled square.
+Diagrams drawn by Obsidian 1.13 show in their cards again: flowcharts were blank and swimlanes cut off in Reading view, and diagrams overlapped the text in paged reading. Obsidian's own zoom buttons no longer sit on top of the card toolbar.
 
 Extended Markdown syntax (Reading view and exports; the note text stays as written):
 - Colour codes: `text_~Rd~_` colours the text before it, `_~Rd~_` at the start colours the whole paragraph, list item or cell, `_~RdSe~_` makes a gradient, a highlight or underline takes the colour too, and a quote whose first line is only `_~Og~_` takes the colour on its rail and background. T1/T2 follow the accent palette.
