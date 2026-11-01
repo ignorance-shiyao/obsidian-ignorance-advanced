@@ -3126,9 +3126,10 @@ body.ib-gray-mode { filter: grayscale(1); }
 .ib-inline-ref.is-missing { color: var(--ib-error-text, var(--text-error)); }
 
 /* ---- Table extras: number columns, percent bars, folding rows, frozen header ---- */
-.ib-cell-number { font-variant-numeric: tabular-nums; }
+.ib-cell-number { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ib-cell-percent {
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   background: linear-gradient(90deg, var(--ib-accent-subtle, var(--background-modifier-hover)) var(--ib-percent, 0%), transparent var(--ib-percent, 0%));
 }
 .ib-row-toggle { margin-inline-end: .35em; padding: 0 .25em; border: 0; background: transparent; box-shadow: none; color: var(--ib-text-muted, var(--text-muted)); cursor: pointer; font-size: .9em; }
@@ -3137,6 +3138,21 @@ tr[data-ib-level="2"] > :first-child { padding-inline-start: 2.8em; }
 tr[data-ib-level="3"] > :first-child { padding-inline-start: 4em; }
 .ib-row-hidden { display: none; }
 @media print { .ib-row-hidden { display: table-row; } .ib-row-toggle { display: none; } }
+.markdown-rendered td:is(.ib-cell-positive, .ib-cell-negative) { white-space: nowrap; }
+.markdown-rendered td.ib-cell-positive { color: var(--ib-error-text, var(--text-error)); }
+.markdown-rendered td.ib-cell-negative { color: var(--ib-success-text, var(--text-success)); }
+.ib-cell-currency { margin-inline-end: .3em; color: var(--ib-text-muted, var(--text-muted)); font-size: .85em; }
+.markdown-rendered :is(td, th).ib-col-bold { font-weight: 700; }
+.markdown-rendered :is(td, th).ib-col-em { font-style: italic; }
+.markdown-rendered table td.ib-col-mark:not(#_ib) { background: var(--ib-accent-subtle, var(--text-highlight-bg)); }
+.ib-table-check.is-partial { color: var(--ib-text-accent, var(--text-accent)); }
+.ib-table-check.is-no { color: var(--ib-text-muted, var(--text-muted)); }
+/* An empty row or column is a gap: the page shows through, setting totals apart. */
+.markdown-rendered table.ib-table-gapped :is(tr.ib-row-gap > *, td.ib-col-gap, th.ib-col-gap):not(#_ib) {
+  padding: 0; border-color: transparent; background: var(--ib-page-paper, var(--background-primary));
+}
+.markdown-rendered table.ib-table-gapped .ib-row-gap > * { height: 6px; }
+.markdown-rendered table.ib-table-gapped .ib-col-gap { width: 6px; min-width: 6px; }
 .markdown-reading-view:not(.ibp-book-host) .el-table.ib-table-tall { max-height: min(70vh, 640px); overflow-y: auto; }
 .markdown-reading-view:not(.ibp-book-host) .el-table.ib-table-tall > table thead th:not(#_ib) { position: sticky; top: 0; z-index: 3; background: var(--ib-table-heading-bg, var(--background-secondary)); }
 @media print { .markdown-reading-view .el-table.ib-table-tall { max-height: none; overflow: visible; } }
@@ -3593,3 +3609,59 @@ body {
 
 /* A code block with no language: Obsidian's own flair would add a second copy button next to ours. */
 .markdown-source-view.mod-cm6 .HyperMD-codeblock-begin.ibc-live-plain .code-block-flair:not(#_ib):not(#_ib2) { display: none; }
+
+/* ---- VLOOK colour codes (_~Rd~_, _~Bu!~_, _~RdGn~_) ----
+   T1/T2 follow the accent palette; red, green, orange and blue are the theme's own state colours. */
+body {
+  --ib-ac-t1: var(--ib-accent-brand); --ib-ac-t2: var(--ib-accent-purple, #7867C9); --ib-ac-tu: #C79215;
+  --ib-ac-rd: var(--ib-error-icon, #D64545); --ib-ac-gn: var(--ib-success-icon, #29A953); --ib-ac-og: var(--ib-warning-icon, #F38019);
+  --ib-ac-bu: var(--ib-info-icon, #2082F0); --ib-ac-ro: #E440C9; --ib-ac-ye: #FAC208; --ib-ac-la: #BBAEF9; --ib-ac-lm: #B4D219;
+  --ib-ac-gy: #888B8F; --ib-ac-gd: #DFBEBD; --ib-ac-aq: #67D7D8; --ib-ac-au: #4A15B2; --ib-ac-cf: #62453E; --ib-ac-cy: #10A0A8;
+  --ib-ac-bn: #B2745A; --ib-ac-se: #104BC0; --ib-ac-sk: #88C1FA; --ib-ac-vn: #735DE0; --ib-ac-pl: #F9C7C7; --ib-ac-pu: #9420B0;
+  --ib-ac-pk: #F8A8DD; --ib-ac-mn: #0E7150; --ib-ac-wn: #901050; --ib-ac-ol: #607010;
+  --ib-ac-wt: var(--ib-bg-tertiary, #FFFFFF); --ib-ac-bk: var(--ib-text-primary, var(--text-normal));
+  --ib-ac-fade: 16%;
+  --ib-ac-text-mix: 62%;
+}
+body.theme-dark {
+  --ib-ac-au: #6E32E5; --ib-ac-cf: #76534B; --ib-ac-se: #3C74E6; --ib-ac-vn: #8471E0; --ib-ac-pu: #AB25CC;
+  --ib-ac-mn: #0F805A; --ib-ac-wn: #BF3078; --ib-ac-ol: #75852A;
+  --ib-ac-fade: 26%;
+  --ib-ac-text-mix: 100%;
+}
+body {
+  --ib-ac-t1-fade: color-mix(in srgb, var(--ib-ac-t1) var(--ib-ac-fade), transparent); --ib-ac-t2-fade: color-mix(in srgb, var(--ib-ac-t2) var(--ib-ac-fade), transparent);
+  --ib-ac-tu-fade: color-mix(in srgb, var(--ib-ac-tu) var(--ib-ac-fade), transparent); --ib-ac-rd-fade: color-mix(in srgb, var(--ib-ac-rd) var(--ib-ac-fade), transparent);
+  --ib-ac-gn-fade: color-mix(in srgb, var(--ib-ac-gn) var(--ib-ac-fade), transparent); --ib-ac-og-fade: color-mix(in srgb, var(--ib-ac-og) var(--ib-ac-fade), transparent);
+  --ib-ac-bu-fade: color-mix(in srgb, var(--ib-ac-bu) var(--ib-ac-fade), transparent); --ib-ac-ro-fade: color-mix(in srgb, var(--ib-ac-ro) var(--ib-ac-fade), transparent);
+  --ib-ac-ye-fade: color-mix(in srgb, var(--ib-ac-ye) var(--ib-ac-fade), transparent); --ib-ac-la-fade: color-mix(in srgb, var(--ib-ac-la) var(--ib-ac-fade), transparent);
+  --ib-ac-lm-fade: color-mix(in srgb, var(--ib-ac-lm) var(--ib-ac-fade), transparent); --ib-ac-gy-fade: color-mix(in srgb, var(--ib-ac-gy) var(--ib-ac-fade), transparent);
+  --ib-ac-gd-fade: color-mix(in srgb, var(--ib-ac-gd) var(--ib-ac-fade), transparent); --ib-ac-aq-fade: color-mix(in srgb, var(--ib-ac-aq) var(--ib-ac-fade), transparent);
+  --ib-ac-au-fade: color-mix(in srgb, var(--ib-ac-au) var(--ib-ac-fade), transparent); --ib-ac-cf-fade: color-mix(in srgb, var(--ib-ac-cf) var(--ib-ac-fade), transparent);
+  --ib-ac-cy-fade: color-mix(in srgb, var(--ib-ac-cy) var(--ib-ac-fade), transparent); --ib-ac-bn-fade: color-mix(in srgb, var(--ib-ac-bn) var(--ib-ac-fade), transparent);
+  --ib-ac-se-fade: color-mix(in srgb, var(--ib-ac-se) var(--ib-ac-fade), transparent); --ib-ac-sk-fade: color-mix(in srgb, var(--ib-ac-sk) var(--ib-ac-fade), transparent);
+  --ib-ac-vn-fade: color-mix(in srgb, var(--ib-ac-vn) var(--ib-ac-fade), transparent); --ib-ac-pl-fade: color-mix(in srgb, var(--ib-ac-pl) var(--ib-ac-fade), transparent);
+  --ib-ac-pu-fade: color-mix(in srgb, var(--ib-ac-pu) var(--ib-ac-fade), transparent); --ib-ac-pk-fade: color-mix(in srgb, var(--ib-ac-pk) var(--ib-ac-fade), transparent);
+  --ib-ac-mn-fade: color-mix(in srgb, var(--ib-ac-mn) var(--ib-ac-fade), transparent); --ib-ac-wn-fade: color-mix(in srgb, var(--ib-ac-wn) var(--ib-ac-fade), transparent);
+  --ib-ac-ol-fade: color-mix(in srgb, var(--ib-ac-ol) var(--ib-ac-fade), transparent); --ib-ac-wt-fade: color-mix(in srgb, var(--ib-ac-wt) 70%, transparent);
+  --ib-ac-bk-fade: color-mix(in srgb, var(--ib-ac-bk) var(--ib-ac-fade), transparent);
+  --ib-ac-ye-text: color-mix(in srgb, var(--ib-ac-ye) var(--ib-ac-text-mix), var(--ib-text-primary, var(--text-normal)));
+  --ib-ac-lm-text: color-mix(in srgb, var(--ib-ac-lm) var(--ib-ac-text-mix), var(--ib-text-primary, var(--text-normal)));
+  --ib-ac-aq-text: color-mix(in srgb, var(--ib-ac-aq) var(--ib-ac-text-mix), var(--ib-text-primary, var(--text-normal)));
+  --ib-ac-sk-text: color-mix(in srgb, var(--ib-ac-sk) var(--ib-ac-text-mix), var(--ib-text-primary, var(--text-normal)));
+  --ib-ac-la-text: color-mix(in srgb, var(--ib-ac-la) var(--ib-ac-text-mix), var(--ib-text-primary, var(--text-normal)));
+  --ib-ac-pl-text: color-mix(in srgb, var(--ib-ac-pl) var(--ib-ac-text-mix), var(--ib-text-primary, var(--text-normal)));
+  --ib-ac-pk-text: color-mix(in srgb, var(--ib-ac-pk) var(--ib-ac-text-mix), var(--ib-text-primary, var(--text-normal)));
+  --ib-ac-gd-text: color-mix(in srgb, var(--ib-ac-gd) var(--ib-ac-text-mix), var(--ib-text-primary, var(--text-normal)));
+  --ib-ac-cy-text: color-mix(in srgb, var(--ib-ac-cy) var(--ib-ac-text-mix), var(--ib-text-primary, var(--text-normal)));
+}
+.ib-cc-text { color: var(--ib-cc); }
+.ib-cc-text :is(strong, em, a, code) { color: inherit; }
+.ib-cc-gradient { background-image: var(--ib-cc-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ib-cc-gradient :is(strong, em, a) { color: transparent; }
+mark.ib-cc-mark { background: var(--ib-cc-bg); color: inherit; }
+u.ib-cc-underline { text-decoration: none; border-bottom: 1.5px solid var(--ib-cc-line); }
+.markdown-rendered table :is(td, th).ib-cc-cell:not(#_ib):not(#_ib2) { background: var(--ib-cc-bg); }
+blockquote.ib-cc-quote { border-inline-start-color: var(--ib-cc); background: var(--ib-cc-bg); }
+blockquote.ib-cc-quote > :first-child :is(strong, b):first-child { color: var(--ib-cc); }
+@media print { .ib-cc-gradient { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }

@@ -5,6 +5,10 @@
 The plugin now works on its own: with any other theme, or Obsidian's default one, its diagrams, badges, cards, tables tools, reader and exports keep the Ignorance look, because the plugin now carries the design tokens it used to borrow from the theme. With the Ignorance theme active nothing changes.
 The title icon of the generated table of contents shows a list icon again instead of a filled square.
 
+VLOOK syntax, part 1 (Reading view and exports; the note text stays as written):
+- Colour codes: `text_~Rd~_` colours the text before it, `_~Rd~_` at the start colours the whole paragraph, list item or cell, `_~RdSe~_` makes a gradient, a highlight or underline takes the colour too, and a quote whose first line is only `_~Og~_` takes the colour on its rail and background. T1/T2 follow the accent palette.
+- Tables: `_~Bu!~_` colours a cell's background; `==` and `:` join a cell to its left or above neighbour (as `<` and `^` do); a header that is wholly bold, italic or highlighted formats its column, and a struck-through header leaves the column out; a header containing `[ ]` turns the column into checkboxes (`Y`, `N`, `?`, `[x]`, `[-]`); right-aligned signed numbers are coloured and `¥ 12800` shows its currency apart; a wholly empty row or column becomes a gap that sets totals apart.
+
 ## 1.0.23
 
 Enabling the plugin in an already-open vault no longer fails while applying custom callouts: saved settings now load before workspace callbacks and editor extensions are installed.

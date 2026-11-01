@@ -33,6 +33,7 @@ import { exportHtml,prepareHtmlDocument } from "../modules/html-export.js";
 import { installImageAlignment } from "../modules/image-align.js";
 import { inlineSyntaxEditorExtension } from "../modules/inline-syntax-editor.js";
 import { renderInlineSyntax } from "../modules/inline-syntax.js";
+import { renderColorCodes } from "../modules/color-code.js";
 import { setLanguageIconHost } from "../modules/language-icons.js";
 import { openLinkCheck } from "../modules/link-check.js";
 import { clearPaint,t } from "../modules/mermaid-core.js";
@@ -128,6 +129,7 @@ export async function onload(plugin: IgnorancePlugin) {
   plugin.registerMarkdownPostProcessor((element, context) => renderTocBlocks(plugin, element, context.sourcePath));
   plugin.registerMarkdownPostProcessor((element, context) => renderContainerBlocks(plugin, element, context));
   plugin.registerMarkdownPostProcessor(element => renderInlineSyntax(plugin, element));
+  plugin.registerMarkdownPostProcessor(element => renderColorCodes(element));
   plugin.registerMarkdownPostProcessor(element => colorSwatchPostProcessor(element));
   installHeadingNumbers(plugin);
   installLenientBlocks(plugin);

@@ -710,6 +710,7 @@ export const EN: Readonly<Record<string, string>> = {
   "计时归零": "Reset timer",
   "已完成": "Done",
   "未完成": "Not done",
+  "待定": "Undecided",
   "复制为 TSV": "Copy as TSV",
   "保存为 CSV": "Save as CSV",
   "按此顺序写回笔记": "Write back to the note in this order",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatNumberCell, percentValue, planMerges, rowLevels } from "./table-merge";
+import { blankLines, checkboxState, formatNumberCell, numberParts, percentValue, planMerges, rowLevels } from "./table-merge";
 
 describe("表格合并计划", () => {
   it("< 并入左侧，^ 并入上方", () => {
@@ -35,5 +35,33 @@ describe("表格合并计划", () => {
     expect(rowLevels(["华东", "> 上海", ">> 浦东", "> 江苏"])).toEqual([
       { level: 0, text: "华东" }, { level: 1, text: "上海" }, { level: 2, text: "浦东" }, { level: 1, text: "江苏" }
     ]);
+  });
+
+  it("VLOOK 写法：== 并入左侧，: 并入上方", () => {
+    expect(planMerges([["A", "==", "C"], [":", "E", "F"]]).merges).toEqual([{ row: 0, col: 0, colspan: 2, rowspan: 2 }]);
+  });
+
+  it("复选框列：Y/N/?/[x]/[-]/空", () => {
+    expect(checkboxState("Y")).toEqual({ state: "yes", rest: "" });
+    expect(checkboxState("[x] 已上线")).toEqual({ state: "yes", rest: "已上线" });
+    expect(checkboxState("？")).toEqual({ state: "partial", rest: "" });
+    expect(checkboxState("[-]")).toEqual({ state: "partial", rest: "" });
+    expect(checkboxState("n")).toEqual({ state: "no", rest: "" });
+    expect(checkboxState("")).toEqual({ state: "no", rest: "" });
+    expect(checkboxState("Yes")).toBeNull();
+  });
+
+  it("数值列：正负号与币种", () => {
+    expect(numberParts("+12.5")).toEqual({ sign: "positive", currency: null });
+    expect(numberParts("-3%")).toEqual({ sign: "negative", currency: null });
+    expect(numberParts("¥ -1,200")).toEqual({ sign: "negative", currency: "¥" });
+    expect(numberParts("USD 30")).toEqual({ sign: null, currency: "USD" });
+    expect(numberParts("12 34")).toBeNull();
+    expect(numberParts("abc")).toBeNull();
+  });
+
+  it("整行或整列留空作为汇总分隔", () => {
+    expect(blankLines([["项目", "", "合计"], ["A", "", "3"], ["", "", ""], ["总计", "", "3"]])).toEqual({ rows: [2], cols: [1] });
+    expect(blankLines([["A", "B"], ["1", ""]])).toEqual({ rows: [], cols: [] });
   });
 });

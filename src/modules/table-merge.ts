@@ -5,7 +5,13 @@ import type { IgnorancePlugin } from "../plugin-types.js";
      - a cell holding only `<` joins the cell on its left, one holding only `^` joins the cell above
      - a cell holding only `[ ]` / `[x]` shows an empty or ticked box
      - in a right-aligned column (`---:`) long integers get thousands separators and `72%` draws a bar
-     - a first cell starting with `>` makes the row a child of the row above; parents fold and unfold their children */
+     - a first cell starting with `>` makes the row a child of the row above; parents fold and unfold their children
+   VLOOK's table syntax works too:
+     - `==` joins the cell on its left and `:` the cell above
+     - a header that is wholly bold, italic or highlighted formats its column; a struck-through header hides the column
+     - a header containing `[ ]` turns its column into checkboxes: `Y`, `N`, `?`, `[x]`, `[-]` or empty
+     - in a right-aligned column, signed numbers are coloured and `¥ 12` / `$ 3` show their currency apart
+     - a row or column left wholly empty becomes a gap that sets totals apart */
 export interface MergePlan { row: number; col: number; colspan: number; rowspan: number }
 
 /** Work out which cells absorb their `<` / `^` neighbours. Returns the surviving cells that span more than one slot,
@@ -18,8 +24,8 @@ export function planMerges(grid: string[][]) {
   grid.forEach((cells, row) => cells.forEach((text, col) => {
     const mark = text.trim();
     let target: [number, number] | null = null;
-    if (mark === "<" && col > 0) target = owner[row][col - 1];
-    else if (mark === "^" && row > 0 && col < grid[row - 1].length) target = owner[row - 1][col];
+    if ((mark === "<" || mark === "==") && col > 0) target = owner[row][col - 1];
+    else if ((mark === "^" || mark === ":") && row > 0 && col < grid[row - 1].length) target = owner[row - 1][col];
     if (!target) return;
     owner[row][col] = target;
     removed.add(key(row, col));
@@ -36,6 +42,33 @@ export function planMerges(grid: string[][]) {
 }
 
 const CHECK = /^\[( |x|X)\]$/;
+const CHECK_HEADER = /\[ ?\] ?/;
+
+/** A cell of a `[ ]` column: Y / [x] ticked, ? / [-] partly, N / [ ] / empty unticked; anything else is left alone. */
+export function checkboxState(text: string): { state: "yes" | "no" | "partial"; rest: string } | null {
+  const match = /^\s*(\[[xX -]\]|[YyNn?？])(?:\s+(.*))?$/s.exec(text);
+  if (!match) return text.trim() ? null : { state: "no", rest: "" };
+  const mark = match[1].toLowerCase();
+  const state = mark === "y" || mark === "[x]" ? "yes" : mark === "?" || mark === "？" || mark === "[-]" ? "partial" : "no";
+  return { state, rest: match[2] || "" };
+}
+
+/** `+12.5` / `-3%` / `¥ -8`: the sign, and a currency of up to three characters before a space. */
+export function numberParts(text: string): { sign: "positive" | "negative" | null; currency: string | null } | null {
+  const match = /^\s*(?:(\S{1,3}) )?([+-]?)\d[\d,]*(?:\.\d+)?%?\s*$/.exec(text);
+  if (!match || (match[1] && /\d/.test(match[1]))) return null;
+  return { sign: match[2] === "+" ? "positive" : match[2] === "-" ? "negative" : null, currency: match[1] || null };
+}
+
+/** Rows and columns whose cells are all empty (the header row counts for columns). */
+export function blankLines(grid: string[][]) {
+  const empty = (text: string | undefined) => !(text || "").trim();
+  const rows = grid.map((cells, row) => row > 0 && cells.length > 0 && cells.every(empty) ? row : -1).filter(row => row >= 0);
+  const width = Math.max(0, ...grid.map(cells => cells.length));
+  const cols: number[] = [];
+  for (let col = 0; col < width; col++) if (grid.length > 1 && grid.every(cells => empty(cells[col]))) cols.push(col);
+  return { rows, cols };
+}
 
 export function enhanceTable(table: HTMLTableElement) {
   if (table.dataset.ibTableDone) return;
@@ -54,6 +87,8 @@ export function enhanceTable(table: HTMLTableElement) {
       .forEach(([row, col]) => rows[row].cells[col].remove());
     table.classList.add("ib-table-merged");
   }
+  markGaps(table, grid);
+  enhanceColumns(table);
   enhanceNumbers(table);
   enhanceGroups(table);
   // A long table scrolls inside its own frame so the header row can stay put (see .ib-table-tall in the styles).
@@ -90,11 +125,97 @@ export function rowLevels(firstCells: string[]) {
   });
 }
 
+/** The formats wrapping a header's whole text, outermost first: <strong><em>Name</em></strong> gives STRONG, EM. */
+function headerFormats(th: HTMLElement) {
+  const formats: string[] = [];
+  let parent: Element = th;
+  while (parent.children.length === 1) {
+    const child = parent.children[0];
+    if (!/^(STRONG|EM|MARK|DEL|S)$/.test(child.tagName) || (parent.textContent || "").trim() !== (child.textContent || "").trim()) break;
+    formats.push(child.tagName);
+    parent = child;
+  }
+  return formats;
+}
+
+/** The body cells that start in grid column `index`, once merged cells are accounted for. */
+function columnCells(table: HTMLTableElement, index: number) {
+  const taken: number[][] = [];
+  const found: HTMLTableCellElement[] = [];
+  [...table.rows].forEach((row, r) => {
+    let col = 0;
+    for (const cell of row.cells) {
+      while (taken[r]?.includes(col)) col++;
+      for (let dr = 0; dr < cell.rowSpan; dr++) for (let dc = 0; dc < cell.colSpan; dc++) (taken[r + dr] ||= []).push(col + dc);
+      if (col === index && row.parentElement?.tagName === "TBODY") found.push(cell);
+      col += cell.colSpan;
+    }
+  });
+  return found;
+}
+
+function enhanceColumns(table: HTMLTableElement) {
+  const head = table.tHead?.rows[0];
+  if (!head) return;
+  const headers = [...head.cells];
+  // Hidden columns go last, from the right, so the other indexes stay valid.
+  const hidden: number[] = [];
+  headers.forEach((th, index) => {
+    const formats = headerFormats(th);
+    if (formats[0] === "DEL" || formats[0] === "S") { hidden.push(index); return; }
+    const cls = ([["STRONG", "ib-col-bold"], ["EM", "ib-col-em"], ["MARK", "ib-col-mark"]] as const).filter(([tag]) => formats.includes(tag)).map(([, name]) => name);
+    if (cls.length) columnCells(table, index).forEach(cell => cell.classList.add(...cls));
+    if (formats.includes("MARK")) columnCells(table, index).forEach(cell => cell.querySelectorAll("mark").forEach(mark => mark.replaceWith(...mark.childNodes)));
+    const marker = CHECK_HEADER.exec(th.textContent || "");
+    if (!marker) return;
+    removeText(th, marker[0]);
+    for (const cell of columnCells(table, index)) {
+      if (cell.querySelector("table, img") || cell.parentElement?.classList.contains("ib-row-gap")) continue;
+      const parsed = checkboxState(cell.textContent || "");
+      if (!parsed) continue;
+      cell.empty();
+      const box = cell.createSpan({ cls: `ib-table-check is-${parsed.state}${parsed.state === "yes" ? " is-checked" : ""}`, text: parsed.state === "yes" ? "☑" : parsed.state === "partial" ? "◩" : "☐" });
+      box.setAttribute("aria-label", parsed.state === "yes" ? tr("已完成") : parsed.state === "partial" ? tr("待定") : tr("未完成"));
+      if (parsed.rest) cell.appendText(` ${parsed.rest}`);
+    }
+  });
+  const doomed = hidden.flatMap(index => [headers[index], ...columnCells(table, index).filter(cell => cell.colSpan === 1)]);
+  doomed.forEach(cell => cell.remove());
+}
+
+function removeText(cell: HTMLElement, text: string) {
+  const walker = cell.ownerDocument.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+  for (let next = walker.nextNode(); next; next = walker.nextNode()) {
+    const node = next as Text;
+    const at = node.data.indexOf(text);
+    if (at >= 0) { node.data = node.data.slice(0, at) + node.data.slice(at + text.length); return; }
+  }
+}
+
+function markGaps(table: HTMLTableElement, grid: string[][]) {
+  const { rows, cols } = blankLines(grid);
+  if (!rows.length && !cols.length) return;
+  table.classList.add("ib-table-gapped");
+  const all = [...table.rows];
+  rows.forEach(row => all[row]?.classList.add("ib-row-gap"));
+  for (const col of cols) all.forEach(row => { if (row.cells.length === grid[0].length) row.cells[col]?.classList.add("ib-col-gap"); });
+}
+
 function enhanceNumbers(table: HTMLTableElement) {
   for (const cell of table.querySelectorAll<HTMLTableCellElement>("td")) {
     const align = cell.style.textAlign || cell.getAttribute("align");
     if (align !== "right" || cell.children.length) continue;
     const text = cell.textContent || "";
+    const parts = numberParts(text);
+    if (parts?.sign) cell.classList.add(`ib-cell-${parts.sign}`);
+    if (parts?.currency) {
+      cell.empty();
+      cell.createSpan({ cls: "ib-cell-currency", text: parts.currency });
+      const amount = text.trim().slice(parts.currency.length).trim();
+      cell.appendText(formatNumberCell(amount) || amount);
+      cell.classList.add("ib-cell-number");
+      continue;
+    }
     const formatted = formatNumberCell(text);
     if (formatted) { cell.textContent = formatted; cell.classList.add("ib-cell-number"); continue; }
     const percent = percentValue(text);
