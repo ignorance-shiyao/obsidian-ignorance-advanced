@@ -9,7 +9,7 @@
 import { existsSync } from "node:fs";
 import stylelint from "stylelint";
 
-const files = process.argv.slice(2).length ? process.argv.slice(2) : ["theme.css", "styles.css", "theme-features.css", "reveal.css"].filter(existsSync);
+const files = process.argv.slice(2).length ? process.argv.slice(2) : ["theme.css", "tokens.css", "styles.css", "theme-features.css", "reveal.css"].filter(existsSync);
 const result = await stylelint.lint({
   files,
   config: {

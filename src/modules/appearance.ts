@@ -84,6 +84,8 @@ function applyAppearancePreferences(plugin: IgnorancePlugin) {
   writeThemePalette(selected, currentThemeMode(), accentOverride);
   applyFontPreferences(body, appearance);
   applyLineHeightPreference(body, appearance.lineHeight);
+  // Without the Ignorance theme the plugin supplies its design tokens itself (tokens.css).
+  body.classList.toggle("ib-standalone", plugin.app.vault.getConfig("cssTheme") !== "Ignorance");
   body.classList.toggle("ib-theme-text-size", plugin.app.vault.getConfig("baseFontSize") == null);
   body.classList.toggle(CUSTOM_ACCENT, custom);
   body.classList.toggle("ib-hide-heading-labels", Boolean(appearance.hideHeadingLabels));
@@ -102,7 +104,7 @@ function applyAppearancePreferences(plugin: IgnorancePlugin) {
 }
 
 function clearAppearancePreferences() {
-  document.body.classList.remove(CUSTOM_ACCENT, "ib-hide-heading-labels", "ib-heading-badge", "ib-hide-decorations", "ib-theme-text-size", "ib-tables-off");
+  document.body.classList.remove(CUSTOM_ACCENT, "ib-standalone", "ib-hide-heading-labels", "ib-heading-badge", "ib-hide-decorations", "ib-theme-text-size", "ib-tables-off");
   delete document.body.dataset.ibThemePreset;
   delete document.body.dataset.ibTableAlignment;
   document.body.style.removeProperty("--ib-card-radius");

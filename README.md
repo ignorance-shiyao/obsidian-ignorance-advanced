@@ -2,7 +2,7 @@
 
 # Ignorance Advanced
 
-**The companion plugin for the [Ignorance theme](https://community.obsidian.md/themes/ignorance):** diagrams, tables, images, presentations and exports in one place.
+**Works on its own, or together with the [Ignorance theme](https://community.obsidian.md/themes/ignorance):** diagrams, tables, images, presentations and exports in one place.
 
 [中文](README.zh-CN.md) · [Support](#support)
 
@@ -13,7 +13,7 @@
 
 </div>
 
-> The theme owns the look; the plugin adds what CSS cannot do. It works with other themes too, but its controls are designed around the theme's tokens and look plainer without it.
+> The plugin carries Ignorance's design tokens, so its components look the same under any theme; add the Ignorance theme to match the note text as well.
 
 ## Palettes: eight, one click
 

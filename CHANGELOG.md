@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+The plugin now works on its own: with any other theme, or Obsidian's default one, its diagrams, badges, cards, tables tools, reader and exports keep the Ignorance look, because the plugin now carries the design tokens it used to borrow from the theme. With the Ignorance theme active nothing changes.
+The title icon of the generated table of contents shows a list icon again instead of a filled square.
+
 ## 1.0.23
 
 Enabling the plugin in an already-open vault no longer fails while applying custom callouts: saved settings now load before workspace callbacks and editor extensions are installed.

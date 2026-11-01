@@ -2,7 +2,7 @@
 
 # Ignorance Advanced
 
-**[Ignorance 主题](https://community.obsidian.md/themes/ignorance)的配套插件：** 图表、表格、图片、演示与导出，一次到位。
+**可独立使用，也可搭配 [Ignorance 主题](https://community.obsidian.md/themes/ignorance)：** 图表、表格、图片、演示与导出，一次到位。
 
 [English](README.md) · [支持作者](#支持)
 
@@ -13,7 +13,7 @@
 
 </div>
 
-> 外观由主题负责，插件只做 CSS 做不到的事。插件也能配合其他主题使用，但控件是按本主题的设计变量做的，换主题后会朴素一些。
+> 插件自带 Ignorance 的设计变量，配合任何主题都保持同一套外观；装上 Ignorance 主题后，正文排版也一并统一。
 
 ## 配色：八套，一键切换
 

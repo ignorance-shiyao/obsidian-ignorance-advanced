@@ -81,7 +81,7 @@ if (!process.argv.includes("--no-lint")) {
 }
 
 // Stylesheets: no !important, no property declared twice in one rule.
-const sheets = ["styles.css", "theme-features.css", "reveal.css"];
+const sheets = ["tokens.css", "styles.css", "theme-features.css", "reveal.css"];
 const important = sheets.flatMap(f => read(f).split("\n").map((line, i) => [f, i + 1, line]).filter(([, , line]) => line.includes("!important")).map(([f, no]) => `${f}:${no}`));
 check(important.length === 0, "no !important in stylesheets", important.slice(0, 6).join(", "));
 const repeated = [];
