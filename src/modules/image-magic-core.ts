@@ -1,4 +1,4 @@
-/* VLOOK image magic, read from the image address (the note keeps it as written):
+/* Image magic, read from the image address (the note keeps it as written):
      #line / #block        grid behind a transparent image      #padding   room around it
      #invert #blur #aged #gray  filters (with `!`, the filter lifts on hover)
      #card / #cardd        postcard (hover / tiled), #border adds an edge
@@ -21,7 +21,7 @@ export interface ImageMagic {
   dark: { invert: true } | { file: string } | null;
 }
 
-/** Splits `a.png?darksrc=~#card#border` into its path, query and hash words. Null when nothing VLOOK is in it. */
+/** Splits `a.png?darksrc=~#card#border` into its path, query and hash words. Null when none of this syntax is in it. */
 export function parseImageMagic(raw: string): ImageMagic | null {
   const hashAt = raw.indexOf("#");
   const beforeHash = hashAt < 0 ? raw : raw.slice(0, hashAt);

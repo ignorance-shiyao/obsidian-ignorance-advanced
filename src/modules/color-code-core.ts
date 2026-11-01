@@ -1,4 +1,4 @@
-/* VLOOK colour codes: `_~Rd~_` colours text, `_~Rd!~_` colours a table cell's background, and a run of codes
+/* Colour codes: `_~Rd~_` colours text, `_~Rd!~_` colours a table cell's background, and a run of codes
    (`_~RdGnBu~_`) makes a gradient. Obsidian renders `_~Rd~_` as <em>~Rd~</em>; this file only parses. */
 export const COLOR_CODES = ["rd", "ro", "og", "ye", "la", "lm", "gn", "gy", "gd", "aq", "au", "cf", "cy", "wt", "bu", "bn", "bk",
   "se", "sk", "vn", "pl", "pu", "pk", "mn", "wn", "ol", "t1", "t2", "tu"] as const;

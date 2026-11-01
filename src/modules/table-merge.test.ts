@@ -37,7 +37,7 @@ describe("表格合并计划", () => {
     ]);
   });
 
-  it("VLOOK 写法：== 并入左侧，: 并入上方", () => {
+  it("另一种写法：== 并入左侧，: 并入上方", () => {
     expect(planMerges([["A", "==", "C"], [":", "E", "F"]]).merges).toEqual([{ row: 0, col: 0, colspan: 2, rowspan: 2 }]);
   });
 

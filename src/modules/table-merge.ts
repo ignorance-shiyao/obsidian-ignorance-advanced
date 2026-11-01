@@ -6,7 +6,7 @@ import type { IgnorancePlugin } from "../plugin-types.js";
      - a cell holding only `[ ]` / `[x]` shows an empty or ticked box
      - in a right-aligned column (`---:`) long integers get thousands separators and `72%` draws a bar
      - a first cell starting with `>` makes the row a child of the row above; parents fold and unfold their children
-   VLOOK's table syntax works too:
+   Another common table syntax works too:
      - `==` joins the cell on its left and `:` the cell above
      - a header that is wholly bold, italic or highlighted formats its column; a struck-through header hides the column
      - a header containing `[ ]` turns its column into checkboxes: `Y`, `N`, `?`, `[x]`, `[-]` or empty

@@ -2,12 +2,12 @@ import { TFile } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { colorVar } from "./color-code-core.js";
 import { enhancementOn } from "./enhancement-gate.js";
-import { isImagePath, parseImageMagic, type ImageMagic } from "./vlook-image-core.js";
-/* VLOOK image magic in Reading view and exports (see vlook-image-core.ts for the syntax).
+import { isImagePath, parseImageMagic, type ImageMagic } from "./image-magic-core.js";
+/* Image magic in Reading view and exports (see image-magic-core.ts for the syntax).
    Obsidian keeps an embed's address, `#` and `?` included, in the embed's `src`; an address with `?` is not
    found as a file, so that embed is turned back into the image it names. */
 
-const DONE = "ibVlookImage";
+const DONE = "ibImageMagic";
 
 function resolveFile(plugin: IgnorancePlugin, path: string, sourcePath: string) {
   let decoded = path;
@@ -81,7 +81,7 @@ export function swapDarkImages(root: ParentNode = document) {
   });
 }
 
-export function renderVlookImages(plugin: IgnorancePlugin, element: HTMLElement, sourcePath: string) {
+export function renderImageMagic(plugin: IgnorancePlugin, element: HTMLElement, sourcePath: string) {
   for (const embed of element.querySelectorAll<HTMLElement>(".internal-embed[src]")) {
     const magic = parseImageMagic(embed.getAttribute("src") || "");
     if (!magic) continue;
@@ -107,9 +107,9 @@ export function renderVlookImages(plugin: IgnorancePlugin, element: HTMLElement,
   }
 }
 
-export function installVlookImages(plugin: IgnorancePlugin) {
+export function installImageMagic(plugin: IgnorancePlugin) {
   plugin.registerMarkdownPostProcessor((element, context) => {
-    if (enhancementOn(plugin, "images", element, context.frontmatter)) renderVlookImages(plugin, element, context.sourcePath);
+    if (enhancementOn(plugin, "images", element, context.frontmatter)) renderImageMagic(plugin, element, context.sourcePath);
   });
   plugin.registerEvent(plugin.app.workspace.on("css-change", () => swapDarkImages()));
 }

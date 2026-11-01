@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { listColumns, progressTone, progressValue, ruleLeadsToList, taskProgressAfter } from "./vlook-blocks-core";
+import { listColumns, progressTone, progressValue, ruleLeadsToList, taskProgressAfter } from "./list-extras-core";
 
-describe("VLOOK 列表分栏", () => {
+describe("列表分栏", () => {
   const lines = ["段落", "", "---", "", "---", "", "- 一", "  - 子", "- 二", "", "---", "", "正文"];
   it("列表前的分割线数量决定栏数", () => {
     expect(listColumns(lines, 6)).toBe(3);
@@ -15,7 +15,7 @@ describe("VLOOK 列表分栏", () => {
   });
 });
 
-describe("VLOOK 进度条", () => {
+describe("进度条", () => {
   it("? 统计后面任务清单的完成度", () => {
     const lines = ["**任务进度：** **==?==**", "", "- [x] 一", "  - [ ] 子一", "  - [x] 子二", "- [ ] 二", "", "后文 - [x] 不算"];
     expect(taskProgressAfter(lines, 0)).toBe(50);

@@ -1,5 +1,5 @@
 import { colorLabel, colorVar, gradient, parseColorCode, type ColorSpec } from "./color-code-core.js";
-/* VLOOK colour codes in Reading view and exports (the note keeps its `_~Rd~_` text):
+/* Colour codes in Reading view and exports (the note keeps its `_~Rd~_` text):
      - after some text (`红色_~Rd~_`): colours what comes right before it; a highlight or underline takes the colour too
      - at the start of a paragraph, list item or cell: colours the whole of it
      - alone on a line in a quote: colours the quote's rail and title

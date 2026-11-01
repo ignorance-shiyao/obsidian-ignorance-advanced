@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { colorLabel, colorVar, gradient, parseColorCode } from "./color-code-core";
 
-describe("VLOOK 色号", () => {
+describe("色号", () => {
   it("单色、强调与渐变", () => {
     expect(parseColorCode("~Rd~")).toEqual({ colors: ["rd"], emphasis: false });
     expect(parseColorCode("~Bu!~")).toEqual({ colors: ["bu"], emphasis: true });

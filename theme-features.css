@@ -3124,7 +3124,7 @@ img[data-ib-filter="blur"] { filter: blur(8px); }
 :is(.image-embed, img)[data-ib-filter-hover]:hover :is(img), img[data-ib-filter-hover]:hover { filter: none; }
 img[data-ib-filter] { transition: filter .2s ease; }
 
-/* ---- VLOOK image magic: grid backgrounds, padding, silhouettes, postcards ---- */
+/* ---- image magic: grid backgrounds, padding, silhouettes, postcards ---- */
 img.ib-img-padding { padding: 20px; }
 img.ib-img-grid-line {
   background-color: var(--ib-bg-tertiary, var(--background-primary));
@@ -3678,7 +3678,7 @@ body {
 /* A code block with no language: Obsidian's own flair would add a second copy button next to ours. */
 .markdown-source-view.mod-cm6 .HyperMD-codeblock-begin.ibc-live-plain .code-block-flair:not(#_ib):not(#_ib2) { display: none; }
 
-/* ---- VLOOK colour codes (_~Rd~_, _~Bu!~_, _~RdGn~_) ----
+/* ---- colour codes (_~Rd~_, _~Bu!~_, _~RdGn~_) ----
    T1/T2 follow the accent palette; red, green, orange and blue are the theme's own state colours. */
 body {
   --ib-ac-t1: var(--ib-accent-brand); --ib-ac-t2: var(--ib-accent-purple, #7867C9); --ib-ac-tu: #C79215;
@@ -3734,7 +3734,7 @@ blockquote.ib-cc-quote { border-inline-start-color: var(--ib-cc); background: va
 blockquote.ib-cc-quote > :first-child :is(strong, b):first-child { color: var(--ib-cc); }
 @media print { .ib-cc-gradient { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 
-/* ---- VLOOK list columns and progress bars ---- */
+/* ---- List columns and progress bars ---- */
 .ib-list-columns-rule:not(#_ib) { display: none; }
 .markdown-rendered :is(ul, ol).ib-list-columns {
   display: grid;

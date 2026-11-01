@@ -16,7 +16,7 @@ describe("阅读视图封面", () => {
   });
 });
 
-describe("VLOOK 封底", () => {
+describe("封底", () => {
   it("最后一行是一级标题才是封底", () => {
     const lines = ["# 开头", "正文", "", "# 感谢阅读", "", ""];
     expect(isBackCoverLine(lines, 3)).toBe(true);

@@ -25,7 +25,7 @@ export function coverFields(frontmatter: Record<string, unknown> | undefined, ba
   };
 }
 
-/** True when `line` holds the note's last non-empty line and that line is a level-1 heading (VLOOK's back cover). */
+/** True when `line` holds the note's last non-empty line and that line is a level-1 heading. */
 export function isBackCoverLine(lines: string[], line: number) {
   let last = lines.length - 1;
   while (last >= 0 && !lines[last].trim()) last--;
@@ -36,7 +36,7 @@ function backCoverMeta(frontmatter: Record<string, unknown> | undefined) {
   return [scalar(frontmatter?.copyright), scalar(frontmatter?.rights)].filter(Boolean);
 }
 
-/* VLOOK back cover: a level-1 heading on the note's last line closes the note as its back cover,
+/* Back cover: a level-1 heading on the note's last line closes the note as its back cover,
    with the `copyright` and `rights` properties under it. */
 function markBackCover(heading: HTMLElement, frontmatter: Record<string, unknown> | undefined) {
   if (heading.classList.contains("ib-back-cover")) return;

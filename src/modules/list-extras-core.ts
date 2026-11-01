@@ -1,4 +1,4 @@
-/* VLOOK block syntax, worked out from the note's source lines:
+/* Block syntax, worked out from the note's source lines:
      - N rules (`---`) right before a list lay the list out in N + 1 columns (up to five)
      - `**==72==**` is a progress bar; `**==?==**` counts the ticked tasks of the list that follows */
 const RULE = /^ {0,3}(?:-{3,}|\*{3,}|_{3,})\s*$/;

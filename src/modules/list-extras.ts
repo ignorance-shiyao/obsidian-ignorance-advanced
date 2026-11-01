@@ -1,8 +1,8 @@
 import type { MarkdownPostProcessorContext } from "obsidian";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { colorVar, parseColorCode, type ColorCode } from "./color-code-core.js";
-import { listColumns, progressTone, progressValue, ruleLeadsToList, taskProgressAfter } from "./vlook-blocks-core.js";
-/* VLOOK list columns and progress bars in Reading view and exports (syntax in vlook-blocks-core.ts). */
+import { listColumns, progressTone, progressValue, ruleLeadsToList, taskProgressAfter } from "./list-extras-core.js";
+/* List columns and progress bars in Reading view and exports (syntax in list-extras-core.ts). */
 
 const isRule = (node: Element | null) => Boolean(node && (node.tagName === "HR" || (node.children.length === 1 && node.firstElementChild?.tagName === "HR" && !node.textContent?.trim())));
 
@@ -77,11 +77,11 @@ function followingListShare(from: HTMLElement) {
   return null;
 }
 
-export function renderVlookBlocks(element: HTMLElement, context: MarkdownPostProcessorContext, retry = true) {
+export function renderListExtras(element: HTMLElement, context: MarkdownPostProcessorContext, retry = true) {
   const info = context.getSectionInfo?.(element);
   // A section can be processed before it is attached; its source lines are known once it is.
   if (!info && retry && !element.isConnected) {
-    window.requestAnimationFrame(() => renderVlookBlocks(element, context, false));
+    window.requestAnimationFrame(() => renderListExtras(element, context, false));
     return;
   }
   const lines = info ? info.text.split("\n") : null;
@@ -89,6 +89,6 @@ export function renderVlookBlocks(element: HTMLElement, context: MarkdownPostPro
   renderProgress(element, lines, info?.lineEnd ?? 0);
 }
 
-export function installVlookBlocks(plugin: IgnorancePlugin) {
-  plugin.registerMarkdownPostProcessor((element, context) => renderVlookBlocks(element, context));
+export function installListExtras(plugin: IgnorancePlugin) {
+  plugin.registerMarkdownPostProcessor((element, context) => renderListExtras(element, context));
 }
