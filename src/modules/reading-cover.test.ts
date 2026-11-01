@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coverFields } from "./reading-cover";
+import { coverFields, isBackCoverLine } from "./reading-cover";
 
 describe("阅读视图封面", () => {
   it("从属性取标题、副标题、作者、日期和标签", () => {
@@ -13,5 +13,14 @@ describe("阅读视图封面", () => {
     const fields = coverFields({ author: "王五", subtitle: "副", description: "描述" }, "x");
     expect(fields.authors).toEqual(["王五"]);
     expect(fields.subtitle).toBe("副");
+  });
+});
+
+describe("VLOOK 封底", () => {
+  it("最后一行是一级标题才是封底", () => {
+    const lines = ["# 开头", "正文", "", "# 感谢阅读", "", ""];
+    expect(isBackCoverLine(lines, 3)).toBe(true);
+    expect(isBackCoverLine(lines, 0)).toBe(false);
+    expect(isBackCoverLine(["正文", "## 结尾"], 1)).toBe(false);
   });
 });
