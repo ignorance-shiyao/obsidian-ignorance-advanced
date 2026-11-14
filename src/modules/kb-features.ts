@@ -2,4 +2,5 @@
 import "./kb-home.js";
 import "./kb-inbox.js";
 import "./kb-heatmap.js";
+import "./kb-map.js";
 export { installKnowledgeBase, kbSettingItems } from "./kb.js";

@@ -457,3 +457,71 @@ button.ig-kb-bar-row:hover {
 .ig-kb-modal .ig-kb-row {
   min-height: var(--ig-kb-hit);
 }
+
+.ig-kb-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ig-kb-toolbar .ig-kb-segments {
+  margin-bottom: 0;
+}
+
+.ig-kb-search {
+  flex: 1 1 200px;
+  min-height: var(--ig-kb-hit);
+}
+
+.ig-kb-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-inline-end: 6px;
+  border-radius: 50%;
+  background: var(--ig-kb-dot);
+}
+
+.ig-kb-map-body {
+  display: flex;
+  gap: var(--ig-kb-gap);
+  align-items: flex-start;
+}
+
+.ig-kb-map-chart {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+  padding: 0;
+}
+
+.ig-kb-map-panel {
+  display: none;
+  flex: 0 0 300px;
+}
+
+.ig-kb-map-panel.is-open {
+  display: block;
+}
+
+.ig-kb-map-panel .ig-kb-section-body {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.ig-kb-digest {
+  padding: 4px 8px 10px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.is-phone .ig-kb-map-body {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.is-phone .ig-kb-map-panel {
+  flex-basis: auto;
+}
