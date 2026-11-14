@@ -547,3 +547,32 @@ button.ig-kb-bar-row:hover {
 .ig-kb-timeline-chart {
   padding: 8px;
 }
+
+.ig-kb-section-tools {
+  display: flex;
+  gap: 6px;
+  margin-inline-start: auto;
+}
+
+.ig-kb-section-tools .ig-kb-chip {
+  min-height: 28px;
+  font-size: var(--font-ui-smaller);
+}
+
+.ig-kb-health .ig-kb-section-head {
+  align-items: center;
+}
+
+.ig-kb-more {
+  align-self: flex-start;
+  min-height: var(--ig-kb-hit);
+  margin-top: 4px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ig-kb-accent);
+}
+
+.is-phone .ig-kb-section-tools .ig-kb-chip {
+  min-height: var(--ig-kb-hit);
+}

@@ -4,4 +4,5 @@ import "./kb-inbox.js";
 import "./kb-heatmap.js";
 import "./kb-map.js";
 import "./kb-timeline.js";
+import "./kb-health.js";
 export { installKnowledgeBase, kbSettingItems } from "./kb.js";
