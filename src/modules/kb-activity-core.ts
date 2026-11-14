@@ -2,7 +2,7 @@ import { DAY, dayKey, inFolder, startOfDay } from "./kb-index-core.js";
 import type { KbNote } from "./kb-index-core.js";
 
 /* Activity per day, shared by the home sparkline and the heatmap. A note counts once per day:
-   iCloud sync touches mtime, so a note created and edited on the same day is one entry, not two. */
+   file sync touches mtime, so a note created and edited on the same day is one entry, not two. */
 
 export type ActivityMetric = "created" | "modified" | "both";
 

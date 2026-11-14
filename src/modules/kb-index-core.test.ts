@@ -22,11 +22,11 @@ describe("kb index core", () => {
     expect(areaOf("00-收件箱/日记/a.md", folders)).toBe("other");
     expect(areaOf("10-工作x/a.md", folders)).toBe("other");
     expect(areaOf("10-工作/5G/a.md", folders)).toBe("work");
-    expect(areaOf("40-归档/x/a.md", { ...folders, inbox: "40-归档/x" })).toBe("inbox");
+    expect(areaOf(`${folders.archive}/x/a.md`, { ...folders, inbox: `${folders.archive}/x` })).toBe("inbox");
   });
   it("excludes folders and finds topics", () => {
-    expect(isExcluded("40-归档/主题样例/samples/a.md", folders)).toBe(true);
-    expect(isExcluded("40-归档/a.md", folders)).toBe(false);
+    expect(isExcluded(`${folders.exclude[0]}/samples/a.md`, folders)).toBe(true);
+    expect(isExcluded(`${folders.archive}/a.md`, folders)).toBe(false);
     expect(topicOf("10-工作/5G 管家/x/y.md", "10-工作")).toBe("10-工作/5G 管家");
     expect(topicOf("10-工作/README.md", "10-工作")).toBe("");
   });

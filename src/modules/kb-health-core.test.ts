@@ -13,7 +13,7 @@ describe("health", () => {
   it("runs every check", () => {
     const notes = [
       buildNote({ path: "20-个人/a.md", ctime: NOW, mtime: NOW, size: 9, unresolved: { gone: 1 }, sections: ["paragraph"] }, folders),
-      buildNote({ path: "40-归档/b.md", ctime: NOW, mtime: NOW, size: 9, unresolved: { gone: 1 }, sections: ["paragraph"] }, folders),
+      buildNote({ path: `${folders.archive}/b.md`, ctime: NOW, mtime: NOW, size: 9, unresolved: { gone: 1 }, sections: ["paragraph"] }, folders),
       buildNote({ path: "00-收件箱/剪藏/c.md", ctime: NOW - 40 * D, mtime: NOW, size: 9, sections: ["yaml"], frontmatter: { title: "c" } }, folders),
       buildNote({ path: "00-收件箱/剪藏/d.md", ctime: NOW, mtime: NOW, size: 9, frontmatter: { url: "https://x" }, sections: ["paragraph"] }, folders),
       buildNote({ path: "30-知识/T/e.md", ctime: NOW, mtime: NOW, size: 9, links: { "30-知识/T/f.md": 1 }, sections: ["paragraph"] }, folders),
