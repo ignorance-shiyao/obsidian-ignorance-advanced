@@ -153,7 +153,11 @@ button.ig-kb-tile:hover {
 
 .ig-kb-row-meta {
   flex: none;
+  max-width: 45%;
+  overflow: hidden;
   font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ig-kb-sublist {
@@ -169,7 +173,7 @@ button.ig-kb-tile:hover {
   grid-template-columns: 4em 1fr 3em;
   align-items: center;
   gap: 10px;
-  min-height: 28px;
+  min-height: var(--ig-kb-hit);
   padding: 0 4px;
 }
 
