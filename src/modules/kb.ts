@@ -3,6 +3,7 @@ import type { WorkspaceLeaf } from "obsidian";
 import { tr, zh } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { KbIndex } from "./kb-index.js";
+import { notifyKbCharts } from "./kb-chart.js";
 import { KB_DEFAULT_FOLDERS, KB_DEFAULT_THRESHOLDS, cleanFolder, normalizeKbSettings } from "./kb-index-core.js";
 import type { KbFeatures, KbFolders, KbSettings, KbThresholds } from "./kb-index-core.js";
 
@@ -169,5 +170,6 @@ export function installKnowledgeBase(plugin: IgnorancePlugin) {
     }
     spec.install?.(plugin);
   }
+  plugin.registerEvent(plugin.app.workspace.on("css-change", notifyKbCharts));
   plugin.register(() => { index?.stop(); index = null; });
 }

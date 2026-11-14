@@ -415,3 +415,45 @@ button.ig-kb-bar-row:hover {
 .is-phone .ig-kb-key {
   display: none;
 }
+
+.ig-kb-segments {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 12px;
+  padding: 2px;
+  border: 1px solid var(--ig-kb-line);
+  border-radius: var(--ib-radius-md, 6px);
+  background: var(--ig-kb-card);
+}
+
+.ig-kb-segment {
+  min-height: calc(var(--ig-kb-hit) - 6px);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+}
+
+.ig-kb-segment.is-active {
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-weight: 600;
+}
+
+.ig-kb-chart {
+  min-height: 160px;
+  overflow: hidden;
+}
+
+.ig-kb-heatmap-block {
+  padding: 0;
+}
+
+.ig-kb-block {
+  width: 100%;
+  margin: 0.5em 0;
+}
+
+.ig-kb-modal .ig-kb-row {
+  min-height: var(--ig-kb-hit);
+}
