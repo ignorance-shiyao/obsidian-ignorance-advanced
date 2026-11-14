@@ -17,12 +17,18 @@ export interface KbFeatureSpec {
   icon: string;
   create?: (leaf: WorkspaceLeaf, plugin: IgnorancePlugin) => ItemView;
   install?: (plugin: IgnorancePlugin) => void;
+  onToggle?: (plugin: IgnorancePlugin, enabled: boolean) => void;
 }
 
 const FEATURES: KbFeatureSpec[] = [];
 let index: KbIndex | null = null;
 
 export function registerKbFeature(spec: KbFeatureSpec) { FEATURES.push(spec); }
+
+/** Enabled features that have a view, for the shortcuts in each view's header. */
+export function kbViews(plugin: IgnorancePlugin): KbFeatureSpec[] {
+  return FEATURES.filter(spec => spec.view && kbEnabled(plugin, spec.key));
+}
 
 export function kbSettings(plugin: IgnorancePlugin): KbSettings {
   if (!plugin.state.kb) plugin.state.kb = normalizeKbSettings(undefined);
@@ -113,8 +119,13 @@ export function kbSettingItems(plugin: IgnorancePlugin) {
     add: (setting: Setting) => setting.addToggle(toggle => toggle.setValue(settings.features[spec.key]).onChange(value => {
       settings.features[spec.key] = value; plugin.saveStoredState();
       if (!value && spec.view) plugin.app.workspace.detachLeavesOfType(spec.view);
+      spec.onToggle?.(plugin, value);
     }))
   }));
+  if (FEATURES.some(spec => spec.key === "home")) items.splice(1, 0, {
+    name: tr("启动时打开知识首页"), desc: "",
+    add: (setting: Setting) => setting.addToggle(toggle => toggle.setValue(settings.openHomeOnStartup).onChange(value => { settings.openHomeOnStartup = value; plugin.saveStoredState(); }))
+  });
   for (const field of FOLDER_FIELDS) items.push({
     name: tr(field.name), desc: "", add: (setting: Setting) => setting.addText(text => text
       .setPlaceholder(KB_DEFAULT_FOLDERS[field.key]).setValue(settings.folders[field.key])
