@@ -85,7 +85,7 @@ function snapshotThemeTokens(): ThemeSnapshot {
     "--ib-font-serif", "--ib-font-sans", "--ib-font-heading", "--ib-heading-bold", "--ib-quote-size",
     "--font-text", "--font-text-override", "--font-interface", "--font-monospace", "--font-text-size", "--line-height-normal",
     "--ib-quote-leading", "--ib-quote-mark-size", "--ib-quote-mark-opacity",
-    "--ib-quote-rail-width", "--ib-quote-inset", "--ib-space-2", "--ib-space-4",
+    "--ib-quote-inset", "--ib-space-2", "--ib-space-4",
     "--ib-space-5", "--ib-radius-xs", "--ib-tiny-size", "--ib-tiny-leading",
     "--ib-table-radius", "--ib-table-heading-size", "--ib-table-caption-size", "--ib-callout-radius",
     "--ib-callout-heading-size", "--ib-callout-text-size", "--ib-callout-leading",

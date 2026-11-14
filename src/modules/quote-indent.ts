@@ -5,6 +5,9 @@ import { ViewPlugin, type EditorView } from "@codemirror/view";
 
 function align(root: HTMLElement) {
   root.querySelectorAll<HTMLElement>(".HyperMD-quote").forEach(line => {
+    // Mark the first and last line of each run so the theme can round the card and pad its ends.
+    line.classList.toggle("ib-quote-first", !line.previousElementSibling?.classList.contains("HyperMD-quote"));
+    line.classList.toggle("ib-quote-last", !line.nextElementSibling?.classList.contains("HyperMD-quote"));
     if (line.classList.contains("cm-active")) return;
     if (line.style.paddingInlineStart) line.style.removeProperty("padding-inline-start");
     const pad = parseFloat(getComputedStyle(line).paddingInlineStart);

@@ -8,7 +8,7 @@ export interface EpubMeta { title: string; author: string; language: string; id:
 export const escapeXml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 export const chapterFile = (index: number) => `ch-${String(index + 1).padStart(2, "0")}.xhtml`;
 
-const STYLE = "body{font-family:serif;line-height:1.7;margin:5%}img,svg{max-width:100%;height:auto}pre,code{font-family:monospace;white-space:pre-wrap}table{border-collapse:collapse}td,th{border:1px solid #888;padding:.2em .5em}blockquote{margin-left:1em;padding-left:.8em;border-left:3px solid #888}";
+const STYLE = "body{font-family:serif;line-height:1.7;margin:5%}img,svg{max-width:100%;height:auto}pre,code{font-family:monospace;white-space:pre-wrap}table{border-collapse:collapse}td,th{border:1px solid #888;padding:.2em .5em}blockquote{margin:1em 0;padding:.6em 1em;background:#f2f2f2;border-radius:8px}";
 
 function page(title: string, language: string, body: string) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="${escapeXml(language)}" xml:lang="${escapeXml(language)}"><head><meta charset="utf-8"/><title>${escapeXml(title)}</title><link rel="stylesheet" type="text/css" href="style.css"/></head><body>${body}</body></html>`;
