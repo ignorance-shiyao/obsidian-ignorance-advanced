@@ -322,3 +322,96 @@ button.ig-kb-bar-row:hover {
 .is-phone .ig-kb-tile-value {
   font-size: 1.25em;
 }
+
+.ig-kb-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ig-kb-clip {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 760px;
+  padding: 20px;
+  border: 1px solid var(--ig-kb-line);
+  border-radius: var(--ig-kb-radius);
+  background: var(--ig-kb-card);
+}
+
+.ig-kb-clip-title {
+  justify-content: flex-start;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-normal);
+  font-size: var(--font-ui-large);
+  font-weight: 600;
+  text-align: start;
+  white-space: normal;
+}
+
+.ig-kb-clip-title:hover {
+  color: var(--ig-kb-accent);
+}
+
+.ig-kb-clip-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: var(--text-muted);
+}
+
+.ig-kb-clip-summary {
+  line-height: 1.7;
+}
+
+.ig-kb-clip-input {
+  width: 100%;
+  min-height: var(--ig-kb-hit);
+}
+
+.ig-kb-clip-topics,
+.ig-kb-clip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ig-kb-action,
+.ig-kb-picker {
+  min-height: var(--ig-kb-hit);
+}
+
+.ig-kb-action {
+  gap: 8px;
+}
+
+.ig-kb-key {
+  min-width: 1.6em;
+  padding: 0 4px;
+  border: 1px solid currentcolor;
+  border-radius: 4px;
+  font-size: var(--font-ui-smaller);
+  opacity: 0.7;
+  text-align: center;
+}
+
+.is-phone .ig-kb-clip {
+  padding: 14px;
+}
+
+.is-phone .ig-kb-clip-topics,
+.is-phone .ig-kb-clip-actions {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.is-phone .ig-kb-key {
+  display: none;
+}

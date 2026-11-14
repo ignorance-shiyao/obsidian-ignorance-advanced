@@ -4,6 +4,7 @@
 
 Knowledge-base views (Settings → Knowledge base, each off by default): one shared index built from Obsidian's metadata (never the note text), updated as notes change; the inbox, work, personal, knowledge, archive and excluded folders are settings.
 - Knowledge home (command "Open knowledge home", ribbon icon, optional on startup): note counts by area, new and edited this week, unprocessed clippings with the old ones highlighted, open tasks with those due today and overdue (Tasks' 📅 dates), the three latest notes of each product line, the last ten edits and a 12-week activity grid. Every number opens its list; what needs attention follows thresholds in settings (inbox older than 30 days, any overdue task, a product line idle 14 days).
+- Inbox digest (command "Start inbox digest", or the inbox number on the home view): clippings one card at a time, oldest first, with source, date, summary and up to three suggested topics (shared keywords with the topic's name, tags and titles, plus links to and from its notes). File under a topic (moved into it, with `- [[note]] — takeaway` added under the topic page's `## 剪藏`), link to a project page, archive to `剪藏原稿`, or snooze for 7 days; keys 1–3, A, S, ← →, and Ctrl/Cmd+Z or the undo button restores the file and the page.
 
 ## 1.0.24
 
