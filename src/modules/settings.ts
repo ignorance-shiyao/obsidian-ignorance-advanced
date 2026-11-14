@@ -31,7 +31,7 @@ interface SettingGroup { heading: string; items: SettingItem[] }
 /** `update()` exists only on newer Obsidian setting tabs (1.13+). */
 interface UpdatableSettingTab { update?: () => void }
 
-type BooleanAppearanceKey = "hideHeadingLabels" | "headingBadge" | "decorations";
+type BooleanAppearanceKey = "hideHeadingLabels" | "headingBadge" | "decorations" | "cats";
 
 class IgnoranceSettingTab extends PluginSettingTab {
   plugin: IgnorancePlugin;
@@ -71,6 +71,7 @@ class IgnoranceSettingTab extends PluginSettingTab {
         { name: tr("隐藏标题级别标记"), desc: tr("阅读视图中不显示标题左侧的 H1–H6。"), add: appearanceToggle(() => Boolean(state.appearance.hideHeadingLabels), "hideHeadingLabels") },
         { name: tr("二级标题徽标"), desc: tr("阅读视图的二级标题前显示 # 徽标，默认关闭。"), add: appearanceToggle(() => Boolean(state.appearance.headingBadge), "headingBadge") },
         { name: tr("章节装饰"), desc: tr("显示章节卡片彩色竖条；关闭后保留正文与卡片布局。打印和减少动态效果时自动隐藏。"), add: appearanceToggle(() => state.appearance.decorations !== false, "decorations") },
+        { name: tr("双猫插画"), desc: "", add: appearanceToggle(() => state.appearance.cats !== false, "cats") },
         { name: tr("表格默认对齐"), desc: tr("仅设置未单独指定位置的表格默认对齐；单个表格请在编辑页面的表格工具栏中设置。"), add: (setting: Setting) => setting.addDropdown(dropdown =>
           dropdown.addOptions({ left: tr("居左"), center: tr("居中"), right: tr("居右") }).setValue(state.appearance.tableAlignment || "left").onChange(value => {
             state.appearance.tableAlignment = value; applyAppearancePreferences(plugin); plugin.saveStoredState();
@@ -84,7 +85,7 @@ class IgnoranceSettingTab extends PluginSettingTab {
           rerenderPreviews();
         }) },
         { name: tr("表格十字高亮"), desc: tr("阅读视图里鼠标指到单元格时，高亮它所在的行和列。也可以只在某篇笔记的 cssclasses 里写 ib-crosshair。"), aliases: ["table crosshair"], add: toggle(() => state.tableCrosshair === true, value => { state.tableCrosshair = value; plugin.saveStoredState(); }) },
-        { name: tr("长代码块自动折叠"), desc: tr("阅读视图里超过 40 行的代码块默认只显示前 20 行，点「展开全部」查看完整内容。"), aliases: ["fold long code"], add: toggle(() => state.autoFoldCode === true, value => {
+        { name: tr("长内容自动折叠"), desc: tr("阅读视图里超过 40 行的代码块、超过 600 字的引用、超过 15 行的表格默认折叠，点「展开」查看完整内容。"), aliases: ["fold long code", "fold long content"], add: toggle(() => state.autoFoldCode === true, value => {
           state.autoFoldCode = value; plugin.saveStoredState();
           rerenderPreviews();
         }) },

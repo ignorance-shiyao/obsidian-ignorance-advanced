@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+Quotes are a rounded card with a soft quote mark, in Reading view, Live Preview, the reader and slides; no component draws a side rail any more.
+"Collapse long content" (was "Collapse long code blocks") also folds quotes over 600 characters or 8 paragraphs and tables over 15 rows. The toggle is a small round chevron that turns over when open. Paged reading now folds too (opening a block lays the pages out again), and shows the note cover and the closing mark.
+After jumping within a note (heading, block or footnote link), a round button in the corner takes you back to where you were.
+Tall tables in Reading view scroll inside a frame, so the header stays in view.
+Links to PDF, Word, Excel, PowerPoint and archive files carry a small file glyph tinted by type.
+The Ignorance cats appear on the empty tab, the note cover and at the end of a note (setting "Cat illustrations", on by default).
+
 ## 1.0.24
 
 The plugin now works on its own: with any other theme, or Obsidian's default one, its diagrams, badges, cards, tables tools, reader and exports keep the Ignorance look, because the plugin now carries the design tokens it used to borrow from the theme. With the Ignorance theme active nothing changes.

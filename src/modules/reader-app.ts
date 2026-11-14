@@ -15,6 +15,7 @@ import { iconMarkup as icon } from "./ui-icons.js";
 import { languageIconSvg } from "./language-icons.js";
 import { setMarkup } from "./dom-markup.js";
 import { tr, zh } from "../i18n.js";
+import { CATS_SMALL_URL } from "./brand-cats.js";
 
 function escapeHtml(value: string) {
   return String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" } as Record<string, string>)[char]);
@@ -221,11 +222,11 @@ export function readerAppCss() {
       .ib-reader:has(.ib-rail-list:empty) .ib-rail-title, .ib-rail-list:empty { display:none; }
     }
     .ib-rail-title { color:var(--rd-text-primary); font-size:13px; font-weight:700; }
-    .ib-rail-list { display:grid; gap:2px; margin-top:-8px; border-left:1px solid var(--rd-border); }
-    .ib-rail-list a { display:block; margin-left:-1px; padding:5px 10px; border-left:2px solid transparent; color:var(--rd-text-secondary); font-size:12.5px; line-height:1.45; text-decoration:none; }
+    .ib-rail-list { display:grid; gap:2px; margin-top:-8px; }
+    .ib-rail-list a { display:block; padding:5px 10px; border-radius:var(--rd-radius-s, 6px); color:var(--rd-text-secondary); font-size:12.5px; line-height:1.45; text-decoration:none; }
     .ib-rail-list a[data-level="deeper"] { padding-left:22px; font-size:12px; }
     .ib-rail-list a:hover { color:var(--rd-text-accent); }
-    .ib-rail-list a[aria-current="true"] { border-left-color:var(--rd-accent); color:var(--rd-text-accent); background:var(--rd-bg-hover); font-weight:600; }
+    .ib-rail-list a[aria-current="true"] { color:var(--rd-text-accent); background:var(--rd-bg-hover); font-weight:600; }
     .ib-rail-progress { padding:14px; border:1px solid var(--rd-border); border-radius:var(--rd-radius-m); background:var(--rd-bg-surface); font-size:12px; color:var(--rd-text-secondary); }
     .ib-rail-progress-row { display:flex; justify-content:space-between; }
     .ib-rail-progress b { color:var(--rd-text-primary); font-variant-numeric:tabular-nums; }
@@ -258,6 +259,9 @@ export function readerAppCss() {
     .ib-cover-ambient { top:0; right:0; width:var(--ib-cover-ambient-size); height:var(--ib-cover-ambient-size); border-radius:50%; background:var(--ib-accent-brand); opacity:var(--ib-cover-ambient-opacity); filter:blur(var(--ib-cover-ambient-blur)); }
     .ib-cover-watermark { top:0; right:24px; color:var(--ib-text-primary); font-family:var(--font-monospace,monospace); font-size:var(--ib-cover-watermark-size); font-weight:700; line-height:1; opacity:var(--ib-cover-watermark-opacity); }
     .ib-cover-body, .ib-cover-image { position:relative; }
+    .ib-cover::after { content:""; position:absolute; right:0; bottom:0; width:72px; height:50px; background:url("${CATS_SMALL_URL}") center / contain no-repeat; filter:drop-shadow(0 1px 3px rgba(0,0,0,.1)); pointer-events:none; }
+    @media (max-width:600px), print { .ib-cover::after { content:none; } }
+    @media (prefers-reduced-motion:no-preference) { .ib-cover::after { animation:ib-cats-float 6s ease-in-out infinite alternate; } @keyframes ib-cats-float { to { transform:translateY(-4px); } } }
     [data-ib-toc] { background:color-mix(in srgb,var(--rd-accent) 5%,var(--rd-bg-surface)) !important; border-color:color-mix(in srgb,var(--rd-accent) 16%,var(--rd-border)) !important; color:var(--rd-text-primary) !important; }
     .ib-reader-note a { color:var(--ib-link) !important; }
     .ib-reader-note a:visited { color:var(--ib-link-visited) !important; }

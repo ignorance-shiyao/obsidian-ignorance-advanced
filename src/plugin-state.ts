@@ -20,6 +20,7 @@ export interface AppearanceState {
   hideHeadingLabels: boolean;
   headingBadge: boolean;
   decorations: boolean;
+  cats: boolean;
   tableAlignment: string;
   cardRadius: number;
   themePreset: string;

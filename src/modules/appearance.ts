@@ -60,7 +60,7 @@ function writeCustomPalette(hex: string, preset = "azure") {
 
 function appearanceDefaults(): AppearanceState {
   return {
-    hideHeadingLabels: false, headingBadge: false, decorations: true, tableAlignment: "left", cardRadius: 8, themePreset: "azure",
+    hideHeadingLabels: false, headingBadge: false, decorations: true, cats: true, tableAlignment: "left", cardRadius: 8, themePreset: "azure",
     fontHeading: "theme", lineHeight: "theme"
   };
 }
@@ -94,6 +94,7 @@ function applyAppearancePreferences(plugin: IgnorancePlugin) {
   // Table width and alignment styles step back when table enhancement is off (theme-features.css).
   body.classList.toggle("ib-tables-off", plugin.state.enhance?.tables === false);
   body.classList.toggle("ib-hide-decorations", appearance.decorations === false);
+  body.classList.toggle("ib-hide-cats", appearance.cats === false);
   body.style.setProperty("--ib-card-radius", String(Math.max(0, Math.min(16, Number(appearance.cardRadius) || 0)) + "px"));
   const stamp = `${selected}|${currentThemeMode()}|${accentOverride || ""}|${appearance.fontHeading}|${appearance.lineHeight}`;
   if (body.dataset.ibThemeStamp !== stamp) {
@@ -104,7 +105,7 @@ function applyAppearancePreferences(plugin: IgnorancePlugin) {
 }
 
 function clearAppearancePreferences() {
-  document.body.classList.remove(CUSTOM_ACCENT, "ib-standalone", "ib-hide-heading-labels", "ib-heading-badge", "ib-hide-decorations", "ib-theme-text-size", "ib-tables-off");
+  document.body.classList.remove(CUSTOM_ACCENT, "ib-standalone", "ib-hide-heading-labels", "ib-heading-badge", "ib-hide-decorations", "ib-hide-cats", "ib-theme-text-size", "ib-tables-off");
   delete document.body.dataset.ibThemePreset;
   delete document.body.dataset.ibTableAlignment;
   document.body.style.removeProperty("--ib-card-radius");
