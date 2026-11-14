@@ -67,6 +67,24 @@ function installBackCover(plugin: IgnorancePlugin) {
   });
 }
 
+/** Whether a note asks for a cover (`ib-cover` in cssclasses). */
+export function wantsCover(frontmatter: Record<string, unknown> | undefined): boolean {
+  return [frontmatter?.cssclasses, frontmatter?.cssclass].flat().filter(Boolean).map(String).includes("ib-cover");
+}
+
+export function buildCover(fields: CoverFields): HTMLElement {
+  const cover = createDiv({ cls: "ib-cover-block" });
+  cover.createEl("h1", { cls: "ib-cover-block__title", text: fields.title });
+  if (fields.subtitle) cover.createDiv({ cls: "ib-cover-block__subtitle", text: fields.subtitle });
+  const meta = [fields.authors.join("、"), fields.date].filter(Boolean).join(" · ");
+  if (meta) cover.createDiv({ cls: "ib-cover-block__meta", text: meta });
+  if (fields.tags.length) {
+    const tags = cover.createDiv({ cls: "ib-cover-block__tags" });
+    for (const tag of fields.tags) tags.createSpan({ cls: "ib-cover-block__tag", text: tag });
+  }
+  return cover;
+}
+
 export function installReadingCover(plugin: IgnorancePlugin) {
   installBackCover(plugin);
   plugin.registerMarkdownPostProcessor((element, context) => {
@@ -74,21 +92,11 @@ export function installReadingCover(plugin: IgnorancePlugin) {
     const file = plugin.app.vault.getFileByPath(context.sourcePath);
     if (!info || !file) return;
     const cache = plugin.app.metadataCache.getFileCache(file);
-    const classes = [cache?.frontmatter?.cssclasses, cache?.frontmatter?.cssclass].flat().filter(Boolean).map(String);
-    if (!classes.includes("ib-cover")) return;
+    if (!wantsCover(cache?.frontmatter)) return;
     // Only the first real section carries the cover.
     const first = (cache?.sections || []).find(section => section.type !== "yaml");
     if (!first || info.lineStart !== first.position.start.line || element.querySelector(".ib-cover-block")) return;
-    const fields = coverFields(cache.frontmatter, file.basename);
-    const cover = createDiv({ cls: "ib-cover-block" });
-    cover.createEl("h1", { cls: "ib-cover-block__title", text: fields.title });
-    if (fields.subtitle) cover.createDiv({ cls: "ib-cover-block__subtitle", text: fields.subtitle });
-    const meta = [fields.authors.join("、"), fields.date].filter(Boolean).join(" · ");
-    if (meta) cover.createDiv({ cls: "ib-cover-block__meta", text: meta });
-    if (fields.tags.length) {
-      const tags = cover.createDiv({ cls: "ib-cover-block__tags" });
-      for (const tag of fields.tags) tags.createSpan({ cls: "ib-cover-block__tag", text: tag });
-    }
+    const cover = buildCover(coverFields(cache.frontmatter, file.basename));
     element.prepend(cover);
   });
 }

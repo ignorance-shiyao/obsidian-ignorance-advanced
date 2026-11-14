@@ -16,6 +16,11 @@ import { preparePaperTableColumns } from "./paper-table-columns.js";
 import { renderMarkdownWithContainers } from "./containers.js";
 import { applyCodeFenceHighlights } from "./code-lines.js";
 import { TASK_LINE, sourceTaskLines } from "./task-lines.js";
+import { applyFolds } from "./code-fold.js";
+import { buildCover, coverFields, wantsCover } from "./reading-cover.js";
+
+/* Folds the reader opened in the paged view, per note: a fold changes block heights, so opening one re-paginates. */
+const openedFolds = new Map<string, Set<number>>();
 
 /* A paged book replaces the native reading view. The preview carries `ibp-has-book`; the reading view and the leaf
    carry `ibp-book-host`, so the theme can style around it without `:has()`. */
@@ -129,6 +134,17 @@ function installBookInteractions(plugin: RenderingContext, view: MarkdownView, b
       if (opened) workspace.setActiveLeaf(opened, { focus: true });
     })().catch(error => console.error("Ignorance Advanced: paged link failed —", error));
   });
+  // Cloned pages lose the fold buttons' listeners: remember the opened fold and lay the pages out again.
+  book.addEventListener("click", event => {
+    const button = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-ib-fold-index]") : null;
+    const path = book.dataset.ibpSourcePath;
+    if (!button || !path || !book.contains(button)) return;
+    const index = Number(button.dataset.ibFoldIndex);
+    const opened = openedFolds.get(path) ?? new Set<number>();
+    if (opened.has(index)) opened.delete(index); else opened.add(index);
+    openedFolds.set(path, opened);
+    refreshBooks(plugin, true);
+  });
   book.addEventListener("change", event => {
     const input = event.target;
     if (!(input instanceof HTMLInputElement) || !input.matches(".task-list-item-checkbox")) return;
@@ -170,6 +186,13 @@ function installBookInteractions(plugin: RenderingContext, view: MarkdownView, b
       }
     })();
   });
+}
+
+function decoratePagedStaging(plugin: RenderingContext, file: TFile, staging: HTMLElement) {
+  const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
+  if (wantsCover(frontmatter)) staging.prepend(buildCover(coverFields(frontmatter, file.basename)));
+  if (plugin.state.autoFoldCode === true) applyFolds(staging, { expanded: openedFolds.get(file.path) });
+  if (plugin.state.appearance?.cats !== false) staging.createDiv({ cls: "ib-cats-tail" });
 }
 
 /* Candidate cut positions inside a block (strip coordinates): bottoms of text
@@ -607,6 +630,8 @@ async function composePages(plugin: RenderingContext, file: TFile, text: string,
     staging.style.width = `${bodyBox.width}px`;
     await renderMarkdownWithContainers(plugin, file.path, stripFrontmatter(text), staging, component);
     enhanceStaged(plugin, staging, stripFrontmatter(text), file);
+    // The live paged view matches Reading view: cover, long-content folds and the closing cats. Exports stay complete.
+    if (showProgress) decoratePagedStaging(plugin, file, staging);
     preparePaperTableColumns(staging);
     // Static exports must measure expanded content before assigning page windows.
     if (expandDetails) {
