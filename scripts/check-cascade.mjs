@@ -109,7 +109,7 @@ function expand(sel) {
 const overlaps = (p, q) => p === q || p.startsWith(`${q}-`) || q.startsWith(`${p}-`);
 
 let problems = 0;
-for (const file of process.argv.slice(2).length ? process.argv.slice(2) : ["theme-features.css", "styles.css"]) {
+for (const file of process.argv.slice(2).length ? process.argv.slice(2) : ["theme-features.css", "styles.css", "kb.css"]) {
   const list = rules(readFileSync(file, "utf8"));
   const plain = new Map();
   for (const rule of list) for (const sel of rule.selectors) {

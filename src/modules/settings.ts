@@ -10,6 +10,7 @@ import type { App } from "obsidian";
 import * as Appearance from "./appearance.js";
 import { LINE_HEIGHT_PRESETS } from "./line-height.js";
 import { openSyntaxGuide } from "./syntax-guide.js";
+import { kbSettingItems } from "./kb-features.js";
 const { applyAppearancePreferences } = Appearance;
 
 export { installTabOpening } from "./tab-opening.js";
@@ -185,6 +186,7 @@ class IgnoranceSettingTab extends PluginSettingTab {
           add: toggle(() => Boolean(state.tabs.deduplicateTabs), value => { state.tabs.deduplicateTabs = value; plugin.saveStoredState(); }) }
       ] }
     ];
+    groups.push({ heading: tr("知识库"), items: kbSettingItems(plugin) });
     groups.push({ heading: tr("帮助"), items: [
       { name: tr("语法速查"), desc: tr("在库根目录生成一页写法速查笔记并打开；已存在则直接打开。"), aliases: ["syntax", "cheat sheet", tr("帮助")], add: (setting: Setting) => setting.addButton(button =>
         button.setButtonText(tr("打开")).onClick(() => void openSyntaxGuide(plugin))) }

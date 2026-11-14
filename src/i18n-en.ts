@@ -1,6 +1,18 @@
 /* English text for the Chinese keys used with tr(). A key missing here shows its Chinese text.
    `npm run lint:i18n` fails when a tr() key has no entry. */
 export const EN: Readonly<Record<string, string>> = {
+  // Knowledge base
+  "知识库": "Knowledge base",
+  "收件箱目录": "Inbox folder",
+  "导航目录": "Navigation folder",
+  "工作目录": "Work folder",
+  "个人目录": "Personal folder",
+  "知识目录": "Knowledge folder",
+  "归档目录": "Archive folder",
+  "排除目录": "Excluded folders",
+  "收件箱积压天数": "Inbox backlog days",
+  "逾期任务提醒阈值": "Overdue task alert threshold",
+  "产品线未更新天数": "Product line idle days",
   // API and errors
   "未知错误": "Unknown error",
   "找不到笔记：{path}": "Note not found: {path}",

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+Knowledge-base views (Settings → Knowledge base, each off by default): one shared index built from Obsidian's metadata (never the note text), updated as notes change; the inbox, work, personal, knowledge, archive and excluded folders are settings.
+
 ## 1.0.24
 
 The plugin now works on its own: with any other theme, or Obsidian's default one, its diagrams, badges, cards, tables tools, reader and exports keep the Ignorance look, because the plugin now carries the design tokens it used to borrow from the theme. With the Ignorance theme active nothing changes.
