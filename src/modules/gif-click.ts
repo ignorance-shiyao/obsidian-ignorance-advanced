@@ -44,10 +44,21 @@ async function arm(plugin: IgnorancePlugin, holder: HTMLElement, file: TFile) {
   holder.classList.add("ib-gif-click");
   holder.setAttribute("role", "button");
   holder.setAttribute("aria-label", tr("点击播放或停止"));
+  holder.tabIndex = 0;
+  holder.setAttribute("aria-pressed", "false");
+  const toggle = () => {
+    const playing = holder.classList.toggle("is-playing");
+    holder.setAttribute("aria-pressed", String(playing));
+    image.src = playing ? animated : poster;
+  };
   holder.addEventListener("click", event => {
     event.preventDefault();
     event.stopPropagation();
-    const playing = holder.classList.toggle("is-playing");
-    image.src = playing ? animated : poster;
+    toggle();
+  });
+  holder.addEventListener("keydown", event => {
+    if (event.target !== holder || (event.key !== "Enter" && event.key !== " ") || event.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
+    event.preventDefault();
+    if (!event.repeat) toggle();
   });
 }
