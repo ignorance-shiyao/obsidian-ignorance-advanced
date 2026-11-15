@@ -3123,7 +3123,7 @@ img.ib-img-padding { padding: 20px; }
 img.ib-img-icon:not(#_ib) { display: inline; height: 1.2em; width: auto; margin: 0; vertical-align: -.2em; border: 0; border-radius: 0; box-shadow: none; background: none; }
 img.ib-img-icon.is-natural:not(#_ib) { height: auto; }
 img.ib-img-icon.is-double:not(#_ib) { height: 2em; vertical-align: middle; }
-img.ib-img-logo:not(#_ib) { border: 0; border-radius: 0; box-shadow: none; background: none; }
+img.ib-img-logo:not(#_ib) { width: 6em; height: auto; border: 0; border-radius: 0; box-shadow: none; background: none; }
 img.ib-img-logo.has-border:not(#_ib) { border: 2px solid var(--ib-border-default); border-radius: var(--ib-radius-md, 8px); }
 .ib-img-logo-holder.is-left:not(#_ib) { float: left; margin: 0 var(--ib-space-5, 20px) var(--ib-space-2, 8px) 0; }
 .ib-img-logo-holder.is-right:not(#_ib) { float: right; margin: 0 0 var(--ib-space-2, 8px) var(--ib-space-5, 20px); }
