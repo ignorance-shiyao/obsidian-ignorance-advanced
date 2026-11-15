@@ -3,6 +3,7 @@
 ## Unreleased
 
 Column cards for quotes and lists cycle through six palette hues with tinted surfaces, hue-matched borders and a soft lift on hover; tab bars tint each tab by content type (table, code, image, quote).
+Knowledge base home: tiles, bars and product cards cycle through palette hues with tinted surfaces and a gradient fill; warning tiles keep their own colour.
 Quotes are a rounded card with a soft quote mark, in Reading view, Live Preview, the reader and slides; no component draws a side rail any more.
 "Collapse long content" (was "Collapse long code blocks") also folds quotes over 600 characters or 8 paragraphs and tables over 15 rows. The toggle is a small round chevron that turns over when open. Paged reading now folds too (opening a block lays the pages out again), and shows the note cover and the closing mark.
 After jumping within a note (heading, block or footnote link), a round button in the corner takes you back to where you were.

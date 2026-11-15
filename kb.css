@@ -580,3 +580,31 @@ button.ig-kb-bar-row:hover {
 .is-phone .ig-kb-section-tools .ig-kb-chip {
   min-height: var(--ig-kb-hit);
 }
+
+/* ---- Hues: tiles, bars and cards cycle through the chart palette ---- */
+.ig-kb-tile, .ig-kb-card, .ig-kb-bar-row {
+  --ig-kb-h1: var(--ib-chart-1, #4d81ef);
+  --ig-kb-h2: var(--ib-chart-3, #0f8a72);
+  --ig-kb-h3: var(--ib-chart-4, #b6548c);
+  --ig-kb-h4: var(--ib-chart-2, #d97706);
+  --ig-kb-h5: var(--ib-chart-7, #7867c9);
+  --ig-kb-h6: var(--ib-chart-5, #2f8dbd);
+}
+.ig-kb-tile:nth-child(6n + 1), .ig-kb-card:nth-child(6n + 1), .ig-kb-bar-row:nth-child(6n + 1) { --ig-kb-hue: var(--ig-kb-h1); }
+.ig-kb-tile:nth-child(6n + 2), .ig-kb-card:nth-child(6n + 2), .ig-kb-bar-row:nth-child(6n + 2) { --ig-kb-hue: var(--ig-kb-h2); }
+.ig-kb-tile:nth-child(6n + 3), .ig-kb-card:nth-child(6n + 3), .ig-kb-bar-row:nth-child(6n + 3) { --ig-kb-hue: var(--ig-kb-h3); }
+.ig-kb-tile:nth-child(6n + 4), .ig-kb-card:nth-child(6n + 4), .ig-kb-bar-row:nth-child(6n + 4) { --ig-kb-hue: var(--ig-kb-h4); }
+.ig-kb-tile:nth-child(6n + 5), .ig-kb-card:nth-child(6n + 5), .ig-kb-bar-row:nth-child(6n + 5) { --ig-kb-hue: var(--ig-kb-h5); }
+.ig-kb-tile:nth-child(6n), .ig-kb-card:nth-child(6n), .ig-kb-bar-row:nth-child(6n) { --ig-kb-hue: var(--ig-kb-h6); }
+.ig-kb-tile:not(.is-warn) {
+  border-color: color-mix(in srgb, var(--ig-kb-hue, var(--ig-kb-accent)) 26%, var(--ig-kb-line));
+  background: linear-gradient(160deg, color-mix(in srgb, var(--ig-kb-hue, var(--ig-kb-accent)) 12%, var(--background-primary)), color-mix(in srgb, var(--ig-kb-hue, var(--ig-kb-accent)) 3%, var(--background-primary)));
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ig-kb-hue, var(--ig-kb-accent)) 14%, transparent), 0 6px 16px -10px color-mix(in srgb, var(--ig-kb-hue, var(--ig-kb-accent)) 35%, transparent);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.ig-kb-tile:not(.is-warn) .ig-kb-tile-value { color: var(--ig-kb-hue, var(--ig-kb-accent)); }
+button.ig-kb-tile:hover { transform: translateY(-2px); }
+.ig-kb-card:not(.is-warn) { border-color: color-mix(in srgb, var(--ig-kb-hue, var(--ig-kb-accent)) 26%, var(--ig-kb-line)); background: linear-gradient(160deg, color-mix(in srgb, var(--ig-kb-hue, var(--ig-kb-accent)) 8%, var(--background-primary)), var(--background-primary)); }
+.ig-kb-card:not(.is-warn) .ig-kb-card-title { color: var(--ig-kb-hue, var(--ig-kb-accent)); }
+.ig-kb-bar-row .ig-kb-bar-fill { background: linear-gradient(90deg, color-mix(in srgb, var(--ig-kb-hue, var(--ig-kb-accent)) 70%, var(--background-primary)), var(--ig-kb-hue, var(--ig-kb-accent))); }
+@media (prefers-reduced-motion: reduce) { .ig-kb-tile:not(.is-warn) { transition: none; } }
