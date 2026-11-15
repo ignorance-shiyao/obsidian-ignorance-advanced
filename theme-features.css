@@ -3000,7 +3000,7 @@ body[data-ib-table-alignment] .markdown-rendered table[data-ib-table-align="righ
 
 .ib-inline-spoiler {
   padding: 0 .25em; border-radius: var(--ib-radius-sm, 4px); cursor: pointer;
-  background: var(--ib-bg-tertiary, var(--background-modifier-hover)); color: transparent; user-select: none;
+  background: color-mix(in srgb, var(--ib-text-primary, var(--text-normal)) 16%, transparent); color: transparent; user-select: none;
   transition: color .15s ease, background-color .15s ease;
 }
 .ib-inline-spoiler:hover, .ib-inline-spoiler:focus-visible, .ib-inline-spoiler.is-revealed {
