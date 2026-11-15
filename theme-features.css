@@ -3824,3 +3824,7 @@ body.ib-hide-cats .ib-cats-tail { display: none; }
 .ib-export-done { display: flex; align-items: center; gap: var(--ib-space-2, 8px); }
 .ib-export-done__text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .ib-export-done__button { flex: none; }
+
+/* Block-by-block reading: the current block sits on a soft tint, no side rail. */
+.ib-roam-current:not(#_ib) { border-radius: var(--ib-radius-sm, 6px); background: var(--ib-accent-subtle, var(--background-modifier-hover)); box-shadow: 0 0 0 6px var(--ib-accent-subtle, var(--background-modifier-hover)); transition: background-color var(--ib-duration-fast, .15s) ease, box-shadow var(--ib-duration-fast, .15s) ease; }
+@media (prefers-reduced-motion: reduce) { .ib-roam-current:not(#_ib) { transition: none; } }

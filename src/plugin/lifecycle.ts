@@ -10,6 +10,7 @@ import { installCaptions } from "../modules/captions.js";
 import { installChartPreload } from "../modules/chart-preload.js";
 import { installCodeFold } from "../modules/code-fold.js";
 import { installBackToOrigin } from "../modules/back-to-origin.js";
+import { installParagraphRoaming } from "../modules/paragraph-roaming.js";
 import { installProseExtras } from "../modules/prose-extras.js";
 import { installProseCompat } from "../modules/prose-compat.js";
 import { colorSwatchExtension,colorSwatchPostProcessor } from "../modules/color-swatch.js";
@@ -162,6 +163,7 @@ export async function onload(plugin: IgnorancePlugin) {
   installNativeChapterSource(plugin);
   installCodeFold(plugin);
   installBackToOrigin(plugin);
+  installParagraphRoaming(plugin);
   installProseExtras(plugin);
   installProseCompat(plugin);
   // Warming every diagram in the open note loads the 1 MB ECharts and 5 MB Mermaid engines in the
