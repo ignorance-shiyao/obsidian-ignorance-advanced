@@ -11,7 +11,8 @@ interface ElectronRemote {
   dialog: { showSaveDialog(options: { defaultPath?: string; title?: string }): Promise<{ canceled: boolean; filePath?: string }>; showOpenDialog(options: { properties: string[]; defaultPath?: string; title?: string }): Promise<{ canceled: boolean; filePaths: string[] }> };
   getCurrentWebContents(): { startDrag(item: { file: string; icon: unknown }): void };
 }
-interface Electron { remote?: ElectronRemote; nativeImage: { createFromDataURL(url: string): unknown } }
+interface ElectronShell { openPath(path: string): Promise<string>; showItemInFolder(path: string): void }
+interface Electron { remote?: ElectronRemote; shell?: ElectronShell; nativeImage: { createFromDataURL(url: string): unknown } }
 
 const load = <T>(id: string): T | null => {
   if (!Platform.isDesktopApp) return null;

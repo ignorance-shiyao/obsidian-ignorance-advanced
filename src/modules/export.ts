@@ -9,6 +9,8 @@ import type { IgnorancePlugin } from "../plugin-types.js";
 import { Menu, Notice, Component, MarkdownView, Platform, requestUrl } from "obsidian";
 import { setDocSheet, removeDocSheet } from "./doc-sheets.js";
 import { hasDesktopExports } from "./desktop-runtime.js";
+import { stageToPdf } from "./pdf-direct.js";
+import { showExportDone } from "./export-done.js";
 import { prepareMarkdownTextForPandoc } from "./pandoc-markdown.js";
 import { composePages } from "./reading-pagination.js";
 import type { PageState } from "../plugin-types.js";
@@ -46,16 +48,16 @@ function exportActions(plugin: IgnorancePlugin, file: TFile): Record<ExportActio
   const deps = { prepareHtmlDocument: plugin.exporters.html, prepareRichCopyMarkup, pageVarsAtFullScale, buildDeck };
   const preview = (kind: string, run: () => void) => () => previewThenExport(plugin, file, kind, deps, run);
   return {
-    pdf: { title: tr("导出 PDF"), icon: "lucide-file-down", run: preview("pdf", () => { void runExport("PDF", () => exportPdf(plugin, file)); }) },
-    word: { title: tr("导出 Word（.docx）"), icon: "lucide-file-type", run: preview("word", () => { void runExport("Word", () => exportWord(plugin, file)); }) },
+    pdf: { title: tr("导出 PDF"), icon: "lucide-file-down", run: preview("pdf", () => { void runExport(plugin, "PDF", () => exportPdf(plugin, file)); }) },
+    word: { title: tr("导出 Word（.docx）"), icon: "lucide-file-type", run: preview("word", () => { void runExport(plugin, "Word", () => exportWord(plugin, file)); }) },
     // PPTX uses the presentation settings (skin, aspect ratio) and its own progress notice.
     pptxEditable: { title: tr("导出 PPTX（可编辑）"), icon: "lucide-presentation", run: preview("pptx-editable", () => { void exportNotePptx(plugin, file, "editable"); }) },
     pptxImage: { title: tr("导出 PPTX（图片版）"), icon: "lucide-image", run: preview("pptx-image", () => { void exportNotePptx(plugin, file, "image"); }) },
     wechat: { title: tr("复制为公众号格式"), icon: "lucide-copy", run: preview("wechat", () => { void runCopy(tr("公众号"), () => copyFormattedNote(plugin, file, "wechat")); }) },
     zhihu: { title: tr("复制为知乎格式"), icon: "lucide-copy", run: preview("zhihu", () => { void runCopy(tr("知乎"), () => copyFormattedNote(plugin, file, "zhihu")); }) },
-    html: { title: tr("导出为 HTML"), icon: "lucide-globe", run: preview("html", () => { void runExport("HTML", () => plugin.exporters.exportHtml(plugin, file)); }) },
-    pages: { title: tr("导出分页图片"), icon: "lucide-images", run: preview("pages", () => { void runExport(tr("分页图片"), () => exportImages(plugin, file, "pages")); }) },
-    long: { title: tr("导出长图"), icon: "lucide-image", run: preview("long", () => { void runExport(tr("长图"), () => exportImages(plugin, file, "long")); }) },
+    html: { title: tr("导出为 HTML"), icon: "lucide-globe", run: preview("html", () => { void runExport(plugin, "HTML", () => plugin.exporters.exportHtml(plugin, file)); }) },
+    pages: { title: tr("导出分页图片"), icon: "lucide-images", run: preview("pages", () => { void runExport(plugin, tr("分页图片"), () => exportImages(plugin, file, "pages")); }) },
+    long: { title: tr("导出长图"), icon: "lucide-image", run: preview("long", () => { void runExport(plugin, tr("长图"), () => exportImages(plugin, file, "long")); }) },
     // Several notes become one book, so there is no single-note preview first.
     book: { title: tr("合成电子书（多篇）"), icon: "lucide-book-open", run: () => openBookExport(plugin) }
   };
@@ -83,12 +85,12 @@ function addPortableExportItems(plugin: IgnorancePlugin, menu: Menu, file: TFile
   }
 }
 
-async function runExport(label: string, task: () => Promise<string | null | undefined | void>) {
+async function runExport(plugin: IgnorancePlugin, label: string, task: () => Promise<string | null | undefined | void>) {
   const notice = new Notice(tr("正在导出{label}…", { label }), 0);
   try {
     const result = await task();
     notice.hide();
-    if (result) new Notice(tr("已导出{label}：{result}", { label, result }), 6000);
+    if (result) showExportDone(plugin, label, result);
   } catch (error) {
     notice.hide();
     if (error instanceof ExportCancelled) { new Notice(tr("已取消保存")); return; }
@@ -426,11 +428,19 @@ async function exportPdfToVault(plugin: IgnorancePlugin, file: TFile) {
   });
 }
 
-/* Desktop: the system print dialog, whose "Save as PDF" keeps text as text.
-   @page is sized to the paper with margin 0, since each page already carries
-   its margins. Returns null: the dialog itself reports where it saved. */
+/* Desktop: written straight to PDF through a hidden window (no dialog, text stays text). When that is not
+   available, or fails, the system print dialog is the fallback; its "Save as PDF" keeps text as text too.
+   @page is sized to the paper with margin 0, since each page already carries its margins. Returns the saved
+   path, or null when the print dialog itself reports where it saved. */
 async function exportPdf(plugin: IgnorancePlugin, file: TFile) {
   if (!hasDesktopExports()) return exportPdfToVault(plugin, file);
+  const size = paperSize(plugin.state.page);
+  const direct = await withExportStage<Uint8Array | null>(plugin, file, {}, stage => stageToPdf(stage, { title: file.basename, widthMm: size.w, heightMm: size.h }));
+  if (direct) return saveExportToVault(plugin, `${file.basename}.pdf`, direct);
+  return exportPdfWithDialog(plugin, file);
+}
+
+async function exportPdfWithDialog(plugin: IgnorancePlugin, file: TFile): Promise<null> {
   const size = paperSize(plugin.state.page);
   await withExportStage(plugin, file, {}, async stage => {
     stage.addClass("ibp-print-root");

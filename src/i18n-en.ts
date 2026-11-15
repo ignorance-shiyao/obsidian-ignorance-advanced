@@ -440,6 +440,7 @@ export const EN: Readonly<Record<string, string>> = {
   "展开全文": "Expand",
   "展开全部 {rows} 行": "Expand all {rows} rows",
   "返回原处": "Back",
+  "在文件夹中显示": "Show in folder",
   "标题编号风格": "Heading number style",
   "一、（一）": "一、（一）",
   "标题编号起始级别": "Heading numbering starts at",
