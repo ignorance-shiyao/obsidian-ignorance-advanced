@@ -277,6 +277,7 @@ function paginateStrip(strip: HTMLDivElement, contentHeight: number, mode: strin
     continuationOverhead: block.continuationOverhead,
     atomic: Boolean(block.el.matches(".mermaid, .math-block, .math, mjx-container, figure, .internal-embed, .image-embed, svg, img")
       || (block.el.matches("p") && (block.el.textContent || "").trim() === "" && block.el.querySelector("img, svg"))),
+    breakBefore: Boolean(block.el.previousElementSibling?.classList.contains("ib-page-break")),
     leadIn: /^H[1-6]$/.test(block.el.tagName) || (block.el.tagName === "P" && /[:：]\s*$/.test(block.el.textContent || ""))
   }));
   return { blocks, windows: paginateStripCoordinates(coordinates, contentHeight, mode) };

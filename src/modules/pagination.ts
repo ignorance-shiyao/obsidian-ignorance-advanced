@@ -4,6 +4,8 @@ export interface PaginationBlock {
   atomic: boolean;
   breakpoints: number[];
   leadIn: boolean;
+  /** An explicit page break comes before this block. */
+  breakBefore?: boolean;
   continuationOverhead?: number;
 }
 
@@ -45,6 +47,12 @@ export function paginateStrip(blocks: PaginationBlock[], contentHeight: number, 
     const overhead = Math.min(contentHeight - 1, Math.max(0, continuing?.continuationOverhead || 0));
     const availableHeight = Math.max(1, contentHeight - overhead);
     let stop = start + availableHeight;
+    const forced = blocks.find(block => block.breakBefore && block.top > start + 1 && block.top < stop);
+    if (forced) {
+      windows.push({ start, stop: forced.top });
+      start = forced.top;
+      continue;
+    }
     if (stop < end) {
       const crossing = blocks.find(block => block.top < stop && block.bottom > stop);
       if (crossing) {

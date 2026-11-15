@@ -528,6 +528,7 @@ export const EN: Readonly<Record<string, string>> = {
   "返回原处": "Back",
   "逐段阅读": "Read block by block",
   "上一项": "Previous",
+  "分页": "Page break",
   "回到文档位置": "Back to its place in the note",
   "下一项": "Next",
   "适应窗口": "Fit to window",

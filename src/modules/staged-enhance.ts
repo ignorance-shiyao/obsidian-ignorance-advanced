@@ -4,6 +4,7 @@ import type { RenderingContext } from "../rendering-context.js";
    and image export): the whole note is rendered into one container, and the source decides which element
    gets which number. A kind is skipped when the document and the source disagree about how many there are. */
 import { captionParagraph, captionPattern, parseCaptions, resolveRefs, wantsCaptions, wrapFigure, type CaptionKind } from "./captions.js";
+import { isPageBreakText } from "./page-break-core.js";
 import { numberWithOptions, numberingOptions, scanHeadings, unpublishedIndexes, wantsNumbers } from "./heading-numbers.js";
 
 const headingSelector = "h1, h2, h3, h4, h5, h6";
@@ -82,8 +83,19 @@ function applyCaptions(root: HTMLElement, source: string) {
   resolveRefs(root, entries);
 }
 
+/** `---page` paragraphs become hidden markers; the paginator starts a new page after each one. */
+export function markPageBreaks(root: HTMLElement) {
+  for (const paragraph of root.querySelectorAll<HTMLElement>("p")) {
+    if (!isPageBreakText(paragraph.textContent) || paragraph.querySelector("code, a, em, strong")) continue;
+    paragraph.empty();
+    paragraph.classList.add("ib-page-break");
+    paragraph.setCssStyles({ display: "none" });
+  }
+}
+
 export function enhanceStaged(plugin: RenderingContext, root: HTMLElement, source: string, file: TFile) {
   removeUnpublished(root);
+  markPageBreaks(root);
   const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
   if (wantsNumbers(plugin, frontmatter)) applyHeadingNumbers(plugin, root, source);
   if (wantsCaptions(plugin, frontmatter)) applyCaptions(root, source);

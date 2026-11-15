@@ -2,6 +2,7 @@
 import MarkdownIt from "markdown-it";
 import { tr } from "../i18n.js";
 import { WORD_TEXT_FONT } from "./word-font.js";
+import { isPageBreakText } from "./page-break-core.js";
 import {
   BorderStyle,
   Document,
@@ -9,6 +10,7 @@ import {
   HeadingLevel,
   ImageRun,
   Paragraph,
+  PageBreak,
   Packer,
   Table,
   TableCell,
@@ -370,6 +372,11 @@ async function blocksToDocx(tokens: Token[], context: DocxContext, quoteDepth = 
     }
     if (token.type === "paragraph_open") {
       const inline = tokens[index + 1];
+      if (quoteDepth === 0 && isPageBreakText(inline?.content)) {
+        elements.push(new Paragraph({ children: [new PageBreak()] }));
+        index += 3;
+        continue;
+      }
       const runs = inline?.children ? await inlineTokensToRuns(inline.children, context) : [new TextRun({ text: "" })];
       elements.push(paragraphFromRuns(runs, context, { quote: quoteDepth > 0 }));
       index += 3;

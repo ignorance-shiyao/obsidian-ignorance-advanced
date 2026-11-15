@@ -5,6 +5,15 @@ import { createStructuredDocxBuffer, markdownForStructuredWord } from "./docx-st
 const ONE_PIXEL_PNG = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jzV8AAAAASUVORK5CYII="), char => char.charCodeAt(0));
 
 describe("结构化 Word 导出", () => {
+  it("把单独成行的 ---page 写成真正的分页符，且不留下标记文字", async () => {
+    const output = await createStructuredDocxBuffer("前文\n\n---page\n\n后文");
+    const document = await (await JSZip.loadAsync(output)).file("word/document.xml").async("string");
+    expect(document).toContain('w:br w:type="page"');
+    expect(document).not.toContain("---page");
+    expect(document).toContain("前文");
+    expect(document).toContain("后文");
+  });
+
   it("将设定字体和字号应用到一至三级标题，并保留标题段落关联", async () => {
     const output = await createStructuredDocxBuffer("# 一级\n\n## 二级\n\n### 三级\n\n正文", {
       style: { fontFamily: "Noto Sans CJK SC", fontSize: 12 }

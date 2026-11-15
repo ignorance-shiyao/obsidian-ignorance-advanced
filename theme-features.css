@@ -3845,3 +3845,9 @@ body.ib-hide-cats .ib-cats-tail { display: none; }
 .ib-viewer__button:not(#_ib):disabled { opacity: .35; cursor: default; }
 .ib-viewer__button svg { width: 16px; height: 16px; }
 @media (prefers-reduced-motion: reduce) { .ib-viewer-open:not(#_ib) { transition: none; } }
+
+/* `---page` in Reading view: a dashed divider with a page glyph. Paged reading and exports break the page instead. */
+p.ib-page-break-mark:not(#_ib) { display: flex; align-items: center; gap: var(--ib-space-3, 12px); margin: var(--ib-space-5, 20px) 0; color: var(--ib-text-muted, var(--text-faint)); }
+p.ib-page-break-mark:not(#_ib)::before, p.ib-page-break-mark:not(#_ib)::after { content: ""; flex: 1; border-top: 1.5px dashed var(--ib-border-default, var(--background-modifier-border)); }
+.ib-page-break-mark__icon svg { width: 16px; height: 16px; }
+@media print { p.ib-page-break-mark:not(#_ib) { break-after: page; visibility: hidden; margin: 0; height: 0; } }
