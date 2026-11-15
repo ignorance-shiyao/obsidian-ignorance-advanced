@@ -1,14 +1,16 @@
 /* Block syntax, worked out from the note's source lines:
-     - N rules (`---`) right before a list lay the list out in N + 1 columns (up to five)
+     - N rules (`---`) right before a list or a quote lay it out in N + 1 columns (up to five)
      - `**==72==**` is a progress bar; `**==?==**` counts the ticked tasks of the list that follows */
 const RULE = /^ {0,3}(?:-{3,}|\*{3,}|_{3,})\s*$/;
 const LIST = /^\s*(?:[-*+]|\d+[.)])\s/;
+const QUOTE = /^ {0,3}>/;
+const LEAD = (line: string | undefined) => LIST.test(line || "") || QUOTE.test(line || "");
 const TASK = /^\s*(?:[-*+]|\d+[.)])\s+\[(.)\]/;
 const blank = (line: string | undefined) => line !== undefined && !line.trim();
 
-/** How many columns the list starting at `line` asks for: 1 when no rules lead into it. */
+/** How many columns the list or quote starting at `line` asks for: 1 when no rules lead into it. */
 export function listColumns(lines: string[], line: number) {
-  if (!LIST.test(lines[line] || "")) return 1;
+  if (!LEAD(lines[line])) return 1;
   let rules = 0;
   for (let at = line - 1; at >= 0; at--) {
     if (blank(lines[at])) continue;
@@ -23,7 +25,7 @@ export function ruleLeadsToList(lines: string[], line: number) {
   if (!RULE.test(lines[line] || "")) return false;
   for (let at = line + 1; at < lines.length; at++) {
     if (blank(lines[at]) || RULE.test(lines[at])) continue;
-    return LIST.test(lines[at]);
+    return LEAD(lines[at]);
   }
   return false;
 }

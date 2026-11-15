@@ -16,12 +16,22 @@ function columnsFromDom(list: HTMLElement) {
   return rules ? Math.min(rules, 4) + 1 : 1;
 }
 
+/** In a column quote a bold first line is the first column's own heading, not a title above all columns. */
+function mergeQuoteTitle(quote: HTMLElement) {
+  const title = quote.querySelector<HTMLElement>(":scope > p.ib-quote-title");
+  const next = title?.nextElementSibling;
+  if (!title || !next) return;
+  next.prepend(...title.childNodes, createEl("br"));
+  title.remove();
+}
+
 function layoutColumns(element: HTMLElement, lines: string[] | null, start: number) {
   if (lines && element.querySelector(":scope > hr") && ruleLeadsToList(lines, start)) element.classList.add("ib-list-columns-rule");
-  for (const list of element.querySelectorAll<HTMLElement>(":scope > ul, :scope > ol")) {
+  for (const list of element.querySelectorAll<HTMLElement>(":scope > ul, :scope > ol, :scope > blockquote")) {
     const columns = lines ? listColumns(lines, start) : columnsFromDom(list);
     if (columns < 2) continue;
-    list.classList.add("ib-list-columns");
+    list.classList.add(list.tagName === "BLOCKQUOTE" ? "ib-quote-columns" : "ib-list-columns");
+    if (list.tagName === "BLOCKQUOTE") mergeQuoteTitle(list);
     list.style.setProperty("--ib-list-columns", String(columns));
   }
 }

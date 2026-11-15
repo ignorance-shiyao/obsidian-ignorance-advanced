@@ -3856,3 +3856,22 @@ p.ib-page-break-mark:not(#_ib)::before, p.ib-page-break-mark:not(#_ib)::after { 
 .markdown-reading-view .markdown-preview-view :not(pre) > code:not(#_ib) { cursor: copy; transition: background-color var(--ib-duration-fast, .15s) ease, color var(--ib-duration-fast, .15s) ease; }
 .markdown-reading-view .markdown-preview-view :not(pre) > code.is-copied:not(#_ib) { background-color: var(--ib-success-subtle, color-mix(in srgb, var(--color-green) 22%, transparent)); color: var(--ib-success, var(--color-green)); }
 @media (prefers-reduced-motion: reduce) { .markdown-reading-view .markdown-preview-view :not(pre) > code:not(#_ib) { transition: none; } }
+
+/* ---- Quote columns: rules before a quote lay its blocks out side by side, each on its own card ---- */
+.markdown-rendered blockquote.ib-quote-columns:not(#_ib):not(#_ib2) {
+  display: grid;
+  grid-template-columns: repeat(var(--ib-list-columns, 2), minmax(0, 1fr));
+  gap: var(--ib-space-3, 12px);
+  padding: 0;
+  background: none;
+  border-radius: 0;
+}
+.markdown-rendered blockquote.ib-quote-columns:not(#_ib):not(#_ib2)::after { content: none; }
+.markdown-rendered blockquote.ib-quote-columns:not(#_ib):not(#_ib2) > * {
+  margin: 0;
+  padding: var(--ib-space-3, 12px) var(--ib-space-4, 16px);
+  border-radius: var(--ib-card-radius, 12px);
+  background: var(--ib-quote-bg, var(--background-secondary));
+}
+@media (max-width: 600px) { .markdown-rendered blockquote.ib-quote-columns:not(#_ib):not(#_ib2) { grid-template-columns: minmax(0, 1fr); } }
+.markdown-rendered blockquote.ib-quote-columns:not(#_ib):not(#_ib2) > p > strong:first-child { color: var(--ib-accent-brand, var(--text-accent)); font-family: var(--ib-font-sans, inherit); font-size: var(--ib-small-size, .9em); }

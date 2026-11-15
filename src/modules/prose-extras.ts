@@ -32,6 +32,7 @@ export function renderScripts(root: HTMLElement) {
 export function markQuoteTitles(root: HTMLElement) {
   for (const quote of root.querySelectorAll<HTMLElement>("blockquote")) {
     const first = quote.firstElementChild;
+    if (quote.classList.contains("ib-quote-columns")) continue;
     if (!first?.instanceOf(HTMLParagraphElement) || first.classList.contains("ib-quote-title")) continue;
     // The first line only: Obsidian keeps a soft break inside the same paragraph.
     const nodes = [...first.childNodes];

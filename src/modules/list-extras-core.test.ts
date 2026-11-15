@@ -1,6 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { listColumns, progressTone, progressValue, ruleLeadsToList, taskProgressAfter } from "./list-extras-core";
 
+describe("引用块分栏", () => {
+  const lines = ["段落", "", "---", "---", "", "> 一", ">", "> 二", "", "正文"];
+  it("引用块前的分割线数量决定栏数", () => {
+    expect(listColumns(lines, 5)).toBe(3);
+    expect(listColumns(["> a"], 0)).toBe(1);
+    expect(listColumns(["---", "> a"], 1)).toBe(2);
+  });
+  it("隐藏通向引用块的分割线，不影响通向普通段落的", () => {
+    expect(ruleLeadsToList(lines, 2)).toBe(true);
+    expect(ruleLeadsToList(lines, 3)).toBe(true);
+    expect(ruleLeadsToList(["---", "", "正文"], 0)).toBe(false);
+  });
+  it("提示块也是引用块写法，同样按栏数处理", () => {
+    expect(listColumns(["---", "> [!note]", "> 内容"], 1)).toBe(2);
+  });
+});
+
 describe("列表分栏", () => {
   const lines = ["段落", "", "---", "", "---", "", "- 一", "  - 子", "- 二", "", "---", "", "正文"];
   it("列表前的分割线数量决定栏数", () => {
