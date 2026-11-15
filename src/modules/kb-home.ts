@@ -1,3 +1,4 @@
+import { setIcon } from "obsidian";
 import type { WorkspaceLeaf } from "obsidian";
 import { tr, zh } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
@@ -16,6 +17,10 @@ export const KB_INBOX_VIEW = "ig-kb-inbox";
 
 const AREA_LABELS: Record<KbArea, string> = {
   inbox: zh("收件箱"), nav: zh("导航"), work: zh("工作"), personal: zh("个人"), knowledge: zh("知识"), archive: zh("归档"), other: zh("其他")
+};
+
+const AREA_ICONS: Record<KbArea, string> = {
+  inbox: "lucide-inbox", nav: "lucide-compass", work: "lucide-briefcase", personal: "lucide-user", knowledge: "lucide-book-open", archive: "lucide-archive", other: "lucide-layout-grid"
 };
 
 export function kbAreaLabel(area: KbArea): string { return tr(AREA_LABELS[area]); }
@@ -49,42 +54,43 @@ class KbHomeView extends KbView {
     if (run !== this.drawn) return;
     const notes = this.index.all();
     const d = computeDashboard(notes, Date.now(), dues, kbSettings(this.plugin).thresholds);
-    const actions = kbHeader(root, tr("知识首页"));
+    const actions = kbHeader(root, tr("知识首页"), "lucide-layout-dashboard");
     kbViewShortcuts(this.plugin, actions, KB_HOME_VIEW);
     kbIconButton(actions, "lucide-refresh-cw", tr("刷新"), () => { this.index.reset(); this.index.flush(); });
 
     const show = (title: string, paths: string[]) => () => { this.detail = { title, paths }; this.redraw(); };
     const tiles = root.createDiv({ cls: "ig-kb-tiles" });
-    kbTile(tiles, tr("笔记"), d.total, undefined, show(tr("笔记"), [...notes].sort((a, b) => b.mtime - a.mtime).map(n => n.path)));
-    kbTile(tiles, tr("本周新增"), d.weekCreated.length, undefined, show(tr("本周新增"), d.weekCreated));
-    kbTile(tiles, tr("本周修改"), d.weekModified.length, undefined, show(tr("本周修改"), d.weekModified));
-    kbTile(tiles, tr("未消化剪藏"), d.inbox.length, undefined, this.inboxAction(show(tr("未消化剪藏"), d.inbox)));
-    kbTile(tiles, tr("积压超过 {n} 天", { n: kbSettings(this.plugin).thresholds.inboxStaleDays }), d.inboxStale.length, d.inboxStale.length ? "warn" : undefined, show(tr("积压剪藏"), d.inboxStale));
-    kbTile(tiles, tr("未完成任务"), d.openTaskCount, undefined, show(tr("未完成任务"), d.openTasks));
-    kbTile(tiles, tr("今天到期"), d.dueTodayCount, undefined, show(tr("今天到期"), d.dueToday));
-    kbTile(tiles, tr("已逾期"), d.overdueCount, d.overdueCount ? "warn" : undefined, show(tr("已逾期"), d.overdue));
+    kbTile(tiles, tr("笔记"), d.total, undefined, show(tr("笔记"), [...notes].sort((a, b) => b.mtime - a.mtime).map(n => n.path)), "lucide-file-text");
+    kbTile(tiles, tr("本周新增"), d.weekCreated.length, undefined, show(tr("本周新增"), d.weekCreated), "lucide-file-plus-2");
+    kbTile(tiles, tr("本周修改"), d.weekModified.length, undefined, show(tr("本周修改"), d.weekModified), "lucide-pencil-line");
+    kbTile(tiles, tr("未消化剪藏"), d.inbox.length, undefined, this.inboxAction(show(tr("未消化剪藏"), d.inbox)), "lucide-layers");
+    kbTile(tiles, tr("积压超过 {n} 天", { n: kbSettings(this.plugin).thresholds.inboxStaleDays }), d.inboxStale.length, d.inboxStale.length ? "warn" : undefined, show(tr("积压剪藏"), d.inboxStale), "lucide-calendar-clock");
+    kbTile(tiles, tr("未完成任务"), d.openTaskCount, undefined, show(tr("未完成任务"), d.openTasks), "lucide-circle-check");
+    kbTile(tiles, tr("今天到期"), d.dueTodayCount, undefined, show(tr("今天到期"), d.dueToday), "lucide-clock");
+    kbTile(tiles, tr("已逾期"), d.overdueCount, d.overdueCount ? "warn" : undefined, show(tr("已逾期"), d.overdue), "lucide-flag");
 
     if (this.detail) this.drawDetail(root);
 
-    const attention = kbSection(root, tr("需要关注"), d.attention.length);
+    const attention = kbSection(root, tr("需要关注"), d.attention.length, "lucide-bell");
     if (!d.attention.length) kbEmpty(attention, tr("一切正常"));
     for (const item of d.attention) this.attentionRow(attention, item);
 
     this.drawProducts(root, d);
     this.drawActivity(root);
 
-    const areas = kbSection(root, tr("分区"));
+    const areas = kbSection(root, tr("分区"), undefined, "lucide-pie-chart");
     const max = Math.max(1, ...Object.values(d.areas));
     for (const area of Object.keys(d.areas) as KbArea[]) {
       if (!d.areas[area]) continue;
       const row = areas.createEl("button", { cls: "ig-kb-bar-row", attr: { type: "button" } });
+      setIcon(row.createSpan({ cls: "ig-kb-bar-icon" }), AREA_ICONS[area]);
       row.createSpan({ cls: "ig-kb-bar-label", text: kbAreaLabel(area) });
       row.createDiv({ cls: "ig-kb-bar" }).createDiv({ cls: "ig-kb-bar-fill" }).style.setProperty("--ig-kb-ratio", String(d.areas[area] / max));
       row.createSpan({ cls: "ig-kb-bar-value", text: String(d.areas[area]) });
       row.addEventListener("click", show(kbAreaLabel(area), notes.filter(n => n.area === area).sort((a, b) => b.mtime - a.mtime).map(n => n.path)));
     }
 
-    const recent = kbSection(root, tr("最近修改"));
+    const recent = kbSection(root, tr("最近修改"), undefined, "lucide-file-clock");
     for (const note of d.recent) kbRow(recent, { icon: "lucide-file-text", label: note.title, meta: kbDate(note.mtime), onClick: () => openNote(this.plugin, note.path) });
   }
 
@@ -107,7 +113,7 @@ class KbHomeView extends KbView {
   }
 
   private drawProducts(root: HTMLElement, d: Dashboard) {
-    const products = kbSection(root, tr("进行中的项目"), d.products.length);
+    const products = kbSection(root, tr("进行中的项目"), d.products.length, "lucide-layers");
     if (!d.products.length) { kbEmpty(products, tr("暂无")); return; }
     const grid = products.createDiv({ cls: "ig-kb-cards" });
     for (const line of d.products) {
@@ -121,7 +127,7 @@ class KbHomeView extends KbView {
   }
 
   private drawActivity(root: HTMLElement) {
-    const body = kbSection(root, tr("活跃度"));
+    const body = kbSection(root, tr("活跃度"), undefined, "lucide-bar-chart-3");
     const now = Date.now();
     const weeks = 12;
     const end = startOfDay(now);

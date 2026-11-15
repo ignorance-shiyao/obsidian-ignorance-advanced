@@ -604,3 +604,45 @@ button.ig-kb-tile:hover { transform: translateY(-2px); }
 .ig-kb-card:not(.is-warn) .ig-kb-card-title { color: var(--ig-kb-hue, var(--ig-kb-accent)); }
 .ig-kb-bar-row .ig-kb-bar-fill { background: linear-gradient(90deg, color-mix(in srgb, var(--ig-kb-hue, var(--ig-kb-accent)) 70%, var(--background-primary)), var(--ig-kb-hue, var(--ig-kb-accent))); }
 @media (prefers-reduced-motion: reduce) { .ig-kb-tile:not(.is-warn) { transition: none; } }
+
+/* ---- Soft surface, looser spacing ---- */
+.ig-kb {
+  --ig-kb-gap: 16px;
+  --ig-kb-radius: 18px;
+  padding: 28px 32px 56px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ig-kb-accent) 9%, var(--background-primary)), var(--background-primary) 420px);
+}
+.ig-kb-head { gap: 14px; margin-bottom: 24px; }
+.ig-kb-head-icon, .ig-kb-tile-icon, .ig-kb-section-icon, .ig-kb-bar-icon { display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.ig-kb-head-icon { width: 44px; height: 44px; border-radius: 14px; background: linear-gradient(135deg, color-mix(in srgb, var(--ig-kb-accent) 22%, var(--background-primary)), color-mix(in srgb, var(--ig-kb-accent) 8%, var(--background-primary))); color: var(--ig-kb-accent); box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--ig-kb-accent) 50%, transparent); }
+.ig-kb-head-icon svg { width: 24px; height: 24px; }
+.ig-kb-title { font-size: 1.55em; font-weight: 700; }
+.ig-kb-tiles { grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); margin-bottom: 28px; }
+.ig-kb-tile { gap: 10px; padding: 18px; border-radius: 16px; }
+.ig-kb-tile-icon { width: 34px; height: 34px; border-radius: 10px; background: color-mix(in srgb, var(--ig-kb-hue, var(--ig-kb-accent)) 16%, var(--background-primary)); color: var(--ig-kb-hue, var(--ig-kb-accent)); }
+.ig-kb-tile-icon svg { width: 18px; height: 18px; }
+.ig-kb-tile.is-warn .ig-kb-tile-icon { background: color-mix(in srgb, var(--ig-kb-warn) 18%, var(--background-primary)); color: var(--ig-kb-warn); }
+.ig-kb-tile-value { margin-top: 2px; font-size: 1.9em; font-weight: 700; }
+.ig-kb-section { margin-bottom: 24px; padding: 20px 22px; border-radius: 18px; background: color-mix(in srgb, var(--background-primary) 80%, transparent); box-shadow: 0 1px 2px color-mix(in srgb, var(--ig-kb-accent) 8%, transparent), 0 12px 28px -18px color-mix(in srgb, var(--ig-kb-accent) 30%, transparent); backdrop-filter: blur(8px); }
+.ig-kb-section-head { align-items: center; gap: 10px; padding: 0 2px 14px; font-size: 1.1em; }
+.ig-kb-section-icon { color: var(--ig-kb-accent); }
+.ig-kb-section-icon svg { width: 20px; height: 20px; }
+.ig-kb-count { padding: 1px 9px; border-radius: 999px; background: color-mix(in srgb, var(--ig-kb-accent) 12%, var(--background-primary)); color: var(--ig-kb-accent); font-size: .85em; font-weight: 600; }
+.ig-kb-section-body { gap: 6px; }
+.ig-kb-row { gap: 12px; min-height: 42px; padding: 8px 12px; border-radius: 12px; }
+.ig-kb-row-icon { color: var(--ig-kb-accent); }
+.ig-kb-section-body > .ig-kb-row .ig-kb-row-meta { padding: 2px 10px; border-radius: 999px; background: color-mix(in srgb, var(--text-muted) 10%, transparent); font-size: .92em; }
+.ig-kb-cards { gap: 18px; }
+.ig-kb-card:not(.is-warn) { padding: 12px; border-radius: 16px; }
+.ig-kb-card-head { margin-bottom: 6px; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, var(--ig-kb-hue, var(--ig-kb-accent)) 12%, var(--background-primary)); }
+.ig-kb-card-head .ig-kb-row-meta { padding: 1px 9px; border-radius: 999px; background: color-mix(in srgb, var(--background-primary) 70%, transparent); }
+.ig-kb-bar-row { grid-template-columns: 1.6em 4.5em 1fr 3.5em; gap: 12px; min-height: 44px; padding: 0 6px; border-radius: 12px; }
+.ig-kb-bar-icon { color: var(--ig-kb-hue, var(--ig-kb-accent)); }
+.ig-kb-bar-icon svg { width: 18px; height: 18px; }
+.ig-kb-bar { height: 10px; border-radius: 999px; }
+.ig-kb-spark { grid-template-rows: repeat(7, 14px); grid-auto-columns: 14px; gap: 5px; padding: 6px 2px; }
+.ig-kb-spark-cell { width: 14px; height: 14px; border-radius: 4px; }
+.is-phone .ig-kb { padding: 16px 14px 40px; }
+.is-phone .ig-kb-section { padding: 14px; }
+.is-phone .ig-kb-spark { grid-template-rows: repeat(7, minmax(0, 1fr)); grid-auto-columns: minmax(0, 1fr); gap: 4px; }
+.is-phone .ig-kb-spark-cell { width: auto; height: auto; aspect-ratio: 1; }

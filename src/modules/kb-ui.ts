@@ -2,8 +2,9 @@ import { setIcon } from "obsidian";
 
 /* Small building blocks shared by the knowledge views. Class names: ig-kb-*. */
 
-export function kbHeader(root: HTMLElement, title: string): HTMLElement {
+export function kbHeader(root: HTMLElement, title: string, icon?: string): HTMLElement {
   const head = root.createDiv({ cls: "ig-kb-head" });
+  if (icon) setIcon(head.createSpan({ cls: "ig-kb-head-icon" }), icon);
   head.createEl("h2", { cls: "ig-kb-title", text: title });
   return head.createDiv({ cls: "ig-kb-actions" });
 }
@@ -15,17 +16,19 @@ export function kbIconButton(parent: HTMLElement, icon: string, label: string, o
   return button;
 }
 
-export function kbSection(root: HTMLElement, title: string, count?: number): HTMLElement {
+export function kbSection(root: HTMLElement, title: string, count?: number, icon?: string): HTMLElement {
   const section = root.createDiv({ cls: "ig-kb-section" });
   const head = section.createDiv({ cls: "ig-kb-section-head" });
+  if (icon) setIcon(head.createSpan({ cls: "ig-kb-section-icon" }), icon);
   head.createSpan({ text: title });
   if (count !== undefined) head.createSpan({ cls: "ig-kb-count", text: String(count) });
   return section.createDiv({ cls: "ig-kb-section-body" });
 }
 
-export function kbTile(parent: HTMLElement, label: string, value: number | string, tone?: "warn", onClick?: () => void): HTMLElement {
+export function kbTile(parent: HTMLElement, label: string, value: number | string, tone?: "warn", onClick?: () => void, icon?: string): HTMLElement {
   const tile = parent.createEl(onClick ? "button" : "div", { cls: "ig-kb-tile", attr: onClick ? { type: "button" } : {} });
   if (tone) tile.addClass(`is-${tone}`);
+  if (icon) setIcon(tile.createSpan({ cls: "ig-kb-tile-icon" }), icon);
   tile.createDiv({ cls: "ig-kb-tile-value", text: String(value) });
   tile.createDiv({ cls: "ig-kb-tile-label", text: label });
   if (onClick) tile.addEventListener("click", onClick);
