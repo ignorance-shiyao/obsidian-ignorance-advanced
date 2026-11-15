@@ -188,6 +188,11 @@ function installBookInteractions(plugin: RenderingContext, view: MarkdownView, b
   });
 }
 
+function prependCover(plugin: RenderingContext, file: TFile, staging: HTMLElement) {
+  const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
+  if (wantsCover(frontmatter)) staging.prepend(buildCover(coverFields(frontmatter, file.basename)));
+}
+
 function decoratePagedStaging(plugin: RenderingContext, file: TFile, staging: HTMLElement) {
   const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
   if (wantsCover(frontmatter)) staging.prepend(buildCover(coverFields(frontmatter, file.basename)));
@@ -559,11 +564,12 @@ interface ComposeOptions {
   previous?: BookState;
   showProgress?: boolean;
   expandDetails?: boolean;
+  cover?: boolean;
   onProgress?: ((info: { pages: HTMLElement[]; staging: HTMLElement; partial: boolean }) => unknown) | null;
   signal?: AbortSignal | null;
 }
 
-async function composePages(plugin: RenderingContext, file: TFile, text: string, book: HTMLElement, component: Component, { keepStrip = false, previous = {}, showProgress = false, expandDetails = false, onProgress = null, signal: requestedSignal }: ComposeOptions = {}) {
+async function composePages(plugin: RenderingContext, file: TFile, text: string, book: HTMLElement, component: Component, { keepStrip = false, previous = {}, showProgress = false, expandDetails = false, cover = false, onProgress = null, signal: requestedSignal }: ComposeOptions = {}) {
   const signal = requestedSignal ?? undefined;
   signal?.throwIfAborted();
   const page = plugin.state.page;
@@ -632,6 +638,7 @@ async function composePages(plugin: RenderingContext, file: TFile, text: string,
     enhanceStaged(plugin, staging, stripFrontmatter(text), file);
     // The live paged view matches Reading view: cover, long-content folds and the closing cats. Exports stay complete.
     if (showProgress) decoratePagedStaging(plugin, file, staging);
+    else if (cover) prependCover(plugin, file, staging);
     preparePaperTableColumns(staging);
     // Static exports must measure expanded content before assigning page windows.
     if (expandDetails) {

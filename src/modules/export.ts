@@ -124,12 +124,13 @@ function pageVarsAtFullScale(page: PageState) {
 type StageResult = NonNullable<Awaited<ReturnType<typeof composePages>>>;
 interface ExportStageOptions {
   visible?: boolean;
+  cover?: boolean;
   keepStrip?: boolean;
   onProgress?: NonNullable<Parameters<typeof composePages>[5]>["onProgress"];
   signal?: AbortSignal | null;
 }
 
-async function withExportStage<T>(plugin: IgnorancePlugin, file: TFile, { visible = false, keepStrip = false, onProgress = null, signal = null }: ExportStageOptions = {}, task: (stage: HTMLElement, result: StageResult, text: string) => Promise<T>): Promise<T> {
+async function withExportStage<T>(plugin: IgnorancePlugin, file: TFile, { visible = false, keepStrip = false, cover = false, onProgress = null, signal = null }: ExportStageOptions = {}, task: (stage: HTMLElement, result: StageResult, text: string) => Promise<T>): Promise<T> {
   signal?.throwIfAborted();
   const body = document.body;
   const wasDark = body.hasClass("theme-dark");
@@ -157,7 +158,7 @@ async function withExportStage<T>(plugin: IgnorancePlugin, file: TFile, { visibl
     const active = plugin.app.workspace.getActiveViewOfType(MarkdownView);
     const text = active?.file?.path === file.path && active.getMode?.() === "source" && active.editor
       ? active.editor.getValue() : await plugin.app.vault.cachedRead(file);
-    result = await composePages(plugin, file, text, stage, component, { keepStrip, expandDetails: true, onProgress, signal });
+    result = await composePages(plugin, file, text, stage, component, { keepStrip, expandDetails: true, cover, onProgress, signal });
     signal?.throwIfAborted();
     if (!result) throw new Error(tr("排版失败：页面尺寸无效"));
     return await task(stage, result, text);
@@ -415,7 +416,7 @@ async function copyFormattedNote(plugin: IgnorancePlugin, file: TFile, target = 
 // Mobile: no print dialog, so each page becomes a JPEG in an image-only PDF.
 async function exportPdfToVault(plugin: IgnorancePlugin, file: TFile) {
   const size = paperSize(plugin.state.page);
-  return withExportStage(plugin, file, { visible: true }, async (stage, { pages }) => {
+  return withExportStage(plugin, file, { visible: true, cover: true }, async (stage, { pages }) => {
     pages.forEach(p => p.setCssStyles({ display: "none" }));
     const images: Array<{ jpeg: Uint8Array }> = [];
     for (let i = 0; i < pages.length; i += 1) {
@@ -435,14 +436,14 @@ async function exportPdfToVault(plugin: IgnorancePlugin, file: TFile) {
 async function exportPdf(plugin: IgnorancePlugin, file: TFile) {
   if (!hasDesktopExports()) return exportPdfToVault(plugin, file);
   const size = paperSize(plugin.state.page);
-  const direct = await withExportStage<Uint8Array | null>(plugin, file, {}, stage => stageToPdf(stage, { title: file.basename, widthMm: size.w, heightMm: size.h }));
+  const direct = await withExportStage<Uint8Array | null>(plugin, file, { cover: true }, stage => stageToPdf(stage, { title: file.basename, widthMm: size.w, heightMm: size.h }));
   if (direct) return saveExportToVault(plugin, `${file.basename}.pdf`, direct);
   return exportPdfWithDialog(plugin, file);
 }
 
 async function exportPdfWithDialog(plugin: IgnorancePlugin, file: TFile): Promise<null> {
   const size = paperSize(plugin.state.page);
-  await withExportStage(plugin, file, {}, async stage => {
+  await withExportStage(plugin, file, { cover: true }, async stage => {
     stage.addClass("ibp-print-root");
     setDocSheet("ibp-print-export", `@media print {
       @page { size: ${size.w}mm ${size.h}mm; margin: 0; }

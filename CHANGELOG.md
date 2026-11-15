@@ -10,6 +10,7 @@ Links to PDF, Word, Excel, PowerPoint and archive files carry a small file glyph
 The Ignorance cats appear on the empty tab, the note cover and at the end of a note (setting "Cat illustrations", on by default).
 Images: `#icon` sizes a picture to the text line (`#icon=natural`, `#icon=double`), `#logo` floats a small mark beside the text (`#logo=left`, `#logo=right`), and `#200w` sets the width in pixels.
 PDF export writes the file directly with A4 pages, without the print dialog, and falls back to the dialog when that is not possible. After any export a notice shows the file name with buttons to open it or show it in its folder.
+PDF, Word and image-PDF exports start with the note cover when the note asks for one (`ib-cover`).
 HTML export re-encodes embedded PNG, JPEG and BMP pictures to WebP when that makes them smaller, so single-file exports are lighter.
 
 ## 1.0.24
