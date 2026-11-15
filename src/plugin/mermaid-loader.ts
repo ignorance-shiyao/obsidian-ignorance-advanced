@@ -4,6 +4,7 @@ import type { MermaidEngine } from "../modules/mermaid-core.js";
 import { createMermaidRenderQueue } from "../modules/mermaid-render-queue.js";
 import { guardedCleanup,restoreGlobalProperty } from "../modules/plugin-cleanup.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
+import { isMermaidEngine, pickEngine, rememberEngine, rememberedEngine } from "../modules/mermaid-engine-memory.js";
 
 // Mermaid's built-in edge animations (see styles.css for the shared copies).
 const MERMAID_KEYFRAMES = /@keyframes\s+(?:edge-animation-frame|dash)\s*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g;
@@ -14,27 +15,25 @@ const MERMAID_KEYFRAMES = /@keyframes\s+(?:edge-animation-frame|dash)\s*\{(?:[^{
    for the global right away with a light router, and load Obsidian's Mermaid
    (the slowest part of startup, especially on mobile) the first time a
    diagram is drawn. Desktop warms it up once the app is idle. */
-// Whether a value is a usable Mermaid engine (Obsidian's script assigns the real one to the global).
-function isEngine(value: unknown): value is MermaidEngine {
-  const candidate = value as Partial<Record<keyof MermaidEngine, unknown>> | null | undefined;
-  return typeof candidate === "object" && candidate !== null && typeof candidate.render === "function" && typeof candidate.initialize === "function";
-}
-
 export function installLazyMermaid(plugin: IgnorancePlugin) {
   const previous = {
     mermaid: window.mermaid as unknown,
     descriptor: Object.getOwnPropertyDescriptor(window, "mermaid")
   };
+  rememberEngine(window, previous.mermaid);
   const configs: unknown[] = [];
   const overwrites: MermaidEngine[] = [];
   let engine: MermaidEngine | null = null;
   let loading: Promise<MermaidEngine> | null = null;
-  // loadMermaid() resolves with the global, which is this stand-in; the real
-  // engine is what Obsidian's script assigned to it (or what was there first).
-  const native = () => overwrites[overwrites.length - 1] || (isEngine(previous.mermaid) ? previous.mermaid : undefined);
+  // Up to Obsidian 1.13, loadMermaid() resolved with the global (this stand-in) and the real engine was what
+  // Obsidian's script assigned to it; an engine seen earlier in this window is kept across plugin reloads.
+  const native = () => overwrites[overwrites.length - 1] || (isMermaidEngine(previous.mermaid) ? previous.mermaid : undefined) || rememberedEngine(window);
   const ensure = () => loading ||= loadMermaid()
-    .then(() => {
-      const original = native();
+    .then(resolved => {
+      // Obsidian 1.15 bundles Mermaid and only does `window.mermaid ??= engine`, which never reaches the setter
+      // while this stand-in is installed; it does resolve with the engine, so take it from there.
+      const original = pickEngine(resolved, lazy, native());
+      rememberEngine(window, original);
       if (!original || typeof original.render !== "function") throw new Error("Obsidian's Mermaid is unavailable");
       const mermaid = createMermaidRouter(plugin, original);
       // Each diagram's <style> declares the same global @keyframes; inserting
@@ -74,12 +73,13 @@ export function installLazyMermaid(plugin: IgnorancePlugin) {
     configurable: true,
     enumerable: true,
     get: () => engine || lazy,
-    set: (value: MermaidEngine) => { overwrites.push(value); }
+    set: (value: MermaidEngine) => { overwrites.push(value); rememberEngine(window, value); }
   });
   plugin.ensureMermaid = ensure;
   plugin.register(() => {
     const original = native();
-    const descriptor = previous.descriptor || (original ? { value: original, writable: true, configurable: true, enumerable: true } : undefined);
+    // Hand the engine back whenever it is known; the descriptor seen at load may predate it.
+    const descriptor = original ? { value: original, writable: true, configurable: true, enumerable: true } : previous.descriptor;
     guardedCleanup(() => restoreGlobalProperty(window, "mermaid", descriptor), "恢复 Mermaid")();
     // The router configured Obsidian's shared engine; hand it back the
     // configuration Obsidian asked for.
