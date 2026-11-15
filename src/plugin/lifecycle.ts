@@ -11,6 +11,7 @@ import { installChartPreload } from "../modules/chart-preload.js";
 import { installCodeFold } from "../modules/code-fold.js";
 import { installBackToOrigin } from "../modules/back-to-origin.js";
 import { installProseExtras } from "../modules/prose-extras.js";
+import { installProseCompat } from "../modules/prose-compat.js";
 import { colorSwatchExtension,colorSwatchPostProcessor } from "../modules/color-swatch.js";
 import { containerEditorExtension } from "../modules/container-editor.js";
 import { renderContainerBlocks } from "../modules/containers.js";
@@ -160,6 +161,7 @@ export async function onload(plugin: IgnorancePlugin) {
   installCodeFold(plugin);
   installBackToOrigin(plugin);
   installProseExtras(plugin);
+  installProseCompat(plugin);
   // Warming every diagram in the open note loads the 1 MB ECharts and 5 MB Mermaid engines in the
   // background; on a phone that competes with startup, so diagrams are drawn when they are reached.
   if (!Platform.isMobile) installChartPreload(plugin);
