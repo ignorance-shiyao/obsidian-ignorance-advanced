@@ -13,6 +13,7 @@ import { THEME_TOKEN_NAMES } from "./theme-presets.js";
 import { buildCover } from "./reader-cover.js";
 import { headerMarkup, indexContent, navigationMarkup, overlayMarkup, railMarkup, readerAppCss, readerAppScript } from "./reader-app.js";
 import { bytesToBase64 } from "./bytes.js";
+import { embedBytes } from "./image-shrink.js";
 import {
   CLIPBOARD_STYLE_PROPERTIES,
   clipboardImageMime,
@@ -270,7 +271,8 @@ async function imageDataUri(plugin: IgnorancePlugin, source: HTMLImageElement, i
   if (file) {
     const mime = clipboardImageMime(file.path);
     if (!mime.startsWith("image/")) return null;
-    return `data:${mime};base64,${bytesToBase64(await plugin.app.vault.readBinary(file))}`;
+    const embedded = await embedBytes(await plugin.app.vault.readBinary(file), mime);
+    return `data:${embedded.mime};base64,${bytesToBase64(embedded.bytes)}`;
   }
   return null;
 }
