@@ -3,11 +3,11 @@ import { exportFileName, exportLocation } from "./export-done-core.js";
 
 describe("exportLocation", () => {
   it("joins a vault path onto the vault folder", () => {
-    expect(exportLocation("导出/a.pdf", "/Users/me/vault")).toEqual({ absolute: "/Users/me/vault/导出/a.pdf", inVault: true });
+    expect(exportLocation("导出/a.pdf", "/home/u/vault")).toEqual({ absolute: "/home/u/vault/导出/a.pdf", inVault: true });
   });
   it("keeps an absolute path, noting whether it is inside the vault", () => {
-    expect(exportLocation("/Users/me/vault/x.docx", "/Users/me/vault").inVault).toBe(true);
-    expect(exportLocation("/Users/me/Desktop/x.docx", "/Users/me/vault")).toEqual({ absolute: "/Users/me/Desktop/x.docx", inVault: false });
+    expect(exportLocation("/home/u/vault/x.docx", "/home/u/vault").inVault).toBe(true);
+    expect(exportLocation("/home/u/Desktop/x.docx", "/home/u/vault")).toEqual({ absolute: "/home/u/Desktop/x.docx", inVault: false });
     expect(exportLocation("C:\\out\\x.docx", "C:/vault").inVault).toBe(false);
   });
 });

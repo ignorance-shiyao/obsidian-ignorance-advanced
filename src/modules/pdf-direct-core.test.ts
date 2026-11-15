@@ -3,7 +3,7 @@ import { appUrlsToFileUrls, buildPrintHtml } from "./pdf-direct-core.js";
 
 describe("appUrlsToFileUrls", () => {
   it("turns vault resource addresses into file addresses", () => {
-    expect(appUrlsToFileUrls('<img src="app://1a2b3c4d5e6f7a8b/Users/me/vault/a.png?12">')).toBe('<img src="file:///Users/me/vault/a.png?12">');
+    expect(appUrlsToFileUrls('<img src="app://1a2b3c4d5e6f7a8b/home/u/vault/a.png?12">')).toBe('<img src="file:///home/u/vault/a.png?12">');
     expect(appUrlsToFileUrls("url(app://1a2b3c4d5e6f7a8b/C:/vault/a.png)")).toBe("url(file:///C:/vault/a.png)");
   });
   it("leaves other addresses alone", () => {

@@ -1,4 +1,3 @@
-import type { IgnorancePlugin } from "../plugin-types.js";
 import { setIcon } from "obsidian";
 import { tr } from "../i18n.js";
 /* Long code blocks, quotes and tables in Reading view start folded, with a button to show everything.
@@ -74,14 +73,4 @@ export function markTallTables(root: HTMLElement) {
   for (const table of root.querySelectorAll<HTMLElement>("table")) {
     if (table.querySelectorAll("tbody > tr").length > TABLE_FOLD_ABOVE) table.closest(".el-table")?.addClass("ib-table-tall");
   }
-}
-
-export function installCodeFold(plugin: IgnorancePlugin) {
-  plugin.registerMarkdownPostProcessor((element, context) => {
-    if (!context.getSectionInfo?.(element)) return;
-    markTallTables(element);
-    if (plugin.state?.autoFoldCode !== true) return;
-    if (element.closest(".ibc-container-editor-widget")) return;
-    applyFolds(element);
-  });
 }

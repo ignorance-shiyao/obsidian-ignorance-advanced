@@ -3798,7 +3798,7 @@ body:not(.ibp-paged, .ib-hide-cats) .markdown-preview-view:not(.ib-reader-note, 
 .ib-cats-tail { width: 64px; height: 45px; margin: var(--ib-space-7, 48px) auto 0; opacity: .5; pointer-events: none; background: var(--ib-cats-sm) center / contain no-repeat; filter: drop-shadow(0 1px 2px rgb(0 0 0 / .1)); }
 body.ib-hide-cats .ib-cats-tail { display: none; }
 @media print { .ib-cats-tail { display: none; } }
-@media print { .markdown-preview-sizer::after, .ib-cover-block::after, .empty-state-action-list::before { content: none !important; } }
+@media print { .markdown-preview-sizer:not(#_ib)::after, .ib-cover-block:not(#_ib)::after, .empty-state-action-list:not(#_ib)::before { content: none; } }
 
 /* File links carry a small document glyph tinted by type. */
 .markdown-rendered a:is([href$=".pdf" i], [href$=".zip" i], [href$=".rar" i], [href$=".7z" i], [href$=".doc" i], [href$=".docx" i], [href$=".xls" i], [href$=".xlsx" i], [href$=".csv" i], [href$=".ppt" i], [href$=".pptx" i], [data-href$=".pdf" i])::before {
@@ -3850,4 +3850,4 @@ body.ib-hide-cats .ib-cats-tail { display: none; }
 p.ib-page-break-mark:not(#_ib) { display: flex; align-items: center; gap: var(--ib-space-3, 12px); margin: var(--ib-space-5, 20px) 0; color: var(--ib-text-muted, var(--text-faint)); }
 p.ib-page-break-mark:not(#_ib)::before, p.ib-page-break-mark:not(#_ib)::after { content: ""; flex: 1; border-top: 1.5px dashed var(--ib-border-default, var(--background-modifier-border)); }
 .ib-page-break-mark__icon svg { width: 16px; height: 16px; }
-@media print { p.ib-page-break-mark:not(#_ib) { break-after: page; visibility: hidden; margin: 0; height: 0; } }
+@media print { p.ib-page-break-mark:not(#_ib) { page-break-after: always; visibility: hidden; margin: 0; height: 0; } }

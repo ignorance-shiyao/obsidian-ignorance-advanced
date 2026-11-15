@@ -85,8 +85,8 @@ function applyAppearancePreferences(plugin: IgnorancePlugin) {
   applyFontPreferences(body, appearance);
   applyLineHeightPreference(body, appearance.lineHeight);
   // Without the Ignorance theme the plugin supplies its design tokens itself (tokens.css).
-  body.classList.toggle("ib-standalone", plugin.app.vault.getConfig("cssTheme") !== "Ignorance");
-  body.classList.toggle("ib-theme-text-size", plugin.app.vault.getConfig("baseFontSize") == null);
+  body.classList.toggle("ib-standalone", plugin.app.vault.getConfig?.("cssTheme") !== "Ignorance");
+  body.classList.toggle("ib-theme-text-size", plugin.app.vault.getConfig?.("baseFontSize") == null);
   body.classList.toggle(CUSTOM_ACCENT, custom);
   body.classList.toggle("ib-hide-heading-labels", Boolean(appearance.hideHeadingLabels));
   body.classList.toggle("ib-heading-badge", Boolean(appearance.headingBadge));
@@ -143,7 +143,7 @@ function addDropdownSetting(container: HTMLElement, name: string, description: s
 type ThemeApp = App & { changeTheme?(theme: string): void; updateTheme?(): void };
 
 function themeMode(app: ThemeApp) {
-  return app.vault.getConfig("theme") === "system" ? "system" : currentThemeMode();
+  return app.vault.getConfig?.("theme") === "system" ? "system" : currentThemeMode();
 }
 
 function setThemeMode(app: ThemeApp, mode: string) {
@@ -157,7 +157,7 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
   applyAppearancePreferences(plugin);
 
   const modeIcon = () => ({ system: "lucide-sun-moon", dark: "lucide-moon", light: "lucide-sun" })[themeMode(app)];
-  let popover: HTMLDivElement = null;
+  let popover: HTMLDivElement | null = null;
   const closePopover = () => { popover?.remove(); popover = null; };
 
   const fillModeMenu = (menu: Menu) => {
@@ -178,16 +178,17 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
   const fillThemeMenu = (menu: Menu) => {
     menu.addItem(item => {
       item.setTitle(tr("明暗模式")).setIcon(modeIcon());
-      fillModeMenu(item.setSubmenu());
+      const modes = item.setSubmenu?.();
+      if (modes) fillModeMenu(modes);
     });
     menu.addItem(item => {
       item.setTitle(tr("主题配色")).setIcon("lucide-palette");
-      const colors = item.setSubmenu();
-      for (const preset of ACCENT_PRESETS) colors.addItem(choice => choice.setTitle(tr(preset.label)).setIcon("lucide-palette")
+      const colors = item.setSubmenu?.();
+      if (colors) for (const preset of ACCENT_PRESETS) colors.addItem(choice => choice.setTitle(tr(preset.label)).setIcon("lucide-palette")
         .setChecked(currentAccent(plugin) === preset.value).onClick(() => applyAccent(plugin, preset.value)));
     });
   };
-  const openThemeMenu = (event: MouseEvent) => {
+  const openThemeMenu = (event: MouseEvent | null) => {
     closePopover();
     const menu = new Menu();
     fillThemeMenu(menu);
