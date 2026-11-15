@@ -8,7 +8,7 @@ import { computeDashboard } from "./kb-home-core.js";
 import type { Attention, Dashboard } from "./kb-home-core.js";
 import { DAY, dayKey, startOfDay } from "./kb-index-core.js";
 import type { KbArea } from "./kb-index-core.js";
-import { kbDate, kbEmpty, kbHeader, kbIconButton, kbRow, kbSection, kbTile, renderInBatches } from "./kb-ui.js";
+import { kbDate, kbEmpty, kbFolder, kbHeader, kbIconButton, kbRow, kbSection, kbTile, renderInBatches } from "./kb-ui.js";
 
 /* P0-1 Knowledge home (ig-kb-home): the vault at a glance and what needs attention today. */
 
@@ -25,12 +25,18 @@ const AREA_ICONS: Record<KbArea, string> = {
 
 export function kbAreaLabel(area: KbArea): string { return tr(AREA_LABELS[area]); }
 
+/** Segmented switcher between the knowledge views, placed in the view header before the action buttons. */
 export function kbViewShortcuts(plugin: IgnorancePlugin, actions: HTMLElement, current: string) {
+  const bar = createDiv({ cls: "ig-kb-switch", attr: { role: "tablist" } });
   for (const spec of kbViews(plugin)) {
-    if (spec.view === current || !spec.view) continue;
     const view = spec.view;
-    kbIconButton(actions, spec.icon, tr(spec.name), () => void openKbView(plugin, view));
+    if (!view) continue;
+    const button = bar.createEl("button", { cls: "ig-kb-switch-btn", attr: { type: "button", role: "tab", "aria-label": tr(spec.name), title: tr(spec.name) } });
+    setIcon(button, spec.icon);
+    if (view === current) { button.addClass("is-current"); button.setAttribute("aria-selected", "true"); }
+    else button.addEventListener("click", () => void openKbView(plugin, view));
   }
+  actions.before(bar);
 }
 
 /** Levels 0–4 of a count against the busiest day. */
@@ -91,7 +97,7 @@ class KbHomeView extends KbView {
     }
 
     const recent = kbSection(root, tr("最近修改"), undefined, "lucide-file-clock");
-    for (const note of d.recent) kbRow(recent, { icon: "lucide-file-text", label: note.title, meta: kbDate(note.mtime), onClick: () => openNote(this.plugin, note.path) });
+    for (const note of d.recent) kbRow(recent, { icon: "lucide-file-text", label: note.title, sub: kbFolder(note.path), meta: kbDate(note.mtime), onClick: () => openNote(this.plugin, note.path) });
   }
 
   private inboxAction(fallback: () => void) {
@@ -108,7 +114,7 @@ class KbHomeView extends KbView {
     if (!detail.paths.length) { kbEmpty(body, tr("暂无")); return; }
     renderInBatches(detail.paths, 200, path => {
       const note = this.index.notes.get(path);
-      if (note) kbRow(body, { label: note.title, meta: kbDate(note.mtime), onClick: () => openNote(this.plugin, path) });
+      if (note) kbRow(body, { label: note.title, sub: kbFolder(path), meta: kbDate(note.mtime), onClick: () => openNote(this.plugin, path) });
     }, () => body.isConnected);
   }
 
@@ -158,7 +164,7 @@ class KbHomeView extends KbView {
     const list = parent.createDiv({ cls: "ig-kb-sublist" });
     for (const path of item.paths.slice(0, 50)) {
       const note = this.index.notes.get(path);
-      if (note) kbRow(list, { label: note.title, onClick: () => openNote(this.plugin, path) });
+      if (note) kbRow(list, { label: note.title, sub: kbFolder(path), onClick: () => openNote(this.plugin, path) });
     }
   }
 }

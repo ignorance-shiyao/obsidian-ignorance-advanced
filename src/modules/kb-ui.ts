@@ -35,11 +35,17 @@ export function kbTile(parent: HTMLElement, label: string, value: number | strin
   return tile;
 }
 
-export function kbRow(parent: HTMLElement, opts: { icon?: string; label: string; meta?: string; tone?: "warn"; onClick?: () => void }): HTMLElement {
+export function kbRow(parent: HTMLElement, opts: { icon?: string; label: string; meta?: string; sub?: string; tone?: "warn"; onClick?: () => void }): HTMLElement {
   const row = parent.createEl(opts.onClick ? "button" : "div", { cls: "ig-kb-row", attr: opts.onClick ? { type: "button" } : {} });
   if (opts.tone) row.addClass(`is-${opts.tone}`);
   if (opts.icon) setIcon(row.createSpan({ cls: "ig-kb-row-icon" }), opts.icon);
   row.createSpan({ cls: "ig-kb-row-label", text: opts.label });
+  if (opts.sub) {
+    row.addClass("has-sub");
+    const sub = row.createSpan({ cls: "ig-kb-row-sub" });
+    setIcon(sub.createSpan({ cls: "ig-kb-row-sub-icon" }), "lucide-folder");
+    sub.createSpan({ cls: "ig-kb-row-sub-text", text: opts.sub });
+  }
   if (opts.meta !== undefined) row.createSpan({ cls: "ig-kb-row-meta", text: opts.meta });
   if (opts.onClick) row.addEventListener("click", opts.onClick);
   return row;
@@ -47,6 +53,12 @@ export function kbRow(parent: HTMLElement, opts: { icon?: string; label: string;
 
 export function kbEmpty(parent: HTMLElement, text: string) {
   parent.createDiv({ cls: "ig-kb-empty", text });
+}
+
+/** Parent folder of a note path, last two levels, so notes with the same name (README) can be told apart. */
+export function kbFolder(path: string): string {
+  const parts = path.split("/").slice(0, -1);
+  return parts.slice(-2).join(" / ");
 }
 
 /** "2026-11-15" style local date. */

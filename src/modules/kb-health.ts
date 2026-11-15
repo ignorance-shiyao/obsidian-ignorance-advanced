@@ -1,4 +1,4 @@
-import { TFile } from "obsidian";
+import { TFile, setIcon } from "obsidian";
 import type { WorkspaceLeaf } from "obsidian";
 import { tr, zh } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
@@ -56,6 +56,7 @@ class KbHealthView extends KbView {
       const n = groups[check].open.length;
       const tile = tiles.createEl("button", { cls: "ig-kb-tile", attr: { type: "button" } });
       if (n) tile.addClass("is-warn");
+      setIcon(tile.createSpan({ cls: "ig-kb-tile-icon" }), ICONS[check]);
       tile.createDiv({ cls: "ig-kb-tile-value", text: check === "remoteImage" && this.scanning && !this.remote.size ? "…" : String(n) });
       tile.createDiv({ cls: "ig-kb-tile-label", text: tr(LABELS[check]) });
       tile.addEventListener("click", () => {

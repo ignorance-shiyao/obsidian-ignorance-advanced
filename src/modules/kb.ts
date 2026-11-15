@@ -1,4 +1,4 @@
-import { ItemView, Menu, Platform, Setting, TFile } from "obsidian";
+import { ItemView, Platform, Setting, TFile } from "obsidian";
 import type { WorkspaceLeaf } from "obsidian";
 import { tr, zh } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
@@ -26,9 +26,9 @@ let index: KbIndex | null = null;
 
 export function registerKbFeature(spec: KbFeatureSpec) { FEATURES.push(spec); }
 
-/** Enabled features that have a view, for the shortcuts in each view's header. */
-export function kbViews(plugin: IgnorancePlugin): KbFeatureSpec[] {
-  return FEATURES.filter(spec => spec.view && kbEnabled(plugin, spec.key));
+/** Every view, for the switcher in each view's header; opening one that is off turns it on. */
+export function kbViews(_plugin: IgnorancePlugin): KbFeatureSpec[] {
+  return FEATURES.filter(spec => spec.view);
 }
 
 export function kbSettings(plugin: IgnorancePlugin): KbSettings {
@@ -51,6 +51,8 @@ export function kbIndex(plugin: IgnorancePlugin): KbIndex {
 
 export async function openKbView(plugin: IgnorancePlugin, type: string, state?: Record<string, unknown>) {
   const { workspace } = plugin.app;
+  const spec = FEATURES.find(item => item.view === type);
+  if (spec && !kbEnabled(plugin, spec.key)) { kbSettings(plugin).features[spec.key] = true; plugin.saveStoredState(); spec.onToggle?.(plugin, true); }
   let leaf = workspace.getLeavesOfType(type)[0];
   if (!leaf) {
     leaf = workspace.getLeaf("tab");
@@ -157,33 +159,15 @@ export function installKnowledgeBase(plugin: IgnorancePlugin) {
   plugin.state.kb = normalizeKbSettings(plugin.state.kb);
   for (const spec of FEATURES) {
     const { view, create } = spec;
-    if (view && create) {
-      plugin.registerView(view, leaf => create(leaf, plugin));
-      plugin.addCommand({
-        id: `kb-open-${spec.key}`, name: tr(spec.name), icon: spec.icon,
-        checkCallback: checking => {
-          if (!kbEnabled(plugin, spec.key)) return false;
-          if (!checking) void openKbView(plugin, view);
-          return true;
-        }
-      });
-    }
+    if (view && create) plugin.registerView(view, leaf => create(leaf, plugin));
     spec.install?.(plugin);
   }
-  plugin.addRibbonIcon("lucide-library", tr("知识库"), event => {
-    const menu = new Menu();
-    for (const spec of FEATURES) {
-      const { view } = spec;
-      if (!view) continue;
-      menu.addItem(item => {
-        item.setTitle(tr(spec.name)).setIcon(spec.icon).setSection(kbEnabled(plugin, spec.key) ? "on" : "off").onClick(() => {
-          if (!kbEnabled(plugin, spec.key)) { kbSettings(plugin).features[spec.key] = true; plugin.saveStoredState(); spec.onToggle?.(plugin, true); }
-          void openKbView(plugin, view);
-        });
-      });
-    }
-    menu.showAtMouseEvent(event);
-  });
+  const home = FEATURES.find(spec => spec.view && spec.key === "home")?.view;
+  if (home) {
+    const open = () => void openKbView(plugin, home);
+    plugin.addRibbonIcon("lucide-library", tr("知识库"), open);
+    plugin.addCommand({ id: "kb-open", name: tr("打开知识库"), icon: "lucide-library", callback: open });
+  }
   plugin.registerEvent(plugin.app.workspace.on("css-change", notifyKbCharts));
   plugin.register(() => { index?.stop(); index = null; });
 }

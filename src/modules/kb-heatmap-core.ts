@@ -85,7 +85,7 @@ export function heatmapOption(data: HeatmapData, tokens: HeatmapTokens, width: n
       },
       // Rounded squares with a gap, drawn without a border colour, so they sit on any background.
       series: [{ type: "scatter", coordinateSystem: "calendar", symbol: "roundRect", symbolSize: Math.max(5, cell - Math.max(2, Math.round(cell / 6))),
-        itemStyle: { borderWidth: 0 }, emphasis: { scale: false }, cursor: "pointer", data: data.days.map(day => [day.day, day.paths.length]) }]
+        itemStyle: { borderRadius: 4, borderWidth: 2, borderColor: "transparent" }, emphasis: { scale: false }, cursor: "pointer", data: data.days.map(day => [day.day, day.paths.length]) }]
     }
   };
 }

@@ -3,6 +3,7 @@
 export const EN: Readonly<Record<string, string>> = {
   // Knowledge base
   "知识库": "Knowledge base",
+  "打开知识库": "Open knowledge base",
   "收件箱目录": "Inbox folder",
   "导航目录": "Navigation folder",
   "工作目录": "Work folder",
