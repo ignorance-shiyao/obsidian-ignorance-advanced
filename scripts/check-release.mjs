@@ -81,7 +81,7 @@ if (!process.argv.includes("--no-lint")) {
 }
 
 // Stylesheets: no !important, no property declared twice in one rule.
-const sheets = ["tokens.css", "styles.css", "theme-features.css", "reveal.css"];
+const sheets = ["tokens.css", "styles.css", "theme-features.css", "kb.css", "reveal.css"];
 const important = sheets.flatMap(f => read(f).split("\n").map((line, i) => [f, i + 1, line]).filter(([, , line]) => line.includes("!important")).map(([f, no]) => `${f}:${no}`));
 check(important.length === 0, "no !important in stylesheets", important.slice(0, 6).join(", "));
 const repeated = [];
@@ -109,8 +109,10 @@ const internalName = /plan|roadmap|todo|notes?\.md$|handoff|交接|计划|迭代
 const internal = files.filter(f => internalName.test(f) && !/^(scripts\/|src\/|vendor\/|licenses\/)/.test(f));
 check(internal.length === 0, "no planning or internal files tracked", internal.join(", "));
 const forbidden = /\/Users\/|MyNotes|iCloud|40-归档|@gmail|@qq\.com|claude|anthropic|co-authored|vlook|blubook/i;
+// The knowledge views' default folder roles (a documented setting default, not personal data).
+const KB_DEFAULTS = "src/modules/kb-index-core.ts";
 const textFiles = files.filter(f => /\.(md|json|mjs|ts|js|css|yml|yaml|txt)$/.test(f) && !/^(package-lock\.json|vendor\/|licenses\/|build\/)/.test(f) && f !== "scripts/check-release.mjs");
-const hits = textFiles.flatMap(f => read(f).split("\n").map((line, i) => [f, i + 1, line]).filter(([, , line]) => forbidden.test(line)).map(([file, no]) => `${file}:${no}`));
+const hits = textFiles.flatMap(f => read(f).split("\n").map((line, i) => [f, i + 1, line]).filter(([f, , line]) => forbidden.test(line) && !(f === KB_DEFAULTS && /^\s*(archive: "40-归档",|exclude: \["40-归档\/主题样例")/.test(line))).map(([file, no]) => `${file}:${no}`));
 check(hits.length === 0, "no personal or internal wording in tracked files", hits.slice(0, 6).join(", "));
 // Phone / tablet rules must win over the desktop rules they adjust (see scripts/check-cascade.mjs).
 let cascade = "";

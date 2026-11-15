@@ -82,6 +82,8 @@ export interface PluginState {
   readingPositions?: Record<string, number>;
   htmlSkin?: unknown;
   pageDefaults?: unknown;
+  /** Knowledge-base views: feature switches and folder roles. */
+  kb?: import("./modules/kb-index-core.js").KbSettings;
 }
 
 /** Where a rendered block's source sits in its note. */

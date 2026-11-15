@@ -58,6 +58,7 @@ import { installLayoutCommands } from "../modules/layout-commands.js";
 import { installUserTemplates } from "../modules/user-templates.js";
 import { installExportSupport } from "../modules/export-support.js";
 import { installStartPage } from "../modules/start-page.js";
+import { installKnowledgeBase } from "../modules/kb-features.js";
 import { createApi } from "../modules/api.js";
 import { installBookExport } from "../modules/book-export.js";
 import { installSourceCard } from "../modules/source-card.js";
@@ -154,6 +155,7 @@ export async function onload(plugin: IgnorancePlugin) {
   installUserTemplates(plugin);
   installExportSupport(plugin);
   installStartPage(plugin);
+  installKnowledgeBase(plugin);
   plugin.api = createApi(plugin);
   installCustomCallouts(plugin);
   installSourceCard(plugin);
