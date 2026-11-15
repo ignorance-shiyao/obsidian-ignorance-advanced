@@ -2,6 +2,8 @@
      #line / #block        grid behind a transparent image      #padding   room around it
      #invert #blur #aged #gray  filters (with `!`, the filter lifts on hover)
      #card / #cardd        postcard (hover / tiled), #border adds an edge
+     #icon / #icon0 / #icon2x  inline icon at text height / natural / twice     #logo (#left / #right)  bare, floated
+     #200w                 width in pixels
      ?fill=text|Rd         silhouette in the text colour or a colour code
      ?darksrc=invert       inverted in dark mode;  ?darksrc=~ | -/_ | name.png  another file in dark mode */
 import { parseColorCode, type ColorCode } from "./color-code-core.js";
@@ -19,6 +21,9 @@ export interface ImageMagic {
   border: boolean;
   fill: "text" | ColorCode | null;
   dark: { invert: true } | { file: string } | null;
+  icon: "text" | "natural" | "double" | null;
+  logo: "inline" | "left" | "right" | null;
+  width: number | null;
 }
 
 /** Splits `a.png?darksrc=~#card#border` into its path, query and hash words. Null when none of this syntax is in it. */
@@ -29,7 +34,8 @@ export function parseImageMagic(raw: string): ImageMagic | null {
   const path = queryAt < 0 ? beforeHash : beforeHash.slice(0, queryAt);
   const words = hashAt < 0 ? [] : raw.slice(hashAt + 1).split("#").map(word => word.trim()).filter(Boolean);
   const query = new URLSearchParams(queryAt < 0 ? "" : beforeHash.slice(queryAt + 1));
-  const magic: ImageMagic = { path, grid: null, padding: false, filter: null, filterHover: false, card: null, border: false, fill: null, dark: null };
+  const magic: ImageMagic = { path, grid: null, padding: false, filter: null, filterHover: false, card: null, border: false, fill: null, dark: null, icon: null, logo: null, width: null };
+  const icons: Record<string, ImageMagic["icon"]> = { icon: "text", icon0: "natural", icon2x: "double" };
   let found = false;
   for (const word of words) {
     const bare = word.replace(/!$/, "");
@@ -37,8 +43,14 @@ export function parseImageMagic(raw: string): ImageMagic | null {
     else if (word === "padding") { magic.padding = true; found = true; }
     else if (word === "border") { magic.border = true; found = true; }
     else if (word === "card" || word === "cardd") { magic.card = word === "card" ? "hover" : "tile"; found = true; }
+    else if (icons[word]) { magic.icon = icons[word]; found = true; }
+    else if (word === "logo") { magic.logo = magic.logo || "inline"; found = true; }
+    else if (/^[1-9]\d{0,3}w$/.test(word)) { magic.width = Number(word.slice(0, -1)); found = true; }
     else if (FILTERS[bare]) { magic.filter = FILTERS[bare]; magic.filterHover = word.endsWith("!"); found = true; }
   }
+  // #left / #right only place a logo.
+  if (magic.logo && words.includes("left")) magic.logo = "left";
+  else if (magic.logo && words.includes("right")) magic.logo = "right";
   const fill = query.get("fill");
   if (fill) {
     const code = parseColorCode(`~${fill}~`);

@@ -54,6 +54,9 @@ function apply(plugin: IgnorancePlugin, img: HTMLImageElement, holder: HTMLEleme
   img.classList.toggle("ib-img-grid-line", magic.grid === "line");
   img.classList.toggle("ib-img-grid-block", magic.grid === "block");
   img.classList.toggle("ib-img-padding", magic.padding);
+  if (magic.icon) { img.classList.add("ib-img-icon", `is-${magic.icon}`); holder.classList.add("ib-img-inline"); }
+  if (magic.logo) { img.classList.add("ib-img-logo"); holder.classList.add("ib-img-logo-holder", `is-${magic.logo}`); img.classList.toggle("has-border", magic.border); }
+  if (magic.width) img.style.setProperty("width", `${magic.width}px`);
   if (magic.filter) {
     holder.dataset.ibFilter = magic.filter;
     if (magic.filterHover) holder.dataset.ibFilterHover = "true";

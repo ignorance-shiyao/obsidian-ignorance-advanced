@@ -28,3 +28,21 @@ describe("图片魔法", () => {
     expect(darkFileName("noext", "-")).toBe("noext-dark");
   });
 });
+
+describe("icon, logo and width words", () => {
+  it("reads #icon in three sizes", () => {
+    expect(parseImageMagic("a.svg#icon")).toMatchObject({ icon: "text" });
+    expect(parseImageMagic("a.svg#icon0")).toMatchObject({ icon: "natural" });
+    expect(parseImageMagic("a.svg#icon2x")).toMatchObject({ icon: "double" });
+  });
+  it("reads #logo with a side", () => {
+    expect(parseImageMagic("a.png#logo")).toMatchObject({ logo: "inline" });
+    expect(parseImageMagic("a.png#logo#left")).toMatchObject({ logo: "left" });
+    expect(parseImageMagic("a.png#logo#right#border")).toMatchObject({ logo: "right", border: true });
+  });
+  it("reads a pixel width", () => {
+    expect(parseImageMagic("a.png#200w")).toMatchObject({ width: 200 });
+    expect(parseImageMagic("a.png#0w")).toBeNull();
+    expect(parseImageMagic("a.png#left")).toBeNull();
+  });
+});
