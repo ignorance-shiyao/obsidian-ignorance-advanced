@@ -1,8 +1,9 @@
 import type { Editor, MarkdownFileInfo, MarkdownView, TAbstractFile, TFolder, Vault, WorkspaceLeaf } from "obsidian";
 import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
-import { Notice, Setting, TFile, FileView, Modal, htmlToMarkdown, loadPdfJs } from "obsidian";
+import { Notice, Setting, TFile, FileView, Modal, htmlToMarkdown, loadPdfJs, setIcon } from "obsidian";
 import type { Menu } from "obsidian";
+import { previewPolicy } from "./html-preview-policy-core.js";
 import { csvToMarkdown, docxToMarkdown, htmlToMarkdown as cleanHtmlToMarkdown, jsonToMarkdown, notionZipToMarkdown, pdfToMarkdown, pptxToMarkdown, xlsxToMarkdown, type PdfJs } from "./import-converters";
 
 const HTML_READONLY_VIEW = "ignorance-html-readonly";
@@ -250,8 +251,8 @@ function escapeHtmlAttribute(value: string) {
   return String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 }
 
-function htmlReaderDocument(source: string, baseHref: string) {
-  const security = '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'none\'; object-src \'none\'; frame-src \'none\'; form-action \'none\'; base-uri app:; img-src app: data: blob: https: http:; style-src \'unsafe-inline\' app: data: https: http:; font-src app: data: https: http:; media-src app: data: blob: https: http:">';
+function htmlReaderDocument(source: string, baseHref: string, allowScripts: boolean) {
+  const security = '<meta http-equiv="Content-Security-Policy" content="' + previewPolicy(allowScripts).csp + '">';
   const head = '<base href="' + escapeHtmlAttribute(baseHref) + '">' + security;
   if (/<head\b[^>]*>/i.test(source)) {
     return source.replace(/<head\b[^>]*>/i, (match) => match + head);
@@ -279,6 +280,9 @@ class HtmlReadOnlyView extends FileView {
     this.contentEl.addClass("ibm-html-reader-view");
   }
 
+  scriptsStopped = false;
+  runButton: HTMLElement | null = null;
+
   async onLoadFile(file: TFile) {
     const token = ++this.renderToken;
     this.contentEl.empty();
@@ -286,18 +290,33 @@ class HtmlReadOnlyView extends FileView {
       cls: "ibm-html-reader-frame",
       attr: { title: file.basename + tr("（只读 HTML 预览）"), sandbox: "" }
     });
-    iframe.setAttribute("sandbox", "");
     try {
       const source = await this.app.vault.cachedRead(file);
       if (token !== this.renderToken || !iframe.isConnected) return;
+      const allow = !this.scriptsStopped;
+      iframe.setAttribute("sandbox", previewPolicy(allow).sandbox);
+      this.syncRunButton(allow);
       const fileResource = this.app.vault.getResourcePath(file);
       const baseHref = new URL(".", fileResource).href;
-      iframe.srcdoc = htmlReaderDocument(source, baseHref);
+      iframe.srcdoc = htmlReaderDocument(source, baseHref, allow);
     } catch (error) {
       if (token !== this.renderToken) return;
       iframe.remove();
       this.contentEl.createDiv({ cls: "ibm-html-reader-error", text: tr("HTML 预览失败：") + errorText(error) });
     }
+  }
+
+  /* Scripts run by default; a stop / play icon in the header turns them off and on for this tab. */
+  syncRunButton(running: boolean) {
+    if (!this.runButton) {
+      this.runButton = this.addAction("lucide-square", tr("停止页面脚本"), () => {
+        this.scriptsStopped = !this.scriptsStopped;
+        if (this.file) void this.onLoadFile(this.file);
+      });
+    }
+    setIcon(this.runButton, running ? "lucide-square" : "lucide-play");
+    this.runButton.setAttribute("aria-label", running ? tr("停止页面脚本") : tr("运行页面脚本"));
+    this.runButton.classList.toggle("is-active", !running);
   }
 
   async onUnloadFile(file: TFile) {

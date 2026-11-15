@@ -529,6 +529,8 @@ export const EN: Readonly<Record<string, string>> = {
   "逐段阅读": "Read block by block",
   "上一项": "Previous",
   "分页": "Page break",
+  "运行页面脚本": "Run page scripts",
+  "停止页面脚本": "Stop page scripts",
   "回到文档位置": "Back to its place in the note",
   "下一项": "Next",
   "适应窗口": "Fit to window",
