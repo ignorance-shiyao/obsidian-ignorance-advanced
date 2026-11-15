@@ -1,5 +1,5 @@
-import { TFile, setIcon } from "obsidian";
-import type { WorkspaceLeaf } from "obsidian";
+import { Modal, Notice, TFile, setIcon } from "obsidian";
+import type { App, WorkspaceLeaf } from "obsidian";
 import { tr, zh } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
 import { KbView, kbSettings, openNote, registerKbFeature } from "./kb.js";
@@ -18,6 +18,20 @@ const LABELS: Record<HealthCheck, string> = {
 const ICONS: Record<HealthCheck, string> = {
   broken: "lucide-unlink", noSource: "lucide-link-2-off", empty: "lucide-file", stale: "lucide-hourglass", orphan: "lucide-circle-dashed", remoteImage: "lucide-image"
 };
+
+/** Confirmation before moving several notes to the system trash. */
+class ConfirmTrashModal extends Modal {
+  constructor(app: App, private count: number, private run: () => void) { super(app); }
+  onOpen() {
+    this.titleEl.setText(tr("删除空笔记"));
+    this.contentEl.addClass("ig-kb", "ig-kb-modal");
+    this.contentEl.createDiv({ text: tr("将 {n} 篇空笔记移到废纸篓。", { n: this.count }) });
+    const actions = this.contentEl.createDiv({ cls: "ig-kb-clip-actions" });
+    actions.createEl("button", { cls: "ig-kb-action", text: tr("取消"), attr: { type: "button" } }).addEventListener("click", () => this.close());
+    actions.createEl("button", { cls: "ig-kb-action mod-warning", text: tr("删除 {n} 篇", { n: this.count }), attr: { type: "button" } }).addEventListener("click", () => { this.close(); this.run(); });
+  }
+  onClose() { this.contentEl.empty(); }
+}
 
 class KbHealthView extends KbView {
   /** Remote images per note, cached by modification time (reading text only happens here). */
@@ -74,6 +88,7 @@ class KbHealthView extends KbView {
       const head = section?.querySelector<HTMLElement>(".ig-kb-section-head");
       if (head) {
         const tools = head.createDiv({ cls: "ig-kb-section-tools" });
+        if (check === "empty" && open.length) this.groupButton(tools, tr("全部删除"), () => new ConfirmTrashModal(this.app, open.length, () => void this.trashEmpty(open.map(f => f.path))).open());
         if (open.length) this.groupButton(tools, tr("忽略"), () => this.setIgnored(open, true));
         if (ignored.length) this.groupButton(tools, tr("恢复 {n}", { n: ignored.length }), () => this.setIgnored(ignored, false));
       }
@@ -97,7 +112,29 @@ class KbHealthView extends KbView {
     const note = this.index.notes.get(finding.path);
     const meta = finding.check === "stale" ? tr("{n} 天", { n: finding.detail[0] })
       : finding.detail.length ? finding.detail.slice(0, 2).join("、") + (finding.detail.length > 2 ? ` +${finding.detail.length - 2}` : "") : undefined;
-    kbRow(parent, { icon: ICONS[finding.check], label: note?.title ?? finding.path, meta, onClick: () => openNote(this.plugin, finding.path) });
+    const row = kbRow(parent, { icon: ICONS[finding.check], label: note?.title ?? finding.path, meta, onClick: () => openNote(this.plugin, finding.path) });
+    if (finding.check !== "empty") return;
+    const del = row.createSpan({ cls: "ig-kb-row-action", attr: { role: "button", tabindex: "0", "aria-label": tr("删除") } });
+    setIcon(del, "lucide-trash-2");
+    const run = (event: Event) => { event.stopPropagation(); event.preventDefault(); void this.trashEmpty([finding.path]); };
+    del.addEventListener("click", run);
+    del.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") run(event); });
+  }
+
+  /** Moves notes to the system trash after re-reading each one: only a note with nothing but frontmatter goes. */
+  private async trashEmpty(paths: string[]) {
+    let done = 0;
+    for (const path of paths) {
+      const file = this.app.vault.getAbstractFileByPath(path);
+      if (!(file instanceof TFile)) continue;
+      const body = (await this.app.vault.cachedRead(file)).replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
+      if (body.trim() !== "") continue;
+      await this.app.fileManager.trashFile(file);
+      done++;
+    }
+    new Notice(tr("已删除 {n} 篇空笔记", { n: done }));
+    this.index.reset();
+    this.index.flush();
   }
 
   private groupButton(parent: HTMLElement, label: string, run: () => void) {

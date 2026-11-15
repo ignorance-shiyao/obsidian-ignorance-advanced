@@ -2,6 +2,11 @@
    `npm run lint:i18n` fails when a tr() key has no entry. */
 export const EN: Readonly<Record<string, string>> = {
   // Knowledge base
+  "删除空笔记": "Delete empty notes",
+  "将 {n} 篇空笔记移到废纸篓。": "Move {n} empty notes to the trash.",
+  "删除 {n} 篇": "Delete {n}",
+  "全部删除": "Delete all",
+  "已删除 {n} 篇空笔记": "Deleted {n} empty notes",
   "知识库": "Knowledge base",
   "打开知识库": "Open knowledge base",
   "收件箱目录": "Inbox folder",

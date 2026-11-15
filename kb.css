@@ -739,3 +739,8 @@ body.ib-hide-cats .ig-kb-section-body > .ig-kb-empty::before { content: none; }
 .ig-kb .ig-kb-clip-source { color: var(--ig-kb-accent); }
 .is-phone .ig-kb .ig-kb-segment, .is-phone .ig-kb .ig-kb-chip, .is-phone .ig-kb .ig-kb-action, .is-phone .ig-kb .ig-kb-picker, .is-phone .ig-kb .ig-kb-icon-btn { height: 40px; min-height: 40px; }
 .is-phone .ig-kb .ig-kb-icon-btn { width: 40px; }
+.ig-kb-row-action { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 999px; color: var(--text-faint); cursor: pointer; transition: background-color .15s ease, color .15s ease; }
+.ig-kb-row-action svg { width: 16px; height: 16px; }
+.ig-kb-row-action:hover, .ig-kb-row-action:focus-visible { background: color-mix(in srgb, var(--color-red) 14%, transparent); color: var(--color-red); }
+.ig-kb .ig-kb-action.mod-warning { background: var(--color-red); color: var(--text-on-accent); }
+@media (prefers-reduced-motion: reduce) { .ig-kb-row-action { transition: none; } }
