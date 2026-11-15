@@ -1,4 +1,4 @@
-import { ItemView, Platform, Setting, TFile } from "obsidian";
+import { ItemView, Menu, Platform, Setting, TFile } from "obsidian";
 import type { WorkspaceLeaf } from "obsidian";
 import { tr, zh } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
@@ -170,6 +170,20 @@ export function installKnowledgeBase(plugin: IgnorancePlugin) {
     }
     spec.install?.(plugin);
   }
+  plugin.addRibbonIcon("lucide-library", tr("知识库"), event => {
+    const menu = new Menu();
+    for (const spec of FEATURES) {
+      const { view } = spec;
+      if (!view) continue;
+      menu.addItem(item => {
+        item.setTitle(tr(spec.name)).setIcon(spec.icon).setSection(kbEnabled(plugin, spec.key) ? "on" : "off").onClick(() => {
+          if (!kbEnabled(plugin, spec.key)) { kbSettings(plugin).features[spec.key] = true; plugin.saveStoredState(); spec.onToggle?.(plugin, true); }
+          void openKbView(plugin, view);
+        });
+      });
+    }
+    menu.showAtMouseEvent(event);
+  });
   plugin.registerEvent(plugin.app.workspace.on("css-change", notifyKbCharts));
   plugin.register(() => { index?.stop(); index = null; });
 }

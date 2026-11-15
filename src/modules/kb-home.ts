@@ -161,14 +161,8 @@ registerKbFeature({
   key: "home", view: KB_HOME_VIEW, name: zh("打开知识首页"), icon: "lucide-layout-dashboard",
   create: (leaf: WorkspaceLeaf, plugin: IgnorancePlugin) => new KbHomeView(leaf, plugin),
   install: plugin => {
-    plugin.addRibbonIcon("lucide-layout-dashboard", tr("打开知识首页"), () => {
-      if (kbEnabled(plugin, "home")) void openKbView(plugin, KB_HOME_VIEW);
-    }).addClass("ig-kb-ribbon");
-    document.body.toggleClass("ig-kb-home-off", !kbEnabled(plugin, "home"));
-    plugin.register(() => document.body.removeClass("ig-kb-home-off"));
     plugin.app.workspace.onLayoutReady(() => {
       if (kbEnabled(plugin, "home") && kbSettings(plugin).openHomeOnStartup) void openKbView(plugin, KB_HOME_VIEW);
     });
-  },
-  onToggle: (_plugin, enabled) => document.body.toggleClass("ig-kb-home-off", !enabled)
+  }
 });

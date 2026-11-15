@@ -201,10 +201,6 @@ button.ig-kb-tile:hover {
   padding: 12px 12px 32px;
 }
 
-body.ig-kb-home-off .ig-kb-ribbon {
-  display: none;
-}
-
 .ig-kb-detail .ig-kb-section-head {
   align-items: center;
 }
