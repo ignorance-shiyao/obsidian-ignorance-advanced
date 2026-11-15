@@ -1,3 +1,4 @@
+import { setIcon } from "obsidian";
 import { enhancementOn, handledByOther } from "./enhancement-gate.js";
 import { tr } from "../i18n.js";
 import type { IgnorancePlugin } from "../plugin-types.js";
@@ -241,12 +242,11 @@ function enhanceGroups(table: HTMLTableElement) {
     if (!hasChildren) return;
     row.classList.add("ib-row-parent");
     const toggle = createEl("button", { cls: "ib-row-toggle", attr: { type: "button", "aria-expanded": "true", "aria-label": tr("展开或折叠子行") } });
-    toggle.textContent = "▾";
+    setIcon(toggle, "chevron-down");
     cell.prepend(toggle);
     toggle.addEventListener("click", () => {
       const open = toggle.getAttribute("aria-expanded") !== "true";
       toggle.setAttribute("aria-expanded", String(open));
-      toggle.textContent = open ? "▾" : "▸";
       // Show every descendant of every open ancestor again; hide the ones under a closed one.
       const closedAt: number[] = [];
       rows.forEach((candidate, position) => {

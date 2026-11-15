@@ -3190,7 +3190,11 @@ img.ib-img-fill {
   white-space: nowrap;
   background: linear-gradient(90deg, var(--ib-accent-subtle, var(--background-modifier-hover)) var(--ib-percent, 0%), transparent var(--ib-percent, 0%));
 }
-.ib-row-toggle { margin-inline-end: .35em; padding: 0 .25em; border: 0; background: transparent; box-shadow: none; color: var(--ib-text-muted, var(--text-muted)); cursor: pointer; font-size: .9em; }
+.ib-row-toggle:not(#_ib) { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-inline: calc(-1 * var(--ib-space-1, 4px)) var(--ib-space-1, 4px); padding: 0; border: 0; border-radius: 50%; background: transparent; box-shadow: none; color: var(--ib-text-muted, var(--text-muted)); vertical-align: middle; cursor: pointer; transition: background-color var(--ib-duration-fast, .15s) ease, color var(--ib-duration-fast, .15s) ease; }
+.ib-row-toggle:not(#_ib):hover { background: var(--ib-accent-subtle, var(--background-modifier-hover)); color: var(--ib-text-accent, var(--text-accent)); }
+.ib-row-toggle svg { width: 14px; height: 14px; transition: transform var(--ib-duration-fast, .15s) ease; }
+.ib-row-toggle[aria-expanded="false"] svg { transform: rotate(-90deg); }
+@media (prefers-reduced-motion: reduce) { .ib-row-toggle:not(#_ib), .ib-row-toggle svg { transition: none; } }
 tr[data-ib-level="1"] > :first-child { padding-inline-start: 1.6em; }
 tr[data-ib-level="2"] > :first-child { padding-inline-start: 2.8em; }
 tr[data-ib-level="3"] > :first-child { padding-inline-start: 4em; }
