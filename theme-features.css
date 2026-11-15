@@ -3890,3 +3890,28 @@ p.ib-page-break-mark:not(#_ib)::before, p.ib-page-break-mark:not(#_ib)::after { 
 .ib-tab-bar__icon { display: inline-flex; }
 .ib-tab-bar__icon svg { width: 14px; height: 14px; }
 @media (prefers-reduced-motion: reduce) { .ib-tab-bar__tab:not(#_ib) { transition: none; } }
+
+/* ---- Feature hues: derived from the chart palette so they work with or without the Ignorance theme ---- */
+.markdown-rendered { --ib-hue-1: var(--ib-chart-1, #4d81ef); --ib-hue-2: var(--ib-chart-3, #0f8a72); --ib-hue-3: var(--ib-chart-4, #b6548c); --ib-hue-4: var(--ib-chart-2, #d97706); --ib-hue-5: var(--ib-chart-7, #7867c9); --ib-hue-6: var(--ib-chart-5, #2f8dbd); }
+.markdown-rendered blockquote.ib-quote-columns:not(#_ib):not(#_ib2) > :nth-child(6n + 1), .markdown-rendered :is(ul, ol).ib-list-columns > li:nth-child(6n + 1) { --ib-card-hue: var(--ib-hue-1); }
+.markdown-rendered blockquote.ib-quote-columns:not(#_ib):not(#_ib2) > :nth-child(6n + 2), .markdown-rendered :is(ul, ol).ib-list-columns > li:nth-child(6n + 2) { --ib-card-hue: var(--ib-hue-2); }
+.markdown-rendered blockquote.ib-quote-columns:not(#_ib):not(#_ib2) > :nth-child(6n + 3), .markdown-rendered :is(ul, ol).ib-list-columns > li:nth-child(6n + 3) { --ib-card-hue: var(--ib-hue-3); }
+.markdown-rendered blockquote.ib-quote-columns:not(#_ib):not(#_ib2) > :nth-child(6n + 4), .markdown-rendered :is(ul, ol).ib-list-columns > li:nth-child(6n + 4) { --ib-card-hue: var(--ib-hue-4); }
+.markdown-rendered blockquote.ib-quote-columns:not(#_ib):not(#_ib2) > :nth-child(6n + 5), .markdown-rendered :is(ul, ol).ib-list-columns > li:nth-child(6n + 5) { --ib-card-hue: var(--ib-hue-5); }
+.markdown-rendered blockquote.ib-quote-columns:not(#_ib):not(#_ib2) > :nth-child(6n), .markdown-rendered :is(ul, ol).ib-list-columns > li:nth-child(6n) { --ib-card-hue: var(--ib-hue-6); }
+.markdown-rendered blockquote.ib-quote-columns:not(#_ib):not(#_ib2) > *, .markdown-rendered :is(ul, ol).ib-list-columns > li {
+  border: 1px solid color-mix(in srgb, var(--ib-card-hue, var(--ib-hue-1)) 28%, var(--background-modifier-border));
+  background: linear-gradient(160deg, color-mix(in srgb, var(--ib-card-hue, var(--ib-hue-1)) 11%, var(--background-primary)), color-mix(in srgb, var(--ib-card-hue, var(--ib-hue-1)) 3%, var(--background-primary)));
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ib-card-hue, var(--ib-hue-1)) 14%, transparent), 0 6px 16px -10px color-mix(in srgb, var(--ib-card-hue, var(--ib-hue-1)) 35%, transparent);
+  transition: transform var(--ib-duration-fast, .15s) ease, box-shadow var(--ib-duration-fast, .15s) ease;
+}
+.markdown-rendered blockquote.ib-quote-columns:not(#_ib):not(#_ib2) > :hover, .markdown-rendered :is(ul, ol).ib-list-columns > li:hover { transform: translateY(-2px); }
+.markdown-rendered blockquote.ib-quote-columns:not(#_ib):not(#_ib2) > p > strong:first-child, .markdown-rendered :is(ul, ol).ib-list-columns > li > :is(p, strong):first-child { color: var(--ib-card-hue, var(--ib-hue-1)); }
+.ib-tab-bar__tab[data-kind="table"] { --ib-kind-hue: var(--ib-chart-1, #4d81ef); }
+.ib-tab-bar__tab[data-kind="code"] { --ib-kind-hue: var(--ib-chart-3, #0f8a72); }
+.ib-tab-bar__tab[data-kind="image"] { --ib-kind-hue: var(--ib-chart-4, #b6548c); }
+.ib-tab-bar__tab[data-kind="quote"] { --ib-kind-hue: var(--ib-chart-7, #7867c9); }
+.ib-tab-bar__icon { color: var(--ib-kind-hue, currentcolor); }
+.ib-tab-bar__tab.is-selected:not(#_ib) { background: color-mix(in srgb, var(--ib-kind-hue, var(--interactive-accent)) 14%, var(--background-primary)); color: var(--ib-kind-hue, var(--text-accent)); }
+.ib-tab-bar__tab:not(#_ib):hover { color: var(--ib-kind-hue, var(--text-accent)); }
+@media (prefers-reduced-motion: reduce) { .markdown-rendered blockquote.ib-quote-columns:not(#_ib):not(#_ib2) > *, .markdown-rendered :is(ul, ol).ib-list-columns > li { transition: none; } }

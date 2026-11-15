@@ -29,7 +29,7 @@ function buildBar(element: HTMLElement, key: string, group: TabGroup) {
   const bar = createDiv({ cls: "ib-tab-bar", attr: { role: "tablist" } });
   const buttons = group.members.map((member, index) => {
     const label = member.title || String(index + 1);
-    const button = bar.createEl("button", { cls: "ib-tab-bar__tab", attr: { type: "button", role: "tab" } });
+    const button = bar.createEl("button", { cls: "ib-tab-bar__tab", attr: { type: "button", role: "tab", "data-kind": member.kind } });
     setIcon(button.createSpan({ cls: "ib-tab-bar__icon" }), ICONS[member.kind]);
     button.createSpan({ cls: "ib-tab-bar__label", text: label });
     button.addEventListener("click", () => {
