@@ -3118,6 +3118,15 @@ img[data-ib-filter] { transition: filter .2s ease; }
 
 /* ---- image magic: grid backgrounds, padding, silhouettes, postcards ---- */
 img.ib-img-padding { padding: 20px; }
+/* #icon: an inline glyph at text height (#icon0 natural, #icon2x twice); #logo: bare, optionally floated. */
+.ib-img-inline:not(#_ib) { display: inline; margin: 0; }
+img.ib-img-icon:not(#_ib) { display: inline; height: 1.2em; width: auto; margin: 0; vertical-align: -.2em; border: 0; border-radius: 0; box-shadow: none; background: none; }
+img.ib-img-icon.is-natural:not(#_ib) { height: auto; }
+img.ib-img-icon.is-double:not(#_ib) { height: 2em; vertical-align: middle; }
+img.ib-img-logo:not(#_ib) { border: 0; border-radius: 0; box-shadow: none; background: none; }
+img.ib-img-logo.has-border:not(#_ib) { border: 2px solid var(--ib-border-default); border-radius: var(--ib-radius-md, 8px); }
+.ib-img-logo-holder.is-left:not(#_ib) { float: left; margin: 0 var(--ib-space-5, 20px) var(--ib-space-2, 8px) 0; }
+.ib-img-logo-holder.is-right:not(#_ib) { float: right; margin: 0 0 var(--ib-space-2, 8px) var(--ib-space-5, 20px); }
 img.ib-img-grid-line {
   background-color: var(--ib-bg-tertiary, var(--background-primary));
   background-image:
@@ -3810,3 +3819,8 @@ body.ib-hide-cats .ib-cats-tail { display: none; }
 .markdown-rendered a.ib-link-button:not(#_ib)::after { content: none; }
 .markdown-rendered a.ib-link-button > kbd:not(#_ib) { display: inline-block; padding: .3em 1em; border: 1px solid var(--ib-accent-brand); border-radius: 999px; background: var(--ib-accent-subtle); color: var(--ib-accent-brand); box-shadow: none; font: 600 var(--ib-small-size) / 1.4 var(--ib-font-sans); transition: background-color .15s, color .15s; }
 .markdown-rendered a.ib-link-button:hover > kbd:not(#_ib) { background: var(--ib-accent-brand); color: var(--ib-bg-primary); }
+
+/* Export done notice: the name, then two icon buttons. */
+.ib-export-done { display: flex; align-items: center; gap: var(--ib-space-2, 8px); }
+.ib-export-done__text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ib-export-done__button { flex: none; }
