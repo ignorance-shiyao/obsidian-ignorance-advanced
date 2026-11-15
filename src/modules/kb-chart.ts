@@ -20,17 +20,22 @@ export function mountKbChart(host: HTMLElement, build: (tokens: EChartsThemeToke
     if (disposed) return;
     const tokens = readThemeTokens(host);
     const name = echartsThemeName(tokens);
-    const width = Math.max(240, host.clientWidth || host.parentElement?.clientWidth || 720);
+    // The chart fills the content box: padding on the host must not push it past the edge.
+    const box = getComputedStyle(host);
+    const padX = parseFloat(box.paddingLeft) + parseFloat(box.paddingRight) || 0;
+    const frameY = (parseFloat(box.paddingTop) + parseFloat(box.paddingBottom) + parseFloat(box.borderTopWidth) + parseFloat(box.borderBottomWidth)) || 0;
+    const width = Math.max(240, (host.clientWidth || host.parentElement?.clientWidth || 720) - padX);
     const { option, height } = build(tokens, width);
+    const frame = box.boxSizing === "border-box" ? frameY : 0;
     if (handle.chart && name !== themeName) { handle.chart.dispose(); handle.chart = null; }
     if (!handle.chart) {
       engine.registerTheme(name, buildEChartsTheme(tokens));
       themeName = name;
-      host.style.height = `${height}px`;
+      host.style.height = `${height + frame}px`;
       handle.chart = engine.init(host, name, { renderer: renderer(), width, height });
       bind?.(handle.chart);
     } else {
-      host.style.height = `${height}px`;
+      host.style.height = `${height + frame}px`;
       handle.chart.resize({ width, height });
     }
     lastWidth = width;
