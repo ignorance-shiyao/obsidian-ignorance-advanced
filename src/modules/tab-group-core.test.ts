@@ -44,6 +44,35 @@ describe("findTabGroups", () => {
   });
 });
 
+describe("captions and quotes as tabs", () => {
+  const lines = [
+    "_^tab^_", "", "*==表格页签==*", "", "| A | B |", "| - | - |", "| 1 | 2 |", "",
+    "```js", "x", "```", "", "*==带说明_第二题注_==*", "", "![](a.png)", "",
+    "> **引用块页签**", ">", "> 内容", "", "后文"
+  ];
+  it("takes a caption line as the title of the member after it", () => {
+    const [group] = findTabGroups(lines);
+    expect(group.members.map(m => [m.kind, m.title, m.captionAt])).toEqual([
+      ["table", "表格页签", 2], ["code", "js", undefined], ["image", "带说明", 12], ["quote", "引用块页签", undefined]
+    ]);
+  });
+  it("includes the whole quote and stops after it", () => {
+    const [group] = findTabGroups(lines);
+    expect(group.members[3].start).toBe(16);
+    expect(group.members[3].end).toBe(18);
+  });
+  it("maps a caption line to the same tab as its member", () => {
+    const groups = findTabGroups(lines);
+    expect(tabRoleAt(groups, 2)).toMatchObject({ role: "member", index: 0 });
+    expect(tabRoleAt(groups, 4)).toMatchObject({ role: "member", index: 0 });
+    expect(tabRoleAt(groups, 12)).toMatchObject({ role: "member", index: 2 });
+    expect(tabRoleAt(groups, 16)).toMatchObject({ role: "member", index: 3 });
+  });
+  it("a caption with nothing after it does not make a group", () => {
+    expect(findTabGroups(["_^tab^_", "", "![a](a)", "", "*==孤立题注==*"])).toEqual([]);
+  });
+});
+
 describe("tabRoleAt", () => {
   const groups = findTabGroups(note);
   it("names the bar, each tab and everything else", () => {

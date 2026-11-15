@@ -5,7 +5,7 @@ import { findTabGroups, tabRoleAt, type TabGroup, type TabKind } from "./tab-gro
 /* Reading view: the tab bar replaces the `_^tab^_` line, and the tables, pictures and code after it show one at a
    time. Each section knows its own role from the source lines, so the order the sections render in does not
    matter. Paged reading and exports show every member, with the marker hidden (staged-enhance.ts). */
-const ICONS: Record<TabKind, string> = { table: "table-2", image: "image", code: "code-2" };
+const ICONS: Record<TabKind, string> = { table: "table-2", image: "image", code: "code-2", quote: "quote" };
 
 const chosen = new Map<string, number>();
 let cache: { text: string; groups: TabGroup[] } | null = null;
