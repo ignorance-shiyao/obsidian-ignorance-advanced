@@ -21,6 +21,9 @@ export const KB_MAP_BATCH = 1000;
 const AREAS: MapArea[] = ["knowledge", "work", "personal"];
 const AREA_VARS: Record<MapArea, string> = { knowledge: "--color-blue", work: "--color-orange", personal: "--color-green" };
 
+/** Soft halo colour: the area colour at 40% when it is a 6-digit hex, else a neutral glow. */
+function halo(color: string): string { return /^#[\da-f]{6}$/i.test(color) ? `${color}66` : "rgba(120, 130, 160, 0.3)"; }
+
 class KbMapView extends KbView {
   private areas = new Set<MapArea>(AREAS);
   private query = "";
@@ -111,16 +114,16 @@ class KbMapView extends KbView {
         emphasis: { focus: "adjacency", label: { show: true }, lineStyle: { width: 2 } },
         blur: { itemStyle: { opacity: 0.15 }, lineStyle: { opacity: 0.05 }, label: { show: false } },
         label: { color: text, fontSize: 12, position: "right" },
-        lineStyle: { color: muted, curveness: 0.08 },
+        lineStyle: { color: "source", curveness: 0.16 },
         data: nodes.map(node => ({
           id: node.id, name: node.name, value: node.size, category: AREAS.indexOf(node.area),
           symbol: node.kind === "project" ? "roundRect" : "circle", symbolSize: size(node),
           label: { show: node.kind !== "note" || nodes.length < 60, fontWeight: node.kind === "topic" ? 600 : 400 },
-          itemStyle: { borderColor: background, borderWidth: node.kind === "note" ? 1 : 2 }
+          itemStyle: { borderColor: background, borderWidth: node.kind === "note" ? 1 : 2, shadowBlur: node.kind === "topic" ? 22 : node.kind === "project" ? 12 : 4, shadowColor: halo(colors[Math.max(0, AREAS.indexOf(node.area))]) }
         })),
         links: this.graph.edges.filter(edge => ids.has(edge.source) && ids.has(edge.target)).map(edge => ({
           source: edge.source, target: edge.target,
-          lineStyle: edge.kind === "member" ? { opacity: 0.18, width: 1 } : { opacity: 0.55, width: 1.2 }
+          lineStyle: edge.kind === "member" ? { opacity: 0.22, width: 1 } : { opacity: 0.6, width: 1.6 }
         }))
       }]
     };

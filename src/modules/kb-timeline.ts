@@ -73,14 +73,14 @@ class KbTimelineView extends KbView {
         height: Math.max(260, lanes.length * 56 + 120),
         option: {
           color: tokens.colors,
-          legend: { top: 0, type: "scroll", data: kinds.map(kind => kind || tr("其他")) },
+          legend: { top: 0, type: "scroll", icon: "roundRect", itemWidth: 24, itemHeight: 10, itemGap: 22, data: kinds.map(kind => kind || tr("其他")) },
           tooltip: { trigger: "item", formatter: (p: { data: { title: string; value: [number, string] } }) => `${p.data.title}<br>${formatDay(p.data.value[0])}` },
           grid: { left: 8, right: 24, top: 40, bottom: 56, containLabel: true },
-          xAxis: { type: "time", splitLine: { show: true } },
-          yAxis: { type: "category", data: lanes, axisTick: { show: false }, splitLine: { show: true }, jitter: 30, jitterOverlap: false },
-          dataZoom: [{ type: "inside", xAxisIndex: 0, filterMode: "none" }, { type: "slider", xAxisIndex: 0, height: 18, bottom: 12, filterMode: "none" }],
+          xAxis: { type: "time", splitLine: { show: true, lineStyle: { type: "dashed", opacity: 0.5 } }, axisLine: { show: false } },
+          yAxis: { type: "category", data: lanes, axisTick: { show: false }, axisLine: { show: false }, splitLine: { show: true, lineStyle: { type: "dashed", opacity: 0.5 } }, jitter: 30, jitterOverlap: false },
+          dataZoom: [{ type: "inside", xAxisIndex: 0, filterMode: "none" }, { type: "slider", xAxisIndex: 0, height: 18, bottom: 12, filterMode: "none", borderColor: "transparent", showDataShadow: false, moveHandleSize: 6 }],
           series: kinds.map(kind => ({
-            name: kind || tr("其他"), type: "scatter", symbolSize: 12, cursor: "pointer",
+            name: kind || tr("其他"), type: "scatter", symbolSize: 14, cursor: "pointer", itemStyle: { opacity: 0.92, borderColor: "#fff", borderWidth: 2, shadowBlur: 6, shadowColor: "rgba(0, 0, 0, 0.12)" }, emphasis: { scale: 1.3 },
             data: this.shown.filter(item => item.kind === kind).map(item => ({ value: [item.time, item.lane], title: item.title, path: item.path }))
           }))
         }
