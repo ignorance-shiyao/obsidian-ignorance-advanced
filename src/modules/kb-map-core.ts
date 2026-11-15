@@ -70,6 +70,24 @@ export function filterGraph(graph: MapGraph, areas: ReadonlySet<MapArea>): MapGr
 }
 
 /** Ids whose name contains the query (case-insensitive); empty query → none. */
+/** The node and everything within `depth` links of it (links read both ways); an unknown id gives the whole graph. */
+export function neighbourhood(graph: MapGraph, id: string, depth: number): MapGraph {
+  if (!graph.nodes.some(node => node.id === id)) return graph;
+  const adjacent = new Map<string, string[]>();
+  for (const edge of graph.edges) {
+    (adjacent.get(edge.source) ?? adjacent.set(edge.source, []).get(edge.source))?.push(edge.target);
+    (adjacent.get(edge.target) ?? adjacent.set(edge.target, []).get(edge.target))?.push(edge.source);
+  }
+  const seen = new Set([id]);
+  let frontier = [id];
+  for (let step = 0; step < depth && frontier.length; step++) {
+    const next: string[] = [];
+    for (const current of frontier) for (const other of adjacent.get(current) ?? []) if (!seen.has(other)) { seen.add(other); next.push(other); }
+    frontier = next;
+  }
+  return { nodes: graph.nodes.filter(node => seen.has(node.id)), edges: graph.edges.filter(edge => seen.has(edge.source) && seen.has(edge.target)) };
+}
+
 export function searchNodes(graph: MapGraph, query: string): string[] {
   const q = query.trim().toLowerCase();
   return q ? graph.nodes.filter(node => node.name.toLowerCase().includes(q)).map(node => node.id) : [];

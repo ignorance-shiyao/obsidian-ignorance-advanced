@@ -1,4 +1,4 @@
-import { TFile } from "obsidian";
+import { TFile, setIcon } from "obsidian";
 import type { WorkspaceLeaf } from "obsidian";
 import type { EChartsType } from "echarts";
 import { tr, zh } from "../i18n.js";
@@ -8,7 +8,7 @@ import { mountKbChart } from "./kb-chart.js";
 import type { KbChartHandle } from "./kb-chart.js";
 import { kbViewShortcuts, kbAreaLabel } from "./kb-home.js";
 import { topicPage } from "./kb-inbox-core.js";
-import { buildMapGraph, filterGraph, searchNodes, topicDigest } from "./kb-map-core.js";
+import { buildMapGraph, filterGraph, neighbourhood, searchNodes, topicDigest } from "./kb-map-core.js";
 import type { MapArea, MapGraph, MapNode } from "./kb-map-core.js";
 import { kbEmpty, kbHeader, kbIconButton, kbRow, kbSection } from "./kb-ui.js";
 
@@ -34,6 +34,16 @@ class KbMapView extends KbView {
   private version = -1;
   private batch = 0;
   private panel: HTMLElement | null = null;
+  /** Focus: the clicked node and what is within `depth` links of it; null shows the whole map. */
+  private focus: string | null = null;
+  private depth = 1;
+  private layout: "force" | "circular" = "force";
+  private focusBar: HTMLElement | null = null;
+
+  /** The part of the map being drawn: the focused neighbourhood, or everything. */
+  private get view(): MapGraph {
+    return this.focus ? neighbourhood(this.graph, this.focus, this.depth) : this.graph;
+  }
 
   getViewType() { return KB_MAP_VIEW; }
   getDisplayText() { return tr("知识地图"); }
@@ -48,16 +58,23 @@ class KbMapView extends KbView {
     if (this.version === this.index.version) return;
     this.version = this.index.version;
     this.graph = filterGraph(buildMapGraph(this.index.all(), this.folders), this.areas);
-    this.shown = Math.min(this.graph.nodes.length, KB_MAP_BATCH);
+    if (this.focus && !this.graph.nodes.some(node => node.id === this.focus)) this.focus = null;
+    this.relayout();
+  }
+
+  /** Redraws after the focus, depth, layout or data changed; zoom and pan start over. */
+  private relayout() {
+    this.shown = Math.min(this.view.nodes.length, KB_MAP_BATCH);
+    this.renderFocusBar();
     this.chart?.update();
     this.fillInBatches();
   }
 
   private fillInBatches() {
     window.cancelAnimationFrame(this.batch);
-    if (this.shown >= this.graph.nodes.length) return;
+    if (this.shown >= this.view.nodes.length) return;
     this.batch = window.requestAnimationFrame(() => {
-      this.shown = Math.min(this.graph.nodes.length, this.shown + KB_MAP_BATCH);
+      this.shown = Math.min(this.view.nodes.length, this.shown + KB_MAP_BATCH);
       this.chart?.update();
       this.fillInBatches();
     });
@@ -86,12 +103,15 @@ class KbMapView extends KbView {
       });
     }
 
+    this.focusBar = bar.createDiv({ cls: "ig-kb-segments ig-kb-focus-bar" });
+    this.renderFocusBar();
+
     const body = root.createDiv({ cls: "ig-kb-map-body" });
     const host = body.createDiv({ cls: "ig-kb-chart ig-kb-map-chart ig-kb-section" });
     this.panel = body.createDiv({ cls: "ig-kb-map-panel" });
     this.version = this.index.version;
     this.graph = filterGraph(buildMapGraph(this.index.all(), this.folders), this.areas);
-    this.shown = Math.min(this.graph.nodes.length, KB_MAP_BATCH);
+    this.shown = Math.min(this.view.nodes.length, KB_MAP_BATCH);
     if (!this.graph.nodes.length) { host.remove(); kbEmpty(body, tr("知识目录里还没有笔记")); return; }
     this.chart = mountKbChart(host, (tokens, width) => ({ option: this.option(tokens.text, tokens.muted, tokens.background), height: Math.max(420, Math.min(760, Math.round(width * 0.62))) }),
       chart => this.bind(chart), true);
@@ -102,13 +122,14 @@ class KbMapView extends KbView {
   private option(text: string, muted: string, background: string): Record<string, unknown> {
     const style = getComputedStyle(document.body);
     const colors = AREAS.map(area => style.getPropertyValue(AREA_VARS[area]).trim() || "#4D81EF");
-    const nodes = this.graph.nodes.slice(0, this.shown);
+    const view = this.view;
+    const nodes = view.nodes.slice(0, this.shown);
     const ids = new Set(nodes.map(node => node.id));
     const size = (node: MapNode) => node.kind === "topic" ? 26 + Math.sqrt(node.size) * 6 : node.kind === "project" ? 14 + Math.min(16, Math.sqrt(node.size) * 4) : 8;
     return {
       tooltip: { formatter: (p: { dataType: string; data: { name?: string } }) => p.dataType === "node" ? p.data.name ?? "" : "" },
       series: [{
-        type: "graph", layout: "force", roam: true, draggable: true,
+        type: "graph", layout: this.layout, circular: { rotateLabel: true }, roam: true, draggable: true,
         categories: AREAS.map((area, i) => ({ name: kbAreaLabel(area), itemStyle: { color: colors[i] } })),
         force: { repulsion: nodes.length > 300 ? 60 : 140, edgeLength: [24, 90], gravity: 0.08, friction: 0.2 },
         emphasis: { focus: "adjacency", label: { show: true }, lineStyle: { width: 2 } },
@@ -118,10 +139,10 @@ class KbMapView extends KbView {
         data: nodes.map(node => ({
           id: node.id, name: node.name, value: node.size, category: AREAS.indexOf(node.area),
           symbol: node.kind === "project" ? "roundRect" : "circle", symbolSize: size(node),
-          label: { show: node.kind !== "note" || nodes.length < 60, fontWeight: node.kind === "topic" ? 600 : 400 },
-          itemStyle: { borderColor: background, borderWidth: node.kind === "note" ? 1 : 2, shadowBlur: node.kind === "topic" ? 22 : node.kind === "project" ? 12 : 4, shadowColor: halo(colors[Math.max(0, AREAS.indexOf(node.area))]) }
+          label: { show: node.kind !== "note" || nodes.length < 60, fontWeight: node.kind === "topic" || node.id === this.focus ? 600 : 400 },
+          itemStyle: { borderColor: node.id === this.focus ? text : background, borderWidth: node.id === this.focus ? 3 : node.kind === "note" ? 1 : 2, shadowBlur: node.kind === "topic" ? 22 : node.kind === "project" ? 12 : 4, shadowColor: halo(colors[Math.max(0, AREAS.indexOf(node.area))]) }
         })),
-        links: this.graph.edges.filter(edge => ids.has(edge.source) && ids.has(edge.target)).map(edge => ({
+        links: view.edges.filter(edge => ids.has(edge.source) && ids.has(edge.target)).map(edge => ({
           source: edge.source, target: edge.target,
           lineStyle: edge.kind === "member" ? { opacity: 0.22, width: 1 } : { opacity: 0.6, width: 1.6 }
         }))
@@ -133,8 +154,11 @@ class KbMapView extends KbView {
     const nodeOf = (params: { dataType?: string; data?: unknown }) => params.dataType === "node" ? this.graph.nodes.find(node => node.id === (params.data as { id: string }).id) : undefined;
     chart.on("click", params => {
       const node = nodeOf(params);
-      if (node?.kind === "topic" || node?.kind === "project") { this.selected = node.id; this.drawPanel(); }
+      if (!node) return;
+      if (node.kind === "topic" || node.kind === "project") { this.selected = node.id; this.drawPanel(); }
+      if (this.focus !== node.id) { this.focus = node.id; this.relayout(); }
     });
+    chart.getZr().on("click", event => { if (!event.target && this.focus) { this.focus = null; this.relayout(); } });
     chart.on("dblclick", params => {
       const node = nodeOf(params);
       if (!node) return;
@@ -142,6 +166,34 @@ class KbMapView extends KbView {
       if (path) openNote(this.plugin, path);
     });
     window.setTimeout(() => this.highlight(), 0);
+  }
+
+  /** Depth, layout and exit controls; depth and exit only show while a node is focused. */
+  private renderFocusBar() {
+    const bar = this.focusBar;
+    if (!bar) return;
+    bar.empty();
+    const focused = this.graph.nodes.find(node => node.id === this.focus);
+    if (focused) {
+      const exit = bar.createEl("button", { cls: "ig-kb-segment is-active", attr: { type: "button", "aria-label": tr("显示全部") } });
+      setIcon(exit, "lucide-x");
+      exit.createSpan({ text: focused.name });
+      exit.addEventListener("click", () => { this.focus = null; this.relayout(); });
+      for (const depth of [1, 2, 3]) {
+        const button = bar.createEl("button", { cls: "ig-kb-segment", text: tr("{n} 层", { n: depth }), attr: { type: "button" } });
+        button.toggleClass("is-active", depth === this.depth);
+        button.addEventListener("click", () => { this.depth = depth; this.relayout(); });
+      }
+    }
+    const layouts: { layout: "force" | "circular"; icon: string; label: string }[] = [
+      { layout: "force", icon: "lucide-orbit", label: tr("力导向布局") },
+      { layout: "circular", icon: "lucide-circle-dot-dashed", label: tr("环形布局") }
+    ];
+    for (const item of layouts) {
+      const button = kbIconButton(bar, item.icon, item.label, () => { this.layout = item.layout; this.relayout(); });
+      button.toggleClass("is-active", this.layout === item.layout);
+    }
+    kbIconButton(bar, "lucide-scan", tr("复位视图"), () => this.chart?.update());
   }
 
   private pageOf(folder: string): string | null {
@@ -154,7 +206,7 @@ class KbMapView extends KbView {
     chart.dispatchAction({ type: "downplay", seriesIndex: 0 });
     const ids = new Set(searchNodes(this.graph, this.query));
     if (!ids.size) return;
-    const dataIndex = this.graph.nodes.slice(0, this.shown).flatMap((node, i) => ids.has(node.id) ? [i] : []);
+    const dataIndex = this.view.nodes.slice(0, this.shown).flatMap((node, i) => ids.has(node.id) ? [i] : []);
     chart.dispatchAction({ type: "highlight", seriesIndex: 0, dataIndex });
   }
 

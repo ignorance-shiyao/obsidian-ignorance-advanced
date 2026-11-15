@@ -744,3 +744,6 @@ body.ib-hide-cats .ig-kb-section-body > .ig-kb-empty::before { content: none; }
 .ig-kb-row-action:hover, .ig-kb-row-action:focus-visible { background: color-mix(in srgb, var(--color-red) 14%, transparent); color: var(--color-red); }
 .ig-kb .ig-kb-action.mod-warning { background: var(--color-red); color: var(--text-on-accent); }
 @media (prefers-reduced-motion: reduce) { .ig-kb-row-action { transition: none; } }
+.ig-kb-focus-bar { gap: 10px; margin-bottom: 0; }
+.ig-kb .ig-kb-icon-btn.is-active { background: color-mix(in srgb, var(--ig-kb-accent) 14%, var(--background-primary)); color: var(--ig-kb-accent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ig-kb-accent) 40%, transparent); }
+.ig-kb-focus-bar .ig-kb-segment svg { width: 14px; height: 14px; }

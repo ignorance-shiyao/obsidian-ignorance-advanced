@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildNote, normalizeKbSettings } from "./kb-index-core.js";
-import { buildMapGraph, filterGraph, searchNodes, topicDigest } from "./kb-map-core.js";
+import { buildMapGraph, filterGraph, neighbourhood, searchNodes, topicDigest } from "./kb-map-core.js";
 
 const folders = normalizeKbSettings(undefined).folders;
 const note = (path: string, links: string[] = []) => buildNote({ path, ctime: 0, mtime: 0, size: 1, links: Object.fromEntries(links.map(l => [l, 1])) }, folders);
@@ -35,5 +35,25 @@ describe("knowledge map", () => {
   it("extracts the topic digest", () => {
     expect(topicDigest("---\na: 1\n---\n# T\n\n第一段 [[x|别名]]。\n\n第二段")).toBe("第一段 别名。");
     expect(topicDigest("# T\n\n开头\n\n## 提炼\n**要点**一\n要点二\n## 其他\n")).toBe("要点一 要点二");
+  });
+});
+
+describe("neighbourhood", () => {
+  const node = (id: string) => ({ id, name: id, kind: "topic" as const, area: "knowledge" as const, topic: id, path: null, size: 1 });
+  const graph = {
+    nodes: ["a", "b", "c", "d"].map(node),
+    edges: [{ source: "a", target: "b", kind: "link" as const }, { source: "c", target: "b", kind: "link" as const }, { source: "c", target: "d", kind: "link" as const }]
+  };
+  it("keeps the node and its direct neighbours at depth 1, reading links both ways", () => {
+    expect(neighbourhood(graph, "b", 1).nodes.map(n => n.id).sort()).toEqual(["a", "b", "c"]);
+  });
+  it("reaches further with a larger depth and keeps only edges inside", () => {
+    const wide = neighbourhood(graph, "a", 3);
+    expect(wide.nodes).toHaveLength(4);
+    expect(wide.edges).toHaveLength(3);
+    expect(neighbourhood(graph, "a", 1).edges).toHaveLength(1);
+  });
+  it("returns the whole graph for an unknown id", () => {
+    expect(neighbourhood(graph, "zzz", 1)).toBe(graph);
   });
 });
