@@ -93,9 +93,19 @@ export function markPageBreaks(root: HTMLElement) {
   }
 }
 
+/** Paged reading and exports show every tab member; only the `_^tab^_` marker line is hidden. */
+export function hideTabMarkers(root: HTMLElement) {
+  for (const paragraph of root.querySelectorAll<HTMLElement>("p")) {
+    if (paragraph.textContent?.trim() !== "tab" || !paragraph.querySelector("sup, rt")) continue;
+    paragraph.empty();
+    paragraph.setCssStyles({ display: "none" });
+  }
+}
+
 export function enhanceStaged(plugin: RenderingContext, root: HTMLElement, source: string, file: TFile) {
   removeUnpublished(root);
   markPageBreaks(root);
+  hideTabMarkers(root);
   const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
   if (wantsNumbers(plugin, frontmatter)) applyHeadingNumbers(plugin, root, source);
   if (wantsCaptions(plugin, frontmatter)) applyCaptions(root, source);

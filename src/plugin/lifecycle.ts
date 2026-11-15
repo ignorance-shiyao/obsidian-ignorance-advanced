@@ -14,6 +14,7 @@ import { installParagraphRoaming } from "../modules/paragraph-roaming.js";
 import { installContentViewer } from "../modules/content-viewer.js";
 import { installPageBreak } from "../modules/page-break.js";
 import { installInlineCodeCopy } from "../modules/inline-code-copy.js";
+import { installTabGroups } from "../modules/tab-groups.js";
 import { installProseExtras } from "../modules/prose-extras.js";
 import { installProseCompat } from "../modules/prose-compat.js";
 import { colorSwatchExtension,colorSwatchPostProcessor } from "../modules/color-swatch.js";
@@ -170,6 +171,7 @@ export async function onload(plugin: IgnorancePlugin) {
   installContentViewer(plugin);
   installPageBreak(plugin);
   installInlineCodeCopy(plugin);
+  installTabGroups(plugin);
   installProseExtras(plugin);
   installProseCompat(plugin);
   // Warming every diagram in the open note loads the 1 MB ECharts and 5 MB Mermaid engines in the
