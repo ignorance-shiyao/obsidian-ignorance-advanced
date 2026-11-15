@@ -1,6 +1,7 @@
 import type { EChartsType } from "echarts";
 import { buildEChartsTheme, echartsThemeName } from "./echarts-core.js";
 import type { EChartsThemeTokens } from "./echarts-core.js";
+import { wheelZoomFactor } from "./zoom-step-core.js";
 import { chartRendererFor, loadECharts, readThemeTokens } from "./echarts-renderer.js";
 
 /* One ECharts chart inside a knowledge view or block: the plugin's bundled engine and theme,
@@ -42,7 +43,32 @@ export function mountKbChart(host: HTMLElement, build: (tokens: EChartsThemeToke
     handle.chart.setOption({ animation: renderer() === "canvas", ...option }, true);
   }
 
+  /* ECharts zooms a graph by a fixed 10% per wheel event and a time axis by a large share of its range, so a mouse
+     wheel jumps too far. The wheel is taken over here and zoomed with the shared step instead. */
+  const onWheel = (event: WheelEvent) => {
+    const chart = handle.chart;
+    if (!chart || chart.isDisposed()) return;
+    const option = chart.getOption() as { series?: { type?: string; roam?: unknown }[]; dataZoom?: { type?: string; startValue?: number; endValue?: number }[] };
+    const rect = host.getBoundingClientRect();
+    const x = event.clientX - rect.left, y = event.clientY - rect.top;
+    const factor = wheelZoomFactor(event.deltaY);
+    const graph = option.series?.findIndex(item => item.type === "graph" && item.roam);
+    if (graph !== undefined && graph >= 0) {
+      event.preventDefault(); event.stopPropagation();
+      chart.dispatchAction({ type: "graphRoam", seriesIndex: graph, zoom: factor, originX: x, originY: y });
+      return;
+    }
+    const zoom = option.dataZoom?.find(item => item.type === "inside" && item.startValue !== undefined && item.endValue !== undefined);
+    if (!zoom || zoom.startValue === undefined || zoom.endValue === undefined) return;
+    const pivot = Number(chart.convertFromPixel({ xAxisIndex: 0 }, x));
+    if (!Number.isFinite(pivot)) return;
+    event.preventDefault(); event.stopPropagation();
+    chart.dispatchAction({ type: "dataZoom", startValue: pivot - (pivot - zoom.startValue) / factor, endValue: pivot + (zoom.endValue - pivot) / factor });
+  };
+  host.addEventListener("wheel", onWheel, { capture: true, passive: false });
+
   function dispose() {
+    host.removeEventListener("wheel", onWheel, { capture: true });
     disposed = true;
     observer?.disconnect();
     host.doc.removeEventListener("css-change-kb", onCss);

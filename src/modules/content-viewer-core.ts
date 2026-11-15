@@ -22,9 +22,9 @@ export function zoomAt(view: View, factor: number, cx: number, cy: number): View
   return { scale, x: cx - (cx - view.x) * ratio, y: cy - (cy - view.y) * ratio };
 }
 
-/** Wheel deltas become a smooth factor; one notch (about 100) is roughly 10%. */
+/** Wheel deltas become a smooth factor; one notch (about 100) is roughly 5%. */
 export function wheelFactor(deltaY: number): number {
-  return Math.exp(-deltaY * 0.001);
+  return Math.exp(-deltaY * 0.0005);
 }
 
 /** Next or previous index in the list, stopping at the ends. */

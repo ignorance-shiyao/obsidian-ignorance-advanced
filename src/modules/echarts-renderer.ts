@@ -11,6 +11,7 @@ import { buildEChartsTheme, echartsThemeName, normalizeEChartsOption, parseEChar
 import { graphPixelBounds, fitDefaultGraph } from "./echarts-graph.js";
 import type { GraphChart } from "./echarts-graph.js";
 import { setMarkup } from "./dom-markup.js";
+import { wheelZoomFactor } from "./zoom-step-core.js";
 
 type EChartsModule = typeof import("echarts");
 type ChartRenderer = "canvas" | "svg";
@@ -192,8 +193,7 @@ function renderEChartsBlock(plugin: IgnorancePlugin, source: string, element: HT
   viewport.addEventListener("wheel", event => {
     if (!(event.ctrlKey || event.metaKey)) return;
     event.preventDefault();
-    const step = Math.min(.06, Math.abs(event.deltaY) * .0016);
-    setZoom(zoom * (event.deltaY < 0 ? 1 + step : 1 - step), { x: event.clientX, y: event.clientY });
+    setZoom(zoom * wheelZoomFactor(event.deltaY), { x: event.clientX, y: event.clientY });
   }, { passive: false });
 
   const component = new MarkdownRenderChild(element);

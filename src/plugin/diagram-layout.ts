@@ -1,3 +1,4 @@
+import { wheelZoomFactor } from "../modules/zoom-step-core.js";
 import { enhancementOn } from "../modules/enhancement-gate.js";
 import { controlScale } from "../modules/control-geometry.js";
 import { markContext } from "../modules/context-markers.js";
@@ -301,9 +302,7 @@ export function enhanceDiagram(plugin: IgnorancePlugin, container: HTMLElement) 
       event.preventDefault();
       // A trackpad fires many notches per swipe, so keep each one small and
       // scale it with the reported delta rather than using a fixed step.
-      const step = Math.min(0.06, Math.abs(event.deltaY) * 0.0016);
-      const factor = event.deltaY < 0 ? 1 + step : 1 - step;
-      zoomAt(state.scale * factor, event.clientX, event.clientY);
+      zoomAt(state.scale * wheelZoomFactor(event.deltaY), event.clientX, event.clientY);
       return;
     }
     // Sideways swipe pans; vertical stays with the page.

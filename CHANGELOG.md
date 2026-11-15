@@ -10,6 +10,7 @@ Knowledge base: one "Knowledge base" ribbon icon and one command; the views swit
 Knowledge base filter chips stay readable on hover and when selected (tinted fill, accent text); the map links take their node colour, nodes get a soft halo, and the timeline has pill legends and dashed grid lines.
 Knowledge base charts are measured on the panel content box, so the heatmap, timeline and map are no longer clipped at the edge or bottom. All pill controls share one size and set of states, and the clip title in the inbox is a plain link.
 Note check: empty notes can be deleted one by one (trash icon) or all at once after a confirmation; each note is re-read first and only a note with nothing but properties is removed, using your deletion preference.
+Chart zoom steps are smaller everywhere: a mouse wheel notch is 3% (diagrams, chart blocks, the content viewer, and the knowledge map and timeline), so one scroll no longer throws the view away.
 Quotes are a rounded card with a soft quote mark, in Reading view, Live Preview, the reader and slides; no component draws a side rail any more.
 "Collapse long content" (was "Collapse long code blocks") also folds quotes over 600 characters or 8 paragraphs and tables over 15 rows. The toggle is a small round chevron that turns over when open. Paged reading now folds too (opening a block lays the pages out again), and shows the note cover and the closing mark.
 After jumping within a note (heading, block or footnote link), a round button in the corner takes you back to where you were.
