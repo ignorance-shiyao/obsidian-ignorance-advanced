@@ -3804,3 +3804,9 @@ body.ib-hide-cats .ib-cats-tail { display: none; }
 .markdown-rendered a:is([href$=".doc" i], [href$=".docx" i]) { --ib-file-c: var(--color-blue); }
 .markdown-rendered a:is([href$=".xls" i], [href$=".xlsx" i], [href$=".csv" i]) { --ib-file-c: var(--color-green); }
 .markdown-rendered a:is([href$=".ppt" i], [href$=".pptx" i]) { --ib-file-c: var(--color-orange); }
+
+/* Link buttons: `[<kbd>Go</kbd>](url)` */
+.markdown-rendered a.ib-link-button:not(#_ib) { background-image: none; padding-inline-end: 0; text-decoration: none; }
+.markdown-rendered a.ib-link-button:not(#_ib)::after { content: none; }
+.markdown-rendered a.ib-link-button > kbd:not(#_ib) { display: inline-block; padding: .3em 1em; border: 1px solid var(--ib-accent-brand); border-radius: 999px; background: var(--ib-accent-subtle); color: var(--ib-accent-brand); box-shadow: none; font: 600 var(--ib-small-size) / 1.4 var(--ib-font-sans); transition: background-color .15s, color .15s; }
+.markdown-rendered a.ib-link-button:hover > kbd:not(#_ib) { background: var(--ib-accent-brand); color: var(--ib-bg-primary); }
