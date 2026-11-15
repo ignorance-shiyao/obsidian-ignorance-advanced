@@ -3851,3 +3851,8 @@ p.ib-page-break-mark:not(#_ib) { display: flex; align-items: center; gap: var(--
 p.ib-page-break-mark:not(#_ib)::before, p.ib-page-break-mark:not(#_ib)::after { content: ""; flex: 1; border-top: 1.5px dashed var(--ib-border-default, var(--background-modifier-border)); }
 .ib-page-break-mark__icon svg { width: 16px; height: 16px; }
 @media print { p.ib-page-break-mark:not(#_ib) { page-break-after: always; visibility: hidden; margin: 0; height: 0; } }
+
+/* Inline code copies on click in Reading view; the flash is the confirmation. */
+.markdown-reading-view .markdown-preview-view :not(pre) > code:not(#_ib) { cursor: copy; transition: background-color var(--ib-duration-fast, .15s) ease, color var(--ib-duration-fast, .15s) ease; }
+.markdown-reading-view .markdown-preview-view :not(pre) > code.is-copied:not(#_ib) { background-color: var(--ib-success-subtle, color-mix(in srgb, var(--color-green) 22%, transparent)); color: var(--ib-success, var(--color-green)); }
+@media (prefers-reduced-motion: reduce) { .markdown-reading-view .markdown-preview-view :not(pre) > code:not(#_ib) { transition: none; } }
