@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.0.25
+
 Palette and light / dark menu is also a ribbon icon and command on desktop, so it stays reachable when the vault-profile buttons are not shown.
 Column cards for quotes and lists cycle through six palette hues with tinted surfaces, hue-matched borders and a soft lift on hover; tab bars tint each tab by content type (table, code, image, quote).
 Knowledge base home: tiles, bars and product cards cycle through palette hues with tinted surfaces and a gradient fill; warning tiles keep their own colour.
