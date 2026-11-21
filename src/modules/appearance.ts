@@ -264,8 +264,9 @@ function installAppearanceControls(plugin: IgnorancePlugin) {
   };
 
   plugin.addCommand({ id: "theme-and-palette", name: tr("主题明暗与配色"), icon: "lucide-palette", callback: () => openThemeMenu(null) });
+  // Desktop also gets a ribbon icon: the vault-profile buttons are the only other entry and can be missing.
+  const ribbon = plugin.addRibbonIcon("lucide-palette", tr("主题明暗与配色"), openThemeMenu);
   if (Platform.isMobile) {
-    const ribbon = plugin.addRibbonIcon("lucide-palette", tr("主题明暗与配色"), openThemeMenu);
     ribbon.addClass("ibm-mobile-theme-button");
     plugin.registerEvent(app.workspace.on("file-menu", (menu, file, source) => {
       if (source !== "more-options") return;

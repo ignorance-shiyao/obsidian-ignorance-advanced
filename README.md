@@ -17,7 +17,7 @@
 
 ## Palettes: eight, one click
 
-Choose Azure, Pine, Book, Graphite, Terracotta, Teal, Wisteria or Amber in the plugin settings, each tuned for light and dark.
+Choose Azure, Pine, Book, Graphite, Terracotta, Teal, Wisteria or Amber from the palette button at the bottom left, the ribbon icon, or the command *Theme light / dark and colours*, each tuned for light and dark.
 
 <div align="center">
 <img src="docs/assets/palettes-light.gif" alt="Switching palettes in light mode (screen recording)" width="400"> <img src="docs/assets/palettes-dark.gif" alt="Switching palettes in dark mode (screen recording)" width="400">
